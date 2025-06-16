@@ -8,7 +8,7 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 - **OpenEvolve**: An evolutionary framework for program optimization that uses a MAP-Elites process to maintain diversity, comprehensive checkpointing, and a sophisticated database system to track program versions and their performance metrics.
 
-- **DGM (Dynamic Genetic Model)**: Implements a Darwinian approach to code improvement using language models (Claude-3.5-Sonnet and O3-mini) to progressively enhance code quality through multiple generations. DGM maintains an archive of successful improvements and uses sophisticated selection mechanisms to guide evolution.
+- **DGM (Darwin Godel Machine)**: Implements a Darwinian approach to code improvement using language models to progressively enhance code quality through multiple generations. DGM maintains an archive of successful improvements and uses sophisticated selection mechanisms to guide evolution.
 
 ## Technical Architecture
 

@@ -54,7 +54,7 @@ The system addresses the challenge of creating AI systems that can not only solv
 # Technical Architecture  
 
 ## System Components
-1. **DGM (Dynamic Genetic Model)**
+1. **DGM (Darwin Godel Machine)**
    - `DGM_outer.py`: Orchestrates evolution process across generations
      - Core Classes: `EvolutionManager`, `GenerationController`, `CandidateSelector`
      - Key Methods: `initialize_run()`, `choose_selfimproves()`, `update_archive()`, `filter_compiled()`
