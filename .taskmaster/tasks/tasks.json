@@ -1,143 +1,812 @@
 {
-  "master": {
-    "tasks": [
-      {
-        "id": 1,
-        "title": "Setup Development Environment and Project Structure",
-        "description": "Set up the initial project repository with the core structure for DGM, OpenEvolve, and SEAL components, including configuration management and dependency setup.",
-        "details": "1. Create a Git repository with the following structure:\n   - `/dgm/` - For DGM component\n   - `/openevolve/` - For OpenEvolve component\n   - `/seal/` - For SEAL component\n   - `/integration/` - For integration layer\n   - `/config/` - For configuration files\n   - `/tests/` - For test framework\n\n2. Set up basic configuration management:\n   - Create YAML configuration templates\n   - Implement environment variable handling for API keys\n   - Add configuration validation utilities\n\n3. Setup dependency management:\n   - Create requirements.txt or pyproject.toml\n   - Include essential libraries: GitPython, PyYAML, requests (for API calls)\n   - Setup virtual environment configuration\n\n4. Implement basic logging framework:\n   - Configure structured logging\n   - Add log rotation and level configuration\n\n5. Create initial documentation:\n   - README with setup instructions\n   - Component architecture overview\n   - Development guidelines",
-        "testStrategy": "1. Verify project structure is correctly set up\n2. Ensure all dependencies can be installed in a clean environment\n3. Validate configuration loading and validation works\n4. Test logging functionality across components\n5. Verify documentation is accurate and complete",
-        "priority": "high",
-        "dependencies": [],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 2,
-        "title": "Implement Base Integration Layer",
-        "description": "Create the core integration framework that enables communication between DGM, OpenEvolve, and SEAL components through standardized interfaces.",
-        "details": "1. Implement `WorkflowEngine` class:\n```python\nclass WorkflowEngine:\n    def __init__(self, config):\n        self.config = config\n        self.components = {}\n        self.event_handlers = {}\n    \n    def register_component(self, name, component):\n        self.components[name] = component\n    \n    def register_event_handler(self, event_type, handler):\n        if event_type not in self.event_handlers:\n            self.event_handlers[event_type] = []\n        self.event_handlers[event_type].append(handler)\n    \n    def trigger_event(self, event_type, data):\n        if event_type in self.event_handlers:\n            for handler in self.event_handlers[event_type]:\n                handler(data)\n    \n    def execute_workflow(self, workflow_name):\n        # Implement synchronous workflow execution\n        pass\n```\n\n2. Define standard JSON schemas for cross-component communication:\n   - Create schema definitions for code changes, evaluation results, and configuration\n   - Implement validation utilities for these schemas\n\n3. Implement basic communication patterns:\n   - Request-response pattern between components\n   - Event-based notifications for workflow stages\n\n4. Add error handling mechanisms:\n   - Standardized error types\n   - Error propagation across component boundaries\n   - Basic retry logic for transient failures",
-        "testStrategy": "1. Unit tests for WorkflowEngine class methods\n2. Integration tests for component registration and communication\n3. Schema validation tests with valid and invalid data\n4. Error handling tests with simulated failures\n5. End-to-end test of a simple workflow across components",
-        "priority": "high",
-        "dependencies": [
-          1
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 3,
-        "title": "Implement Minimal Data Models",
-        "description": "Create the essential data models for code archive, evaluation results, and system configuration that will be shared across all components.",
-        "details": "1. Implement Code Archive model:\n```python\nclass CodeVersion:\n    def __init__(self, version_id, parent_id, timestamp, changes):\n        self.version_id = version_id\n        self.parent_id = parent_id\n        self.timestamp = timestamp\n        self.changes = changes  # Dictionary of file paths to content changes\n    \n    def to_dict(self):\n        return {\n            'version_id': self.version_id,\n            'parent_id': self.parent_id,\n            'timestamp': self.timestamp.isoformat(),\n            'changes': self.changes\n        }\n    \n    @classmethod\n    def from_dict(cls, data):\n        return cls(\n            version_id=data['version_id'],\n            parent_id=data['parent_id'],\n            timestamp=datetime.fromisoformat(data['timestamp']),\n            changes=data['changes']\n        )\n```\n\n2. Implement Evaluation Results model:\n```python\nclass EvaluationResult:\n    def __init__(self, test_id, status, metrics):\n        self.test_id = test_id\n        self.status = status  # 'pass', 'fail', 'error'\n        self.metrics = metrics  # Dictionary of metric names to values\n    \n    def to_dict(self):\n        return {\n            'test_id': self.test_id,\n            'status': self.status,\n            'metrics': self.metrics\n        }\n    \n    @classmethod\n    def from_dict(cls, data):\n        return cls(\n            test_id=data['test_id'],\n            status=data['status'],\n            metrics=data['metrics']\n        )\n```\n\n3. Implement System Configuration model with YAML support:\n```python\nclass SystemConfig:\n    def __init__(self, config_dict):\n        self.config = config_dict\n    \n    def get(self, key, default=None):\n        # Support dot notation for nested keys\n        parts = key.split('.')\n        current = self.config\n        for part in parts:\n            if part not in current:\n                return default\n            current = current[part]\n        return current\n    \n    def validate(self):\n        # Basic validation of required configuration\n        required_keys = ['dgm', 'openevolve', 'seal', 'integration']\n        for key in required_keys:\n            if key not in self.config:\n                raise ValueError(f\"Missing required configuration section: {key}\")\n        return True\n    \n    @classmethod\n    def from_yaml(cls, yaml_path):\n        with open(yaml_path, 'r') as f:\n            config_dict = yaml.safe_load(f)\n        return cls(config_dict)\n```\n\n4. Create Git-compatible storage utilities:\n   - Implement functions to convert between models and Git objects\n   - Add utilities for serializing/deserializing models to/from JSON",
-        "testStrategy": "1. Unit tests for all model classes\n2. Serialization/deserialization tests for each model\n3. Validation tests for configuration model\n4. Integration tests with Git storage\n5. Test compatibility with the integration layer",
-        "priority": "high",
-        "dependencies": [
-          2
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 4,
-        "title": "Implement DGM Core Components",
-        "description": "Develop the core DGM components including EvolutionManager, AgenticSystem, and LLM integration for code analysis and evolution orchestration.",
-        "details": "1. Implement `EvolutionManager` in `DGM_outer.py`:\n```python\nclass EvolutionManager:\n    def __init__(self, config):\n        self.config = config\n        self.archive = []  # Will store CodeVersion objects\n        self.current_version = None\n    \n    def initialize_run(self, repository_path):\n        # Initialize a new evolution run with the given repository\n        self.repository_path = repository_path\n        # Create initial version from repository state\n        initial_state = self._capture_repository_state()\n        self.current_version = CodeVersion(\n            version_id=1,\n            parent_id=None,\n            timestamp=datetime.now(),\n            changes=initial_state\n        )\n        self.archive.append(self.current_version)\n        return self.current_version\n    \n    def update_archive(self, new_version):\n        # Add a new version to the archive\n        new_version.parent_id = self.current_version.version_id\n        new_version.version_id = len(self.archive) + 1\n        self.archive.append(new_version)\n        self.current_version = new_version\n        return new_version\n    \n    def _capture_repository_state(self):\n        # Capture the current state of the repository\n        # Returns a dictionary of file paths to content\n        pass\n```\n\n2. Implement `AgenticSystem` in `coding_agent.py`:\n```python\nclass AgenticSystem:\n    def __init__(self, llm_interface):\n        self.llm = llm_interface\n    \n    def analyze_repository(self, repository_path):\n        # Analyze the repository structure and content\n        repo_structure = self._get_repository_structure(repository_path)\n        return self.llm.generate_analysis(repo_structure)\n    \n    def generate_improvements(self, repository_path, analysis):\n        # Generate code improvements based on analysis\n        current_code = self._get_repository_content(repository_path)\n        return self.llm.generate_improvements(current_code, analysis)\n    \n    def _get_repository_structure(self, repository_path):\n        # Extract repository structure (files, directories)\n        pass\n    \n    def _get_repository_content(self, repository_path):\n        # Extract content of relevant files\n        pass\n```\n\n3. Implement `LLMInterface` in `llm_withtools.py`:\n```python\nclass LLMInterface:\n    def __init__(self, config):\n        self.config = config\n        self.model = config.get('model', 'gpt-4')  # Default to GPT-4\n        self.api_key = os.environ.get('OPENAI_API_KEY') or config.get('api_key')\n        if not self.api_key:\n            raise ValueError(\"API key not provided\")\n    \n    def generate_analysis(self, repo_structure):\n        # Generate repository analysis using LLM\n        prompt = self._create_analysis_prompt(repo_structure)\n        return self._call_llm(prompt)\n    \n    def generate_improvements(self, current_code, analysis):\n        # Generate code improvements using LLM\n        prompt = self._create_improvement_prompt(current_code, analysis)\n        return self._call_llm(prompt)\n    \n    def _create_analysis_prompt(self, repo_structure):\n        # Create prompt for repository analysis\n        pass\n    \n    def _create_improvement_prompt(self, current_code, analysis):\n        # Create prompt for code improvement\n        pass\n    \n    def _call_llm(self, prompt):\n        # Make API call to the LLM provider\n        if 'gpt' in self.model:\n            return self._call_openai(prompt)\n        elif 'claude' in self.model:\n            return self._call_anthropic(prompt)\n        else:\n            raise ValueError(f\"Unsupported model: {self.model}\")\n    \n    def _call_openai(self, prompt):\n        # Call OpenAI API\n        pass\n    \n    def _call_anthropic(self, prompt):\n        # Call Anthropic API\n        pass\n```\n\n4. Implement basic prompt templates for code analysis and improvement",
-        "testStrategy": "1. Unit tests for EvolutionManager, AgenticSystem, and LLMInterface\n2. Mock LLM API responses for testing\n3. Test repository analysis with sample repositories\n4. Test code improvement generation with sample code\n5. Integration test of the full DGM pipeline",
-        "priority": "medium",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 5,
-        "title": "Implement OpenEvolve Core Components",
-        "description": "Develop the core OpenEvolve components including Controller, Evaluator, Database, and CLI for evolution control and evaluation.",
-        "details": "1. Implement `OpenEvolve` controller in `controller.py`:\n```python\nclass OpenEvolve:\n    def __init__(self, config):\n        self.config = config\n        self.evaluator = Evaluator(config)\n        self.database = VersionDatabase(config)\n        self.current_generation = 0\n    \n    def initialize(self, initial_code):\n        # Initialize the evolution process\n        self.current_generation = 0\n        version_id = self.database.store_version(initial_code, None)\n        return version_id\n    \n    def evaluate(self, version_id):\n        # Evaluate a specific version\n        version = self.database.get_version(version_id)\n        results = self.evaluator.evaluate(version)\n        self.database.store_evaluation(version_id, results)\n        return results\n    \n    def select(self, candidates):\n        # Select the best version from candidates\n        evaluations = [self.database.get_evaluation(c) for c in candidates]\n        best_idx = self._find_best_candidate(evaluations)\n        return candidates[best_idx] if best_idx is not None else None\n    \n    def _find_best_candidate(self, evaluations):\n        # Find the best candidate based on evaluation metrics\n        if not evaluations:\n            return None\n        # Simple selection based on correctness and efficiency\n        scores = []\n        for eval in evaluations:\n            correctness = eval.metrics.get('correctness', 0)\n            efficiency = eval.metrics.get('efficiency', 0)\n            scores.append(correctness * 0.7 + efficiency * 0.3)  # Weighted score\n        return scores.index(max(scores)) if scores else None\n```\n\n2. Implement `Evaluator` in `evaluator.py`:\n```python\nclass Evaluator:\n    def __init__(self, config):\n        self.config = config\n        self.test_runner = TestRunner(config)\n    \n    def evaluate(self, version):\n        # Evaluate a version based on correctness and efficiency\n        test_results = self.test_runner.run_tests(version)\n        metrics = self._calculate_metrics(test_results)\n        return EvaluationResult(\n            test_id=str(uuid.uuid4()),\n            status='pass' if all(r['status'] == 'pass' for r in test_results) else 'fail',\n            metrics=metrics\n        )\n    \n    def _calculate_metrics(self, test_results):\n        # Calculate metrics from test results\n        correctness = sum(1 for r in test_results if r['status'] == 'pass') / len(test_results) if test_results else 0\n        # Simple efficiency metric based on execution time\n        execution_times = [r.get('execution_time', 0) for r in test_results if r['status'] == 'pass']\n        efficiency = 1.0 / (sum(execution_times) / len(execution_times)) if execution_times else 0\n        return {\n            'correctness': correctness,\n            'efficiency': efficiency\n        }\n\nclass TestRunner:\n    def __init__(self, config):\n        self.config = config\n    \n    def run_tests(self, version):\n        # Run tests on the given version\n        # Returns list of test results\n        pass\n```\n\n3. Implement `VersionDatabase` in `database.py`:\n```python\nclass VersionDatabase:\n    def __init__(self, config):\n        self.config = config\n        self.storage_path = config.get('storage_path', './versions')\n        os.makedirs(self.storage_path, exist_ok=True)\n        self.versions = {}  # version_id -> CodeVersion\n        self.evaluations = {}  # version_id -> EvaluationResult\n    \n    def store_version(self, code_version, parent_id=None):\n        # Store a new version\n        if isinstance(code_version, dict):\n            code_version = CodeVersion.from_dict(code_version)\n        if parent_id is not None:\n            code_version.parent_id = parent_id\n        version_id = code_version.version_id or str(uuid.uuid4())\n        code_version.version_id = version_id\n        self.versions[version_id] = code_version\n        self._persist_version(code_version)\n        return version_id\n    \n    def get_version(self, version_id):\n        # Retrieve a version by ID\n        if version_id in self.versions:\n            return self.versions[version_id]\n        # Try to load from storage\n        version = self._load_version(version_id)\n        if version:\n            self.versions[version_id] = version\n        return version\n    \n    def store_evaluation(self, version_id, evaluation):\n        # Store evaluation results for a version\n        if isinstance(evaluation, dict):\n            evaluation = EvaluationResult.from_dict(evaluation)\n        self.evaluations[version_id] = evaluation\n        self._persist_evaluation(version_id, evaluation)\n        return evaluation.test_id\n    \n    def get_evaluation(self, version_id):\n        # Retrieve evaluation results for a version\n        if version_id in self.evaluations:\n            return self.evaluations[version_id]\n        # Try to load from storage\n        evaluation = self._load_evaluation(version_id)\n        if evaluation:\n            self.evaluations[version_id] = evaluation\n        return evaluation\n    \n    def _persist_version(self, version):\n        # Save version to storage\n        pass\n    \n    def _load_version(self, version_id):\n        # Load version from storage\n        pass\n    \n    def _persist_evaluation(self, version_id, evaluation):\n        # Save evaluation to storage\n        pass\n    \n    def _load_evaluation(self, version_id):\n        # Load evaluation from storage\n        pass\n```\n\n4. Implement `CLI` in `cli.py`:\n```python\nclass CLI:\n    def __init__(self):\n        self.config = None\n        self.openevolve = None\n    \n    def setup(self, config_path):\n        # Load configuration and initialize OpenEvolve\n        self.config = SystemConfig.from_yaml(config_path)\n        self.openevolve = OpenEvolve(self.config)\n    \n    def evolve(self, initial_code_path, generations=5):\n        # Run evolution process for specified generations\n        with open(initial_code_path, 'r') as f:\n            initial_code = f.read()\n        version_id = self.openevolve.initialize({\n            'version_id': None,\n            'parent_id': None,\n            'timestamp': datetime.now().isoformat(),\n            'changes': {'main.py': initial_code}\n        })\n        current_id = version_id\n        for gen in range(generations):\n            # Generate variations (would connect to DGM here)\n            # For now, just evaluate the current version\n            results = self.openevolve.evaluate(current_id)\n            print(f\"Generation {gen}: {results.status}, metrics: {results.metrics}\")\n        return current_id\n    \n    def evaluate(self, version_id):\n        # Evaluate a specific version\n        results = self.openevolve.evaluate(version_id)\n        print(f\"Evaluation: {results.status}, metrics: {results.metrics}\")\n        return results\n```",
-        "testStrategy": "1. Unit tests for OpenEvolve, Evaluator, VersionDatabase, and CLI classes\n2. Test version storage and retrieval\n3. Test evaluation metrics calculation\n4. Test selection algorithm with different candidate sets\n5. Integration test of the full OpenEvolve pipeline\n6. CLI command tests with sample inputs",
-        "priority": "medium",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 6,
-        "title": "Implement SEAL Basic Components",
-        "description": "Develop the core SEAL components including FewShotLearner for knowledge incorporation and self-edit generation.",
-        "details": "1. Implement `FewShotLearner` in `few-shot/learner.py`:\n```python\nclass FewShotLearner:\n    def __init__(self, config, llm_interface):\n        self.config = config\n        self.llm = llm_interface\n        self.examples = []  # List of (input, output) pairs\n    \n    def add_example(self, input_text, output_text):\n        # Add a new example to the learner\n        self.examples.append((input_text, output_text))\n    \n    def load_examples_from_directory(self, directory_path):\n        # Load examples from files in a directory\n        for filename in os.listdir(directory_path):\n            if filename.endswith('.json'):\n                with open(os.path.join(directory_path, filename), 'r') as f:\n                    example = json.load(f)\n                    self.add_example(example['input'], example['output'])\n        return len(self.examples)\n    \n    def generate(self, input_text, num_examples=3):\n        # Generate output based on few-shot examples\n        selected_examples = self._select_relevant_examples(input_text, num_examples)\n        prompt = self._create_few_shot_prompt(input_text, selected_examples)\n        return self.llm.generate(prompt)\n    \n    def _select_relevant_examples(self, input_text, num_examples):\n        # Select the most relevant examples for the input\n        if len(self.examples) <= num_examples:\n            return self.examples\n        # Simple relevance scoring based on token overlap\n        input_tokens = set(input_text.lower().split())\n        scores = []\n        for ex_input, ex_output in self.examples:\n            ex_tokens = set(ex_input.lower().split())\n            overlap = len(input_tokens.intersection(ex_tokens))\n            scores.append(overlap / len(input_tokens) if input_tokens else 0)\n        # Select top examples by score\n        indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:num_examples]\n        return [self.examples[i] for i in indices]\n    \n    def _create_few_shot_prompt(self, input_text, examples):\n        # Create a prompt with few-shot examples\n        prompt = \"Given the following examples, perform a similar transformation:\\n\\n\"\n        for i, (ex_input, ex_output) in enumerate(examples):\n            prompt += f\"Example {i+1}:\\nInput: {ex_input}\\nOutput: {ex_output}\\n\\n\"\n        prompt += f\"Now, transform the following input:\\n{input_text}\\n\"\n        return prompt\n```\n\n2. Implement basic knowledge incorporation in `knowledge.py`:\n```python\nclass KnowledgeBase:\n    def __init__(self, config):\n        self.config = config\n        self.knowledge = {}  # topic -> content\n    \n    def add_knowledge(self, topic, content):\n        # Add or update knowledge on a topic\n        self.knowledge[topic] = content\n    \n    def load_knowledge_from_directory(self, directory_path):\n        # Load knowledge from files in a directory\n        for filename in os.listdir(directory_path):\n            if filename.endswith('.md') or filename.endswith('.txt'):\n                topic = os.path.splitext(filename)[0]\n                with open(os.path.join(directory_path, filename), 'r') as f:\n                    content = f.read()\n                    self.add_knowledge(topic, content)\n        return len(self.knowledge)\n    \n    def get_relevant_knowledge(self, query, max_items=3):\n        # Get knowledge relevant to the query\n        if not self.knowledge:\n            return []\n        # Simple relevance scoring based on token overlap\n        query_tokens = set(query.lower().split())\n        scores = {}\n        for topic, content in self.knowledge.items():\n            topic_tokens = set(topic.lower().split())\n            content_sample = ' '.join(content.split()[:100])  # Use first 100 words for matching\n            content_tokens = set(content_sample.lower().split())\n            all_tokens = topic_tokens.union(content_tokens)\n            overlap = len(query_tokens.intersection(all_tokens))\n            scores[topic] = overlap / len(query_tokens) if query_tokens else 0\n        # Select top topics by score\n        sorted_topics = sorted(scores.keys(), key=lambda t: scores[t], reverse=True)[:max_items]\n        return [(topic, self.knowledge[topic]) for topic in sorted_topics]\n```\n\n3. Implement self-edit generation in `self_edit.py`:\n```python\nclass SelfEditor:\n    def __init__(self, config, llm_interface):\n        self.config = config\n        self.llm = llm_interface\n        self.knowledge_base = KnowledgeBase(config)\n    \n    def generate_edits(self, code, description):\n        # Generate self-edits based on code and description\n        relevant_knowledge = self.knowledge_base.get_relevant_knowledge(description)\n        prompt = self._create_edit_prompt(code, description, relevant_knowledge)\n        return self.llm.generate(prompt)\n    \n    def _create_edit_prompt(self, code, description, relevant_knowledge):\n        # Create a prompt for generating edits\n        prompt = f\"Given the following code and the description of desired changes, generate an improved version of the code.\\n\\n\"\n        prompt += f\"Code:\\n```\\n{code}\\n```\\n\\n\"\n        prompt += f\"Desired changes: {description}\\n\\n\"\n        if relevant_knowledge:\n            prompt += \"Relevant knowledge to consider:\\n\"\n            for topic, content in relevant_knowledge:\n                prompt += f\"--- {topic} ---\\n{content[:500]}...\\n\\n\"  # Truncate long content\n        prompt += \"Generate the improved code:\\n```\\n\"\n        return prompt\n```",
-        "testStrategy": "1. Unit tests for FewShotLearner, KnowledgeBase, and SelfEditor classes\n2. Test example selection with various inputs\n3. Test knowledge retrieval with different queries\n4. Test prompt generation for different scenarios\n5. Integration test with mock LLM responses\n6. Test with sample code and edit descriptions",
-        "priority": "medium",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 7,
-        "title": "Implement Version Control Integration",
-        "description": "Create the Git repository interface for code version management, including operations for cloning, pulling, committing, and pushing changes.",
-        "details": "1. Implement `GitInterface` class:\n```python\nclass GitInterface:\n    def __init__(self, config):\n        self.config = config\n        self.repo = None\n    \n    def clone(self, repository_url, target_path):\n        # Clone a repository to the target path\n        try:\n            self.repo = git.Repo.clone_from(repository_url, target_path)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to clone repository: {e}\")\n            return False\n    \n    def open(self, repository_path):\n        # Open an existing repository\n        try:\n            self.repo = git.Repo(repository_path)\n            return True\n        except git.InvalidGitRepositoryError:\n            logging.error(f\"{repository_path} is not a valid Git repository\")\n            return False\n    \n    def pull(self, remote='origin', branch='main'):\n        # Pull changes from remote\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            self.repo.remotes[remote].pull(branch)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to pull changes: {e}\")\n            return False\n    \n    def commit(self, message, files=None):\n        # Commit changes to the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            if files:\n                self.repo.index.add(files)\n            else:\n                self.repo.git.add(A=True)  # Add all changes\n            self.repo.index.commit(message)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to commit changes: {e}\")\n            return False\n    \n    def push(self, remote='origin', branch='main'):\n        # Push changes to remote\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            self.repo.remotes[remote].push(branch)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to push changes: {e}\")\n            return False\n    \n    def get_file_content(self, file_path):\n        # Get content of a file in the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            with open(os.path.join(self.repo.working_dir, file_path), 'r') as f:\n                return f.read()\n        except FileNotFoundError:\n            logging.error(f\"File not found: {file_path}\")\n            return None\n    \n    def write_file_content(self, file_path, content):\n        # Write content to a file in the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            full_path = os.path.join(self.repo.working_dir, file_path)\n            os.makedirs(os.path.dirname(full_path), exist_ok=True)\n            with open(full_path, 'w') as f:\n                f.write(content)\n            return True\n        except Exception as e:\n            logging.error(f\"Failed to write file: {e}\")\n            return False\n    \n    def get_repository_structure(self):\n        # Get the structure of the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        structure = {}\n        for root, dirs, files in os.walk(self.repo.working_dir):\n            # Skip .git directory\n            if '.git' in dirs:\n                dirs.remove('.git')\n            rel_path = os.path.relpath(root, self.repo.working_dir)\n            if rel_path == '.':\n                rel_path = ''\n            current = structure\n            if rel_path:\n                parts = rel_path.split(os.sep)\n                for part in parts:\n                    if part not in current:\n                        current[part] = {}\n                    current = current[part]\n            for file in files:\n                current[file] = None  # Just mark the file's existence\n        return structure\n```\n\n2. Implement `VersionManager` class to integrate with the data models:\n```python\nclass VersionManager:\n    def __init__(self, config):\n        self.config = config\n        self.git = GitInterface(config)\n        self.working_dir = config.get('working_directory', './workspace')\n    \n    def initialize_from_repository(self, repository_url):\n        # Initialize from a remote repository\n        os.makedirs(self.working_dir, exist_ok=True)\n        success = self.git.clone(repository_url, self.working_dir)\n        if success:\n            return self._create_initial_version()\n        return None\n    \n    def open_repository(self, repository_path):\n        # Open an existing repository\n        success = self.git.open(repository_path)\n        if success:\n            self.working_dir = repository_path\n            return self._create_initial_version()\n        return None\n    \n    def apply_changes(self, version):\n        # Apply changes from a version to the working directory\n        if not isinstance(version, CodeVersion):\n            if isinstance(version, dict):\n                version = CodeVersion.from_dict(version)\n            else:\n                raise TypeError(\"Expected CodeVersion or dict\")\n        for file_path, content in version.changes.items():\n            self.git.write_file_content(file_path, content)\n        return True\n    \n    def commit_version(self, version, message=None):\n        # Commit changes as a new version\n        if not message:\n            message = f\"Version {version.version_id}: Automated commit\"\n        changed_files = list(version.changes.keys())\n        return self.git.commit(message, changed_files)\n    \n    def push_changes(self):\n        # Push committed changes to remote\n        return self.git.push()\n    \n    def _create_initial_version(self):\n        # Create an initial version from the current repository state\n        structure = self.git.get_repository_structure()\n        changes = {}\n        for file_path in self._flatten_structure(structure):\n            content = self.git.get_file_content(file_path)\n            if content is not None:\n                changes[file_path] = content\n        return CodeVersion(\n            version_id=1,\n            parent_id=None,\n            timestamp=datetime.now(),\n            changes=changes\n        )\n    \n    def _flatten_structure(self, structure, prefix=''):\n        # Flatten the nested structure into a list of file paths\n        result = []\n        for key, value in structure.items():\n            path = os.path.join(prefix, key) if prefix else key\n            if value is None:  # It's a file\n                result.append(path)\n            else:  # It's a directory\n                result.extend(self._flatten_structure(value, path))\n        return result\n```",
-        "testStrategy": "1. Unit tests for GitInterface and VersionManager classes\n2. Test repository operations (clone, open, pull, commit, push)\n3. Test file operations (read, write)\n4. Test structure extraction\n5. Test version creation and application\n6. Integration tests with actual Git repositories\n7. Test error handling with invalid inputs and repository states",
-        "priority": "medium",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 8,
-        "title": "Implement Test Execution Framework",
-        "description": "Create a framework for executing unit and integration tests, tracking basic performance metrics, and validating code improvements.",
-        "details": "1. Implement `TestRunner` class:\n```python\nclass TestRunner:\n    def __init__(self, config):\n        self.config = config\n        self.test_directory = config.get('test_directory', './tests')\n    \n    def run_tests(self, code_version, test_type='all'):\n        # Run tests on the given code version\n        # Apply the code version to a temporary directory\n        temp_dir = self._setup_temp_directory(code_version)\n        \n        results = []\n        if test_type in ['unit', 'all']:\n            unit_results = self._run_unit_tests(temp_dir)\n            results.extend(unit_results)\n        \n        if test_type in ['integration', 'all']:\n            integration_results = self._run_integration_tests(temp_dir)\n            results.extend(integration_results)\n        \n        # Clean up temporary directory\n        self._cleanup_temp_directory(temp_dir)\n        \n        return results\n    \n    def _setup_temp_directory(self, code_version):\n        # Set up a temporary directory with the code version\n        temp_dir = tempfile.mkdtemp()\n        for file_path, content in code_version.changes.items():\n            full_path = os.path.join(temp_dir, file_path)\n            os.makedirs(os.path.dirname(full_path), exist_ok=True)\n            with open(full_path, 'w') as f:\n                f.write(content)\n        return temp_dir\n    \n    def _cleanup_temp_directory(self, temp_dir):\n        # Clean up the temporary directory\n        shutil.rmtree(temp_dir)\n    \n    def _run_unit_tests(self, directory):\n        # Run unit tests in the directory\n        return self._run_pytest(directory, 'unit')\n    \n    def _run_integration_tests(self, directory):\n        # Run integration tests in the directory\n        return self._run_pytest(directory, 'integration')\n    \n    def _run_pytest(self, directory, test_type):\n        # Run pytest with the specified test type\n        results = []\n        test_pattern = f\"*_{test_type}_test.py\"\n        test_files = glob.glob(os.path.join(self.test_directory, test_pattern))\n        \n        for test_file in test_files:\n            test_name = os.path.basename(test_file)\n            start_time = time.time()\n            try:\n                # Copy test file to the directory\n                shutil.copy(test_file, directory)\n                # Run pytest on the file\n                process = subprocess.run(\n                    ['python', '-m', 'pytest', test_name, '-v'],\n                    cwd=directory,\n                    capture_output=True,\n                    text=True\n                )\n                end_time = time.time()\n                execution_time = end_time - start_time\n                \n                if process.returncode == 0:\n                    status = 'pass'\n                else:\n                    status = 'fail'\n                \n                results.append({\n                    'test_name': test_name,\n                    'status': status,\n                    'execution_time': execution_time,\n                    'output': process.stdout,\n                    'error': process.stderr\n                })\n            except Exception as e:\n                results.append({\n                    'test_name': test_name,\n                    'status': 'error',\n                    'execution_time': time.time() - start_time,\n                    'output': '',\n                    'error': str(e)\n                })\n        \n        return results\n```\n\n2. Implement `MetricsTracker` class:\n```python\nclass MetricsTracker:\n    def __init__(self, config):\n        self.config = config\n        self.metrics_history = {}  # version_id -> metrics\n    \n    def track_metrics(self, version_id, test_results):\n        # Calculate and track metrics from test results\n        metrics = self._calculate_metrics(test_results)\n        self.metrics_history[version_id] = metrics\n        return metrics\n    \n    def get_metrics(self, version_id):\n        # Get metrics for a specific version\n        return self.metrics_history.get(version_id, {})\n    \n    def compare_metrics(self, version_id1, version_id2):\n        # Compare metrics between two versions\n        metrics1 = self.get_metrics(version_id1)\n        metrics2 = self.get_metrics(version_id2)\n        if not metrics1 or not metrics2:\n            return None\n        \n        comparison = {}\n        for key in set(metrics1.keys()).union(metrics2.keys()):\n            value1 = metrics1.get(key, 0)\n            value2 = metrics2.get(key, 0)\n            comparison[key] = {\n                'before': value1,\n                'after': value2,\n                'change': value2 - value1,\n                'percent_change': ((value2 - value1) / value1 * 100) if value1 != 0 else float('inf')\n            }\n        return comparison\n    \n    def _calculate_metrics(self, test_results):\n        # Calculate metrics from test results\n        if not test_results:\n            return {}\n        \n        total_tests = len(test_results)\n        passed_tests = sum(1 for r in test_results if r['status'] == 'pass')\n        failed_tests = sum(1 for r in test_results if r['status'] == 'fail')\n        error_tests = sum(1 for r in test_results if r['status'] == 'error')\n        \n        execution_times = [r.get('execution_time', 0) for r in test_results if r['status'] == 'pass']\n        avg_execution_time = sum(execution_times) / len(execution_times) if execution_times else 0\n        \n        return {\n            'correctness': passed_tests / total_tests if total_tests > 0 else 0,\n            'pass_rate': passed_tests / total_tests if total_tests > 0 else 0,\n            'fail_rate': failed_tests / total_tests if total_tests > 0 else 0,\n            'error_rate': error_tests / total_tests if total_tests > 0 else 0,\n            'avg_execution_time': avg_execution_time,\n            'total_tests': total_tests,\n            'passed_tests': passed_tests,\n            'failed_tests': failed_tests,\n            'error_tests': error_tests\n        }\n```\n\n3. Implement `ImprovementValidator` class:\n```python\nclass ImprovementValidator:\n    def __init__(self, config, metrics_tracker):\n        self.config = config\n        self.metrics_tracker = metrics_tracker\n        self.threshold = config.get('improvement_threshold', 0.05)  # 5% improvement threshold\n    \n    def validate_improvement(self, old_version_id, new_version_id):\n        # Validate if the new version is an improvement over the old version\n        comparison = self.metrics_tracker.compare_metrics(old_version_id, new_version_id)\n        if not comparison:\n            return False\n        \n        # Check correctness first - must not decrease\n        if comparison.get('correctness', {}).get('change', 0) < 0:\n            return False\n        \n        # Check if there's significant improvement in execution time\n        time_change = comparison.get('avg_execution_time', {}).get('percent_change', 0)\n        if time_change <= -self.threshold:  # Negative change is good for execution time\n            return True\n        \n        # Check if there's improvement in pass rate\n        pass_rate_change = comparison.get('pass_rate', {}).get('percent_change', 0)\n        if pass_rate_change >= self.threshold:\n            return True\n        \n        # No significant improvement detected\n        return False\n```",
-        "testStrategy": "1. Unit tests for TestRunner, MetricsTracker, and ImprovementValidator classes\n2. Test with sample code versions and test files\n3. Test metrics calculation with various test results\n4. Test comparison logic with different metric values\n5. Test validation with improvements and regressions\n6. Integration test of the full testing pipeline\n7. Test with actual Python code and tests",
-        "priority": "medium",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 9,
-        "title": "Implement Basic Evolution Pipeline",
-        "description": "Integrate DGM, OpenEvolve, and SEAL components to create a functional end-to-end code evolution workflow from generation to evaluation.",
-        "details": "1. Implement `EvolutionPipeline` class:\n```python\nclass EvolutionPipeline:\n    def __init__(self, config):\n        self.config = config\n        \n        # Initialize components\n        llm_interface = LLMInterface(config.get('llm', {}))\n        \n        # DGM components\n        self.evolution_manager = EvolutionManager(config.get('dgm', {}))\n        self.agentic_system = AgenticSystem(llm_interface)\n        \n        # OpenEvolve components\n        self.openevolve = OpenEvolve(config.get('openevolve', {}))\n        \n        # SEAL components\n        self.few_shot_learner = FewShotLearner(config.get('seal', {}), llm_interface)\n        self.self_editor = SelfEditor(config.get('seal', {}), llm_interface)\n        \n        # Version control\n        self.version_manager = VersionManager(config.get('version_control', {}))\n        \n        # Testing framework\n        self.test_runner = TestRunner(config.get('testing', {}))\n        self.metrics_tracker = MetricsTracker(config.get('metrics', {}))\n        self.validator = ImprovementValidator(config.get('validation', {}), self.metrics_tracker)\n        \n        # Load examples and knowledge\n        if 'examples_directory' in config.get('seal', {}):\n            self.few_shot_learner.load_examples_from_directory(config.get('seal', {}).get('examples_directory'))\n        if 'knowledge_directory' in config.get('seal', {}):\n            self.self_editor.knowledge_base.load_knowledge_from_directory(config.get('seal', {}).get('knowledge_directory'))\n    \n    def initialize_from_repository(self, repository_url):\n        # Initialize the pipeline from a repository\n        initial_version = self.version_manager.initialize_from_repository(repository_url)\n        if initial_version:\n            # Initialize DGM with the repository\n            self.evolution_manager.initialize_run(self.version_manager.working_dir)\n            # Initialize OpenEvolve with the initial version\n            version_id = self.openevolve.initialize(initial_version.to_dict())\n            return version_id\n        return None\n    \n    def run_evolution_cycle(self, iterations=1):\n        # Run a complete evolution cycle\n        results = []\n        current_version_id = self.openevolve.database.get_latest_version_id()\n        \n        for i in range(iterations):\n            # Step 1: Analyze the current version\n            current_version = self.openevolve.database.get_version(current_version_id)\n            analysis = self.agentic_system.analyze_repository(self.version_manager.working_dir)\n            \n            # Step 2: Generate improvements\n            improvements = self.agentic_system.generate_improvements(\n                self.version_manager.working_dir, analysis)\n            \n            # Step 3: Apply SEAL adaptations\n            adapted_improvements = self.self_editor.generate_edits(\n                json.dumps(current_version.changes), improvements)\n            \n            # Step 4: Create new version\n            new_version = CodeVersion(\n                version_id=None,  # Will be assigned by database\n                parent_id=current_version_id,\n                timestamp=datetime.now(),\n                changes=json.loads(adapted_improvements)\n            )\n            \n            # Step 5: Store and evaluate the new version\n            new_version_id = self.openevolve.database.store_version(\n                new_version.to_dict(), current_version_id)\n            new_version = self.openevolve.database.get_version(new_version_id)\n            \n            # Apply changes to working directory for testing\n            self.version_manager.apply_changes(new_version)\n            \n            # Step 6: Run tests and track metrics\n            test_results = self.test_runner.run_tests(new_version)\n            metrics = self.metrics_tracker.track_metrics(new_version_id, test_results)\n            evaluation_result = EvaluationResult(\n                test_id=str(uuid.uuid4()),\n                status='pass' if all(r['status'] == 'pass' for r in test_results) else 'fail',\n                metrics=metrics\n            )\n            self.openevolve.database.store_evaluation(new_version_id, evaluation_result.to_dict())\n            \n            # Step 7: Validate improvement\n            is_improvement = self.validator.validate_improvement(current_version_id, new_version_id)\n            \n            # Step 8: Update current version if it's an improvement\n            if is_improvement:\n                current_version_id = new_version_id\n                # Commit the changes to the repository\n                self.version_manager.commit_version(\n                    new_version, f\"Evolution iteration {i+1}: Improved version\")\n            \n            # Record results\n            results.append({\n                'iteration': i+1,\n                'version_id': new_version_id,\n                'is_improvement': is_improvement,\n                'metrics': metrics\n            })\n        \n        # Push changes if configured to do so\n        if self.config.get('version_control', {}).get('auto_push', False):\n            self.version_manager.push_changes()\n        \n        return results\n```\n\n2. Implement `WorkflowCoordinator` class:\n```python\nclass WorkflowCoordinator:\n    def __init__(self, config_path):\n        # Load configuration\n        with open(config_path, 'r') as f:\n            config_dict = yaml.safe_load(f)\n        self.config = SystemConfig(config_dict)\n        self.config.validate()\n        \n        # Initialize pipeline\n        self.pipeline = EvolutionPipeline(self.config.config)\n        self.event_handlers = {}\n    \n    def register_event_handler(self, event_type, handler):\n        # Register an event handler\n        if event_type not in self.event_handlers:\n            self.event_handlers[event_type] = []\n        self.event_handlers[event_type].append(handler)\n    \n    def trigger_event(self, event_type, data):\n        # Trigger an event\n        if event_type in self.event_handlers:\n            for handler in self.event_handlers[event_type]:\n                handler(data)\n    \n    def run_workflow(self, repository_url, iterations=5):\n        # Run the complete workflow\n        try:\n            # Step 1: Initialize from repository\n            self.trigger_event('workflow_start', {'repository_url': repository_url})\n            version_id = self.pipeline.initialize_from_repository(repository_url)\n            if not version_id:\n                self.trigger_event('workflow_error', {'error': 'Failed to initialize from repository'})\n                return False\n            \n            # Step 2: Run evolution cycles\n            self.trigger_event('evolution_start', {'initial_version_id': version_id})\n            results = self.pipeline.run_evolution_cycle(iterations)\n            \n            # Step 3: Report results\n            improvements = sum(1 for r in results if r['is_improvement'])\n            self.trigger_event('evolution_complete', {\n                'total_iterations': iterations,\n                'improvements': improvements,\n                'results': results\n            })\n            \n            return True\n        except Exception as e:\n            self.trigger_event('workflow_error', {'error': str(e)})\n            return False\n```\n\n3. Implement a simple CLI for the workflow:\n```python\ndef main():\n    parser = argparse.ArgumentParser(description='EVOSEAL Evolution Pipeline')\n    parser.add_argument('--config', required=True, help='Path to configuration file')\n    parser.add_argument('--repository', required=True, help='URL of the repository to evolve')\n    parser.add_argument('--iterations', type=int, default=5, help='Number of evolution iterations')\n    args = parser.parse_args()\n    \n    # Setup logging\n    logging.basicConfig(\n        level=logging.INFO,\n        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',\n        handlers=[logging.FileHandler('evoseal.log'), logging.StreamHandler()]\n    )\n    \n    # Create and run workflow\n    coordinator = WorkflowCoordinator(args.config)\n    \n    # Register event handlers\n    coordinator.register_event_handler('workflow_start', \n        lambda data: logging.info(f\"Starting workflow with repository: {data['repository_url']}\"))\n    coordinator.register_event_handler('evolution_start',\n        lambda data: logging.info(f\"Starting evolution from version: {data['initial_version_id']}\"))\n    coordinator.register_event_handler('evolution_complete',\n        lambda data: logging.info(f\"Evolution complete: {data['improvements']}/{data['total_iterations']} improvements\"))\n    coordinator.register_event_handler('workflow_error',\n        lambda data: logging.error(f\"Workflow error: {data['error']}\"))\n    \n    # Run the workflow\n    success = coordinator.run_workflow(args.repository, args.iterations)\n    \n    if success:\n        logging.info(\"Workflow completed successfully\")\n        return 0\n    else:\n        logging.error(\"Workflow failed\")\n        return 1\n\nif __name__ == '__main__':\n    sys.exit(main())\n```",
-        "testStrategy": "1. Unit tests for EvolutionPipeline and WorkflowCoordinator classes\n2. Integration tests for the complete pipeline\n3. Test with a simple repository containing basic code\n4. Test with different iteration counts\n5. Test error handling with invalid repositories\n6. Test event handling system\n7. End-to-end test of the full evolution workflow\n8. Verify improvements are correctly identified and applied",
-        "priority": "high",
-        "dependencies": [
-          4,
-          5,
-          6,
-          7,
-          8
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 10,
-        "title": "Implement Foundational Safety & Validation",
-        "description": "Create essential safety mechanisms including checkpoint system, rollback capability, and regression prevention to ensure system maintains or improves functionality with each iteration.",
-        "details": "1. Implement `CheckpointManager` class:\n```python\nclass CheckpointManager:\n    def __init__(self, config):\n        self.config = config\n        self.checkpoint_dir = config.get('checkpoint_directory', './checkpoints')\n        os.makedirs(self.checkpoint_dir, exist_ok=True)\n        self.checkpoints = {}  # version_id -> checkpoint_path\n    \n    def create_checkpoint(self, version_id, version):\n        # Create a checkpoint for a version\n        if not isinstance(version, CodeVersion):\n            if isinstance(version, dict):\n                version = CodeVersion.from_dict(version)\n            else:\n                raise TypeError(\"Expected CodeVersion or dict\")\n        \n        # Create checkpoint directory\n        checkpoint_path = os.path.join(self.checkpoint_dir, f\"checkpoint_{version_id}\")\n        os.makedirs(checkpoint_path, exist_ok=True)\n        \n        # Save version data\n        for file_path, content in version.changes.items():\n            full_path = os.path.join(checkpoint_path, file_path)\n            os.makedirs(os.path.dirname(full_path), exist_ok=True)\n            with open(full_path, 'w') as f:\n                f.write(content)\n        \n        # Save metadata\n        metadata = {\n            'version_id': version_id,\n            'parent_id': version.parent_id,\n            'timestamp': version.timestamp.isoformat() if isinstance(version.timestamp, datetime) else version.timestamp,\n            'checkpoint_time': datetime.now().isoformat()\n        }\n        with open(os.path.join(checkpoint_path, 'metadata.json'), 'w') as f:\n            json.dump(metadata, f, indent=2)\n        \n        self.checkpoints[version_id] = checkpoint_path\n        return checkpoint_path\n    \n    def restore_checkpoint(self, version_id, target_dir):\n        # Restore a checkpoint to the target directory\n        if version_id not in self.checkpoints:\n            checkpoint_path = os.path.join(self.checkpoint_dir, f\"checkpoint_{version_id}\")\n            if not os.path.exists(checkpoint_path):\n                raise ValueError(f\"Checkpoint for version {version_id} not found\")\n            self.checkpoints[version_id] = checkpoint_path\n        \n        checkpoint_path = self.checkpoints[version_id]\n        \n        # Clear target directory (except .git)\n        for item in os.listdir(target_dir):\n            if item == '.git':\n                continue\n            item_path = os.path.join(target_dir, item)\n            if os.path.isdir(item_path):\n                shutil.rmtree(item_path)\n            else:\n                os.remove(item_path)\n        \n        # Copy checkpoint files to target directory\n        for root, dirs, files in os.walk(checkpoint_path):\n            if 'metadata.json' in files:\n                files.remove('metadata.json')  # Don't copy metadata file\n            \n            for file in files:\n                src_path = os.path.join(root, file)\n                rel_path = os.path.relpath(src_path, checkpoint_path)\n                dst_path = os.path.join(target_dir, rel_path)\n                os.makedirs(os.path.dirname(dst_path), exist_ok=True)\n                shutil.copy2(src_path, dst_path)\n        \n        return True\n    \n    def list_checkpoints(self):\n        # List all available checkpoints\n        checkpoints = []\n        for item in os.listdir(self.checkpoint_dir):\n            if item.startswith('checkpoint_'):\n                checkpoint_path = os.path.join(self.checkpoint_dir, item)\n                metadata_path = os.path.join(checkpoint_path, 'metadata.json')\n                if os.path.exists(metadata_path):\n                    with open(metadata_path, 'r') as f:\n                        metadata = json.load(f)\n                        checkpoints.append(metadata)\n        return sorted(checkpoints, key=lambda x: x['checkpoint_time'])\n    \n    def get_checkpoint_path(self, version_id):\n        # Get the path to a checkpoint\n        if version_id in self.checkpoints:\n            return self.checkpoints[version_id]\n        checkpoint_path = os.path.join(self.checkpoint_dir, f\"checkpoint_{version_id}\")\n        if os.path.exists(checkpoint_path):\n            self.checkpoints[version_id] = checkpoint_path\n            return checkpoint_path\n        return None\n```\n\n2. Implement `RollbackManager` class:\n```python\nclass RollbackManager:\n    def __init__(self, config, checkpoint_manager, version_manager):\n        self.config = config\n        self.checkpoint_manager = checkpoint_manager\n        self.version_manager = version_manager\n        self.rollback_history = []  # List of rollback events\n    \n    def rollback_to_version(self, version_id):\n        # Rollback to a specific version\n        # Check if checkpoint exists\n        checkpoint_path = self.checkpoint_manager.get_checkpoint_path(version_id)\n        if not checkpoint_path:\n            raise ValueError(f\"No checkpoint found for version {version_id}\")\n        \n        # Restore checkpoint to working directory\n        success = self.checkpoint_manager.restore_checkpoint(\n            version_id, self.version_manager.working_dir)\n        if not success:\n            raise RuntimeError(f\"Failed to restore checkpoint for version {version_id}\")\n        \n        # Record rollback event\n        rollback_event = {\n            'timestamp': datetime.now().isoformat(),\n            'version_id': version_id,\n            'reason': 'manual_rollback'\n        }\n        self.rollback_history.append(rollback_event)\n        \n        return True\n    \n    def auto_rollback_on_failure(self, version_id, test_results):\n        # Automatically rollback if tests fail\n        if any(r['status'] == 'fail' for r in test_results):\n            # Find the parent version\n            metadata_path = os.path.join(\n                self.checkpoint_manager.get_checkpoint_path(version_id),\n                'metadata.json'\n            )\n            with open(metadata_path, 'r') as f:\n                metadata = json.load(f)\n            \n            parent_id = metadata.get('parent_id')\n            if not parent_id:\n                raise ValueError(f\"No parent version found for version {version_id}\")\n            \n            # Rollback to parent version\n            success = self.rollback_to_version(parent_id)\n            \n            # Record auto-rollback event\n            rollback_event = {\n                'timestamp': datetime.now().isoformat(),\n                'version_id': parent_id,\n                'from_version': version_id,\n                'reason': 'test_failure',\n                'test_results': test_results\n            }\n            self.rollback_history.append(rollback_event)\n            \n            return success\n        \n        return False\n    \n    def get_rollback_history(self):\n        # Get the history of rollback events\n        return self.rollback_history\n```\n\n3. Implement `RegressionDetector` class:\n```python\nclass RegressionDetector:\n    def __init__(self, config, metrics_tracker):\n        self.config = config\n        self.metrics_tracker = metrics_tracker\n        self.regression_threshold = config.get('regression_threshold', 0.05)  # 5% regression threshold\n    \n    def detect_regression(self, old_version_id, new_version_id):\n        # Detect if there's a regression in the new version\n        comparison = self.metrics_tracker.compare_metrics(old_version_id, new_version_id)\n        if not comparison:\n            return False, {}\n        \n        regressions = {}\n        \n        # Check correctness - critical regression\n        correctness_change = comparison.get('correctness', {}).get('change', 0)\n        if correctness_change < 0:\n            regressions['correctness'] = {\n                'old': comparison['correctness']['before'],\n                'new': comparison['correctness']['after'],\n                'change': correctness_change,\n                'severity': 'critical'\n            }\n        \n        # Check pass rate\n        pass_rate_change = comparison.get('pass_rate', {}).get('percent_change', 0)\n        if pass_rate_change < -self.regression_threshold:\n            regressions['pass_rate'] = {\n                'old': comparison['pass_rate']['before'],\n                'new': comparison['pass_rate']['after'],\n                'change': pass_rate_change,\n                'severity': 'high'\n            }\n        \n        # Check execution time - performance regression\n        time_change = comparison.get('avg_execution_time', {}).get('percent_change', 0)\n        if time_change > self.regression_threshold:  # Positive change is bad for execution time\n            regressions['execution_time'] = {\n                'old': comparison['avg_execution_time']['before'],\n                'new': comparison['avg_execution_time']['after'],\n                'change': time_change,\n                'severity': 'medium'\n            }\n        \n        return len(regressions) > 0, regressions\n```\n\n4. Enhance `EvolutionPipeline` with safety mechanisms:\n```python\ndef enhance_evolution_pipeline():\n    # Add to the EvolutionPipeline.__init__ method\n    self.checkpoint_manager = CheckpointManager(config.get('checkpoints', {}))\n    self.rollback_manager = RollbackManager(\n        config.get('rollback', {}), self.checkpoint_manager, self.version_manager)\n    self.regression_detector = RegressionDetector(\n        config.get('regression', {}), self.metrics_tracker)\n    \n    # Modify the run_evolution_cycle method to include safety checks\n    def run_evolution_cycle_with_safety(self, iterations=1):\n        results = []\n        current_version_id = self.openevolve.database.get_latest_version_id()\n        \n        # Create checkpoint of initial version\n        current_version = self.openevolve.database.get_version(current_version_id)\n        self.checkpoint_manager.create_checkpoint(current_version_id, current_version)\n        \n        for i in range(iterations):\n            # ... existing steps 1-6 ...\n            \n            # Step 7: Check for regressions\n            has_regression, regressions = self.regression_detector.detect_regression(\n                current_version_id, new_version_id)\n            \n            if has_regression:\n                # Log regression details\n                logging.warning(f\"Regression detected in version {new_version_id}: {regressions}\")\n                \n                # Check if we need to auto-rollback\n                if any(r['severity'] == 'critical' for r in regressions.values()):\n                    logging.error(f\"Critical regression detected, rolling back to version {current_version_id}\")\n                    self.rollback_manager.auto_rollback_on_failure(new_version_id, test_results)\n                    \n                    # Record results with regression info\n                    results.append({\n                        'iteration': i+1,\n                        'version_id': new_version_id,\n                        'is_improvement': False,\n                        'has_regression': True,\n                        'regressions': regressions,\n                        'action': 'rollback',\n                        'metrics': metrics\n                    })\n                    continue\n            \n            # Step 8: Validate improvement\n            is_improvement = self.validator.validate_improvement(current_version_id, new_version_id)\n            \n            # Step 9: Update current version if it's an improvement\n            if is_improvement and not has_regression:\n                # Create checkpoint before updating\n                self.checkpoint_manager.create_checkpoint(new_version_id, new_version)\n                \n                current_version_id = new_version_id\n                # Commit the changes to the repository\n                self.version_manager.commit_version(\n                    new_version, f\"Evolution iteration {i+1}: Improved version\")\n            \n            # Record results\n            results.append({\n                'iteration': i+1,\n                'version_id': new_version_id,\n                'is_improvement': is_improvement,\n                'has_regression': has_regression,\n                'regressions': regressions if has_regression else {},\n                'action': 'accept' if is_improvement and not has_regression else 'reject',\n                'metrics': metrics\n            })\n        \n        # Push changes if configured to do so\n        if self.config.get('version_control', {}).get('auto_push', False):\n            self.version_manager.push_changes()\n        \n        return results\n```",
-        "testStrategy": "1. Unit tests for CheckpointManager, RollbackManager, and RegressionDetector classes\n2. Test checkpoint creation and restoration\n3. Test automatic rollback on test failures\n4. Test regression detection with various metric changes\n5. Test the enhanced evolution pipeline with safety mechanisms\n6. Test recovery from simulated failures\n7. Integration test with a repository containing intentional regressions\n8. Verify checkpoint integrity after multiple iterations",
-        "priority": "high",
-        "dependencies": [
-          9
-        ],
-        "status": "pending",
-        "subtasks": []
-      }
-    ],
-    "metadata": {
-      "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-16T23:24:41.351Z",
-      "description": "Tasks for master context"
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Setup Development Environment and Project Structure",
+      "description": "Set up the initial project repository with the core structure for DGM, OpenEvolve, and SEAL components, including configuration management and dependency setup.",
+      "details": "1. Create a Git repository with the following structure:\n   - `/dgm/` - For DGM component\n   - `/openevolve/` - For OpenEvolve component\n   - `/seal/` - For SEAL component\n   - `/integration/` - For integration layer\n   - `/config/` - For configuration files\n   - `/tests/` - For test framework\n\n2. Set up basic configuration management:\n   - Create YAML configuration templates\n   - Implement environment variable handling for API keys\n   - Add configuration validation utilities\n\n3. Setup dependency management:\n   - Create requirements.txt or pyproject.toml\n   - Include essential libraries: GitPython, PyYAML, requests (for API calls)\n   - Setup virtual environment configuration\n\n4. Implement basic logging framework:\n   - Configure structured logging\n   - Add log rotation and level configuration\n\n5. Create initial documentation:\n   - README with setup instructions\n   - Component architecture overview\n   - Development guidelines",
+      "testStrategy": "1. Verify project structure is correctly set up\n2. Ensure all dependencies can be installed in a clean environment\n3. Validate configuration loading and validation works\n4. Test logging functionality across components\n5. Verify documentation is accurate and complete",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Git Repository",
+          "description": "Initialize a new Git repository for the project and set up remote on GitHub/GitLab.",
+          "dependencies": [],
+          "details": "Initialize git repository locally with 'git init', create a .gitignore file with appropriate rules for the project, create a remote repository on GitHub/GitLab, and connect the local repository to the remote with 'git remote add origin'.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Scaffold Project Directory Structure",
+          "description": "Create the basic directory structure for the project following best practices.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create directories for source code, tests, configuration, documentation, and other project artifacts. Include placeholder files where necessary to maintain directory structure in git.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Set Up Configuration Management",
+          "description": "Implement a configuration management system for different environments.",
+          "dependencies": [
+            2
+          ],
+          "details": "Create configuration files for development, testing, and production environments. Implement a mechanism to load the appropriate configuration based on the current environment. Consider using environment variables for sensitive information.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Configure Dependency Management",
+          "description": "Set up package management and define project dependencies.",
+          "dependencies": [
+            2
+          ],
+          "details": "Create package.json, requirements.txt, or equivalent dependency definition file. Define core dependencies and development dependencies separately. Set up virtual environment if applicable.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Logging Framework",
+          "description": "Set up a logging system for the application.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Choose and configure a logging library. Define log levels, formats, and output destinations. Ensure logs are appropriately configured for different environments.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Create Project Documentation Structure",
+          "description": "Set up the framework for project documentation.",
+          "dependencies": [
+            2
+          ],
+          "details": "Create README.md with project overview, setup instructions, and usage examples. Set up documentation generation tools if applicable. Create templates for API documentation, architecture diagrams, and other relevant documentation.",
+          "status": "pending"
+        },
+        {
+          "id": 7,
+          "title": "Configure Development Tools and Linters",
+          "description": "Set up code quality tools, linters, and formatters.",
+          "dependencies": [
+            4
+          ],
+          "details": "Configure code linters (ESLint, Pylint, etc.), code formatters (Prettier, Black, etc.), and other development tools. Set up pre-commit hooks to enforce code quality standards. Create editor configuration files (.editorconfig) to maintain consistent coding styles.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Implement Base Integration Layer",
+      "description": "Create the core integration framework that enables communication between DGM, OpenEvolve, and SEAL components through standardized interfaces.",
+      "details": "1. Implement `WorkflowEngine` class:\n```python\nclass WorkflowEngine:\n    def __init__(self, config):\n        self.config = config\n        self.components = {}\n        self.event_handlers = {}\n    \n    def register_component(self, name, component):\n        self.components[name] = component\n    \n    def register_event_handler(self, event_type, handler):\n        if event_type not in self.event_handlers:\n            self.event_handlers[event_type] = []\n        self.event_handlers[event_type].append(handler)\n    \n    def trigger_event(self, event_type, data):\n        if event_type in self.event_handlers:\n            for handler in self.event_handlers[event_type]:\n                handler(data)\n    \n    def execute_workflow(self, workflow_name):\n        # Implement synchronous workflow execution\n        pass\n```\n\n2. Define standard JSON schemas for cross-component communication:\n   - Create schema definitions for code changes, evaluation results, and configuration\n   - Implement validation utilities for these schemas\n\n3. Implement basic communication patterns:\n   - Request-response pattern between components\n   - Event-based notifications for workflow stages\n\n4. Add error handling mechanisms:\n   - Standardized error types\n   - Error propagation across component boundaries\n   - Basic retry logic for transient failures",
+      "testStrategy": "1. Unit tests for WorkflowEngine class methods\n2. Integration tests for component registration and communication\n3. Schema validation tests with valid and invalid data\n4. Error handling tests with simulated failures\n5. End-to-end test of a simple workflow across components",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design and implement WorkflowEngine class",
+          "description": "Create the core WorkflowEngine class that will serve as the main interface for workflow operations",
+          "dependencies": [],
+          "details": "Implement the WorkflowEngine class with methods for workflow creation, execution, status tracking, and management. Include proper initialization, configuration options, and lifecycle management. Define clear interfaces for other components to interact with the engine.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Define JSON schema for workflow definitions",
+          "description": "Create comprehensive JSON schemas for workflow definitions, tasks, transitions, and conditions",
+          "dependencies": [
+            1
+          ],
+          "details": "Design JSON schemas that capture all aspects of workflow definitions including tasks, transitions, conditions, variables, and metadata. Ensure the schema is flexible enough to support various workflow patterns while maintaining structural integrity. Document all schema elements with clear descriptions.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Implement schema validation utilities",
+          "description": "Develop utilities for validating workflow definitions against the JSON schema",
+          "dependencies": [
+            2
+          ],
+          "details": "Create validation utilities that check workflow definitions against the defined JSON schema. Implement comprehensive error reporting that provides clear feedback on validation failures. Include both synchronous and asynchronous validation methods, and support for partial validation during workflow editing.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Design and implement communication patterns",
+          "description": "Establish communication patterns between the workflow engine and other system components",
+          "dependencies": [
+            1
+          ],
+          "details": "Define and implement communication patterns for the workflow engine to interact with external systems, services, and UI components. Include event emission, subscription mechanisms, callback handling, and asynchronous communication. Ensure the patterns are consistent and follow best practices for decoupling components.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Develop error handling framework",
+          "description": "Create a comprehensive error handling framework for the integration layer",
+          "dependencies": [
+            1,
+            4
+          ],
+          "details": "Implement an error handling framework that includes error classification, standardized error objects, error propagation mechanisms, and recovery strategies. Define clear error boundaries and ensure errors are properly captured, logged, and communicated to appropriate components. Include support for both synchronous and asynchronous error handling.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Create integration tests",
+          "description": "Develop comprehensive integration tests for the base integration layer",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "details": "Write integration tests that verify the correct functioning of the entire integration layer. Include tests for workflow definition validation, engine initialization, communication between components, error handling, and edge cases. Use mocks and stubs as needed to isolate the integration layer from external dependencies.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Implement Minimal Data Models",
+      "description": "Create the essential data models for code archive, evaluation results, and system configuration that will be shared across all components.",
+      "details": "1. Implement Code Archive model:\n```python\nclass CodeVersion:\n    def __init__(self, version_id, parent_id, timestamp, changes):\n        self.version_id = version_id\n        self.parent_id = parent_id\n        self.timestamp = timestamp\n        self.changes = changes  # Dictionary of file paths to content changes\n    \n    def to_dict(self):\n        return {\n            'version_id': self.version_id,\n            'parent_id': self.parent_id,\n            'timestamp': self.timestamp.isoformat(),\n            'changes': self.changes\n        }\n    \n    @classmethod\n    def from_dict(cls, data):\n        return cls(\n            version_id=data['version_id'],\n            parent_id=data['parent_id'],\n            timestamp=datetime.fromisoformat(data['timestamp']),\n            changes=data['changes']\n        )\n```\n\n2. Implement Evaluation Results model:\n```python\nclass EvaluationResult:\n    def __init__(self, test_id, status, metrics):\n        self.test_id = test_id\n        self.status = status  # 'pass', 'fail', 'error'\n        self.metrics = metrics  # Dictionary of metric names to values\n    \n    def to_dict(self):\n        return {\n            'test_id': self.test_id,\n            'status': self.status,\n            'metrics': self.metrics\n        }\n    \n    @classmethod\n    def from_dict(cls, data):\n        return cls(\n            test_id=data['test_id'],\n            status=data['status'],\n            metrics=data['metrics']\n        )\n```\n\n3. Implement System Configuration model with YAML support:\n```python\nclass SystemConfig:\n    def __init__(self, config_dict):\n        self.config = config_dict\n    \n    def get(self, key, default=None):\n        # Support dot notation for nested keys\n        parts = key.split('.')\n        current = self.config\n        for part in parts:\n            if part not in current:\n                return default\n            current = current[part]\n        return current\n    \n    def validate(self):\n        # Basic validation of required configuration\n        required_keys = ['dgm', 'openevolve', 'seal', 'integration']\n        for key in required_keys:\n            if key not in self.config:\n                raise ValueError(f\"Missing required configuration section: {key}\")\n        return True\n    \n    @classmethod\n    def from_yaml(cls, yaml_path):\n        with open(yaml_path, 'r') as f:\n            config_dict = yaml.safe_load(f)\n        return cls(config_dict)\n```\n\n4. Create Git-compatible storage utilities:\n   - Implement functions to convert between models and Git objects\n   - Add utilities for serializing/deserializing models to/from JSON",
+      "testStrategy": "1. Unit tests for all model classes\n2. Serialization/deserialization tests for each model\n3. Validation tests for configuration model\n4. Integration tests with Git storage\n5. Test compatibility with the integration layer",
+      "priority": "high",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Code Archive Data Model",
+          "description": "Design and implement the Code Archive data model to store code snippets with appropriate metadata.",
+          "dependencies": [],
+          "details": "Create a data model that includes fields for code content, language, timestamp, author, version, and tags. Implement basic validation for required fields. Ensure the model is serializable and can be stored efficiently.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Create Evaluation Results Data Model",
+          "description": "Design and implement the Evaluation Results data model to store performance metrics and test outcomes.",
+          "dependencies": [],
+          "details": "Create a data model with fields for metrics (accuracy, precision, recall, etc.), test case results, timestamp, and reference to the associated code. Include validation logic for numerical metrics and ensure proper relationships with the Code Archive model.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Create System Configuration Data Model",
+          "description": "Design and implement the System Configuration data model to store environment and setup parameters.",
+          "dependencies": [],
+          "details": "Create a data model with fields for environment variables, dependencies, hardware specifications, and configuration parameters. Include versioning support and validation for required configuration elements.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Implement Serialization Utilities",
+          "description": "Develop utilities for serializing and deserializing the data models to/from JSON and other formats.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Create functions to convert model instances to JSON, YAML, or other appropriate formats. Implement deserialization with proper error handling and validation. Ensure backward compatibility for future model changes.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Git-Compatible Storage Functions",
+          "description": "Create functions to store and retrieve model data in a Git-compatible format.",
+          "dependencies": [
+            4
+          ],
+          "details": "Develop functions to save models as files in a Git repository structure. Implement methods to handle versioning, diffs, and merges. Create utilities to query and retrieve models based on Git references (branches, tags, commits).",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Implement DGM Core Components",
+      "description": "Develop the core DGM components including EvolutionManager, AgenticSystem, and LLM integration for code analysis and evolution orchestration.",
+      "details": "1. Implement `EvolutionManager` in `DGM_outer.py`:\n```python\nclass EvolutionManager:\n    def __init__(self, config):\n        self.config = config\n        self.archive = []  # Will store CodeVersion objects\n        self.current_version = None\n    \n    def initialize_run(self, repository_path):\n        # Initialize a new evolution run with the given repository\n        self.repository_path = repository_path\n        # Create initial version from repository state\n        initial_state = self._capture_repository_state()\n        self.current_version = CodeVersion(\n            version_id=1,\n            parent_id=None,\n            timestamp=datetime.now(),\n            changes=initial_state\n        )\n        self.archive.append(self.current_version)\n        return self.current_version\n    \n    def update_archive(self, new_version):\n        # Add a new version to the archive\n        new_version.parent_id = self.current_version.version_id\n        new_version.version_id = len(self.archive) + 1\n        self.archive.append(new_version)\n        self.current_version = new_version\n        return new_version\n    \n    def _capture_repository_state(self):\n        # Capture the current state of the repository\n        # Returns a dictionary of file paths to content\n        pass\n```\n\n2. Implement `AgenticSystem` in `coding_agent.py`:\n```python\nclass AgenticSystem:\n    def __init__(self, llm_interface):\n        self.llm = llm_interface\n    \n    def analyze_repository(self, repository_path):\n        # Analyze the repository structure and content\n        repo_structure = self._get_repository_structure(repository_path)\n        return self.llm.generate_analysis(repo_structure)\n    \n    def generate_improvements(self, repository_path, analysis):\n        # Generate code improvements based on analysis\n        current_code = self._get_repository_content(repository_path)\n        return self.llm.generate_improvements(current_code, analysis)\n    \n    def _get_repository_structure(self, repository_path):\n        # Extract repository structure (files, directories)\n        pass\n    \n    def _get_repository_content(self, repository_path):\n        # Extract content of relevant files\n        pass\n```\n\n3. Implement `LLMInterface` in `llm_withtools.py`:\n```python\nclass LLMInterface:\n    def __init__(self, config):\n        self.config = config\n        self.model = config.get('model', 'gpt-4')  # Default to GPT-4\n        self.api_key = os.environ.get('OPENAI_API_KEY') or config.get('api_key')\n        if not self.api_key:\n            raise ValueError(\"API key not provided\")\n    \n    def generate_analysis(self, repo_structure):\n        # Generate repository analysis using LLM\n        prompt = self._create_analysis_prompt(repo_structure)\n        return self._call_llm(prompt)\n    \n    def generate_improvements(self, current_code, analysis):\n        # Generate code improvements using LLM\n        prompt = self._create_improvement_prompt(current_code, analysis)\n        return self._call_llm(prompt)\n    \n    def _create_analysis_prompt(self, repo_structure):\n        # Create prompt for repository analysis\n        pass\n    \n    def _create_improvement_prompt(self, current_code, analysis):\n        # Create prompt for code improvement\n        pass\n    \n    def _call_llm(self, prompt):\n        # Make API call to the LLM provider\n        if 'gpt' in self.model:\n            return self._call_openai(prompt)\n        elif 'claude' in self.model:\n            return self._call_anthropic(prompt)\n        else:\n            raise ValueError(f\"Unsupported model: {self.model}\")\n    \n    def _call_openai(self, prompt):\n        # Call OpenAI API\n        pass\n    \n    def _call_anthropic(self, prompt):\n        # Call Anthropic API\n        pass\n```\n\n4. Implement basic prompt templates for code analysis and improvement",
+      "testStrategy": "1. Unit tests for EvolutionManager, AgenticSystem, and LLMInterface\n2. Mock LLM API responses for testing\n3. Test repository analysis with sample repositories\n4. Test code improvement generation with sample code\n5. Integration test of the full DGM pipeline",
+      "priority": "medium",
+      "dependencies": [
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement EvolutionManager Class",
+          "description": "Create the EvolutionManager class to handle the evolutionary aspects of the DGM core",
+          "dependencies": [],
+          "details": "Implement the EvolutionManager class with methods for managing generations, selection, mutation, and crossover of agents. Include functionality for tracking fitness metrics, population management, and generation advancement. Ensure proper interfaces for integration with other components.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Develop AgenticSystem Framework",
+          "description": "Build the AgenticSystem class to manage agent lifecycles and interactions",
+          "dependencies": [
+            1
+          ],
+          "details": "Create the AgenticSystem class with capabilities for agent creation, destruction, and interaction. Implement methods for agent communication, task assignment, and performance monitoring. Design the system to be extensible for different agent types and behaviors.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Create LLMInterface Module",
+          "description": "Develop the interface layer for communication with language models",
+          "dependencies": [],
+          "details": "Implement the LLMInterface module with abstraction layers for different LLM providers. Include methods for prompt submission, response parsing, and error handling. Design for asynchronous operation and implement rate limiting and retry logic for API stability.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Design Prompt Templates System",
+          "description": "Create a flexible system for managing and customizing prompt templates",
+          "dependencies": [
+            3
+          ],
+          "details": "Develop a prompt template system with support for variable substitution, context management, and template versioning. Implement template categories for different agent functions (reasoning, planning, evaluation). Create methods for template optimization based on performance metrics.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Integrate with Data Models",
+          "description": "Connect the DGM core components with the existing data models",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Implement integration points between the DGM core components and the application's data models. Create adapters or interfaces as needed for data transformation. Ensure proper data flow between the evolutionary system, agents, and persistent storage.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Implement Testing Suite",
+          "description": "Develop comprehensive unit and integration tests for the DGM core",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "details": "Create unit tests for each core component (EvolutionManager, AgenticSystem, LLMInterface). Develop integration tests for component interactions. Implement test fixtures and mocks for LLM responses. Create performance benchmarks and regression tests for the evolutionary system.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Implement OpenEvolve Core Components",
+      "description": "Develop the core OpenEvolve components including Controller, Evaluator, Database, and CLI for evolution control and evaluation.",
+      "details": "1. Implement `OpenEvolve` controller in `controller.py`:\n```python\nclass OpenEvolve:\n    def __init__(self, config):\n        self.config = config\n        self.evaluator = Evaluator(config)\n        self.database = VersionDatabase(config)\n        self.current_generation = 0\n    \n    def initialize(self, initial_code):\n        # Initialize the evolution process\n        self.current_generation = 0\n        version_id = self.database.store_version(initial_code, None)\n        return version_id\n    \n    def evaluate(self, version_id):\n        # Evaluate a specific version\n        version = self.database.get_version(version_id)\n        results = self.evaluator.evaluate(version)\n        self.database.store_evaluation(version_id, results)\n        return results\n    \n    def select(self, candidates):\n        # Select the best version from candidates\n        evaluations = [self.database.get_evaluation(c) for c in candidates]\n        best_idx = self._find_best_candidate(evaluations)\n        return candidates[best_idx] if best_idx is not None else None\n    \n    def _find_best_candidate(self, evaluations):\n        # Find the best candidate based on evaluation metrics\n        if not evaluations:\n            return None\n        # Simple selection based on correctness and efficiency\n        scores = []\n        for eval in evaluations:\n            correctness = eval.metrics.get('correctness', 0)\n            efficiency = eval.metrics.get('efficiency', 0)\n            scores.append(correctness * 0.7 + efficiency * 0.3)  # Weighted score\n        return scores.index(max(scores)) if scores else None\n```\n\n2. Implement `Evaluator` in `evaluator.py`:\n```python\nclass Evaluator:\n    def __init__(self, config):\n        self.config = config\n        self.test_runner = TestRunner(config)\n    \n    def evaluate(self, version):\n        # Evaluate a version based on correctness and efficiency\n        test_results = self.test_runner.run_tests(version)\n        metrics = self._calculate_metrics(test_results)\n        return EvaluationResult(\n            test_id=str(uuid.uuid4()),\n            status='pass' if all(r['status'] == 'pass' for r in test_results) else 'fail',\n            metrics=metrics\n        )\n    \n    def _calculate_metrics(self, test_results):\n        # Calculate metrics from test results\n        correctness = sum(1 for r in test_results if r['status'] == 'pass') / len(test_results) if test_results else 0\n        # Simple efficiency metric based on execution time\n        execution_times = [r.get('execution_time', 0) for r in test_results if r['status'] == 'pass']\n        efficiency = 1.0 / (sum(execution_times) / len(execution_times)) if execution_times else 0\n        return {\n            'correctness': correctness,\n            'efficiency': efficiency\n        }\n\nclass TestRunner:\n    def __init__(self, config):\n        self.config = config\n    \n    def run_tests(self, version):\n        # Run tests on the given version\n        # Returns list of test results\n        pass\n```\n\n3. Implement `VersionDatabase` in `database.py`:\n```python\nclass VersionDatabase:\n    def __init__(self, config):\n        self.config = config\n        self.storage_path = config.get('storage_path', './versions')\n        os.makedirs(self.storage_path, exist_ok=True)\n        self.versions = {}  # version_id -> CodeVersion\n        self.evaluations = {}  # version_id -> EvaluationResult\n    \n    def store_version(self, code_version, parent_id=None):\n        # Store a new version\n        if isinstance(code_version, dict):\n            code_version = CodeVersion.from_dict(code_version)\n        if parent_id is not None:\n            code_version.parent_id = parent_id\n        version_id = code_version.version_id or str(uuid.uuid4())\n        code_version.version_id = version_id\n        self.versions[version_id] = code_version\n        self._persist_version(code_version)\n        return version_id\n    \n    def get_version(self, version_id):\n        # Retrieve a version by ID\n        if version_id in self.versions:\n            return self.versions[version_id]\n        # Try to load from storage\n        version = self._load_version(version_id)\n        if version:\n            self.versions[version_id] = version\n        return version\n    \n    def store_evaluation(self, version_id, evaluation):\n        # Store evaluation results for a version\n        if isinstance(evaluation, dict):\n            evaluation = EvaluationResult.from_dict(evaluation)\n        self.evaluations[version_id] = evaluation\n        self._persist_evaluation(version_id, evaluation)\n        return evaluation.test_id\n    \n    def get_evaluation(self, version_id):\n        # Retrieve evaluation results for a version\n        if version_id in self.evaluations:\n            return self.evaluations[version_id]\n        # Try to load from storage\n        evaluation = self._load_evaluation(version_id)\n        if evaluation:\n            self.evaluations[version_id] = evaluation\n        return evaluation\n    \n    def _persist_version(self, version):\n        # Save version to storage\n        pass\n    \n    def _load_version(self, version_id):\n        # Load version from storage\n        pass\n    \n    def _persist_evaluation(self, version_id, evaluation):\n        # Save evaluation to storage\n        pass\n    \n    def _load_evaluation(self, version_id):\n        # Load evaluation from storage\n        pass\n```\n\n4. Implement `CLI` in `cli.py`:\n```python\nclass CLI:\n    def __init__(self):\n        self.config = None\n        self.openevolve = None\n    \n    def setup(self, config_path):\n        # Load configuration and initialize OpenEvolve\n        self.config = SystemConfig.from_yaml(config_path)\n        self.openevolve = OpenEvolve(self.config)\n    \n    def evolve(self, initial_code_path, generations=5):\n        # Run evolution process for specified generations\n        with open(initial_code_path, 'r') as f:\n            initial_code = f.read()\n        version_id = self.openevolve.initialize({\n            'version_id': None,\n            'parent_id': None,\n            'timestamp': datetime.now().isoformat(),\n            'changes': {'main.py': initial_code}\n        })\n        current_id = version_id\n        for gen in range(generations):\n            # Generate variations (would connect to DGM here)\n            # For now, just evaluate the current version\n            results = self.openevolve.evaluate(current_id)\n            print(f\"Generation {gen}: {results.status}, metrics: {results.metrics}\")\n        return current_id\n    \n    def evaluate(self, version_id):\n        # Evaluate a specific version\n        results = self.openevolve.evaluate(version_id)\n        print(f\"Evaluation: {results.status}, metrics: {results.metrics}\")\n        return results\n```",
+      "testStrategy": "1. Unit tests for OpenEvolve, Evaluator, VersionDatabase, and CLI classes\n2. Test version storage and retrieval\n3. Test evaluation metrics calculation\n4. Test selection algorithm with different candidate sets\n5. Integration test of the full OpenEvolve pipeline\n6. CLI command tests with sample inputs",
+      "priority": "medium",
+      "dependencies": [
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Controller Class",
+          "description": "Create the Controller class that orchestrates the evolutionary process and manages interactions between components.",
+          "dependencies": [],
+          "details": "Implement the Controller class with methods for initializing the evolutionary process, managing generations, coordinating between TestRunner and Evaluator, and handling the selection of candidates. Include proper error handling and logging. The Controller should maintain the current state of evolution and provide interfaces for the CLI to interact with the system.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Develop Evaluator Component",
+          "description": "Create the Evaluator class responsible for assessing the fitness of code variants based on test results.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement the Evaluator with methods to calculate fitness scores based on test results, code quality metrics, and other configurable criteria. Include support for different evaluation strategies and weightings. The Evaluator should provide clear feedback on why certain variants were scored as they were.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Build TestRunner Component",
+          "description": "Implement the TestRunner class that executes tests against code variants and collects results.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create the TestRunner with capabilities to execute different types of tests (unit, integration, performance) against code variants in isolated environments. Implement timeout handling, resource monitoring, and comprehensive result collection. Ensure the TestRunner can handle parallel test execution for efficiency.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Create VersionDatabase Component",
+          "description": "Develop the VersionDatabase for storing and retrieving code variants and their evaluation results.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement the VersionDatabase with methods for storing code variants, their source, test results, and evaluation scores. Include functionality for querying variants based on various criteria, tracking lineage of variants, and maintaining the evolution history. Ensure the database is efficient for both storage and retrieval operations.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Selection Algorithm",
+          "description": "Develop the algorithm for selecting promising code variants for the next generation.",
+          "dependencies": [
+            2,
+            4
+          ],
+          "details": "Implement various selection strategies (tournament selection, roulette wheel, etc.) that can be configured based on the project needs. Include mechanisms to maintain diversity in the population while favoring higher-fitness individuals. The selection algorithm should be pluggable to allow for experimentation with different approaches.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Develop CLI Interface",
+          "description": "Create a command-line interface for interacting with the OpenEvolve system.",
+          "dependencies": [
+            1,
+            4
+          ],
+          "details": "Implement a comprehensive CLI that allows users to initialize projects, configure evolution parameters, start/stop evolution processes, view results, and export variants. Include interactive and non-interactive modes, help documentation, and support for configuration files. The CLI should provide meaningful feedback and progress indicators.",
+          "status": "pending"
+        },
+        {
+          "id": 7,
+          "title": "Perform Integration Testing",
+          "description": "Create and execute integration tests to ensure all components work together correctly.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "details": "Develop a suite of integration tests that verify the correct interaction between all components. Test various scenarios including happy paths and error conditions. Verify that the evolution process works end-to-end, from initialization through multiple generations to the selection of optimal variants. Include performance testing to ensure the system scales appropriately.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Implement SEAL Basic Components",
+      "description": "Develop the core SEAL components including FewShotLearner for knowledge incorporation and self-edit generation.",
+      "details": "1. Implement `FewShotLearner` in `few-shot/learner.py`:\n```python\nclass FewShotLearner:\n    def __init__(self, config, llm_interface):\n        self.config = config\n        self.llm = llm_interface\n        self.examples = []  # List of (input, output) pairs\n    \n    def add_example(self, input_text, output_text):\n        # Add a new example to the learner\n        self.examples.append((input_text, output_text))\n    \n    def load_examples_from_directory(self, directory_path):\n        # Load examples from files in a directory\n        for filename in os.listdir(directory_path):\n            if filename.endswith('.json'):\n                with open(os.path.join(directory_path, filename), 'r') as f:\n                    example = json.load(f)\n                    self.add_example(example['input'], example['output'])\n        return len(self.examples)\n    \n    def generate(self, input_text, num_examples=3):\n        # Generate output based on few-shot examples\n        selected_examples = self._select_relevant_examples(input_text, num_examples)\n        prompt = self._create_few_shot_prompt(input_text, selected_examples)\n        return self.llm.generate(prompt)\n    \n    def _select_relevant_examples(self, input_text, num_examples):\n        # Select the most relevant examples for the input\n        if len(self.examples) <= num_examples:\n            return self.examples\n        # Simple relevance scoring based on token overlap\n        input_tokens = set(input_text.lower().split())\n        scores = []\n        for ex_input, ex_output in self.examples:\n            ex_tokens = set(ex_input.lower().split())\n            overlap = len(input_tokens.intersection(ex_tokens))\n            scores.append(overlap / len(input_tokens) if input_tokens else 0)\n        # Select top examples by score\n        indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:num_examples]\n        return [self.examples[i] for i in indices]\n    \n    def _create_few_shot_prompt(self, input_text, examples):\n        # Create a prompt with few-shot examples\n        prompt = \"Given the following examples, perform a similar transformation:\\n\\n\"\n        for i, (ex_input, ex_output) in enumerate(examples):\n            prompt += f\"Example {i+1}:\\nInput: {ex_input}\\nOutput: {ex_output}\\n\\n\"\n        prompt += f\"Now, transform the following input:\\n{input_text}\\n\"\n        return prompt\n```\n\n2. Implement basic knowledge incorporation in `knowledge.py`:\n```python\nclass KnowledgeBase:\n    def __init__(self, config):\n        self.config = config\n        self.knowledge = {}  # topic -> content\n    \n    def add_knowledge(self, topic, content):\n        # Add or update knowledge on a topic\n        self.knowledge[topic] = content\n    \n    def load_knowledge_from_directory(self, directory_path):\n        # Load knowledge from files in a directory\n        for filename in os.listdir(directory_path):\n            if filename.endswith('.md') or filename.endswith('.txt'):\n                topic = os.path.splitext(filename)[0]\n                with open(os.path.join(directory_path, filename), 'r') as f:\n                    content = f.read()\n                    self.add_knowledge(topic, content)\n        return len(self.knowledge)\n    \n    def get_relevant_knowledge(self, query, max_items=3):\n        # Get knowledge relevant to the query\n        if not self.knowledge:\n            return []\n        # Simple relevance scoring based on token overlap\n        query_tokens = set(query.lower().split())\n        scores = {}\n        for topic, content in self.knowledge.items():\n            topic_tokens = set(topic.lower().split())\n            content_sample = ' '.join(content.split()[:100])  # Use first 100 words for matching\n            content_tokens = set(content_sample.lower().split())\n            all_tokens = topic_tokens.union(content_tokens)\n            overlap = len(query_tokens.intersection(all_tokens))\n            scores[topic] = overlap / len(query_tokens) if query_tokens else 0\n        # Select top topics by score\n        sorted_topics = sorted(scores.keys(), key=lambda t: scores[t], reverse=True)[:max_items]\n        return [(topic, self.knowledge[topic]) for topic in sorted_topics]\n```\n\n3. Implement self-edit generation in `self_edit.py`:\n```python\nclass SelfEditor:\n    def __init__(self, config, llm_interface):\n        self.config = config\n        self.llm = llm_interface\n        self.knowledge_base = KnowledgeBase(config)\n    \n    def generate_edits(self, code, description):\n        # Generate self-edits based on code and description\n        relevant_knowledge = self.knowledge_base.get_relevant_knowledge(description)\n        prompt = self._create_edit_prompt(code, description, relevant_knowledge)\n        return self.llm.generate(prompt)\n    \n    def _create_edit_prompt(self, code, description, relevant_knowledge):\n        # Create a prompt for generating edits\n        prompt = f\"Given the following code and the description of desired changes, generate an improved version of the code.\\n\\n\"\n        prompt += f\"Code:\\n```\\n{code}\\n```\\n\\n\"\n        prompt += f\"Desired changes: {description}\\n\\n\"\n        if relevant_knowledge:\n            prompt += \"Relevant knowledge to consider:\\n\"\n            for topic, content in relevant_knowledge:\n                prompt += f\"--- {topic} ---\\n{content[:500]}...\\n\\n\"  # Truncate long content\n        prompt += \"Generate the improved code:\\n```\\n\"\n        return prompt\n```",
+      "testStrategy": "1. Unit tests for FewShotLearner, KnowledgeBase, and SelfEditor classes\n2. Test example selection with various inputs\n3. Test knowledge retrieval with different queries\n4. Test prompt generation for different scenarios\n5. Integration test with mock LLM responses\n6. Test with sample code and edit descriptions",
+      "priority": "medium",
+      "dependencies": [
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement FewShotLearner Component",
+          "description": "Create the FewShotLearner class that handles few-shot learning capabilities for the SEAL implementation.",
+          "dependencies": [],
+          "details": "Develop a FewShotLearner class that can: 1) Store and manage example patterns, 2) Select relevant examples based on input context, 3) Format examples for inclusion in prompts, 4) Implement methods for adding/removing examples programmatically, 5) Include configuration options for example selection strategies.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Build KnowledgeBase Component",
+          "description": "Implement the KnowledgeBase class to store and retrieve knowledge for the SEAL system.",
+          "dependencies": [],
+          "details": "Create a KnowledgeBase class that: 1) Provides structured storage for domain knowledge, 2) Implements efficient retrieval mechanisms, 3) Supports different knowledge formats (text, structured data), 4) Includes methods for knowledge update and maintenance, 5) Handles versioning of knowledge entries.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Develop SelfEditor Component",
+          "description": "Create the SelfEditor class that enables the system to review and improve its own outputs.",
+          "dependencies": [],
+          "details": "Implement a SelfEditor that: 1) Defines editing criteria and rules, 2) Evaluates generated content against these criteria, 3) Suggests or applies improvements to outputs, 4) Maintains an editing history for tracking changes, 5) Provides configurable editing strategies.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Implement Knowledge and Example Loading",
+          "description": "Create utilities for loading, parsing, and managing knowledge and examples from various sources.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Develop loading utilities that: 1) Support multiple file formats (JSON, YAML, CSV, etc.), 2) Validate input data against schemas, 3) Transform raw data into the internal representation, 4) Handle batch loading operations, 5) Implement caching mechanisms for frequently used data.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Integrate SEAL Components with LLM",
+          "description": "Connect all SEAL components with the LLM interface to create a complete working system.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Complete the integration by: 1) Creating a unified API for the SEAL system, 2) Implementing prompt construction that incorporates knowledge and examples, 3) Adding hooks for the self-editing process in the generation pipeline, 4) Ensuring proper error handling and fallback mechanisms, 5) Optimizing the interaction flow for performance.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Implement Version Control Integration",
+      "description": "Create the Git repository interface for code version management, including operations for cloning, pulling, committing, and pushing changes.",
+      "details": "1. Implement `GitInterface` class:\n```python\nclass GitInterface:\n    def __init__(self, config):\n        self.config = config\n        self.repo = None\n    \n    def clone(self, repository_url, target_path):\n        # Clone a repository to the target path\n        try:\n            self.repo = git.Repo.clone_from(repository_url, target_path)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to clone repository: {e}\")\n            return False\n    \n    def open(self, repository_path):\n        # Open an existing repository\n        try:\n            self.repo = git.Repo(repository_path)\n            return True\n        except git.InvalidGitRepositoryError:\n            logging.error(f\"{repository_path} is not a valid Git repository\")\n            return False\n    \n    def pull(self, remote='origin', branch='main'):\n        # Pull changes from remote\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            self.repo.remotes[remote].pull(branch)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to pull changes: {e}\")\n            return False\n    \n    def commit(self, message, files=None):\n        # Commit changes to the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            if files:\n                self.repo.index.add(files)\n            else:\n                self.repo.git.add(A=True)  # Add all changes\n            self.repo.index.commit(message)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to commit changes: {e}\")\n            return False\n    \n    def push(self, remote='origin', branch='main'):\n        # Push changes to remote\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            self.repo.remotes[remote].push(branch)\n            return True\n        except git.GitCommandError as e:\n            logging.error(f\"Failed to push changes: {e}\")\n            return False\n    \n    def get_file_content(self, file_path):\n        # Get content of a file in the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            with open(os.path.join(self.repo.working_dir, file_path), 'r') as f:\n                return f.read()\n        except FileNotFoundError:\n            logging.error(f\"File not found: {file_path}\")\n            return None\n    \n    def write_file_content(self, file_path, content):\n        # Write content to a file in the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        try:\n            full_path = os.path.join(self.repo.working_dir, file_path)\n            os.makedirs(os.path.dirname(full_path), exist_ok=True)\n            with open(full_path, 'w') as f:\n                f.write(content)\n            return True\n        except Exception as e:\n            logging.error(f\"Failed to write file: {e}\")\n            return False\n    \n    def get_repository_structure(self):\n        # Get the structure of the repository\n        if not self.repo:\n            raise ValueError(\"Repository not initialized\")\n        structure = {}\n        for root, dirs, files in os.walk(self.repo.working_dir):\n            # Skip .git directory\n            if '.git' in dirs:\n                dirs.remove('.git')\n            rel_path = os.path.relpath(root, self.repo.working_dir)\n            if rel_path == '.':\n                rel_path = ''\n            current = structure\n            if rel_path:\n                parts = rel_path.split(os.sep)\n                for part in parts:\n                    if part not in current:\n                        current[part] = {}\n                    current = current[part]\n            for file in files:\n                current[file] = None  # Just mark the file's existence\n        return structure\n```\n\n2. Implement `VersionManager` class to integrate with the data models:\n```python\nclass VersionManager:\n    def __init__(self, config):\n        self.config = config\n        self.git = GitInterface(config)\n        self.working_dir = config.get('working_directory', './workspace')\n    \n    def initialize_from_repository(self, repository_url):\n        # Initialize from a remote repository\n        os.makedirs(self.working_dir, exist_ok=True)\n        success = self.git.clone(repository_url, self.working_dir)\n        if success:\n            return self._create_initial_version()\n        return None\n    \n    def open_repository(self, repository_path):\n        # Open an existing repository\n        success = self.git.open(repository_path)\n        if success:\n            self.working_dir = repository_path\n            return self._create_initial_version()\n        return None\n    \n    def apply_changes(self, version):\n        # Apply changes from a version to the working directory\n        if not isinstance(version, CodeVersion):\n            if isinstance(version, dict):\n                version = CodeVersion.from_dict(version)\n            else:\n                raise TypeError(\"Expected CodeVersion or dict\")\n        for file_path, content in version.changes.items():\n            self.git.write_file_content(file_path, content)\n        return True\n    \n    def commit_version(self, version, message=None):\n        # Commit changes as a new version\n        if not message:\n            message = f\"Version {version.version_id}: Automated commit\"\n        changed_files = list(version.changes.keys())\n        return self.git.commit(message, changed_files)\n    \n    def push_changes(self):\n        # Push committed changes to remote\n        return self.git.push()\n    \n    def _create_initial_version(self):\n        # Create an initial version from the current repository state\n        structure = self.git.get_repository_structure()\n        changes = {}\n        for file_path in self._flatten_structure(structure):\n            content = self.git.get_file_content(file_path)\n            if content is not None:\n                changes[file_path] = content\n        return CodeVersion(\n            version_id=1,\n            parent_id=None,\n            timestamp=datetime.now(),\n            changes=changes\n        )\n    \n    def _flatten_structure(self, structure, prefix=''):\n        # Flatten the nested structure into a list of file paths\n        result = []\n        for key, value in structure.items():\n            path = os.path.join(prefix, key) if prefix else key\n            if value is None:  # It's a file\n                result.append(path)\n            else:  # It's a directory\n                result.extend(self._flatten_structure(value, path))\n        return result\n```",
+      "testStrategy": "1. Unit tests for GitInterface and VersionManager classes\n2. Test repository operations (clone, open, pull, commit, push)\n3. Test file operations (read, write)\n4. Test structure extraction\n5. Test version creation and application\n6. Integration tests with actual Git repositories\n7. Test error handling with invalid inputs and repository states",
+      "priority": "medium",
+      "dependencies": [
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement GitInterface Base Class",
+          "description": "Create a base GitInterface class that will handle core Git operations and provide a consistent API for the application",
+          "dependencies": [],
+          "details": "Implement a GitInterface class that will serve as the foundation for Git operations. Include methods for initialization, configuration, and basic Git command execution. Define the interface contract that will be used throughout the application. Ensure proper error handling structure is in place.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Develop VersionManager Component",
+          "description": "Create a VersionManager class that will track and manage different versions of code and projects",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement the VersionManager class that will use GitInterface to track versions. Include functionality for version comparison, history tracking, and metadata management. Implement methods to retrieve specific versions and handle version conflicts. Design a clean API for other components to interact with version history.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Implement Repository Operations",
+          "description": "Build functionality for core repository operations including clone, open, pull, commit, and push",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement methods for repository operations: clone repositories from URLs, open existing repositories, pull latest changes, create commits with appropriate messages, and push changes to remote repositories. Handle authentication requirements for these operations and implement proper error handling for network issues and conflicts.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Create File Operations Module",
+          "description": "Develop a module to handle file-level Git operations like staging, unstaging, and checking file status",
+          "dependencies": [
+            1,
+            3
+          ],
+          "details": "Implement functionality for file-specific Git operations including staging files, unstaging files, checking file status (modified, new, deleted), and handling file conflicts. Create methods to get file diff information and history. Ensure proper handling of binary files and large files.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Build Repository Structure Extraction",
+          "description": "Create functionality to extract and represent the structure of Git repositories",
+          "dependencies": [
+            1,
+            3
+          ],
+          "details": "Implement methods to extract repository structure including branches, tags, and commit history. Create data structures to represent repository elements and relationships. Implement functionality to navigate repository history and structure. Include methods to visualize repository structure for UI components.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Implement Comprehensive Error Handling",
+          "description": "Develop a robust error handling system for Git operations with meaningful error messages and recovery options",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "details": "Create a comprehensive error handling system that catches and properly manages Git-specific errors. Implement error classes for different types of Git errors (network, permission, merge conflicts, etc.). Add logging functionality for debugging. Provide meaningful error messages and potential recovery actions where applicable.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Implement Test Execution Framework",
+      "description": "Create a framework for executing unit and integration tests, tracking basic performance metrics, and validating code improvements.",
+      "details": "1. Implement `TestRunner` class:\n```python\nclass TestRunner:\n    def __init__(self, config):\n        self.config = config\n        self.test_directory = config.get('test_directory', './tests')\n    \n    def run_tests(self, code_version, test_type='all'):\n        # Run tests on the given code version\n        # Apply the code version to a temporary directory\n        temp_dir = self._setup_temp_directory(code_version)\n        \n        results = []\n        if test_type in ['unit', 'all']:\n            unit_results = self._run_unit_tests(temp_dir)\n            results.extend(unit_results)\n        \n        if test_type in ['integration', 'all']:\n            integration_results = self._run_integration_tests(temp_dir)\n            results.extend(integration_results)\n        \n        # Clean up temporary directory\n        self._cleanup_temp_directory(temp_dir)\n        \n        return results\n    \n    def _setup_temp_directory(self, code_version):\n        # Set up a temporary directory with the code version\n        temp_dir = tempfile.mkdtemp()\n        for file_path, content in code_version.changes.items():\n            full_path = os.path.join(temp_dir, file_path)\n            os.makedirs(os.path.dirname(full_path), exist_ok=True)\n            with open(full_path, 'w') as f:\n                f.write(content)\n        return temp_dir\n    \n    def _cleanup_temp_directory(self, temp_dir):\n        # Clean up the temporary directory\n        shutil.rmtree(temp_dir)\n    \n    def _run_unit_tests(self, directory):\n        # Run unit tests in the directory\n        return self._run_pytest(directory, 'unit')\n    \n    def _run_integration_tests(self, directory):\n        # Run integration tests in the directory\n        return self._run_pytest(directory, 'integration')\n    \n    def _run_pytest(self, directory, test_type):\n        # Run pytest with the specified test type\n        results = []\n        test_pattern = f\"*_{test_type}_test.py\"\n        test_files = glob.glob(os.path.join(self.test_directory, test_pattern))\n        \n        for test_file in test_files:\n            test_name = os.path.basename(test_file)\n            start_time = time.time()\n            try:\n                # Copy test file to the directory\n                shutil.copy(test_file, directory)\n                # Run pytest on the file\n                process = subprocess.run(\n                    ['python', '-m', 'pytest', test_name, '-v'],\n                    cwd=directory,\n                    capture_output=True,\n                    text=True\n                )\n                end_time = time.time()\n                execution_time = end_time - start_time\n                \n                if process.returncode == 0:\n                    status = 'pass'\n                else:\n                    status = 'fail'\n                \n                results.append({\n                    'test_name': test_name,\n                    'status': status,\n                    'execution_time': execution_time,\n                    'output': process.stdout,\n                    'error': process.stderr\n                })\n            except Exception as e:\n                results.append({\n                    'test_name': test_name,\n                    'status': 'error',\n                    'execution_time': time.time() - start_time,\n                    'output': '',\n                    'error': str(e)\n                })\n        \n        return results\n```\n\n2. Implement `MetricsTracker` class:\n```python\nclass MetricsTracker:\n    def __init__(self, config):\n        self.config = config\n        self.metrics_history = {}  # version_id -> metrics\n    \n    def track_metrics(self, version_id, test_results):\n        # Calculate and track metrics from test results\n        metrics = self._calculate_metrics(test_results)\n        self.metrics_history[version_id] = metrics\n        return metrics\n    \n    def get_metrics(self, version_id):\n        # Get metrics for a specific version\n        return self.metrics_history.get(version_id, {})\n    \n    def compare_metrics(self, version_id1, version_id2):\n        # Compare metrics between two versions\n        metrics1 = self.get_metrics(version_id1)\n        metrics2 = self.get_metrics(version_id2)\n        if not metrics1 or not metrics2:\n            return None\n        \n        comparison = {}\n        for key in set(metrics1.keys()).union(metrics2.keys()):\n            value1 = metrics1.get(key, 0)\n            value2 = metrics2.get(key, 0)\n            comparison[key] = {\n                'before': value1,\n                'after': value2,\n                'change': value2 - value1,\n                'percent_change': ((value2 - value1) / value1 * 100) if value1 != 0 else float('inf')\n            }\n        return comparison\n    \n    def _calculate_metrics(self, test_results):\n        # Calculate metrics from test results\n        if not test_results:\n            return {}\n        \n        total_tests = len(test_results)\n        passed_tests = sum(1 for r in test_results if r['status'] == 'pass')\n        failed_tests = sum(1 for r in test_results if r['status'] == 'fail')\n        error_tests = sum(1 for r in test_results if r['status'] == 'error')\n        \n        execution_times = [r.get('execution_time', 0) for r in test_results if r['status'] == 'pass']\n        avg_execution_time = sum(execution_times) / len(execution_times) if execution_times else 0\n        \n        return {\n            'correctness': passed_tests / total_tests if total_tests > 0 else 0,\n            'pass_rate': passed_tests / total_tests if total_tests > 0 else 0,\n            'fail_rate': failed_tests / total_tests if total_tests > 0 else 0,\n            'error_rate': error_tests / total_tests if total_tests > 0 else 0,\n            'avg_execution_time': avg_execution_time,\n            'total_tests': total_tests,\n            'passed_tests': passed_tests,\n            'failed_tests': failed_tests,\n            'error_tests': error_tests\n        }\n```\n\n3. Implement `ImprovementValidator` class:\n```python\nclass ImprovementValidator:\n    def __init__(self, config, metrics_tracker):\n        self.config = config\n        self.metrics_tracker = metrics_tracker\n        self.threshold = config.get('improvement_threshold', 0.05)  # 5% improvement threshold\n    \n    def validate_improvement(self, old_version_id, new_version_id):\n        # Validate if the new version is an improvement over the old version\n        comparison = self.metrics_tracker.compare_metrics(old_version_id, new_version_id)\n        if not comparison:\n            return False\n        \n        # Check correctness first - must not decrease\n        if comparison.get('correctness', {}).get('change', 0) < 0:\n            return False\n        \n        # Check if there's significant improvement in execution time\n        time_change = comparison.get('avg_execution_time', {}).get('percent_change', 0)\n        if time_change <= -self.threshold:  # Negative change is good for execution time\n            return True\n        \n        # Check if there's improvement in pass rate\n        pass_rate_change = comparison.get('pass_rate', {}).get('percent_change', 0)\n        if pass_rate_change >= self.threshold:\n            return True\n        \n        # No significant improvement detected\n        return False\n```",
+      "testStrategy": "1. Unit tests for TestRunner, MetricsTracker, and ImprovementValidator classes\n2. Test with sample code versions and test files\n3. Test metrics calculation with various test results\n4. Test comparison logic with different metric values\n5. Test validation with improvements and regressions\n6. Integration test of the full testing pipeline\n7. Test with actual Python code and tests",
+      "priority": "medium",
+      "dependencies": [
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement TestRunner Core",
+          "description": "Create the TestRunner class that handles the execution of tests against the codebase",
+          "dependencies": [],
+          "details": "Implement a TestRunner class that can execute tests against the codebase. Include methods for test discovery, execution, and result collection. The TestRunner should be able to run tests in isolation and handle test failures gracefully.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Develop Test Environment Setup/Teardown",
+          "description": "Create utilities for setting up and tearing down test environments",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement functions to create isolated test environments before test execution and clean them up afterward. This should include temporary directory creation, test data initialization, and environment variable management. Ensure proper cleanup to prevent resource leaks.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Build MetricsTracker",
+          "description": "Implement a system to track and record test execution metrics",
+          "dependencies": [
+            1
+          ],
+          "details": "Create a MetricsTracker class that records execution time, memory usage, code coverage, and other relevant metrics during test execution. Include methods for starting/stopping metric collection and retrieving collected data in a structured format.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Implement Metrics Calculation Logic",
+          "description": "Develop algorithms to process raw metrics into meaningful performance indicators",
+          "dependencies": [
+            3
+          ],
+          "details": "Create functions to transform raw metrics into meaningful performance indicators. Implement statistical calculations like averages, percentiles, and standard deviations. Include normalization techniques to make metrics comparable across different test runs and environments.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Create Comparison Logic",
+          "description": "Implement logic to compare metrics between different test runs",
+          "dependencies": [
+            4
+          ],
+          "details": "Develop algorithms to compare metrics between different test runs to identify improvements or regressions. Include threshold-based comparison, trend analysis, and statistical significance testing. Create visualization helpers to represent comparison results clearly.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Develop ImprovementValidator",
+          "description": "Create a system to validate whether code changes result in measurable improvements",
+          "dependencies": [
+            5
+          ],
+          "details": "Implement an ImprovementValidator class that determines if code changes result in statistically significant improvements. Include configurable validation criteria, confidence intervals, and reporting mechanisms. The validator should be able to handle different types of metrics and improvement goals.",
+          "status": "pending"
+        },
+        {
+          "id": 7,
+          "title": "Perform Integration Testing",
+          "description": "Create integration tests for the entire test execution framework",
+          "dependencies": [
+            2,
+            6
+          ],
+          "details": "Develop comprehensive integration tests that verify the correct interaction between all components of the test execution framework. Test various scenarios including successful improvements, regressions, and edge cases. Ensure the framework works end-to-end from test execution to improvement validation.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Implement Basic Evolution Pipeline",
+      "description": "Integrate DGM, OpenEvolve, and SEAL components to create a functional end-to-end code evolution workflow from generation to evaluation.",
+      "details": "1. Implement `EvolutionPipeline` class:\n```python\nclass EvolutionPipeline:\n    def __init__(self, config):\n        self.config = config\n        \n        # Initialize components\n        llm_interface = LLMInterface(config.get('llm', {}))\n        \n        # DGM components\n        self.evolution_manager = EvolutionManager(config.get('dgm', {}))\n        self.agentic_system = AgenticSystem(llm_interface)\n        \n        # OpenEvolve components\n        self.openevolve = OpenEvolve(config.get('openevolve', {}))\n        \n        # SEAL components\n        self.few_shot_learner = FewShotLearner(config.get('seal', {}), llm_interface)\n        self.self_editor = SelfEditor(config.get('seal', {}), llm_interface)\n        \n        # Version control\n        self.version_manager = VersionManager(config.get('version_control', {}))\n        \n        # Testing framework\n        self.test_runner = TestRunner(config.get('testing', {}))\n        self.metrics_tracker = MetricsTracker(config.get('metrics', {}))\n        self.validator = ImprovementValidator(config.get('validation', {}), self.metrics_tracker)\n        \n        # Load examples and knowledge\n        if 'examples_directory' in config.get('seal', {}):\n            self.few_shot_learner.load_examples_from_directory(config.get('seal', {}).get('examples_directory'))\n        if 'knowledge_directory' in config.get('seal', {}):\n            self.self_editor.knowledge_base.load_knowledge_from_directory(config.get('seal', {}).get('knowledge_directory'))\n    \n    def initialize_from_repository(self, repository_url):\n        # Initialize the pipeline from a repository\n        initial_version = self.version_manager.initialize_from_repository(repository_url)\n        if initial_version:\n            # Initialize DGM with the repository\n            self.evolution_manager.initialize_run(self.version_manager.working_dir)\n            # Initialize OpenEvolve with the initial version\n            version_id = self.openevolve.initialize(initial_version.to_dict())\n            return version_id\n        return None\n    \n    def run_evolution_cycle(self, iterations=1):\n        # Run a complete evolution cycle\n        results = []\n        current_version_id = self.openevolve.database.get_latest_version_id()\n        \n        for i in range(iterations):\n            # Step 1: Analyze the current version\n            current_version = self.openevolve.database.get_version(current_version_id)\n            analysis = self.agentic_system.analyze_repository(self.version_manager.working_dir)\n            \n            # Step 2: Generate improvements\n            improvements = self.agentic_system.generate_improvements(\n                self.version_manager.working_dir, analysis)\n            \n            # Step 3: Apply SEAL adaptations\n            adapted_improvements = self.self_editor.generate_edits(\n                json.dumps(current_version.changes), improvements)\n            \n            # Step 4: Create new version\n            new_version = CodeVersion(\n                version_id=None,  # Will be assigned by database\n                parent_id=current_version_id,\n                timestamp=datetime.now(),\n                changes=json.loads(adapted_improvements)\n            )\n            \n            # Step 5: Store and evaluate the new version\n            new_version_id = self.openevolve.database.store_version(\n                new_version.to_dict(), current_version_id)\n            new_version = self.openevolve.database.get_version(new_version_id)\n            \n            # Apply changes to working directory for testing\n            self.version_manager.apply_changes(new_version)\n            \n            # Step 6: Run tests and track metrics\n            test_results = self.test_runner.run_tests(new_version)\n            metrics = self.metrics_tracker.track_metrics(new_version_id, test_results)\n            evaluation_result = EvaluationResult(\n                test_id=str(uuid.uuid4()),\n                status='pass' if all(r['status'] == 'pass' for r in test_results) else 'fail',\n                metrics=metrics\n            )\n            self.openevolve.database.store_evaluation(new_version_id, evaluation_result.to_dict())\n            \n            # Step 7: Validate improvement\n            is_improvement = self.validator.validate_improvement(current_version_id, new_version_id)\n            \n            # Step 8: Update current version if it's an improvement\n            if is_improvement:\n                current_version_id = new_version_id\n                # Commit the changes to the repository\n                self.version_manager.commit_version(\n                    new_version, f\"Evolution iteration {i+1}: Improved version\")\n            \n            # Record results\n            results.append({\n                'iteration': i+1,\n                'version_id': new_version_id,\n                'is_improvement': is_improvement,\n                'metrics': metrics\n            })\n        \n        # Push changes if configured to do so\n        if self.config.get('version_control', {}).get('auto_push', False):\n            self.version_manager.push_changes()\n        \n        return results\n```\n\n2. Implement `WorkflowCoordinator` class:\n```python\nclass WorkflowCoordinator:\n    def __init__(self, config_path):\n        # Load configuration\n        with open(config_path, 'r') as f:\n            config_dict = yaml.safe_load(f)\n        self.config = SystemConfig(config_dict)\n        self.config.validate()\n        \n        # Initialize pipeline\n        self.pipeline = EvolutionPipeline(self.config.config)\n        self.event_handlers = {}\n    \n    def register_event_handler(self, event_type, handler):\n        # Register an event handler\n        if event_type not in self.event_handlers:\n            self.event_handlers[event_type] = []\n        self.event_handlers[event_type].append(handler)\n    \n    def trigger_event(self, event_type, data):\n        # Trigger an event\n        if event_type in self.event_handlers:\n            for handler in self.event_handlers[event_type]:\n                handler(data)\n    \n    def run_workflow(self, repository_url, iterations=5):\n        # Run the complete workflow\n        try:\n            # Step 1: Initialize from repository\n            self.trigger_event('workflow_start', {'repository_url': repository_url})\n            version_id = self.pipeline.initialize_from_repository(repository_url)\n            if not version_id:\n                self.trigger_event('workflow_error', {'error': 'Failed to initialize from repository'})\n                return False\n            \n            # Step 2: Run evolution cycles\n            self.trigger_event('evolution_start', {'initial_version_id': version_id})\n            results = self.pipeline.run_evolution_cycle(iterations)\n            \n            # Step 3: Report results\n            improvements = sum(1 for r in results if r['is_improvement'])\n            self.trigger_event('evolution_complete', {\n                'total_iterations': iterations,\n                'improvements': improvements,\n                'results': results\n            })\n            \n            return True\n        except Exception as e:\n            self.trigger_event('workflow_error', {'error': str(e)})\n            return False\n```\n\n3. Implement a simple CLI for the workflow:\n```python\ndef main():\n    parser = argparse.ArgumentParser(description='EVOSEAL Evolution Pipeline')\n    parser.add_argument('--config', required=True, help='Path to configuration file')\n    parser.add_argument('--repository', required=True, help='URL of the repository to evolve')\n    parser.add_argument('--iterations', type=int, default=5, help='Number of evolution iterations')\n    args = parser.parse_args()\n    \n    # Setup logging\n    logging.basicConfig(\n        level=logging.INFO,\n        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',\n        handlers=[logging.FileHandler('evoseal.log'), logging.StreamHandler()]\n    )\n    \n    # Create and run workflow\n    coordinator = WorkflowCoordinator(args.config)\n    \n    # Register event handlers\n    coordinator.register_event_handler('workflow_start', \n        lambda data: logging.info(f\"Starting workflow with repository: {data['repository_url']}\"))\n    coordinator.register_event_handler('evolution_start',\n        lambda data: logging.info(f\"Starting evolution from version: {data['initial_version_id']}\"))\n    coordinator.register_event_handler('evolution_complete',\n        lambda data: logging.info(f\"Evolution complete: {data['improvements']}/{data['total_iterations']} improvements\"))\n    coordinator.register_event_handler('workflow_error',\n        lambda data: logging.error(f\"Workflow error: {data['error']}\"))\n    \n    # Run the workflow\n    success = coordinator.run_workflow(args.repository, args.iterations)\n    \n    if success:\n        logging.info(\"Workflow completed successfully\")\n        return 0\n    else:\n        logging.error(\"Workflow failed\")\n        return 1\n\nif __name__ == '__main__':\n    sys.exit(main())\n```",
+      "testStrategy": "1. Unit tests for EvolutionPipeline and WorkflowCoordinator classes\n2. Integration tests for the complete pipeline\n3. Test with a simple repository containing basic code\n4. Test with different iteration counts\n5. Test error handling with invalid repositories\n6. Test event handling system\n7. End-to-end test of the full evolution workflow\n8. Verify improvements are correctly identified and applied",
+      "priority": "high",
+      "dependencies": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design EvolutionPipeline Core Architecture",
+          "description": "Define the core architecture of the EvolutionPipeline class including interfaces, state management, and component interaction patterns.",
+          "dependencies": [],
+          "details": "Create the foundational architecture for the EvolutionPipeline class that will orchestrate the entire evolution process. Define clear interfaces for component integration, state management patterns, configuration handling, and the overall execution flow. Include class diagrams and interface definitions.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement WorkflowCoordinator",
+          "description": "Develop the WorkflowCoordinator component to manage the execution flow between different stages of the evolution pipeline.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create the WorkflowCoordinator class responsible for managing transitions between pipeline stages, handling stage dependencies, and ensuring proper execution order. Implement mechanisms for workflow pausing, resuming, and state persistence between runs.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Develop CLI Interface for Pipeline Control",
+          "description": "Create a comprehensive CLI interface for controlling and monitoring the evolution pipeline.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implement CLI commands for pipeline initialization, execution control (start, pause, resume, stop), configuration management, and status monitoring. Include progress visualization, logging controls, and interactive debugging options.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Integrate Core Components (DGM, OpenEvolve, SEAL)",
+          "description": "Integrate the main computational components into the pipeline with proper interfaces and data flow.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Develop integration adapters for each core component (DGM, OpenEvolve, SEAL), ensuring proper data transformation between components, configuration mapping, and execution control. Implement component lifecycle management and resource allocation strategies.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Event Handling System",
+          "description": "Create a robust event handling system for pipeline-wide communication and monitoring.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Design and implement an event bus for the pipeline that supports synchronous and asynchronous events, event filtering, and subscription mechanisms. Define standard event types for pipeline stages, errors, metrics, and component communication. Include logging integration.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Integrate Version Control and Experiment Tracking",
+          "description": "Implement version control and experiment tracking capabilities within the pipeline.",
+          "dependencies": [
+            1,
+            4
+          ],
+          "details": "Develop mechanisms for tracking model versions, experiment configurations, and results. Implement integration with git for code versioning and add capabilities for experiment reproducibility, comparison, and artifact management.",
+          "status": "pending"
+        },
+        {
+          "id": 7,
+          "title": "Develop End-to-End Workflow Orchestration",
+          "description": "Create the complete end-to-end workflow orchestration logic with proper checkpointing and recovery.",
+          "dependencies": [
+            2,
+            4,
+            5
+          ],
+          "details": "Implement the full workflow orchestration logic that ties all components together into a cohesive pipeline. Include checkpointing mechanisms, state persistence, recovery strategies, and optimization of the execution flow. Ensure proper resource management across the entire pipeline.",
+          "status": "pending"
+        },
+        {
+          "id": 8,
+          "title": "Implement Error Handling and Resilience",
+          "description": "Develop comprehensive error handling, logging, and resilience mechanisms for the pipeline.",
+          "dependencies": [
+            5,
+            7
+          ],
+          "details": "Implement error detection, classification, and recovery strategies throughout the pipeline. Create detailed logging and monitoring capabilities. Add resilience features like automatic retries, graceful degradation, and failure isolation to ensure the pipeline can recover from various error conditions.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Implement Foundational Safety & Validation",
+      "description": "Create essential safety mechanisms including checkpoint system, rollback capability, and regression prevention to ensure system maintains or improves functionality with each iteration.",
+      "details": "1. Implement `CheckpointManager` class:\n```python\nclass CheckpointManager:\n    def __init__(self, config):\n        self.config = config\n        self.checkpoint_dir = config.get('checkpoint_directory', './checkpoints')\n        os.makedirs(self.checkpoint_dir, exist_ok=True)\n        self.checkpoints = {}  # version_id -> checkpoint_path\n    \n    def create_checkpoint(self, version_id, version):\n        # Create a checkpoint for a version\n        if not isinstance(version, CodeVersion):\n            if isinstance(version, dict):\n                version = CodeVersion.from_dict(version)\n            else:\n                raise TypeError(\"Expected CodeVersion or dict\")\n        \n        # Create checkpoint directory\n        checkpoint_path = os.path.join(self.checkpoint_dir, f\"checkpoint_{version_id}\")\n        os.makedirs(checkpoint_path, exist_ok=True)\n        \n        # Save version data\n        for file_path, content in version.changes.items():\n            full_path = os.path.join(checkpoint_path, file_path)\n            os.makedirs(os.path.dirname(full_path), exist_ok=True)\n            with open(full_path, 'w') as f:\n                f.write(content)\n        \n        # Save metadata\n        metadata = {\n            'version_id': version_id,\n            'parent_id': version.parent_id,\n            'timestamp': version.timestamp.isoformat() if isinstance(version.timestamp, datetime) else version.timestamp,\n            'checkpoint_time': datetime.now().isoformat()\n        }\n        with open(os.path.join(checkpoint_path, 'metadata.json'), 'w') as f:\n            json.dump(metadata, f, indent=2)\n        \n        self.checkpoints[version_id] = checkpoint_path\n        return checkpoint_path\n    \n    def restore_checkpoint(self, version_id, target_dir):\n        # Restore a checkpoint to the target directory\n        if version_id not in self.checkpoints:\n            checkpoint_path = os.path.join(self.checkpoint_dir, f\"checkpoint_{version_id}\")\n            if not os.path.exists(checkpoint_path):\n                raise ValueError(f\"Checkpoint for version {version_id} not found\")\n            self.checkpoints[version_id] = checkpoint_path\n        \n        checkpoint_path = self.checkpoints[version_id]\n        \n        # Clear target directory (except .git)\n        for item in os.listdir(target_dir):\n            if item == '.git':\n                continue\n            item_path = os.path.join(target_dir, item)\n            if os.path.isdir(item_path):\n                shutil.rmtree(item_path)\n            else:\n                os.remove(item_path)\n        \n        # Copy checkpoint files to target directory\n        for root, dirs, files in os.walk(checkpoint_path):\n            if 'metadata.json' in files:\n                files.remove('metadata.json')  # Don't copy metadata file\n            \n            for file in files:\n                src_path = os.path.join(root, file)\n                rel_path = os.path.relpath(src_path, checkpoint_path)\n                dst_path = os.path.join(target_dir, rel_path)\n                os.makedirs(os.path.dirname(dst_path), exist_ok=True)\n                shutil.copy2(src_path, dst_path)\n        \n        return True\n    \n    def list_checkpoints(self):\n        # List all available checkpoints\n        checkpoints = []\n        for item in os.listdir(self.checkpoint_dir):\n            if item.startswith('checkpoint_'):\n                checkpoint_path = os.path.join(self.checkpoint_dir, item)\n                metadata_path = os.path.join(checkpoint_path, 'metadata.json')\n                if os.path.exists(metadata_path):\n                    with open(metadata_path, 'r') as f:\n                        metadata = json.load(f)\n                        checkpoints.append(metadata)\n        return sorted(checkpoints, key=lambda x: x['checkpoint_time'])\n    \n    def get_checkpoint_path(self, version_id):\n        # Get the path to a checkpoint\n        if version_id in self.checkpoints:\n            return self.checkpoints[version_id]\n        checkpoint_path = os.path.join(self.checkpoint_dir, f\"checkpoint_{version_id}\")\n        if os.path.exists(checkpoint_path):\n            self.checkpoints[version_id] = checkpoint_path\n            return checkpoint_path\n        return None\n```\n\n2. Implement `RollbackManager` class:\n```python\nclass RollbackManager:\n    def __init__(self, config, checkpoint_manager, version_manager):\n        self.config = config\n        self.checkpoint_manager = checkpoint_manager\n        self.version_manager = version_manager\n        self.rollback_history = []  # List of rollback events\n    \n    def rollback_to_version(self, version_id):\n        # Rollback to a specific version\n        # Check if checkpoint exists\n        checkpoint_path = self.checkpoint_manager.get_checkpoint_path(version_id)\n        if not checkpoint_path:\n            raise ValueError(f\"No checkpoint found for version {version_id}\")\n        \n        # Restore checkpoint to working directory\n        success = self.checkpoint_manager.restore_checkpoint(\n            version_id, self.version_manager.working_dir)\n        if not success:\n            raise RuntimeError(f\"Failed to restore checkpoint for version {version_id}\")\n        \n        # Record rollback event\n        rollback_event = {\n            'timestamp': datetime.now().isoformat(),\n            'version_id': version_id,\n            'reason': 'manual_rollback'\n        }\n        self.rollback_history.append(rollback_event)\n        \n        return True\n    \n    def auto_rollback_on_failure(self, version_id, test_results):\n        # Automatically rollback if tests fail\n        if any(r['status'] == 'fail' for r in test_results):\n            # Find the parent version\n            metadata_path = os.path.join(\n                self.checkpoint_manager.get_checkpoint_path(version_id),\n                'metadata.json'\n            )\n            with open(metadata_path, 'r') as f:\n                metadata = json.load(f)\n            \n            parent_id = metadata.get('parent_id')\n            if not parent_id:\n                raise ValueError(f\"No parent version found for version {version_id}\")\n            \n            # Rollback to parent version\n            success = self.rollback_to_version(parent_id)\n            \n            # Record auto-rollback event\n            rollback_event = {\n                'timestamp': datetime.now().isoformat(),\n                'version_id': parent_id,\n                'from_version': version_id,\n                'reason': 'test_failure',\n                'test_results': test_results\n            }\n            self.rollback_history.append(rollback_event)\n            \n            return success\n        \n        return False\n    \n    def get_rollback_history(self):\n        # Get the history of rollback events\n        return self.rollback_history\n```\n\n3. Implement `RegressionDetector` class:\n```python\nclass RegressionDetector:\n    def __init__(self, config, metrics_tracker):\n        self.config = config\n        self.metrics_tracker = metrics_tracker\n        self.regression_threshold = config.get('regression_threshold', 0.05)  # 5% regression threshold\n    \n    def detect_regression(self, old_version_id, new_version_id):\n        # Detect if there's a regression in the new version\n        comparison = self.metrics_tracker.compare_metrics(old_version_id, new_version_id)\n        if not comparison:\n            return False, {}\n        \n        regressions = {}\n        \n        # Check correctness - critical regression\n        correctness_change = comparison.get('correctness', {}).get('change', 0)\n        if correctness_change < 0:\n            regressions['correctness'] = {\n                'old': comparison['correctness']['before'],\n                'new': comparison['correctness']['after'],\n                'change': correctness_change,\n                'severity': 'critical'\n            }\n        \n        # Check pass rate\n        pass_rate_change = comparison.get('pass_rate', {}).get('percent_change', 0)\n        if pass_rate_change < -self.regression_threshold:\n            regressions['pass_rate'] = {\n                'old': comparison['pass_rate']['before'],\n                'new': comparison['pass_rate']['after'],\n                'change': pass_rate_change,\n                'severity': 'high'\n            }\n        \n        # Check execution time - performance regression\n        time_change = comparison.get('avg_execution_time', {}).get('percent_change', 0)\n        if time_change > self.regression_threshold:  # Positive change is bad for execution time\n            regressions['execution_time'] = {\n                'old': comparison['avg_execution_time']['before'],\n                'new': comparison['avg_execution_time']['after'],\n                'change': time_change,\n                'severity': 'medium'\n            }\n        \n        return len(regressions) > 0, regressions\n```\n\n4. Enhance `EvolutionPipeline` with safety mechanisms:\n```python\ndef enhance_evolution_pipeline():\n    # Add to the EvolutionPipeline.__init__ method\n    self.checkpoint_manager = CheckpointManager(config.get('checkpoints', {}))\n    self.rollback_manager = RollbackManager(\n        config.get('rollback', {}), self.checkpoint_manager, self.version_manager)\n    self.regression_detector = RegressionDetector(\n        config.get('regression', {}), self.metrics_tracker)\n    \n    # Modify the run_evolution_cycle method to include safety checks\n    def run_evolution_cycle_with_safety(self, iterations=1):\n        results = []\n        current_version_id = self.openevolve.database.get_latest_version_id()\n        \n        # Create checkpoint of initial version\n        current_version = self.openevolve.database.get_version(current_version_id)\n        self.checkpoint_manager.create_checkpoint(current_version_id, current_version)\n        \n        for i in range(iterations):\n            # ... existing steps 1-6 ...\n            \n            # Step 7: Check for regressions\n            has_regression, regressions = self.regression_detector.detect_regression(\n                current_version_id, new_version_id)\n            \n            if has_regression:\n                # Log regression details\n                logging.warning(f\"Regression detected in version {new_version_id}: {regressions}\")\n                \n                # Check if we need to auto-rollback\n                if any(r['severity'] == 'critical' for r in regressions.values()):\n                    logging.error(f\"Critical regression detected, rolling back to version {current_version_id}\")\n                    self.rollback_manager.auto_rollback_on_failure(new_version_id, test_results)\n                    \n                    # Record results with regression info\n                    results.append({\n                        'iteration': i+1,\n                        'version_id': new_version_id,\n                        'is_improvement': False,\n                        'has_regression': True,\n                        'regressions': regressions,\n                        'action': 'rollback',\n                        'metrics': metrics\n                    })\n                    continue\n            \n            # Step 8: Validate improvement\n            is_improvement = self.validator.validate_improvement(current_version_id, new_version_id)\n            \n            # Step 9: Update current version if it's an improvement\n            if is_improvement and not has_regression:\n                # Create checkpoint before updating\n                self.checkpoint_manager.create_checkpoint(new_version_id, new_version)\n                \n                current_version_id = new_version_id\n                # Commit the changes to the repository\n                self.version_manager.commit_version(\n                    new_version, f\"Evolution iteration {i+1}: Improved version\")\n            \n            # Record results\n            results.append({\n                'iteration': i+1,\n                'version_id': new_version_id,\n                'is_improvement': is_improvement,\n                'has_regression': has_regression,\n                'regressions': regressions if has_regression else {},\n                'action': 'accept' if is_improvement and not has_regression else 'reject',\n                'metrics': metrics\n            })\n        \n        # Push changes if configured to do so\n        if self.config.get('version_control', {}).get('auto_push', False):\n            self.version_manager.push_changes()\n        \n        return results\n```",
+      "testStrategy": "1. Unit tests for CheckpointManager, RollbackManager, and RegressionDetector classes\n2. Test checkpoint creation and restoration\n3. Test automatic rollback on test failures\n4. Test regression detection with various metric changes\n5. Test the enhanced evolution pipeline with safety mechanisms\n6. Test recovery from simulated failures\n7. Integration test with a repository containing intentional regressions\n8. Verify checkpoint integrity after multiple iterations",
+      "priority": "high",
+      "dependencies": [
+        9
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design CheckpointManager Interface",
+          "description": "Define the interface and core functionality for the CheckpointManager component that will handle saving and retrieving system states.",
+          "dependencies": [],
+          "details": "Create a comprehensive interface for CheckpointManager that includes methods for creating, listing, and loading checkpoints. Define checkpoint metadata structure, storage requirements, and versioning approach. Consider both memory and disk-based checkpoint strategies.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement Checkpoint Creation Logic",
+          "description": "Develop the functionality to capture and store system state at critical points in the evolution pipeline.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement checkpoint creation mechanisms that capture the complete state of the system including model parameters, configuration, and relevant metadata. Ensure checkpoints are created efficiently with minimal performance impact. Include compression and integrity verification.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Implement Checkpoint Restoration Logic",
+          "description": "Create the functionality to restore the system to a previous state from a saved checkpoint.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Develop restoration procedures that can reliably return the system to a previous state. Include validation of checkpoint integrity before restoration, handling of partial restoration failures, and logging of restoration events.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Design RollbackManager Interface",
+          "description": "Define the interface and core functionality for the RollbackManager component that will orchestrate system rollbacks.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create an interface for RollbackManager that includes methods for initiating rollbacks, tracking rollback history, and managing rollback policies. Define integration points with CheckpointManager and establish rollback triggers and authorization mechanisms.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Rollback Logic",
+          "description": "Develop the core functionality to safely roll back the system to a previous checkpoint when issues are detected.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Implement rollback procedures that coordinate with CheckpointManager to restore previous states. Include pre-rollback validation, post-rollback verification, notification systems, and comprehensive logging. Design for handling cascading rollbacks and rollback failures.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Design RegressionDetector Interface",
+          "description": "Define the interface and core functionality for the RegressionDetector component that will identify performance or safety regressions.",
+          "dependencies": [],
+          "details": "Create an interface for RegressionDetector that includes methods for comparing system performance across versions, establishing baselines, and triggering alerts. Define metrics to monitor, threshold configurations, and integration with testing frameworks.",
+          "status": "pending"
+        },
+        {
+          "id": 7,
+          "title": "Implement Regression Detection Logic",
+          "description": "Develop algorithms and mechanisms to detect performance degradation or safety issues in new system versions.",
+          "dependencies": [
+            6
+          ],
+          "details": "Implement regression detection algorithms that can compare performance metrics, safety indicators, and behavioral patterns between versions. Include statistical analysis tools, anomaly detection, and configurable sensitivity levels. Design for both automated and human-in-the-loop evaluation.",
+          "status": "pending"
+        },
+        {
+          "id": 8,
+          "title": "Integrate Safety Components with Evolution Pipeline",
+          "description": "Connect the CheckpointManager, RollbackManager, and RegressionDetector with the existing evolution pipeline.",
+          "dependencies": [
+            3,
+            5,
+            7
+          ],
+          "details": "Integrate all safety components into the evolution pipeline. Establish checkpoint creation at critical stages, configure regression detection to run automatically after evolution steps, and set up rollback triggers. Implement comprehensive testing of the integrated system, including failure scenarios and recovery procedures.",
+          "status": "pending"
+        }
+      ]
     }
+  ],
+  "metadata": {
+    "created": "2025-06-16T23:24:41.351Z",
+    "updated": "2025-06-16T23:24:41.351Z",
+    "description": "Tasks for master context"
   }
 }
