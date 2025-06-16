@@ -17,17 +17,17 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 EVOSEAL operates in an iterative loop, alternating between solving the provided task and enhancing its own capabilities. The process is illustrated in the following flowchart:
 
 ```mermaid
-graph TD
-    start[Start] --> input[User provides task and max_iterations]
-    input --> init[Initialize EVOSEAL agent]
-    init --> set_iter[Set iteration=0]
-    set_iter --> check{iteration < max_iterations}
-    check -- Yes --> evolve[Evolve task solution]
-    evolve --> output[Output best solution]
-    output --> improve[Improve self]
-    improve --> increment[iteration = iteration + 1]
-    increment --> check
-    check -- No --> end[End]
+flowchart TD
+    A[Start] --> B[User provides task and max_iterations]
+    B --> C[Initialize EVOSEAL agent]
+    C --> D[Set iteration=0]
+    D --> E{iteration < max_iterations?}
+    E -->|Yes| F[Evolve task solution]
+    F --> G[Output best solution]
+    G --> H[Improve self]
+    H --> I[iteration = iteration + 1]
+    I --> E
+    E -->|No| J[End]
 ```
 
 ### System Implementation
@@ -323,6 +323,16 @@ When using specific components of EVOSEAL, please also cite the respective origi
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/codelion/openevolve}
+}
+
+@misc{zweiger2025selfadaptinglanguagemodels,
+  title={Self-Adapting Language Models}, 
+  author={Adam Zweiger and Jyothish Pari and Han Guo and Ekin Akyürek and Yoon Kim and Pulkit Agrawal},
+  year={2025},
+  eprint={2506.10943},
+  archivePrefix={arXiv},
+  primaryClass={cs.LG},
+  url={https://arxiv.org/abs/2506.10943}
 }
 ```
 
