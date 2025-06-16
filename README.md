@@ -1,0 +1,339 @@
+# EVOSEAL: Evolutionary Self-Improving AI Agent
+
+**Date**: June 17, 2025, 05:43 AM (UTC+8)
+
+EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution while continuously improving its own architecture. It integrates three key technologies:
+
+- **SEAL (Self-Adapting Language Models)**: A framework for training language models via reinforcement learning to generate self-edits (finetuning data and update directives for themselves). SEAL focuses on knowledge incorporation and few-shot learning to adapt models to new tasks with minimal examples.
+
+- **OpenEvolve**: An evolutionary framework for program optimization that uses a MAP-Elites process to maintain diversity, comprehensive checkpointing, and a sophisticated database system to track program versions and their performance metrics.
+
+- **DGM (Dynamic Genetic Model)**: Implements a Darwinian approach to code improvement using language models (Claude-3.5-Sonnet and O3-mini) to progressively enhance code quality through multiple generations. DGM maintains an archive of successful improvements and uses sophisticated selection mechanisms to guide evolution.
+
+## Technical Architecture
+
+### High-Level Architecture
+
+EVOSEAL operates in an iterative loop, alternating between solving the provided task and enhancing its own capabilities. The process is illustrated in the following flowchart:
+
+```mermaid
+graph TD
+    start[Start] --> input[User provides task and max_iterations]
+    input --> init[Initialize EVOSEAL agent]
+    init --> set_iter[Set iteration=0]
+    set_iter --> check{iteration < max_iterations}
+    check -- Yes --> evolve[Evolve task solution]
+    evolve --> output[Output best solution]
+    output --> improve[Improve self]
+    improve --> increment[iteration = iteration + 1]
+    increment --> check
+    check -- No --> end[End]
+```
+
+### System Implementation
+
+The EVOSEAL system integrates three sophisticated components with well-defined interfaces:
+
+#### DGM Implementation Details
+
+DGM is implemented through a collection of Python modules that work together to evolve code:
+
+- `DGM_outer.py`: Orchestrates the evolution process across generations, implementing functions for:
+  - Initializing evolution runs with `initialize_run()`
+  - Selecting candidates for improvement through `choose_selfimproves()`
+  - Managing the archive of successful improvements via `update_archive()`
+  - Filtering out non-compiled or empty solutions using `filter_compiled()`
+
+- `coding_agent.py`: Implements the `AgenticSystem` class that:
+  - Interfaces with Git repositories for version control
+  - Manages code edits and improvement processes
+  - Runs regression tests to verify improvements
+  - Handles communication with language models
+
+- `llm_withtools.py`: Provides sophisticated LLM integration:
+  - Supports both Claude and OpenAI models
+  - Implements tool-calling capabilities for code manipulation
+  - Handles message history conversion between different LLM formats
+  - Manages backoff and retry mechanisms for API stability
+
+#### OpenEvolve Implementation Details
+
+OpenEvolve provides a robust framework for program evolution with several key components:
+
+- `controller.py`: The central orchestration module containing the `OpenEvolve` class that:
+  - Manages the entire evolution process from initialization to completion
+  - Coordinates between the prompt sampler, LLM ensemble, evaluator, and program database
+  - Implements checkpoint saving and loading mechanisms
+  - Tracks the best program across evolution steps
+
+- `evaluator.py`: Handles program evaluation through:
+  - Integration with external evaluation scripts
+  - Collection and normalization of performance metrics
+  - Support for LLM-based evaluation when needed
+
+- `database.py`: Sophisticated program version management system for:
+  - Storing and retrieving program variants
+  - Tracking program lineage and relationships
+  - Implementing selection strategies (MAP-Elites process)
+  - Maintaining diversity in the solution space
+
+#### SEAL Implementation Details
+
+SEAL provides the theoretical foundation and implementation for self-adapting language models:
+
+- `few-shot/`: Contains implementations for adapting models to new tasks with minimal examples:
+  - Training procedures for meta-learning capabilities
+  - Evaluation frameworks for measuring adaptation quality
+  - Example tasks and benchmarks
+
+- `knowledge-incorporation/`: Focuses on techniques for adding factual knowledge to LLMs:
+  - Methods for identifying and incorporating new information
+  - Verification mechanisms for knowledge consistency
+  - Evaluation metrics for knowledge retention
+
+### Core Processes
+
+#### Evolve Task Solution
+
+In this phase, EVOSEAL leverages SEAL to generate and refine code variants. These variants are then evaluated and the best one is selected using OpenEvolve's evolutionary mechanisms.
+
+```mermaid
+graph LR
+    A[Start] --> B[Generate code variants with SEAL]
+    B --> C[Evaluate variants with OpenEvolve]
+    C --> D[Select best variant]
+    D --> E[End]
+```
+
+The evolution process involves:
+
+1. **Variant Generation**: Using SEAL's self-adapting capabilities to generate diverse code solutions
+2. **Evaluation**: Assessing each variant based on multiple metrics including correctness, efficiency, and readability
+3. **Selection**: Applying OpenEvolve's MAP-Elites process to maintain both quality and diversity
+4. **Refinement**: Iterative improvement of promising solutions
+
+#### Improve Self
+
+During this phase, DGM is utilized to generate and validate variants of the agent's own pipeline. The best variant is selected and used to update the agent's architecture, enabling continuous self-improvement.
+
+```mermaid
+graph LR
+    A[Start] --> B[Generate pipeline variants with DGM]
+    B --> C[Validate variants]
+    C --> D[Select best variant]
+    D --> E[Update agent's pipeline]
+    E --> F[End]
+```
+
+The self-improvement process includes:
+
+1. **Pipeline Variation**: Using DGM to generate modifications to the agent's own codebase
+2. **Validation Testing**: Rigorously testing each variant for correctness and performance improvements
+3. **Selection**: Choosing the best variant based on comprehensive metrics
+4. **Integration**: Incorporating the improvements into the main architecture
+5. **Version Control**: Maintaining a history of improvements through Git-based version control
+
+## Component Integration
+
+The three core technologies of EVOSEAL are tightly integrated through well-defined interfaces and data flows:
+
+### SEAL Integration
+
+- **Code Generation Interface**: SEAL's self-adapting capabilities are exposed through a structured API that allows OpenEvolve to request code variants
+- **Knowledge Incorporation Pipeline**: New knowledge is continuously fed into SEAL models during the evolution process
+- **Few-shot Learning Activation**: Task-specific examples are used to prime SEAL for generating contextually relevant code
+- **Model Selection**: Different SEAL model configurations are selected based on task complexity and domain
+
+### OpenEvolve Integration
+
+- **Evolutionary Engine**: Serves as the central orchestration system for the entire EVOSEAL framework
+- **Database Interface**: Provides a unified storage and retrieval system for program variants across all components
+- **Evaluation System**: Standardizes metrics collection and normalization for consistent comparison across variants
+- **Checkpoint Management**: Enables seamless persistence and recovery of evolutionary progress
+
+### DGM Integration
+
+- **Meta-Evolution Layer**: Applied at the highest level to evolve EVOSEAL's own components
+- **Git-based Version Control**: Provides a robust mechanism for tracking changes to the agent's architecture
+- **Archive Management**: Maintains a history of successful architecture variants with performance metrics
+- **Selection Mechanism**: Implements sophisticated strategies for choosing which parts of the architecture to improve
+
+## Technical Benefits
+
+### Self-Refinement
+
+- **Self-Editing Capabilities**: SEAL models can identify and correct their own errors, leading to progressively higher quality code
+- **Knowledge Integration**: New information is continuously incorporated into the system's knowledge base
+- **Contextual Adaptation**: Models automatically adjust their output style and approach based on task requirements
+- **Error Reduction**: Analysis of previous generation errors informs improvements in subsequent generations
+
+### Evolutionary Optimization
+
+- **MAP-Elites Implementation**: Maintains diversity while optimizing for multiple objectives simultaneously
+- **Multi-metric Evaluation**: Programs are evaluated across several dimensions including correctness, efficiency, and readability
+- **Efficient Search**: Intelligent exploration of the solution space through targeted mutations and crossovers
+- **Elitism Preservation**: The best solutions are always maintained across generations
+
+### Continuous Improvement
+
+- **Iterative Architecture Refinement**: DGM continuously improves the agent's core algorithms and workflows
+- **Cross-pollination of Solutions**: Successful strategies from one domain are applied to others
+- **Automated Learning Rate Adjustment**: Self-tuning of learning parameters based on progress metrics
+- **Regression Prevention**: Comprehensive testing prevents performance degradation
+
+## Implementation Roadmap
+
+### Current Development
+
+- **Automated Pipeline Integration**: Streamlining the connections between SEAL, OpenEvolve, and DGM components
+- **Performance Benchmarking**: Establishing baseline metrics across a variety of programming tasks
+- **Documentation Expansion**: Developing comprehensive API references and integration guides
+
+### Future Directions
+
+- **Real-time Learning Mechanisms**: Implement streaming learning capabilities to accelerate the self-improvement cycle
+- **Extended Benchmark Support**: Expand compatibility with standard programming benchmarks and diverse task domains
+- **Enhanced Safety Protocols**: Develop more sophisticated safeguards for managing self-modifying code risks
+- **Distributed Evolution**: Enable parallel evolution across multiple compute nodes for faster convergence
+- **Human Feedback Integration**: Create interfaces for incorporating human developer feedback into the evolution process
+
+---
+
+## Installation and Setup
+
+### Prerequisites
+
+- Python 3.9+
+- Git
+- Access to OpenAI API and/or Claude API
+
+### Installation Steps
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/EVOSEAL.git
+   cd EVOSEAL
+   ```
+
+2. Install core dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Install component-specific dependencies:
+   ```bash
+   pip install -r SEAL/requirements.txt
+   pip install -r openevolve/requirements.txt
+   ```
+
+4. Configure API keys:
+   
+   Create a `.env` file in the project root with the following content:
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   ANTHROPIC_API_KEY=your_anthropic_api_key
+   ```
+
+### Configuration
+
+EVOSEAL can be configured through YAML files that control each component's behavior:
+
+- `configs/evoseal.yaml`: Main configuration file
+- `configs/dgm.yaml`: DGM-specific settings
+- `configs/openevolve.yaml`: OpenEvolve parameters
+- `configs/seal.yaml`: SEAL model configuration
+
+## Usage Examples
+
+### Basic Usage
+
+```bash
+# Run EVOSEAL on a programming task
+python run_evoseal.py --task ./tasks/example_task.json --iterations 10 --output ./results
+```
+
+### Running Individual Components
+
+#### DGM Only
+
+```bash
+# Run DGM for code improvement
+python -m dgm.DGM_outer --problem_statement "Fix the bug in function X" \
+                     --git_dir ./repo --base_commit abc123 \
+                     --selfimprove_size 5 --max_generation 3
+```
+
+#### OpenEvolve Only
+
+```bash
+# Run OpenEvolve on a program
+python -m openevolve.openevolve-run ./program.py ./evaluation.py \
+                               --iterations 50 --output ./output
+```
+
+#### SEAL Experiments
+
+```bash
+# Run SEAL few-shot learning experiment
+cd SEAL/few-shot
+python run_experiment.py --config configs/default.yaml
+```
+
+## Example Output
+
+When EVOSEAL completes a run, it produces several output artifacts:
+
+- `results/best_solution.py`: The best solution found for the given task
+- `results/evolution_metrics.json`: Performance metrics across generations
+- `results/architecture_improvements/`: Record of self-improvements made to the system
+- `results/checkpoints/`: Saved states that can be used to resume interrupted runs
+
+---
+
+This README provides a detailed overview of EVOSEAL's technical architecture, highlighting its iterative self-improvement process and the seamless integration of SEAL, OpenEvolve, and DGM components. The system represents a significant advancement in autonomous AI systems for code generation and optimization.
+
+## Citation
+
+If you use EVOSEAL in your research or projects, please cite:
+
+```bibtex
+@software{evoseal2025,
+  title = {EVOSEAL: Evolutionary Self-Improving AI Agent},
+  author = {Sucandra, Kresna},
+  year = {2025},
+  month = {6},
+  publisher = {GitHub},
+  url = {https://github.com/SHA888/EVOSEAL}
+}
+```
+
+When using specific components of EVOSEAL, please also cite the respective original works:
+
+```bibtex
+@article{zhang2025darwin,
+  title={Darwin Godel Machine: Open-Ended Evolution of Self-Improving Agents},
+  author={Zhang, Jenny and Hu, Shengran and Lu, Cong and Lange, Robert and Clune, Jeff},
+  journal={arXiv preprint arXiv:2505.22954},
+  year={2025}
+}
+
+@software{openevolve,
+  title = {OpenEvolve: Open-source implementation of AlphaEvolve},
+  author = {Asankhaya Sharma},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/codelion/openevolve}
+}
+```
+
+## License
+
+EVOSEAL is provided under the Apache License, Version 2.0. 
+
+This project incorporates components from multiple sources with different licenses:
+
+- **DGM**: Copyright (2025) Jenny Zhang and Shengran Hu - Apache License 2.0
+- **OpenEvolve**: Apache License 2.0
+- **SEAL**: Copyright (c) 2025 Adam Zweiger - MIT License
+
+See the [LICENSE](./LICENSE) file for the complete text of the Apache License 2.0 and the [NOTICE](./NOTICE) file for detailed attribution information.
