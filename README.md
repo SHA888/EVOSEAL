@@ -343,7 +343,7 @@ EVOSEAL is provided under the Apache License, Version 2.0.
 This project incorporates components from multiple sources with different licenses:
 
 - **DGM**: Copyright (2025) Jenny Zhang and Shengran Hu - Apache License 2.0
-- **OpenEvolve**: Apache License 2.0
+- **OpenEvolve**: Copyright (c) 2025 Asankhaya Sharma - Apache License 2.0
 - **SEAL**: Copyright (c) 2025 Adam Zweiger - MIT License
 
 See the [LICENSE](./LICENSE) file for the complete text of the Apache License 2.0 and the [NOTICE](./NOTICE) file for detailed attribution information.
