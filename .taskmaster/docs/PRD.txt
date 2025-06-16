@@ -1,0 +1,289 @@
+<context>
+# Overview  
+EVOSEAL is an advanced AI agent designed to solve complex programming tasks through code evolution while continuously improving its own architecture. It represents a significant advancement in autonomous AI systems for code generation and optimization by combining three key technologies (SEAL, OpenEvolve, and DGM) into an integrated, self-improving system.
+
+The system addresses the challenge of creating AI systems that can not only solve programming problems but also autonomously enhance their own capabilities over time. This self-improvement cycle is particularly valuable for researchers, AI developers, and organizations working on complex coding projects that require continuous refinement and adaptation.
+
+# Core Features  
+
+## Integrated Evolutionary Framework
+- **What it does**: Combines three sophisticated components (DGM, OpenEvolve, SEAL) into a unified evolutionary system
+- **Why it's important**: Enables a complete evolutionary pipeline from code generation to validation and self-improvement
+- **How it works**: Orchestrates information flow between DGM's evolutionary backbone, OpenEvolve's program optimization, and SEAL's self-adaptation techniques
+
+## Darwinian Code Evolution
+- **What it does**: Progressively enhances code quality through multiple generations using language models
+- **Why it's important**: Produces increasingly refined and optimized code solutions over time
+- **How it works**: Uses DGM modules to initialize evolution runs, select candidates for improvement, manage archives of successful improvements, and filter out non-viable solutions
+
+## MAP-Elites Optimization Process
+- **What it does**: Maintains both quality and diversity in the solution space
+- **Why it's important**: Prevents premature convergence on sub-optimal solutions and ensures exploration of diverse approaches
+- **How it works**: OpenEvolve implements selection strategies that optimize for multiple objectives simultaneously
+
+## Self-Adaptation Capabilities
+- **What it does**: Enables the system to adapt to new tasks with minimal examples and incorporate new knowledge
+- **Why it's important**: Reduces the need for extensive training data and allows continuous improvement
+- **How it works**: SEAL provides techniques for few-shot learning and self-editing
+
+## Continuous Self-Improvement Cycle
+- **What it does**: Allows the system to generate and validate variants of its own pipeline
+- **Why it's important**: Enables autonomous enhancement of the agent's capabilities over time
+- **How it works**: During the "Improve Self" phase, DGM identifies and validates improvements to the system's architecture
+
+# User Experience  
+
+## User Personas
+- **AI Researchers**: Seeking to advance capabilities of autonomous coding systems
+- **ML Engineers**: Building and optimizing complex machine learning pipelines
+- **Software Development Teams**: Looking for AI pair programmers that can continuously improve
+
+## Key User Flows
+- **Task Definition**: User provides a programming task and maximum iterations
+- **Solution Evolution**: System evolves solutions while providing intermediate outputs
+- **Self-Improvement**: System autonomously enhances its capabilities
+- **Result Review**: User evaluates the final optimized solution
+
+## UI/UX Considerations
+- Command-line interface for direct interaction with the system
+- Output files and logs that provide transparency into the evolution process
+- Configuration files for customizing behavior of each component
+- Checkpoint system for resuming interrupted runs
+</context>
+<PRD>
+# Technical Architecture  
+
+## System Components
+1. **DGM (Dynamic Genetic Model)**
+   - `DGM_outer.py`: Orchestrates evolution process across generations
+   - `coding_agent.py`: Implements AgenticSystem class for repository interfaces
+   - `llm_withtools.py`: Provides LLM integration for Claude and OpenAI models
+
+2. **OpenEvolve**
+   - `controller.py`: Central orchestration module for evolution
+   - `evaluator.py`: Handles program evaluation metrics
+   - `database.py`: Manages program versions and relationships
+   - `cli.py`: Provides command interface
+
+3. **SEAL (Self-Adapting Language Models)**
+   - `few-shot/`: Implementations for adapting models to new tasks
+   - Knowledge incorporation modules
+   - Self-edit generation capabilities
+
+4. **Integration Layer**
+   - Workflow coordination system
+   - Shared data formats
+   - Cross-component communication handlers
+
+## Data Models
+1. **Code Archive**
+   - Version management
+   - Diff-based storage
+   - Performance metrics
+
+2. **Evolution History**
+   - Generational improvements
+   - Selection criteria
+   - Branching patterns
+
+3. **Task Representations**
+   - Problem specifications
+   - Evaluation criteria
+   - Implementation constraints
+
+4. **Self-Improvement Records**
+   - Architecture changes
+   - Performance impacts
+   - Decision rationales
+
+## APIs and Integrations
+1. **Language Model APIs**
+   - OpenAI API integration
+   - Anthropic Claude API integration
+   - Message format conversion
+   - Tool-calling capabilities
+
+2. **Version Control Integration**
+   - Git repository interfaces
+   - Commit and diff management
+   - Branch handling
+
+3. **Evaluation Systems**
+   - Test execution framework
+   - Performance measurement
+   - Regression detection
+
+## Infrastructure Requirements
+1. **Computation**
+   - Python 3.9+ environment
+   - API access to language models
+   - Git for version control
+
+2. **Storage**
+   - Code archive storage
+   - Checkpoint management
+   - Result persistence
+
+3. **Configuration**
+   - YAML configuration files
+   - Environment variables for API keys
+   - Component-specific settings
+
+# Development Roadmap  
+
+## MVP Phase
+1. **Core Integration Framework**
+   - Establish communication interfaces between DGM, OpenEvolve, and SEAL
+   - Create shared data structures
+   - Implement basic workflow orchestration
+
+2. **Basic Evolution Pipeline**
+   - Setup DGM outer loop for code generation
+   - Integrate OpenEvolve's MAP-Elites process
+   - Connect SEAL's few-shot learning capabilities
+
+3. **Basic Self-Improvement**
+   - Implement simple architecture variation
+   - Add validation mechanisms for self-improvements
+   - Create logging and tracking of improvement history
+
+4. **Minimal UI and Configuration**
+   - Implement command-line interface
+   - Create configuration file system
+   - Build basic result visualization
+
+## Enhancement Phase
+1. **Advanced Evolution Strategies**
+   - Implement more sophisticated selection algorithms
+   - Add diversity preservation techniques
+   - Create adaptive mutation rates
+
+2. **Enhanced Self-Improvement**
+   - Develop more complex architecture variation methods
+   - Add hierarchical self-improvement
+   - Create optimization based on historical performance
+
+3. **Robust Evaluation System**
+   - Implement comprehensive test frameworks
+   - Add multi-objective evaluation
+   - Create regression prevention mechanisms
+
+4. **Extended UI and User Experience**
+   - Improve command-line interface
+   - Add interactive result visualization
+   - Implement progress monitoring tools
+
+## Future Extensions
+1. **Real-time Learning Mechanisms**
+   - Implement streaming learning capabilities
+   - Add continuous knowledge incorporation
+   - Create adaptive learning rate control
+
+2. **Extended Benchmark Support**
+   - Add compatibility with standard programming benchmarks
+   - Create domain-specific task libraries
+   - Implement automated benchmark execution
+
+3. **Enhanced Safety Protocols**
+   - Develop safeguards for self-modifying code
+   - Add ethical constraints enforcement
+   - Create audit logging systems
+
+4. **Distributed Evolution**
+   - Enable parallel evolution across multiple compute nodes
+   - Implement island model for population diversity
+   - Create efficient resource allocation
+
+5. **Human Feedback Integration**
+   - Build interfaces for developer feedback
+   - Add reinforcement learning from human preferences
+   - Create collaborative improvement mechanisms
+
+# Logical Dependency Chain
+1. **Foundation Layer (Must Build First)**
+   - Component integration interfaces
+   - Basic data structures
+   - Configuration system
+   - API integrations
+
+2. **Evolutionary Core**
+   - DGM evolution mechanisms
+   - OpenEvolve selection algorithms
+   - SEAL adaptation capabilities
+   - Basic workflow orchestration
+
+3. **Evaluation and Validation**
+   - Test execution framework
+   - Performance metrics
+   - Version management
+   - Regression prevention
+
+4. **Self-Improvement Mechanisms**
+   - Architecture variation
+   - Validation mechanisms
+   - Improvement selection
+   - Performance tracking
+
+5. **User Interface and Experience**
+   - Command-line tools
+   - Configuration management
+   - Result visualization
+   - Progress monitoring
+
+6. **Advanced Features (Built Upon Foundation)**
+   - Real-time learning
+   - Enhanced safety
+   - Distributed evolution
+   - Human feedback integration
+
+# Risks and Mitigations  
+
+## Technical Challenges
+- **Risk**: Integration complexity between three sophisticated components
+  **Mitigation**: Create well-defined interfaces with comprehensive testing
+
+- **Risk**: Performance bottlenecks in the evolutionary process
+  **Mitigation**: Implement efficient data structures and caching mechanisms
+
+- **Risk**: API rate limits and costs for language model interactions
+  **Mitigation**: Add backoff/retry mechanisms and efficient prompt management
+
+- **Risk**: Unstable or divergent self-improvement
+  **Mitigation**: Implement strict validation and safety checks for architectural changes
+
+## MVP Scoping Challenges
+- **Risk**: Overambitious initial scope
+  **Mitigation**: Focus on core functionality first with clear, achievable milestones
+
+- **Risk**: Integration issues between components
+  **Mitigation**: Start with simplified versions of each component and gradually add complexity
+
+- **Risk**: Difficulty determining essential features
+  **Mitigation**: Use concrete use cases to drive feature priorities
+
+## Resource Constraints
+- **Risk**: High computational requirements
+  **Mitigation**: Implement efficient resource utilization and optional distributed processing
+
+- **Risk**: API costs for language model usage
+  **Mitigation**: Add configurable usage limits and optimization of prompt strategies
+
+- **Risk**: Development complexity requiring specialized knowledge
+  **Mitigation**: Create comprehensive documentation and modular architecture
+
+# Appendix  
+
+## Research Foundations
+- Evolutionary algorithms for code optimization
+- Language model self-improvement techniques
+- MAP-Elites diversity preservation approaches
+- Few-shot learning methodologies
+
+## Technical Specifications
+- **Language**: Python 3.9+
+- **Version Control**: Git
+- **Configuration**: YAML-based
+- **API Dependencies**: OpenAI API, Anthropic API
+- **Checkpoint Format**: JSON-based state serialization
+- **Result Storage**: Structured JSON metrics and file-based code archives
+</PRD>
