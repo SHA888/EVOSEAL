@@ -56,24 +56,61 @@ The system addresses the challenge of creating AI systems that can not only solv
 ## System Components
 1. **DGM (Dynamic Genetic Model)**
    - `DGM_outer.py`: Orchestrates evolution process across generations
+     - Core Classes: `EvolutionManager`, `GenerationController`, `CandidateSelector`
+     - Key Methods: `initialize_run()`, `choose_selfimproves()`, `update_archive()`, `filter_compiled()`
+     - Event Hooks: `pre_generation`, `post_generation`, `improvement_found`
    - `coding_agent.py`: Implements AgenticSystem class for repository interfaces
+     - Core Classes: `AgenticSystem`, `CodeModifier`, `RegressionTester`
+     - Key Methods: `analyze_repository()`, `generate_edits()`, `verify_changes()`, `commit_improvements()`
+     - Interfaces: `IVersionControl`, `ICodeAnalyzer`, `ITestRunner`
    - `llm_withtools.py`: Provides LLM integration for Claude and OpenAI models
+     - Core Classes: `LLMInterface`, `ToolManager`, `PromptTemplates`
+     - Supported Models: Claude-3.5-Sonnet, O3-mini, GPT-4
+     - Tool Categories: `CodeAnalysis`, `CodeGeneration`, `CodeModification`, `TestGeneration`
+     - Rate Limiting: Adaptive backoff with configurable thresholds
 
 2. **OpenEvolve**
    - `controller.py`: Central orchestration module for evolution
+     - Core Classes: `OpenEvolve`, `EvolutionStrategy`, `PopulationManager`
+     - Pipeline Stages: `initialization`, `sampling`, `evaluation`, `selection`, `archiving`
+     - Configuration: JSON schema for controlling evolution parameters
    - `evaluator.py`: Handles program evaluation metrics
+     - Metrics: `correctness`, `efficiency`, `complexity`, `maintainability`
+     - Evaluation Methods: `unittest`, `performance_profiling`, `static_analysis`, `llm_evaluation`
+     - Extensibility: Plugin system for custom metrics
    - `database.py`: Manages program versions and relationships
+     - Storage Model: Graph-based version tracking with performance metadata
+     - Query Capabilities: Ancestry tracking, feature filtering, performance comparisons
+     - Optimization: Incremental storage with difference compression
    - `cli.py`: Provides command interface
+     - Commands: `evolve`, `evaluate`, `inspect`, `compare`, `export`
+     - Output Formats: JSON, CSV, visualization-ready formats
 
 3. **SEAL (Self-Adapting Language Models)**
    - `few-shot/`: Implementations for adapting models to new tasks
+     - Core Classes: `FewShotLearner`, `ExampleSelector`, `AdaptationMetrics`
+     - Learning Methods: `contextual_adaptation`, `instruction_tuning`, `retrieval_augmentation`
+     - Sample Selection: Diversity-based algorithms for optimal few-shot examples
    - Knowledge incorporation modules
+     - Memory Types: `episodic`, `semantic`, `procedural`
+     - Integration Methods: `direct_embedding`, `retrieval_enhancement`, `knowledge_distillation`
    - Self-edit generation capabilities
+     - Edit Types: `refinement`, `correction`, `optimization`, `expansion`
+     - Quality Assurance: Self-validation protocols before edit acceptance
 
 4. **Integration Layer**
    - Workflow coordination system
+     - Core Classes: `WorkflowEngine`, `ComponentMediator`, `StateManager`
+     - Process Control: Event-based system with configurable triggers and actions
+     - Execution Modes: `synchronous`, `asynchronous`, `distributed`
    - Shared data formats
+     - Standard Schemas: JSON schemas for all cross-component communications
+     - Serialization: Protocol Buffers for efficiency in high-throughput scenarios
+     - Versioning: Schema evolution support with backward compatibility
    - Cross-component communication handlers
+     - Communication Patterns: `request-response`, `publish-subscribe`, `stream-processing`
+     - Reliability: At-least-once delivery with idempotent operations
+     - Monitoring: Comprehensive tracing of cross-component calls
 
 ## Data Models
 1. **Code Archive**
@@ -98,36 +135,114 @@ The system addresses the challenge of creating AI systems that can not only solv
 
 ## APIs and Integrations
 1. **Language Model APIs**
-   - OpenAI API integration
-   - Anthropic Claude API integration
-   - Message format conversion
-   - Tool-calling capabilities
+   - OpenAI API
+     - Models: GPT-4, GPT-3.5-Turbo with configuration presets
+     - Authentication: API key management with rotation policy
+     - Rate Limiting: Adaptive throttling based on quota and priority
+     - Prompt Templates: Versioned templates with parameter substitution
+     - Error Handling: Categorized error responses with retry strategies
+   - Anthropic API
+     - Models: Claude-3.5-Sonnet (primary), Claude-3-Haiku (fallback)
+     - Context Management: Dynamic context window optimization
+     - Response Parsing: Structured output extraction with schema validation
+     - Streaming: Incremental response processing for long generations
+   - Model-specific settings
+     - Temperature Control: Task-dependent settings (low for correctness, higher for creativity)
+     - Token Management: Budget allocation with priority-based distribution
+     - Caching Policy: Deterministic response caching with TTL
+     - Feature Flags: Progressive rollout of new model capabilities
 
 2. **Version Control Integration**
-   - Git repository interfaces
-   - Commit and diff management
-   - Branch handling
+   - Git Repository Interface
+     - Operations: `clone`, `pull`, `commit`, `push`, `branch`, `merge`, `diff`, `log`
+     - Implementation: Direct Git operations via libgit2 or GitPython
+     - Access Control: SSH key and OAuth token management
+     - Virtual Filesystem: In-memory staging for rapid experimental changes
+   - Diff and Patch Management
+     - Standard Format: Enhanced unified diff format with metadata
+     - Semantic Understanding: Language-specific AST-aware diffing
+     - Conflict Resolution: Semi-automated merging with LLM assistance
+     - History Analysis: Commit history mining for pattern detection
+   - Branch Management
+     - Branching Strategy: Feature branches for experiments with automated cleanup
+     - Environment Mapping: Branch-to-environment configuration mappings
+     - Integration Testing: Pre-merge validation with continuous integration
 
 3. **Evaluation Systems**
-   - Test execution framework
-   - Performance measurement
-   - Regression detection
+   - Test Execution Framework
+     - Test Types: Unit, integration, property-based, metamorphic
+     - Parallelization: Configurable test distribution across workers
+     - Coverage Analysis: Statement, branch, and mutation coverage tracking
+     - Test Generation: LLM-powered test case synthesis and edge case discovery
+   - Performance Measurement
+     - Metrics: Latency, throughput, memory usage, API token count
+     - Benchmarking: Standard benchmark suite with versioned comparisons
+     - Profiling: Function-level performance analysis with hotspot detection
+     - Resource Monitoring: Runtime tracking of CPU, memory, I/O, and network usage
+   - Regression Detection
+     - Statistical Methods: Anomaly detection for performance degradation
+     - Behavioral Analysis: Output comparison with golden test sets
+     - Functional Verification: Invariant checking and contract validation
+     - Visual Regression: Visualization of performance trends across versions
+     - Version Control: Configuration versioning with migration paths
 
 ## Infrastructure Requirements
 1. **Computation**
-   - Python 3.9+ environment
-   - API access to language models
-   - Git for version control
+   - High-performance computing for evolution runs
+     - Minimum: 8-core CPU, 16GB RAM for basic operation
+     - Recommended: 16+ cores, 32GB+ RAM, CUDA-compatible GPU with 8GB+ VRAM
+     - Enterprise: Kubernetes cluster with auto-scaling capabilities
+   - Multi-threading support
+     - Thread Pool Configuration: `{min_workers: 4, max_workers: 2*CPU_CORES, timeout: 300s}`
+     - Task Prioritization: Critical path analysis for scheduling
+     - Load Balancing: Dynamic workload distribution based on resource availability
+   - Optional GPU acceleration
+     - CUDA Support: Version 11.4+ for tensor operations
+     - Model Quantization: INT8/FP16 for efficiency on compatible hardware
+     - Batch Processing: Configurable batch sizes for parallelization
+     - Hybrid Execution: CPU/GPU task allocation based on operation characteristics
 
-2. **Storage**
-   - Code archive storage
-   - Checkpoint management
-   - Result persistence
+2. **Networking**
+   - API Communication
+     - Bandwidth: Minimum 50Mbps for reliable API communication
+     - Latency Requirements: <100ms to API endpoints for interactive operations
+     - Retry Logic: Exponential backoff with jitter (base: 1s, max: 60s)
+     - Connection Pooling: Maintain persistent connections with configurable limits
+   - Distributed Operation (optional)
+     - Internal Network: 1Gbps+ for node-to-node communication
+     - Protocol: gRPC with Protocol Buffers for efficient serialization
+     - Service Discovery: etcd-based for dynamic node registration
+     - Fault Tolerance: Leader election with automatic failover
 
-3. **Configuration**
-   - YAML configuration files
-   - Environment variables for API keys
-   - Component-specific settings
+3. **Storage**
+   - Performance Requirements
+     - Read IOPS: 3000+ for code repository operations
+     - Write IOPS: 1000+ for results and checkpoint storage
+     - Latency: <10ms average for critical path operations
+     - Throughput: 100MB/s+ for batch operations
+   - Capacity Planning
+     - Code Repository: Initial 10GB with 2-5GB growth per month of active development
+     - Result Storage: 50-100MB per evolution run with configurable retention
+     - Checkpoints: 1-2GB per full system state with incremental snapshots
+     - Logs and Metrics: 500MB-1GB per day with rotation policy
+   - Persistence Guarantees
+     - Transaction Support: ACID compliance for critical operations
+     - Backup Schedule: Daily incremental, weekly full with 30-day retention
+     - Geographic Redundancy: Optional multi-region replication for enterprise deployments
+
+4. **Security and Compliance**
+   - Authentication and Authorization
+     - API Keys: Secure storage with rotation capabilities
+     - Role-Based Access: Admin, Developer, Viewer permission sets
+     - Audit Logging: Comprehensive activity tracking for sensitive operations
+   - Data Protection
+     - At-Rest Encryption: AES-256 for persistent storage
+     - In-Transit Encryption: TLS 1.3 for all network communication
+     - PII Handling: Detection and redaction capabilities for user-provided data
+   - Operational Security
+     - Dependency Scanning: Automated vulnerability checking
+     - Update Policy: Critical patches within 72 hours
+     - Isolation: Process-level sandboxing for untrusted code execution
 
 # Development Roadmap  
 
