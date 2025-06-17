@@ -62,6 +62,12 @@ Thumbs.db
 htmlcov/
 .pytest_cache/
 .tox/
+.nox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -71,22 +77,13 @@ local_settings.py
 db.sqlite3
 
 # Distribution / packaging
-.Python
 *.manifest
 *.spec
+*.egg-info/
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Translations
 *.mo
@@ -114,20 +111,12 @@ celerybeat.pid
 # SageMath
 .sage/
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-
 # Spyder
 .spyderproject
 .spyproject
 
 # Rope
 .ropeproject
-
 
 # mypy
 .mypy_cache/
@@ -141,179 +130,6 @@ ENV/
 # Cython
 *.c
 
-# C extensions
-*.so
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-
-# Scrapy
-.scrapy
-
-# Sphinx
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# celery
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath
-.sage/
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-
-# Spyder
-.spyderproject
-.spyproject
-
-# Rope
-.ropeproject
-
-
-# mypy
-.mypy_cache/
-
-# Pyre
-.pyre/
-
-# pytype
-.pytype/
-
-# Cython
-*.c
-
-# C extensions
-*.so
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-
-# Scrapy
-.scrapy
-
-# Sphinx
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# celery
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath
-.sage/
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-
-# Spyder
-.spyderproject
-.spyproject
-
-# Rope
-.ropeproject
-
-
-# mypy
-.mypy_cache/
-
-# Pyre
-.pyre/
-
-# pytype
-.pytype/
-
-# Cython
-*.c
-
-# C extensions
-*.so
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 # MkDocs build output
 site/
 
