@@ -1,0 +1,2 @@
+package_data={"evoseal": ["py.typed"]},
+include_package_data=True,

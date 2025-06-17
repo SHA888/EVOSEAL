@@ -3,23 +3,65 @@
 -r base.txt
 
 # Code Quality
-black>=21.12b0
-isort>=5.10.1
-flake8>=4.0.1
-mypy>=0.931
-pre-commit>=2.16.0
+black>=24.4.0
+isort>=5.13.2
+flake8>=7.0.0
+mypy>=1.10.0
+pylint>=3.1.0
+ruff>=0.4.7
+pre-commit>=3.6.0
 
 # Testing
-pytest>=7.0.0
-pytest-cov>=3.0.0
-pytest-mock>=3.10.0
-pytest-asyncio>=0.18.3
+pytest>=8.0.0
+pytest-cov>=5.0.0
+pytest-mock>=3.12.0
+pytest-asyncio>=0.23.0
+pytest-xdist>=3.5.0
+
+# Type stubs
+types-PyYAML>=6.0.0
+types-requests>=2.31.0
+types-python-dateutil>=2.8.0
+types-pytz>=2023.3
+types-setuptools>=68.0.0
 
 # Documentation
-sphinx>=4.3.0
-sphinx-rtd-theme>=1.0.0
-sphinx-autodoc-typehints>=1.15.0
+sphinx>=7.0.0
+sphinx-rtd-theme>=2.0.0
+sphinx-autodoc-typehints>=1.25.0
+myst-parser>=2.0.0
+sphinx-copybutton>=0.5.2
+sphinxcontrib-mermaid>=0.8.1
+
+# Code quality plugins
+flake8-bugbear>=24.2.6
+flake8-comprehensions>=3.14.0
+flake8-docstrings>=1.7.0
+flake8-rst-docstrings>=0.3.0
+flake8-annotations>=3.1.0
+flake8-import-order>=0.18.2
+flake8-typing-imports>=1.15.0
 
 # Jupyter for exploration
 jupyter>=1.0.0
 ipykernel>=6.4.1
+nbconvert>=7.0.0
+nbformat>=5.9.0
+ipywidgets>=8.1.0
+
+# Build and packaging
+build>=1.0.0
+twine>=4.0.0
+wheel>=0.40.0
+setuptools>=68.0.0
+
+# Other tools
+commitizen>=3.17.0
+pre-commit-hooks>=4.5.0
+pygments>=2.15.0
+coverage>=7.0.0
+codecov>=2.1.0
+
+# For development environment
+python-dotenv>=1.0.0
+watchdog>=3.0.0
