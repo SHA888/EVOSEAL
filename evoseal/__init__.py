@@ -14,14 +14,33 @@ from .__version__ import __version__, __version_info__
 __all__ = [
     # Core functionality
     "__version__",
+    "__version__",
     "__version_info__",
-    
-    # Submodules
-    "dgm",
-    "openevolve",
-    "seal",
+    "configure_logging",
 ]
 
+# Lazy imports
+dgm = None
+openevolve = None
+seal = None
+
+def _lazy_import():
+    """Lazy import submodules to avoid circular imports."""
+    global dgm, openevolve, seal
+    
+    if dgm is None:
+        from . import dgm as _dgm
+        dgm = _dgm
+    if openevolve is None:
+        from . import openevolve as _openevolve
+        openevolve = _openevolve
+    if seal is None:
+        from . import seal as _seal
+        seal = _seal
+    
+    return dgm, openevolve, seal
+
+# Get version from package metadata if installed
 try:
     __version__ = _get_version("evoseal")
 except ImportError:
@@ -33,7 +52,7 @@ import logging
 from structlog import configure as structlog_configure
 from structlog.stdlib import add_log_level, filter_by_level
 from structlog.processors import TimeStamper, format_exc_info
-from structlog.threadlocal import wrap_dict
+from structlog.contextvars import bind_contextvars
 
 # Configure structlog
 def configure_logging(level=logging.INFO, **kwargs):
@@ -59,7 +78,7 @@ def configure_logging(level=logging.INFO, **kwargs):
     
     structlog_configure(
         processors=processors,
-        context_class=wrap_dict(dict),
+        context_class=dict,
         logger_factory=kwargs.get("logger_factory"),
         wrapper_class=kwargs.get("wrapper_class"),
         cache_logger_on_first_use=kwargs.get("cache_logger_on_first_use", True),
@@ -71,8 +90,5 @@ def configure_logging(level=logging.INFO, **kwargs):
 # Initialize logging with default configuration
 configure_logging()
 
-# Import core functionality after logging is configured
-from . import dgm, openevolve, seal  # noqa: E402
-
 # Clean up namespace
-del logging, structlog_configure, add_log_level, filter_by_level, TimeStamper, format_exc_info, wrap_dict
+del logging, structlog_configure, add_log_level, filter_by_level, TimeStamper, format_exc_info, bind_contextvars
