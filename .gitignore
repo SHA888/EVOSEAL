@@ -128,8 +128,6 @@ ENV/
 # Rope
 .ropeproject
 
-# mkdocs
-docs/
 
 # mypy
 .mypy_cache/
@@ -211,8 +209,6 @@ ENV/
 # Rope
 .ropeproject
 
-# mkdocs
-docs/
 
 # mypy
 .mypy_cache/
@@ -294,8 +290,6 @@ ENV/
 # Rope
 .ropeproject
 
-# mkdocs
-docs/
 
 # mypy
 .mypy_cache/
@@ -320,3 +314,12 @@ build/
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+# MkDocs build output
+site/
+
+# MkDocs documentation
+!.nojekyll
+
+# Local development
+.cache/
+.mkdocs-touch
