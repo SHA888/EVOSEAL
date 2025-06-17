@@ -1,0 +1,37 @@
+{
+  "debug": true,
+  "secret_key": "dev-secret-key-change-me-in-production",
+  "logging": {
+    "level": "DEBUG",
+    "file": "logs/evoseal-dev.log"
+  },
+  "dgm": {
+    "enabled": true,
+    "module_path": "dgm",
+    "max_iterations": 10,
+    "temperature": 0.7,
+    "checkpoint_dir": "checkpoints/dgm/dev"
+  },
+  "openevolve": {
+    "enabled": true,
+    "module_path": "openevolve",
+    "population_size": 20,
+    "max_generations": 10,
+    "mutation_rate": 0.1,
+    "checkpoint_dir": "checkpoints/openevolve/dev"
+  },
+  "seal": {
+    "enabled": true,
+    "module_path": "SEAL",
+    "few_shot_enabled": true,
+    "knowledge_base_path": "data/knowledge/dev",
+    "max_context_length": 2048,
+    "default_model": "gpt-4"
+  },
+  "database": {
+    "url": "sqlite:///dev-evoseal.db",
+    "echo": true,
+    "pool_size": 5,
+    "max_overflow": 10
+  }
+}

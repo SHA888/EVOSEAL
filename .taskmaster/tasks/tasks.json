@@ -37,7 +37,7 @@
               2
             ],
             "details": "Create configuration files for development, testing, and production environments. Implement a mechanism to load the appropriate configuration based on the current environment. Consider using environment variables for sensitive information.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 4,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-17T00:06:02.265Z",
+      "updated": "2025-06-17T00:07:03.858Z",
       "description": "Tasks for master context"
     }
   }

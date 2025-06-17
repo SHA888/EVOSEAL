@@ -1,0 +1,37 @@
+{
+  "debug": true,
+  "secret_key": "test-secret-key",
+  "logging": {
+    "level": "INFO",
+    "file": "logs/evoseal-test.log"
+  },
+  "dgm": {
+    "enabled": true,
+    "module_path": "dgm",
+    "max_iterations": 5,
+    "temperature": 0.5,
+    "checkpoint_dir": "checkpoints/dgm/test"
+  },
+  "openevolve": {
+    "enabled": true,
+    "module_path": "openevolve",
+    "population_size": 10,
+    "max_generations": 5,
+    "mutation_rate": 0.2,
+    "checkpoint_dir": "checkpoints/openevolve/test"
+  },
+  "seal": {
+    "enabled": true,
+    "module_path": "SEAL",
+    "few_shot_enabled": false,
+    "knowledge_base_path": "data/knowledge/test",
+    "max_context_length": 1024,
+    "default_model": "gpt-3.5-turbo"
+  },
+  "database": {
+    "url": "sqlite:///:memory:",
+    "echo": false,
+    "pool_size": 5,
+    "max_overflow": 0
+  }
+}

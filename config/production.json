@@ -1,0 +1,39 @@
+{
+  "debug": false,
+  "secret_key": "${SECRET_KEY}",
+  "logging": {
+    "level": "WARNING",
+    "file": "/var/log/evoseal/evoseal.log",
+    "max_size_mb": 100,
+    "backup_count": 10
+  },
+  "dgm": {
+    "enabled": true,
+    "module_path": "/var/lib/evoseal/dgm",
+    "max_iterations": 100,
+    "temperature": 0.7,
+    "checkpoint_dir": "/var/lib/evoseal/checkpoints/dgm"
+  },
+  "openevolve": {
+    "enabled": true,
+    "module_path": "/var/lib/evoseal/openevolve",
+    "population_size": 50,
+    "max_generations": 100,
+    "mutation_rate": 0.1,
+    "checkpoint_dir": "/var/lib/evoseal/checkpoints/openevolve"
+  },
+  "seal": {
+    "enabled": true,
+    "module_path": "/var/lib/evoseal/SEAL",
+    "few_shot_enabled": true,
+    "knowledge_base_path": "/var/lib/evoseal/knowledge",
+    "max_context_length": 4096,
+    "default_model": "gpt-4"
+  },
+  "database": {
+    "url": "${DATABASE_URL}",
+    "echo": false,
+    "pool_size": 20,
+    "max_overflow": 30
+  }
+}
