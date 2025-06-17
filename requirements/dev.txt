@@ -1,0 +1,25 @@
+# Development Dependencies
+# Includes all base requirements
+-r base.txt
+
+# Code Quality
+black>=21.12b0
+isort>=5.10.1
+flake8>=4.0.1
+mypy>=0.931
+pre-commit>=2.16.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0
+pytest-mock>=3.10.0
+pytest-asyncio>=0.18.3
+
+# Documentation
+sphinx>=4.3.0
+sphinx-rtd-theme>=1.0.0
+sphinx-autodoc-typehints>=1.15.0
+
+# Jupyter for exploration
+jupyter>=1.0.0
+ipykernel>=6.4.1
