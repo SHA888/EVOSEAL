@@ -1,0 +1,76 @@
+site_name: EVOSEAL
+site_url: https://github.com/SHA888/EVOSEAL
+repo_url: https://github.com/SHA888/EVOSEAL
+repo_name: SHA888/EVOSEAL
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: true
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - Getting Started: user/manual.md
+      - Examples: examples/quickstart.md
+  - Developer Guide:
+      - Development: guides/development.md
+  - Architecture:
+      - Overview: architecture/overview.md
+  - API Reference:
+      - API: api/index.md
+  - Configuration: CONFIGURATION.md
+  - About:
+      - GitHub: https://github.com/SHA888/EVOSEAL
+
+extra_css:
+  - css/extra.css
+
+extra_javascript:
+  - js/extra.js

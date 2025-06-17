@@ -1,5 +1,10 @@
 # EVOSEAL: Evolutionary Self-Improving AI Agent
 
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://sha888.github.io/EVOSEAL/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 **Date**: June 17, 2025, 05:43 AM (UTC+8)
 
 EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution while continuously improving its own architecture. It integrates three key technologies:
@@ -9,6 +14,72 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 - **OpenEvolve**: An evolutionary framework for program optimization that uses a MAP-Elites process to maintain diversity, comprehensive checkpointing, and a sophisticated database system to track program versions and their performance metrics.
 
 - **DGM (Darwin Godel Machine)**: Implements a Darwinian approach to code improvement using language models to progressively enhance code quality through multiple generations. DGM maintains an archive of successful improvements and uses sophisticated selection mechanisms to guide evolution.
+
+## Features
+
+- 🧬 Evolutionary algorithm for code improvement
+- 🤖 Integration with multiple AI models (OpenAI, Anthropic)
+- 📊 Performance tracking and metrics
+- 🔄 Continuous self-improvement
+- 📝 Comprehensive documentation
+- 🧪 Test coverage and CI/CD ready
+- 🔒 Secure and privacy-focused
+
+## Quick Start
+
+Get started with EVOSEAL in minutes:
+
+```bash
+# Clone the repository
+git clone https://github.com/SHA888/EVOSEAL.git
+cd EVOSEAL
+
+# Set up virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the basic example
+python examples/quickstart.py
+```
+
+For detailed installation and usage instructions, see the [Documentation](https://sha888.github.io/EVOSEAL/).
+
+## Documentation
+
+Comprehensive documentation is available at [https://sha888.github.io/EVOSEAL/](https://sha888.github.io/EVOSEAL/), including:
+
+- [User Guide](https://sha888.github.io/EVOSEAL/user/manual/)
+- [API Reference](https://sha888.github.io/EVOSEAL/api/)
+- [Architecture Overview](https://sha888.github.io/EVOSEAL/architecture/overview/)
+- [Development Guide](https://sha888.github.io/EVOSEAL/guides/development/)
+
+## Contributing
+
+We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+
+## Contact
+
+Project Link: [https://github.com/SHA888/EVOSEAL](https://github.com/SHA888/EVOSEAL)
+
+## Acknowledgements
+
+- [OpenAI](https://openai.com/)
+- [Anthropic](https://www.anthropic.com/)
+- [MkDocs](https://www.mkdocs.org/)
+- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
 
 ## Installation
 

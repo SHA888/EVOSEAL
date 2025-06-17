@@ -1,0 +1,12 @@
+# Core dependencies for EVOSEAL examples
+python-dotenv>=1.0.0
+numpy>=1.21.0
+pandas>=1.3.0
+
+# For visualization (optional)
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# Testing and development
+pytest>=6.2.0
+pytest-cov>=2.8.0
