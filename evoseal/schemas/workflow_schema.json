@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Workflow Definition",
+  "description": "Schema for defining EVOSEAL workflows",
+  "type": "object",
+  "required": ["version", "name", "tasks"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Unique name of the workflow",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the workflow"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Input parameters for the workflow",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "object", "array"]
+          },
+          "description": {
+            "type": "string"
+          },
+          "default": {},
+          "required": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": ["type"]
+      }
+    },
+    "tasks": {
+      "type": "object",
+      "description": "Tasks that make up the workflow",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of the task (e.g., 'http', 'python', 'shell')",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what the task does"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Task-specific parameters"
+          },
+          "dependencies": {
+            "type": "array",
+            "description": "List of task names that must complete before this task starts",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "retry": {
+            "type": "object",
+            "description": "Retry policy for the task",
+            "properties": {
+              "attempts": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 0
+              },
+              "delay": {
+                "type": "number",
+                "minimum": 0,
+                "default": 1
+              },
+              "backoff": {
+                "type": "number",
+                "minimum": 1,
+                "default": 2
+              }
+            },
+            "additionalProperties": false
+          },
+          "on_success": {
+            "type": "array",
+            "description": "Actions to take when the task completes successfully",
+            "items": {
+              "type": "object",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["set_status"],
+                  "properties": {
+                    "set_status": {
+                      "type": "string",
+                      "enum": ["success", "failure", "skipped", "cancelled"]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["next"],
+                  "properties": {
+                    "next": {
+                      "type": "string",
+                      "description": "Next task to execute"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "on_failure": {
+            "type": "array",
+            "description": "Actions to take when the task fails",
+            "items": {
+              "type": "object",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["set_status"],
+                  "properties": {
+                    "set_status": {
+                      "type": "string",
+                      "enum": ["success", "failure", "skipped", "cancelled"]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["next"],
+                  "properties": {
+                    "next": {
+                      "type": "string",
+                      "description": "Next task to execute"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "timeout": {
+            "type": "number",
+            "description": "Maximum execution time in seconds",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Output values from the workflow",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Reference to a task output using JSONPath syntax"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the workflow",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

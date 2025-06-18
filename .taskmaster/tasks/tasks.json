@@ -100,7 +100,7 @@
             "description": "Create the core WorkflowEngine class that will serve as the main interface for workflow operations",
             "dependencies": [],
             "details": "Implement the WorkflowEngine class with methods for workflow creation, execution, status tracking, and management. Include proper initialization, configuration options, and lifecycle management. Define clear interfaces for other components to interact with the engine.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 2,
@@ -110,7 +110,7 @@
               1
             ],
             "details": "Design JSON schemas that capture all aspects of workflow definitions including tasks, transitions, conditions, variables, and metadata. Ensure the schema is flexible enough to support various workflow patterns while maintaining structural integrity. Document all schema elements with clear descriptions.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 3,
@@ -120,7 +120,7 @@
               2
             ],
             "details": "Create validation utilities that check workflow definitions against the defined JSON schema. Implement comprehensive error reporting that provides clear feedback on validation failures. Include both synchronous and asynchronous validation methods, and support for partial validation during workflow editing.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 4,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-18T00:26:14.201Z",
+      "updated": "2025-06-18T12:39:55.193Z",
       "description": "Tasks for master context"
     }
   }
