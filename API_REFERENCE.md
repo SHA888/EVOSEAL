@@ -36,7 +36,7 @@ The main class for interacting with the EVOSEAL system.
 class EVOSEAL:
     def __init__(self, model: BaseModel, config: Optional[EvolutionConfig] = None):
         """Initialize EVOSEAL with a model and optional configuration."""
-        
+
     async def evolve(
         self,
         task: str,
@@ -44,10 +44,10 @@ class EVOSEAL:
         **kwargs
     ) -> EvolutionResult:
         """Evolve a solution for the given task."""
-        
+
     def save_checkpoint(self, path: Union[str, Path]) -> None:
         """Save the current state to a checkpoint file."""
-        
+
     @classmethod
     def from_checkpoint(cls, path: Union[str, Path]) -> 'EVOSEAL':
         """Load EVOSEAL instance from a checkpoint file."""
@@ -79,10 +79,10 @@ class EvolutionResult(BaseModel):
     generation: int
     history: List[Dict[str, Any]]
     metrics: Dict[str, Any]
-    
+
     def save(self, path: Union[str, Path]) -> None:
         """Save the result to a file."""
-        
+
     @classmethod
     def load(cls, path: Union[str, Path]) -> 'EvolutionResult':
         """Load a result from a file."""
@@ -98,15 +98,15 @@ Abstract base class for all models.
 class BaseModel(ABC):
     @abstractmethod
     async def generate(
-        self, 
-        prompt: str, 
+        self,
+        prompt: str,
         **kwargs
     ) -> str:
         """Generate text from a prompt."""
-        
+
     @abstractmethod
     def get_embeddings(
-        self, 
+        self,
         text: str
     ) -> List[float]:
         """Get embeddings for the given text."""
@@ -203,7 +203,7 @@ class Evaluator:
         constraints: Optional[List[Callable]] = None
     ):
         """Initialize with fitness functions and constraints."""
-        
+
     async def evaluate(
         self,
         individual: Individual
@@ -237,11 +237,11 @@ class Logger:
     @staticmethod
     def info(msg: str, **kwargs) -> None:
         """Log an info message."""
-        
+
     @staticmethod
     def warning(msg: str, **kwargs) -> None:
         """Log a warning message."""
-        
+
     @staticmethod
     def error(msg: str, **kwargs) -> None:
         """Log an error message."""
@@ -255,10 +255,10 @@ Tracking and reporting metrics.
 class Metrics:
     def __init__(self):
         self.data: Dict[str, List[float]] = {}
-        
+
     def record(self, name: str, value: float) -> None:
         """Record a metric value."""
-        
+
     def get_summary(self) -> Dict[str, Dict[str, float]]:
         """Get summary statistics for all metrics."""
 ```
@@ -276,7 +276,7 @@ class Checkpointer:
         **kwargs
     ) -> None:
         """Save an object to disk."""
-        
+
     @staticmethod
     def load(
         path: Union[str, Path],

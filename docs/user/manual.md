@@ -98,12 +98,12 @@ print(f"Iterations completed: {result.iterations}")
 def custom_fitness(solution):
     """Evaluate a solution based on specific criteria."""
     score = 0
-    
+
     # Example: Reward shorter solutions
     score += max(0, 10 - len(solution) / 100)
-    
+
     # Add your custom evaluation logic here
-    
+
     return score
 
 # Initialize with custom fitness

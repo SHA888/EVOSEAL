@@ -1,7 +1,7 @@
 EVOSEAL
 Copyright 2025 EVOSEAL Contributors
 
-This product is a composite work incorporating components from multiple projects 
+This product is a composite work incorporating components from multiple projects
 with different licensing terms.
 
 ==============================================================================
@@ -15,16 +15,16 @@ COMPONENT ATTRIBUTIONS:
 2. OpenEvolve
    Copyright 2025 Asankhaya Sharma
    Licensed under the Apache License, Version 2.0
-   
+
    Note: OpenEvolve is an open-source implementation inspired by the Google DeepMind
    paper "AlphaEvolve: A coding agent for scientific and algorithmic discovery" (2025).
    The concepts and algorithms are based on this research paper, but the code itself
    is an independent implementation by Asankhaya Sharma.
-   
+
 3. Self-Adapting Language Models (SEAL)
    Copyright (c) 2025 Adam Zweiger
    Licensed under the MIT License
-   
+
 The MIT License text for SEAL can be found in SEAL/LICENSE.
 
 ==============================================================================

@@ -85,10 +85,10 @@ evoseal/
    ```bash
    # Run all tests
    pytest
-   
+
    # Run linting
    flake8 evoseal
-   
+
    # Run type checking
    mypy evoseal
    ```
@@ -142,10 +142,10 @@ def test_feature():
     # Arrange
     input_value = 42
     expected = 42
-    
+
     # Act
     result = some_function(input_value)
-    
+
     # Assert
     assert result == expected
 ```

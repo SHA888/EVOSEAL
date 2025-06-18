@@ -58,7 +58,7 @@ class MyService(LoggingMixin):
     def __init__(self):
         super().__init__()
         self.logger.info("Service initialized")
-    
+
     def process(self, data):
         self.logger.info("Processing data", extra={"data_size": len(data)})
         self.log_performance("processing_time_ms", 42.5, operation="data_processing")
@@ -94,7 +94,7 @@ def expensive_operation():
 ## Best Practices
 
 1. **Use Structured Logging**: Include structured data in the `extra` parameter
-2. **Log at Appropriate Levels**: 
+2. **Log at Appropriate Levels**:
    - DEBUG: Detailed information for debugging
    - INFO: General operational information
    - WARNING: Potential issues

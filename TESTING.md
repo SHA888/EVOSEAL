@@ -87,13 +87,13 @@ def test_some_function():
     # Setup
     input_value = "test"
     expected = "expected output"
-    
+
     # Exercise
     result = some_function(input_value)
-    
+
     # Verify
     assert result == expected
-    
+
     # Cleanup (if needed)
 ```
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 EVOSEAL - An advanced AI system integrating DGM, OpenEvolve, and SEAL.
@@ -11,8 +10,9 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
+
 # Read requirements from requirements.txt
-def read_requirements(req_file):
+def read_requirements(req_file: str) -> list[str]:
     with open(req_file, encoding="utf-8") as f:
         return [
             line.strip()
@@ -20,13 +20,14 @@ def read_requirements(req_file):
             if line.strip() and not line.startswith(("#", "-r", "--"))
         ]
 
+
 # Read the README for the long description
 this_dir = Path(__file__).parent
 with open(this_dir / "README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 # Get version
-version = {}
+version: dict[str, str] = {}
 with open(this_dir / "evoseal" / "__version__.py", encoding="utf-8") as f:
     exec(f.read(), version)
 

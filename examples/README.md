@@ -49,13 +49,13 @@ from evoseal import EVOSEAL
 def main():
     # Initialize EVOSEAL
     evoseal = EVOSEAL()
-    
+
     # Define your task
     task = """
     Your task description goes here.
     Be as specific as possible about what you want to evolve.
     """
-    
+
     # Run the evolution
     result = evoseal.evolve(
         task=task,
@@ -63,7 +63,7 @@ def main():
         population_size=15,
         verbose=True
     )
-    
+
     # Print results
     print("\nBest solution:")
     print("-" * 50)

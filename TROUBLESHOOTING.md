@@ -47,7 +47,7 @@ This guide provides solutions to common issues you might encounter while using o
   sudo apt-get update
   sudo apt-get install python3-dev python3-venv build-essential
   ```
-  
+
 - On macOS:
   ```bash
   xcode-select --install
@@ -66,7 +66,7 @@ This guide provides solutions to common issues you might encounter while using o
    export OPENAI_API_KEY='your-api-key'
    export ANTHROPIC_API_KEY='your-api-key'
    ```
-   
+
 2. Or use a `.env` file in your project root:
    ```
    OPENAI_API_KEY=your-api-key
@@ -102,7 +102,7 @@ This guide provides solutions to common issues you might encounter while using o
 3. Enable caching:
    ```python
    from functools import lru_cache
-   
+
    @lru_cache(maxsize=128)
    def expensive_function(x):
        # ...
@@ -116,7 +116,7 @@ This guide provides solutions to common issues you might encounter while using o
    import gc
    gc.collect()
    ```
-   
+
 2. Use generators instead of lists
 3. Process data in smaller batches
 
@@ -140,12 +140,12 @@ This guide provides solutions to common issues you might encounter while using o
    import time
    time.sleep(1)  # 1 second delay
    ```
-   
+
 2. Implement exponential backoff:
    ```python
    import time
    import random
-   
+
    def exponential_backoff(retries):
        base_delay = 1  # seconds
        max_delay = 60  # seconds
@@ -224,7 +224,7 @@ If you've tried the solutions above and are still experiencing issues:
      import random
      import numpy as np
      import torch
-     
+
      random.seed(42)
      np.random.seed(42)
      torch.manual_seed(42)

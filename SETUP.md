@@ -20,7 +20,7 @@ This guide will help you set up the EVOSEAL development environment.
    ```bash
    # Make the setup script executable
    chmod +x scripts/setup.sh
-   
+
    # Run the setup script
    ./scripts/setup.sh
    ```

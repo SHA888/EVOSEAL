@@ -336,7 +336,7 @@ The three core technologies of EVOSEAL are tightly integrated through well-defin
    ```
 
 4. Configure API keys:
-   
+
    Create a `.env` file in the project root with the following content:
    ```
    OPENAI_API_KEY=your_openai_api_key
@@ -509,7 +509,7 @@ When using specific components of EVOSEAL, please also cite the respective origi
 }
 
 @misc{zweiger2025selfadaptinglanguagemodels,
-  title={Self-Adapting Language Models}, 
+  title={Self-Adapting Language Models},
   author={Adam Zweiger and Jyothish Pari and Han Guo and Ekin Akyürek and Yoon Kim and Pulkit Agrawal},
   year={2025},
   eprint={2506.10943},
@@ -521,7 +521,7 @@ When using specific components of EVOSEAL, please also cite the respective origi
 
 ## License
 
-EVOSEAL is provided under the Apache License, Version 2.0. 
+EVOSEAL is provided under the Apache License, Version 2.0.
 
 This project incorporates components from multiple sources with different licenses:
 

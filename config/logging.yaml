@@ -5,7 +5,7 @@ formatters:
   standard:
     format: "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
     datefmt: "%Y-%m-%d %H:%M:%S"
-    
+
   json:
     (): evoseal.utils.logging.JsonFormatter
     format: "%(asctime)s %(name)s %(levelname)s %(message)s"
@@ -28,7 +28,7 @@ handlers:
     backupCount: 5
     encoding: utf8
     filters: [context_filter]
-    
+
   error_file:
     class: logging.handlers.RotatingFileHandler
     level: ERROR
@@ -38,7 +38,7 @@ handlers:
     backupCount: 5
     encoding: utf8
     filters: [context_filter]
-    
+
   performance:
     class: logging.handlers.RotatingFileHandler
     level: INFO
@@ -60,12 +60,12 @@ loggers:
     level: DEBUG
     handlers: [console, file, error_file, performance]
     propagate: False
-    
+
   evoseal.performance:
     level: INFO
     handlers: [performance]
     propagate: False
-    
+
   evoseal.requests:
     level: INFO
     handlers: [file, console]

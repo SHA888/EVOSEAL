@@ -82,16 +82,16 @@ The central orchestrator that manages the evolution process, coordinates between
    while not termination_condition_met():
        # 1. Generate population
        population = generate_population()
-       
+
        # 2. Evaluate fitness
        evaluated_population = evaluate(population)
-       
+
        # 3. Select parents
        parents = select_parents(evaluated_population)
-       
+
        # 4. Create offspring
        offspring = create_offspring(parents)
-       
+
        # 5. Replace population
        population = replace_population(population, offspring)
    ```

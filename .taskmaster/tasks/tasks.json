@@ -92,7 +92,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -100,7 +100,7 @@
             "description": "Create the core WorkflowEngine class that will serve as the main interface for workflow operations",
             "dependencies": [],
             "details": "Implement the WorkflowEngine class with methods for workflow creation, execution, status tracking, and management. Include proper initialization, configuration options, and lifecycle management. Define clear interfaces for other components to interact with the engine.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 2,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-17T07:22:35.157Z",
+      "updated": "2025-06-18T00:26:14.201Z",
       "description": "Tasks for master context"
     }
   }

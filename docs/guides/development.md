@@ -21,7 +21,7 @@ This guide provides information for developers who want to contribute to the EVO
    ```bash
    # Install dependencies
    poetry install
-   
+
    # Install pre-commit hooks
    pre-commit install
    ```

@@ -10,40 +10,40 @@ The main class for interacting with the EVOSEAL system.
 
 ```python
 class EVOSEAL:
-    def __init__(self, 
+    def __init__(self,
                  model: Optional[BaseModel] = None,
                  fitness_function: Optional[Callable] = None,
                  config: Optional[Dict] = None):
         """
         Initialize the EVOSEAL system.
-        
+
         Args:
             model: The language model to use (default: OpenAI's GPT-4)
             fitness_function: Custom fitness function for solution evaluation
             config: Configuration dictionary
         """
-        
-    def evolve(self, 
-               task: str, 
+
+    def evolve(self,
+               task: str,
                max_iterations: int = 100,
                population_size: int = 20,
                **kwargs) -> EvolutionResult:
         """
         Run the evolutionary algorithm.
-        
+
         Args:
             task: Description of the task to solve
             max_iterations: Maximum number of iterations
             population_size: Number of solutions in each generation
             **kwargs: Additional parameters for the evolution process
-            
+
         Returns:
             EvolutionResult containing the best solution and metrics
         """
-        
+
     def save_checkpoint(self, filepath: str) -> None:
         """Save the current state to a checkpoint file."""
-        
+
     @classmethod
     def load_checkpoint(cls, filepath: str) -> 'EVOSEAL':
         """Load a previously saved checkpoint."""
@@ -60,7 +60,7 @@ class BaseModel(ABC):
     @abstractmethod
     def generate(self, prompt: str, **kwargs) -> str:
         """Generate text from a prompt."""
-        
+
     @abstractmethod
     def get_embeddings(self, text: str) -> List[float]:
         """Get embeddings for the given text."""
@@ -75,7 +75,7 @@ class OpenAIModel(BaseModel):
     def __init__(self, model: str = "gpt-4", **kwargs):
         """
         Initialize with a specific OpenAI model.
-        
+
         Args:
             model: Model name (e.g., 'gpt-4', 'gpt-3.5-turbo')
             **kwargs: Additional parameters for the OpenAI API
@@ -91,7 +91,7 @@ class AnthropicModel(BaseModel):
     def __init__(self, model: str = "claude-3-opus", **kwargs):
         """
         Initialize with a specific Anthropic model.
-        
+
         Args:
             model: Model name (e.g., 'claude-3-opus', 'claude-3-sonnet')
             **kwargs: Additional parameters for the Anthropic API
@@ -120,11 +120,11 @@ class EvolutionResult:
 def default_fitness(solution: str, **kwargs) -> float:
     """
     Default fitness function that evaluates solution quality.
-    
+
     Args:
         solution: The solution to evaluate
         **kwargs: Additional parameters
-        
+
     Returns:
         Fitness score (higher is better)
     """
@@ -135,7 +135,7 @@ def default_fitness(solution: str, **kwargs) -> float:
 ```python
 def save_checkpoint(evoseal: EVOSEAL, filepath: str) -> None:
     """Save EVOSEAL instance to a file."""
-    
+
 def load_checkpoint(filepath: str) -> EVOSEAL:
     """Load EVOSEAL instance from a file."""
 ```

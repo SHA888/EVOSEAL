@@ -39,16 +39,16 @@ This guide will help you get started with EVOSEAL quickly.
 2. **Run the Basic Example**
    ```python
    from evoseal import EVOSEAL
-   
+
    # Initialize EVOSEAL
    evoseal = EVOSEAL()
-   
+
    # Define your task
    task = "Create a function that sorts a list of dictionaries by a specific key"
-   
+
    # Run evolution
    result = evoseal.evolve(task, max_iterations=10)
-   
+
    # View results
    print(f"Best solution: {result.best_solution}")
    print(f"Fitness score: {result.fitness}")
