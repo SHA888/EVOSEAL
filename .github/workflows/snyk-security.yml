@@ -13,7 +13,20 @@ jobs:
     name: Run Snyk security scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full git history for Snyk
+      
+      - name: Debug repository contents
+        run: |
+          ls -la
+          if [ -f requirements.txt ]; then
+            echo "requirements.txt found. Contents:"
+            cat requirements.txt
+          else
+            echo "No requirements.txt found"
+          fi
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -23,27 +36,39 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install snyk
+          if [ -f requirements.txt ]; then 
+            echo "Installing requirements..."
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, installing project in development mode..."
+            pip install -e .
+          fi
+          echo "Installing Snyk..."
+          npm install -g snyk
+          snyk --version
           
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/python@master
-        continue-on-error: true # Don't fail the build on vulnerability found
+        id: snyk-test
+        continue-on-error: true
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "SNYK_TOKEN is not set. Please add it to your GitHub secrets."
+            exit 1
+          fi
+          snyk auth $SNYK_TOKEN
+          snyk test --severity-threshold=high --sarif-file-output=snyk.sarif || echo "Snyk test found vulnerabilities"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --sarif-file-output=snyk.sarif
           
       - name: Upload SARIF file
+        if: always() && steps.snyk-test.outcome == 'success' || steps.snyk-test.outcome == 'failure'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
           
       - name: Snyk Monitor
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: snyk/actions/python@master
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.snyk-test.outcome == 'success'
+        run: |
+          snyk monitor --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-          args: --severity-threshold=high
