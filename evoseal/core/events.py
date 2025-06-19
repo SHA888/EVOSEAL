@@ -86,9 +86,129 @@ class EventBus:
         self._handlers: Dict[str, List[Dict[str, Any]]] = {}
         self._default_handlers: List[Dict[str, Any]] = []
 
+    def _add_handler_info(
+        self,
+        event_str: str | None,
+        handler_func: Callable[[Event], Optional[Awaitable[None]]],
+        priority: int,
+        filter_fn: Optional[Callable[[Event], bool]],
+    ) -> Callable[[], None]:
+        """Add handler information to the appropriate handler list.
+        
+        Args:
+            event_str: The event type as string, or None for all events
+            handler_func: The handler function to add
+            priority: Handler priority
+            filter_fn: Optional filter function
+            
+        Returns:
+            An unsubscribe function for this handler
+        """
+        is_async = asyncio.iscoroutinefunction(handler_func) or (
+            hasattr(handler_func, "__code__")
+            and asyncio.iscoroutinefunction(handler_func.__code__)
+        )
+        
+        handler_info = {
+            "handler": handler_func,
+            "priority": priority,
+            "filter": filter_fn,
+            "is_async": is_async,
+        }
+
+        if event_str is None:
+            # Add to default handlers
+            self._default_handlers.append(handler_info)
+            self._default_handlers.sort(key=lambda x: x["priority"], reverse=True)
+
+            def unsubscribe() -> None:
+                self._default_handlers = [
+                    h for h in self._default_handlers 
+                    if h["handler"] != handler_func
+                ]
+        else:
+            # Add to specific event type handlers
+            if event_str not in self._handlers:
+                self._handlers[event_str] = []
+            self._handlers[event_str].append(handler_info)
+            self._handlers[event_str].sort(key=lambda x: x["priority"], reverse=True)
+
+            def unsubscribe() -> None:
+                if event_str in self._handlers:
+                    self._handlers[event_str] = [
+                        h for h in self._handlers[event_str]
+                        if h["handler"] != handler_func
+                    ]
+
+        # Store the unsubscribe function on the handler
+        if not hasattr(handler_func, "_unsubscribe"):
+            handler_func._unsubscribe = unsubscribe  # type: ignore
+            
+        return unsubscribe
+
+    def _subscribe_decorator(
+        self,
+        event_type: Union[EventType, str, None],
+        priority: int = 0,
+        filter_fn: Optional[Callable[[Event], bool]] = None,
+    ) -> Callable[[Callable[[Event], Optional[Awaitable[None]]]], 
+                  Callable[[Event], Optional[Awaitable[None]]]]:
+        """Create a decorator for subscribing to events.
+        
+        Args:
+            event_type: The type of event to subscribe to, or None for all events
+            priority: Higher priority handlers are called first (default: 0)
+            filter_fn: Optional function to filter which events are handled
+            
+        Returns:
+            A decorator function that will register the handler
+        """
+        event_str = (
+            event_type.value 
+            if isinstance(event_type, EventType) 
+            else str(event_type) if event_type is not None 
+            else None
+        )
+        
+        def decorator(
+            handler_func: Callable[[Event], Optional[Awaitable[None]]]
+        ) -> Callable[[Event], Optional[Awaitable[None]]]:
+            self._add_handler_info(event_str, handler_func, priority, filter_fn)
+            return handler_func
+            
+        return decorator
+
+    def _subscribe_direct(
+        self,
+        event_type: Union[EventType, str, None],
+        handler: Callable[[Event], Optional[Awaitable[None]]],
+        priority: int = 0,
+        filter_fn: Optional[Callable[[Event], bool]] = None,
+    ) -> Callable[[], None]:
+        """Subscribe a handler function directly.
+        
+        Args:
+            event_type: The type of event to subscribe to, or None for all events
+            handler: The callback function to handle the event
+            priority: Higher priority handlers are called first (default: 0)
+            filter_fn: Optional function to filter which events are handled
+            
+        Returns:
+            A function that can be used to unsubscribe
+        """
+        event_str = (
+            event_type.value 
+            if isinstance(event_type, EventType) 
+            else str(event_type) if event_type is not None 
+            else None
+        )
+        
+        unsubscribe = self._add_handler_info(event_str, handler, priority, filter_fn)
+        return unsubscribe
+
     def subscribe(
         self,
-        event_type: Union[EventType, str, None] = None,
+        event_type: Union[EventType, str, None, Callable[[Event], Optional[Awaitable[None]]]] = None,
         handler: Optional[Callable[[Event], Optional[Awaitable[None]]]] = None,
         *,
         priority: int = 0,
@@ -103,92 +223,32 @@ class EventBus:
         """
         Subscribe to events of a specific type.
 
+        This method supports three usage patterns:
+        1. Direct call with handler: subscribe(event_type, handler, ...)
+        2. Decorator with arguments: @subscribe(event_type, priority=...)
+        3. Simple decorator: @subscribe
+
         Args:
-            event_type: The type of event to subscribe to, or None for all events
+            event_type: The type of event to subscribe to, or None for all events.
+                       Can also be the handler when used as a simple decorator.
             handler: The callback function to handle the event
             priority: Higher priority handlers are called first (default: 0)
             filter_fn: Optional function to filter which events are handled
 
         Returns:
-            A function that can be used to unsubscribe
+            - For direct calls: An unsubscribe function
+            - For decorators: A decorator function
         """
+        # Handle @subscribe (no arguments) case
+        if event_type is not None and callable(event_type):
+            return self._subscribe_decorator(None, 0, None)(event_type)
 
-        def decorator(
-            handler_func: Callable[[Event], Optional[Awaitable[None]]],
-        ) -> Callable[[Event], Optional[Awaitable[None]]]:
-            nonlocal event_type
-            event_str = (
-                event_type.value
-                if isinstance(event_type, EventType)
-                else str(event_type) if event_type is not None else None
-            )
-            # Determine if the handler is async
-            is_async = asyncio.iscoroutinefunction(handler_func) or (
-                hasattr(handler_func, "__code__")
-                and asyncio.iscoroutinefunction(handler_func.__code__)
-            )
+        # Handle @subscribe() with arguments case
+        if handler is None:
+            return self._subscribe_decorator(event_type, priority, filter_fn)
             
-            handler_info = {
-                "handler": handler_func,
-                "priority": priority,
-                "filter": filter_fn,
-                "is_async": is_async,
-            }
-
-            if event_type is None:
-                self._default_handlers.append(handler_info)
-                self._default_handlers.sort(key=lambda x: x["priority"], reverse=True)
-
-                def unsubscribe() -> None:
-                    self._default_handlers = [
-                        h
-                        for h in self._default_handlers
-                        if h["handler"] != handler_func
-                    ]
-
-                # Store the unsubscribe function
-                if not hasattr(handler_func, "_unsubscribe"):
-                    handler_func._unsubscribe = unsubscribe  # type: ignore
-
-                return handler_func
-            else:
-                if event_str is None:
-                    raise ValueError(
-                        "Event type cannot be None when using a string event type"
-                    )
-
-                if event_str not in self._handlers:
-                    self._handlers[event_str] = []
-                self._handlers[event_str].append(handler_info)
-                self._handlers[event_str].sort(
-                    key=lambda x: x["priority"], reverse=True
-                )
-
-                def unsubscribe() -> None:
-                    if event_str in self._handlers:
-                        self._handlers[event_str] = [
-                            h
-                            for h in self._handlers[event_str]
-                            if h["handler"] != handler_func
-                        ]
-
-                # Store the unsubscribe function
-                if not hasattr(handler_func, "_unsubscribe"):
-                    handler_func._unsubscribe = unsubscribe  # type: ignore
-
-                return handler_func
-
-        if handler is not None:
-            decorator(handler)
-            return lambda: self.unsubscribe(event_type, handler)
-
-        def wrapper(
-            handler_func: Callable[[Event], Optional[Awaitable[None]]],
-        ) -> Callable[[Event], Optional[Awaitable[None]]]:
-            decorator(handler_func)
-            return handler_func
-
-        return wrapper
+        # Handle direct call case: subscribe(event_type, handler, ...)
+        return self._subscribe_direct(event_type, handler, priority, filter_fn)
 
     def unsubscribe(
         self,
