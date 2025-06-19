@@ -397,10 +397,19 @@ class WorkflowEngine:
             raise
 
     def _execute_step(self, step: dict[str, Any]) -> Any | None:
-        """Synchronous wrapper for _execute_step_async."""
-        return asyncio.get_event_loop().run_until_complete(
-            self._execute_step_async(step)
-        )
+        """Synchronous wrapper for _execute_step_async.
+        
+        Args:
+            step: Dictionary containing step configuration
+            
+        Returns:
+            The result of the step execution, or None if no result
+            
+        Note:
+            Uses asyncio.run() to manage the event loop lifecycle automatically.
+            This creates a new event loop for each step execution and closes it properly.
+        """
+        return asyncio.run(self._execute_step_async(step))
 
     def register_event_handler(
         self,
