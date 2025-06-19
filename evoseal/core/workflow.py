@@ -292,10 +292,10 @@ class WorkflowEngine:
             return False
 
     def execute_workflow(self, name: str) -> bool:
-        """
-        Synchronously execute a defined workflow by name.
+        """Synchronously execute a defined workflow by name.
 
-        This is a synchronous wrapper around execute_workflow_async.
+        This is a synchronous wrapper around execute_workflow_async that uses asyncio.run()
+        to manage the event loop lifecycle automatically.
 
         Args:
             name: Name of the workflow to execute.
@@ -305,10 +305,13 @@ class WorkflowEngine:
 
         Raises:
             KeyError: If the specified workflow does not exist.
+            
+        Note:
+            Uses asyncio.run() to manage the event loop lifecycle automatically.
+            This creates a new event loop for workflow execution and ensures it's
+            properly closed afterward.
         """
-        return asyncio.get_event_loop().run_until_complete(
-            self.execute_workflow_async(name)
-        )
+        return asyncio.run(self.execute_workflow_async(name))
 
     async def _execute_step_async(self, step: dict[str, Any]) -> Any | None:
         """Execute a single workflow step asynchronously.
