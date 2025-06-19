@@ -182,13 +182,6 @@ class WorkflowValidator:
             self.validator.validate(workflow)
             return True
         except JSONSchemaValidationError as e:
-            if not self.validator:
-                result.add_error(
-                    message=f"Schema validation failed: {e}",
-                    code="schema_validation_error",
-                )
-                return False
-
             errors = list(self.validator.iter_errors(workflow))
             for error in errors:
                 # Convert JSON pointer to a dot path
