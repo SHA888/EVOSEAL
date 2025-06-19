@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://sha888.github.io/EVOSEAL/)
+[![CodeQL](https://github.com/SHA888/EVOSEAL/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/SHA888/EVOSEAL/actions/workflows/codeql-analysis.yml)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **Date**: June 17, 2025, 05:43 AM (UTC+8)
