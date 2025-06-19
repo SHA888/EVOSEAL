@@ -484,6 +484,9 @@ class WorkflowEngine:
         """
         Trigger an event with the given data.
 
+        This method safely publishes events in both synchronous and asynchronous contexts
+        without race conditions by using asyncio.run_coroutine_threadsafe when needed.
+
         Args:
             event_type: The type of event to trigger
             data: Optional data to include with the event
@@ -501,18 +504,31 @@ class WorkflowEngine:
             data=data,
         )
 
-        # Run in the event loop if we're in an async context
+        # Get the current event loop, creating a new one if necessary
         try:
             loop = asyncio.get_running_loop()
-            if loop.is_running():
-                loop.create_task(self.event_bus.publish(event))
-                return
+            # Schedule the coroutine in a thread-safe way
+            future = asyncio.run_coroutine_threadsafe(
+                self.event_bus.publish(event),
+                loop
+            )
+            # Don't wait for completion to avoid blocking
+            return
         except RuntimeError:
-            # No running event loop, run synchronously
-            pass
-
-        # Fall back to synchronous execution
-        asyncio.get_event_loop().run_until_complete(self.event_bus.publish(event))
+            # No running event loop, run synchronously in a new event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # This should be rare, but handle the case where get_event_loop
+                    # returns a running loop after get_running_loop failed
+                    future = asyncio.run_coroutine_threadsafe(
+                        self.event_bus.publish(event),
+                        loop
+                    )
+                    return
+            except RuntimeError:
+                # No event loop at all, create a new one
+                asyncio.run(self.event_bus.publish(event))
 
     def get_status(self) -> WorkflowStatus:
         """Get the current status of the workflow engine.
