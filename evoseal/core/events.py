@@ -341,17 +341,17 @@ def publish(event: Union[Event, str], **kwargs: Any) -> Event:
 
     try:
         loop = asyncio.get_running_loop()
+        # We're in a running event loop, schedule the coroutine
+        if loop.is_running():
+            # Create a task and return the event immediately
+            # The caller should handle the task appropriately
+            return loop.create_task(event_bus.publish(event, **kwargs))
     except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # We're in a running event loop, need to run the coroutine
-        future = asyncio.ensure_future(event_bus.publish(event, **kwargs))
-        loop.run_until_complete(future)
-        return future.result()
-    else:
         # No running loop, create a new one
         return asyncio.run(event_bus.publish(event, **kwargs))
+    
+    # If we get here, we have a loop but it's not running
+    return loop.run_until_complete(event_bus.publish(event, **kwargs))
 
 
 def unsubscribe(
