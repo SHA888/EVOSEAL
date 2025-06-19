@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "09:00"
+      timezone: "Asia/Kuala_Lumpur"
+    # Open pull requests with version updates
+    open-pull-requests-limit: 10
+    # Assign PRs to the default assignee
+    assignees:
+      - "@me"
+    # Add labels to all PRs
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    # Set commit message prefix
+    commit-message:
+      prefix: "chore(deps): "
+      include: "scope"
+
+  # Enable version updates for pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "09:00"
+      timezone: "Asia/Kuala_Lumpur"
+    open-pull-requests-limit: 10
+    assignees:
+      - "@me"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+    reviewers:
+      - "@me"
+    # Set commit message
+    commit-message:
+      prefix: "chore(deps): "
+      prefix-development: "chore(dev-deps): "
+      include: "scope"
+    # Group updates for similar dependencies together
+    groups:
+      python-packages:
+        patterns:
+          - "*"
+    # Ignore specific updates
+    ignore:
+      # Ignore major version updates for now
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
