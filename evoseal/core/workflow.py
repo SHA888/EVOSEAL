@@ -7,36 +7,48 @@ for managing and executing workflows in the EVOSEAL system.
 
 from __future__ import annotations
 
+import asyncio
+import inspect
+import json
 import logging
-from collections.abc import Callable, Mapping, Sequence
+import time
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import Any, Optional, TypeVar, Union, cast
 
-if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias
 
-# Type variables for better type safety
-T = TypeVar("T")
+from .events import Event, EventBus, EventType
+
+# Type variables
 R = TypeVar("R")
 
 # Type aliases with proper forward references
-if TYPE_CHECKING:
-    JsonValue: TypeAlias = Any  # Using Any to avoid recursive type issues
+JsonValue: TypeAlias = Any  # Using Any to avoid recursive type issues
 
-    class StepConfig(dict[str, Any]):
-        """Configuration for a workflow step."""
+# Define handler types
+SyncHandler = Callable[[dict[str, Any]], Optional[Any]]
+AsyncHandler = Callable[[dict[str, Any]], Awaitable[None]]
+EventHandlerType: TypeAlias = Union[SyncHandler, AsyncHandler]
 
-    class WorkflowConfig(dict[str, Any]):
-        """Configuration for a workflow."""
+# Define component method types
+SyncComponentMethod = Callable[..., Any]
+AsyncComponentMethod = Callable[..., Awaitable[Any]]
+ComponentMethod: TypeAlias = Union[SyncComponentMethod, AsyncComponentMethod]
 
-    EventHandler = Callable[[dict[str, Any]], None]  # Type alias for event handlers
-else:
-    JsonValue = object
-    StepConfig = dict
-    WorkflowConfig = dict
-    EventHandler = Callable[[dict], None]  # Type alias for event handlers
+# Type alias for backward compatibility
+EventHandler: TypeAlias = Callable[[dict[str, Any]], Optional[Any]]
 
+# Logger
 logger = logging.getLogger(__name__)
+
+
+class StepConfig(dict[str, Any]):
+    """Configuration for a workflow step."""
+
+
+class WorkflowConfig(dict[str, Any]):
+    """Configuration for a workflow."""
 
 
 class WorkflowStatus(Enum):
@@ -68,17 +80,20 @@ class WorkflowEngine:
     """
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
-        """
-        Initialize the workflow engine with optional configuration.
+        """Initialize the workflow engine.
 
         Args:
             config: Optional configuration dictionary for the workflow engine.
         """
         self.config: dict[str, Any] = config or {}
         self.components: dict[str, Any] = {}
-        self.workflows: dict[str, Any] = {}  # Using Any to avoid recursive type issues
+        self.workflows: dict[str, Any] = {}
         self._status: WorkflowStatus = WorkflowStatus.PENDING
-        self.event_handlers: dict[str, list[EventHandler]] = {}
+        self.event_bus: EventBus = EventBus()
+        self._local_handlers: dict[str, list[EventHandler]] = {}
+        # For storing unsubscribe callbacks
+        # These can be either direct unsubscribe functions or decorator functions
+        self._event_handlers: list[Callable[[], None]] = []
         logger.info("WorkflowEngine initialized")
 
     @property
@@ -153,9 +168,9 @@ class WorkflowEngine:
         self.workflows[name] = {"steps": steps, "status": WorkflowStatus.PENDING}
         logger.info(f"Defined workflow: {name} with {len(steps)} steps")
 
-    def execute_workflow(self, name: str) -> bool:
+    async def execute_workflow_async(self, name: str) -> bool:
         """
-        Execute a defined workflow by name.
+        Asynchronously execute a defined workflow by name.
 
         Executes all steps in the workflow sequentially. If any step fails,
         the workflow is marked as failed and execution stops.
@@ -171,7 +186,7 @@ class WorkflowEngine:
 
         Example:
             ```python
-            success = engine.execute_workflow('data_processing')
+            success = await engine.execute_workflow_async('data_processing')
             if success:
                 print("Workflow completed successfully")
             else:
@@ -188,37 +203,86 @@ class WorkflowEngine:
         self.status = WorkflowStatus.RUNNING
 
         logger.info(f"Starting workflow: {name}")
-        self._trigger_event("workflow_started", {"workflow": name})
+
+        # Publish workflow started event
+        await self.event_bus.publish(
+            Event(
+                event_type=EventType.WORKFLOW_STARTED,
+                source=f"workflow_engine:{id(self)}",
+                data={"workflow": name, "timestamp": time.time()},
+            )
+        )
 
         try:
             for step in workflow["steps"]:
-                self._execute_step(step)
+                await self._execute_step_async(step)
 
             workflow["status"] = WorkflowStatus.COMPLETED
             self.status = WorkflowStatus.COMPLETED
             logger.info(f"Completed workflow: {name}")
-            self._trigger_event("workflow_completed", {"workflow": name})
+
+            # Publish workflow completed event
+            await self.event_bus.publish(
+                Event(
+                    event_type=EventType.WORKFLOW_COMPLETED,
+                    source=f"workflow_engine:{id(self)}",
+                    data={
+                        "workflow": name,
+                        "timestamp": time.time(),
+                        "status": "completed",
+                    },
+                )
+            )
             return True
 
         except Exception as e:
             workflow["status"] = WorkflowStatus.FAILED
             self.status = WorkflowStatus.FAILED
-            logger.error(f"Workflow {name} failed: {str(e)}", exc_info=True)
-            self._trigger_event("workflow_failed", {"workflow": name, "error": str(e)})
+            error_msg = f"Workflow {name} failed: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+
+            # Publish workflow failed event
+            await self.event_bus.publish(
+                Event(
+                    event_type=EventType.WORKFLOW_FAILED,
+                    source=f"workflow_engine:{id(self)}",
+                    data={
+                        "workflow": name,
+                        "error": str(e),
+                        "timestamp": time.time(),
+                        "status": "failed",
+                    },
+                )
+            )
             return False
 
-    def _execute_step(self, step: dict[str, Any]) -> Any | None:
-        """Execute a single workflow step.
+    def execute_workflow(self, name: str) -> bool:
+        """
+        Synchronously execute a defined workflow by name.
+
+        This is a synchronous wrapper around execute_workflow_async.
+
+        Args:
+            name: Name of the workflow to execute.
+
+        Returns:
+            bool: True if the workflow completed successfully, False otherwise.
+
+        Raises:
+            KeyError: If the specified workflow does not exist.
+        """
+        return asyncio.get_event_loop().run_until_complete(
+            self.execute_workflow_async(name)
+        )
+
+    async def _execute_step_async(self, step: dict[str, Any]) -> Any | None:
+        """Execute a single workflow step asynchronously.
 
         Args:
             step: Dictionary containing step configuration
 
         Returns:
             The result of the step execution, or None if no result
-
-        Raises:
-            KeyError: If required step configuration is missing
-            AttributeError: If component or method is not found
         """
         step_name = str(step.get("name", "unnamed_step"))
         component_name = step.get("component")
@@ -228,31 +292,48 @@ class WorkflowEngine:
         if not isinstance(params, dict):
             params = {}
 
-        logger.debug(f"Executing step: {step_name}")
-        self._trigger_event("step_started", {"step": step_name})
+        if not component_name:
+            error_msg = f"Missing 'component' in step: {step}"
+            logger.error(error_msg)
+            raise KeyError(error_msg)
+
+        logger.info(f"Executing step: {step_name}")
+
+        # Trigger step started event
+        await self.event_bus.publish(
+            Event(
+                event_type=EventType.STEP_STARTED,
+                source=f"workflow_engine:{id(self)}",
+                data={"step": step_name, "component": component_name, "params": params},
+            )
+        )
 
         try:
-            if component_name and component_name in self.components:
+            if component_name in self.components:
                 component = self.components[component_name]
-                # Execute component method if specified, otherwise call the component directly
-                if method_name and hasattr(component, method_name):
-                    method = getattr(component, method_name)
-                    if not callable(method):
-                        raise AttributeError(
-                            f"Method '{method_name}' is not callable on component '{component_name}'"
-                        )
-                    result = method(**(params or {}))
-                elif callable(component):
-                    result = component(**(params or {}))
+                method = getattr(component, method_name if method_name else "__call__")
+
+                # Call the component method with parameters
+                if asyncio.iscoroutinefunction(method):
+                    result = await method(**params) if params else await method()
                 else:
-                    raise AttributeError(
-                        f"Component '{component_name}' is not callable and no method specified"
-                    )
+                    result = method(**params) if params else method()
 
                 logger.debug(f"Step {step_name} completed successfully")
-                self._trigger_event(
-                    "step_completed", {"step": step_name, "result": result}
+
+                # Trigger step completed event
+                await self.event_bus.publish(
+                    Event(
+                        event_type=EventType.STEP_COMPLETED,
+                        source=f"workflow_engine:{id(self)}",
+                        data={
+                            "step": step_name,
+                            "component": component_name,
+                            "result": result,
+                        },
+                    )
                 )
+
                 return result
             else:
                 error_msg = f"Component not found: {component_name}"
@@ -262,50 +343,176 @@ class WorkflowEngine:
         except Exception as e:
             error_msg = f"Step {step_name} failed: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            self._trigger_event("step_failed", {"step": step_name, "error": str(e)})
+
+            # Trigger step failed event
+            await self.event_bus.publish(
+                Event(
+                    event_type=EventType.STEP_FAILED,
+                    source=f"workflow_engine:{id(self)}",
+                    data={
+                        "step": step_name,
+                        "component": component_name,
+                        "error": str(e),
+                        "params": params,
+                    },
+                )
+            )
+
             # Re-raise the exception to be handled by the workflow
             raise
 
-    def register_event_handler(self, event_type: str, handler: EventHandler) -> None:
-        """
-        Register an event handler for workflow events.
+    def _execute_step(self, step: dict[str, Any]) -> Any | None:
+        """Synchronous wrapper for _execute_step_async."""
+        return asyncio.get_event_loop().run_until_complete(
+            self._execute_step_async(step)
+        )
+
+    def register_event_handler(
+        self,
+        event_type: EventType | str,
+        handler: Callable[[dict[str, Any]], Any] | None = None,
+        priority: int = 0,
+        filter_fn: Callable[[Event], bool] | None = None,
+    ) -> (
+        Callable[[dict[str, Any]], Any]
+        | Callable[[Callable[[dict[str, Any]], Any]], Callable[[dict[str, Any]], Any]]
+    ):
+        """Register an event handler for workflow events.
+
+        This method can be used as a decorator or called directly.
 
         Event handlers are called when specific events occur during workflow
         execution. The following events are supported:
-        - workflow_started: When a workflow starts executing
+        - workflow_started: When a workflow starts execution
         - workflow_completed: When a workflow completes successfully
         - workflow_failed: When a workflow fails
-        - step_started: When a workflow step starts
-        - step_completed: When a workflow step completes
+        - step_started: When a workflow step starts execution
+        - step_completed: When a workflow step completes successfully
         - step_failed: When a workflow step fails
 
         Args:
-            event_type: Type of event to handle.
-            handler: Callable that will be called when the event occurs.
-                   The handler should accept a single dictionary argument
-                   containing event data.
+            event_type: The type of event to handle
+            handler: The handler function (if using as a decorator, leave as None)
+            priority: Handler priority (higher = called first)
+            filter_fn: Optional filter function to decide whether to call the handler
 
-        Example:
-            ```python
-            def log_event(event_data):
-                print(f"Event: {event_data}")
-
-            engine.register_event_handler('workflow_completed', log_event)
-            ```
+        Returns:
+            The decorator if handler is None, else the handler
         """
-        if event_type not in self.event_handlers:
-            self.event_handlers[event_type] = []
-        self.event_handlers[event_type].append(handler)
+        event_type_str = (
+            event_type.value if isinstance(event_type, EventType) else str(event_type)
+        )
 
-    def _trigger_event(self, event_type: str, data: dict[str, Any]) -> None:
-        """Trigger all handlers for an event type."""
-        for handler in self.event_handlers.get(event_type, []):
+        def decorator(
+            handler_func: Callable[[dict[str, Any]], Any],
+        ) -> Callable[[dict[str, Any]], Any]:
+            # Create a wrapper to pass the event object directly
+            def sync_wrapper(event: Event) -> None:
+                try:
+                    # Pass the event object directly instead of event.data
+                    handler_func(event)
+                except Exception as e:
+                    logger.error(
+                        f"Error in sync event handler for {event_type_str}: {e}",
+                        exc_info=True,
+                    )
+
+            async def async_wrapper(event: Event) -> None:
+                try:
+                    # Pass the event object directly instead of event.data
+                    result = handler_func(event)
+                    if asyncio.iscoroutine(result):
+                        await result
+                except Exception as e:
+                    logger.error(
+                        f"Error in async event handler for {event_type_str}: {e}",
+                        exc_info=True,
+                    )
+
+            # Determine if the handler is async
+            is_async = asyncio.iscoroutinefunction(handler_func)
+            
+            # Choose the appropriate wrapper based on the handler type
+            wrapper = async_wrapper if is_async else sync_wrapper
+
+            # Register the handler with the event bus
+            unsubscribe = self.event_bus.subscribe(
+                event_type=event_type_str,
+                handler=wrapper,
+                priority=priority,
+                filter_fn=filter_fn,
+            )
+
+            # Store the unsubscribe function if it's callable
+            if callable(unsubscribe):
+                if asyncio.iscoroutinefunction(unsubscribe):
+                    # For async unsubscribe functions, create a wrapper that runs them in the event loop
+                    def async_unsubscribe_wrapper() -> None:
+                        asyncio.get_event_loop().run_until_complete(unsubscribe())
+
+                    self._event_handlers.append(async_unsubscribe_wrapper)
+                else:
+                    # For sync unsubscribe functions, just cast and store directly
+                    self._event_handlers.append(cast(Callable[[], None], unsubscribe))
+
+            return handler_func
+
+        # Handle the case when used as a decorator without calling
+        if handler is None:
+            return decorator
+
+        # Handle the case when called directly
+        return decorator(handler)
+
+    def cleanup(self) -> None:
+        """Clean up all event handlers.
+
+        This should be called when the workflow engine is no longer needed
+        to prevent memory leaks from event handlers.
+        """
+        for unsubscribe in self._event_handlers:
             try:
-                handler(data)
+                unsubscribe()
             except Exception as e:
-                logger.error(
-                    f"Error in event handler for {event_type}: {str(e)}", exc_info=True
-                )
+                logger.warning(f"Error unsubscribing event handler: {e}", exc_info=True)
+        self._event_handlers.clear()
+        logger.debug("Cleaned up all event handlers")
+
+    def _publish_event(
+        self, event_type: EventType | str, data: dict[str, Any] | None = None
+    ) -> None:
+        """
+        Trigger an event with the given data.
+
+        Args:
+            event_type: The type of event to trigger
+            data: Optional data to include with the event
+        """
+        if data is None:
+            data = {}
+
+        event = Event(
+            event_type=(
+                event_type.value
+                if isinstance(event_type, EventType)
+                else str(event_type)
+            ),
+            source=f"workflow_engine:{id(self)}",
+            data=data,
+        )
+
+        # Run in the event loop if we're in an async context
+        try:
+            loop = asyncio.get_running_loop()
+            if loop.is_running():
+                loop.create_task(self.event_bus.publish(event))
+                return
+        except RuntimeError:
+            # No running event loop, run synchronously
+            pass
+
+        # Fall back to synchronous execution
+        asyncio.get_event_loop().run_until_complete(self.event_bus.publish(event))
 
     def get_status(self) -> WorkflowStatus:
         """Get the current status of the workflow engine.
