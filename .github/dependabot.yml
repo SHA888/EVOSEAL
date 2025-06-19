@@ -54,15 +54,3 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  # Enable npm updates for Snyk
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      time: "09:00"
-      timezone: "Asia/Kuala_Lumpur"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "javascript"
-      - "automated"
