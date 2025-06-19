@@ -50,14 +50,16 @@ class WorkflowValidationError(Exception):
         """
         self.message = message
         self.validation_result = validation_result or ValidationResult()
-        # Handle the case where 'errors' is passed instead of 'validation_result' for backward compatibility
-        if "errors" in kwargs and not self.validation_result.issues:
+        
+        # Always process 'errors' from kwargs, regardless of existing issues
+        if "errors" in kwargs and kwargs["errors"]:
             for error in kwargs["errors"]:
                 self.validation_result.add_error(
                     error.get("message", "Unknown error"),
                     code=error.get("code", "unknown_error"),
                     path=error.get("path"),
                 )
+                
         super().__init__(self.message)
 
 
