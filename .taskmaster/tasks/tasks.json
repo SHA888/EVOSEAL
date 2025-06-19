@@ -155,7 +155,7 @@
               5
             ],
             "details": "Write integration tests that verify the correct functioning of the entire integration layer. Include tests for workflow definition validation, engine initialization, communication between components, error handling, and edge cases. Use mocks and stubs as needed to isolate the integration layer from external dependencies.",
-            "status": "pending"
+            "status": "in-progress"
           }
         ]
       },
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-19T10:26:05.426Z",
+      "updated": "2025-06-19T10:36:12.669Z",
       "description": "Tasks for master context"
     }
   }
