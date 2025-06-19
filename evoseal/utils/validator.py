@@ -7,10 +7,12 @@ and perform semantic validation of workflow structures.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
 import logging
 import os
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, cast
@@ -50,7 +52,7 @@ class WorkflowValidationError(Exception):
         """
         self.message = message
         self.validation_result = validation_result or ValidationResult()
-        
+
         # Always process 'errors' from kwargs, regardless of existing issues
         if "errors" in kwargs and kwargs["errors"]:
             for error in kwargs["errors"]:
@@ -59,7 +61,7 @@ class WorkflowValidationError(Exception):
                     code=error.get("code", "unknown_error"),
                     path=error.get("path"),
                 )
-                
+
         super().__init__(self.message)
 
 
@@ -86,6 +88,14 @@ class WorkflowValidator:
         if load_schema:
             self._load_schema()
 
+    def register_validator(self, validator: ValidatorType) -> None:
+        """Register a custom validator function.
+
+        Args:
+            validator: A function that takes a workflow and ValidationResult.
+        """
+        self._validators.append(validator)
+
     def _load_schema(self) -> None:
         """Load the JSON schema from file."""
         try:
@@ -94,14 +104,6 @@ class WorkflowValidator:
             self.validator = Draft7Validator(schema)
         except (json.JSONDecodeError, OSError) as e:
             raise WorkflowValidationError(f"Failed to load schema: {e}") from e
-
-    def register_validator(self, validator: ValidatorType) -> None:
-        """Register a custom validator function.
-
-        Args:
-            validator: A function that takes a workflow and ValidationResult.
-        """
-        self._validators.append(validator)
 
     def _parse_workflow_definition(
         self, workflow_definition: dict[str, Any] | str | Path
@@ -235,6 +237,17 @@ class WorkflowValidator:
             )
         return is_valid
 
+    @dataclass
+    class ValidationContext:
+        """Context for workflow validation."""
+
+        task_name: str
+        task: dict[str, Any]
+        task_names: set[str]
+        result: ValidationResult
+        partial: bool = False
+        action_type: str | None = None
+
     def _check_circular_dependencies(
         self,
         tasks: dict[str, dict[str, Any]],
@@ -296,77 +309,68 @@ class WorkflowValidator:
 
         return True
 
-    def _validate_dependencies(
-        self,
-        task_name: str,
-        task: dict[str, Any],
-        task_names: set[str],
-        result: ValidationResult,
-        partial: bool,
-    ) -> bool:
+    @dataclasses.dataclass
+    class DependencyValidationContext:
+        """Context for validating task dependencies."""
+
+        task_name: str
+        task: dict[str, Any]
+        task_names: set[str]
+        result: ValidationResult
+        partial: bool = False
+
+    def _validate_dependencies(self, ctx: DependencyValidationContext) -> bool:
         """Validate task dependencies.
 
         Args:
-            task_name: Name of the current task.
-            task: The task definition.
-            task_names: Set of valid task names.
-            result: The validation result to populate.
-            partial: Whether to stop after the first error.
+            ctx: The dependency validation context.
 
         Returns:
             bool: True if all dependencies are valid.
         """
         is_valid = True
-        for i, dep in enumerate(task.get("dependencies", [])):
-            if dep not in task_names:
-                result.add_error(
+        for i, dep in enumerate(ctx.task.get("dependencies", [])):
+            if dep not in ctx.task_names:
+                ctx.result.add_error(
                     f"undefined task '{dep}'",
                     code="undefined_reference",
-                    path=f"tasks.{task_name}.dependencies.{i}",
+                    path=f"tasks.{ctx.task_name}.dependencies.{i}",
                 )
                 is_valid = False
-                if partial:
+                if ctx.partial:
                     return False
         return is_valid
 
-    def _validate_action(
-        self,
-        task_name: str,
-        task: dict[str, Any],
-        action_type: str,
-        task_names: set[str],
-        result: ValidationResult,
-        partial: bool,
-    ) -> bool:
+    def _validate_action(self, ctx: ValidationContext) -> bool:
         """Validate a single action (on_success or on_failure).
 
         Args:
-            task_name: Name of the current task.
-            task: The task definition.
-            action_type: Type of action ('on_success' or 'on_failure').
-            task_names: Set of valid task names.
-            result: The validation result to populate.
-            partial: Whether to stop after the first error.
+            ctx: Validation context containing task and action information.
 
         Returns:
             bool: True if the action is valid.
         """
-        if action_type not in task:
+        if ctx.action_type is None or ctx.action_type not in ctx.task:
             return True
 
-        action = task[action_type]
-        if not isinstance(action, dict) or "task" not in action:
+        action = ctx.task[ctx.action_type]
+        if not action:
             return True
 
-        next_task = action["task"]
-        if next_task != "end" and next_task not in task_names:
-            result.add_error(
-                f"undefined task '{next_task}'",
-                code="undefined_reference",
-                path=f"tasks.{task_name}.{action_type}.task",
+        if not isinstance(action, str):
+            ctx.result.add_error(
+                f"{ctx.action_type} must be a string",
+                path=f"tasks.{ctx.task_name}.{ctx.action_type}",
             )
-            if partial:
-                return False
+            return False
+
+        if action not in ctx.task_names and action != "end":
+            ctx.result.add_error(
+                f"{ctx.action_type} references undefined task: {action}",
+                path=f"tasks.{ctx.task_name}.{ctx.action_type}",
+            )
+            return False
+
         return True
 
     def _check_undefined_references(
@@ -386,19 +390,36 @@ class WorkflowValidator:
             bool: True if all references are defined.
         """
         task_names = set(tasks.keys())
-        task_names.add("end")  # Special task name that's always valid
+        task_names.add("end")  # 'end' is a special task name
         is_valid = True
 
         for task_name, task in tasks.items():
             # Check dependencies
-            deps_valid = self._validate_dependencies(task_name, task, task_names, result, partial)
+            deps_ctx = self.DependencyValidationContext(
+                task_name=task_name,
+                task=task,
+                task_names=task_names,
+                result=result,
+                partial=partial,
+            )
+            deps_valid = self._validate_dependencies(deps_ctx)
             if not deps_valid and partial:
                 return False
             is_valid = is_valid and deps_valid
 
+            # Create a base context for this task
+            ctx = self.ValidationContext(
+                task_name=task_name,
+                task=task,
+                task_names=task_names,
+                result=result,
+                partial=partial,
+            )
+
             # Check on_success and on_failure actions
             for action_type in ["on_success", "on_failure"]:
-                action_valid = self._validate_action(task_name, task, action_type, task_names, result, partial)
+                action_ctx = dataclasses.replace(ctx, action_type=action_type)
+                action_valid = self._validate_action(action_ctx)
                 if not action_valid and partial:
                     return False
                 is_valid = is_valid and action_valid
@@ -655,9 +676,7 @@ def validate_workflow_schema(workflow_definition: dict[str, Any] | str | Path) -
     except WorkflowValidationError:
         raise
     except Exception as e:
-        raise WorkflowValidationError(
-            f"Failed to validate workflow schema: {e}"
-        ) from e
+        raise WorkflowValidationError(f"Failed to validate workflow schema: {e}") from e
 
 
 async def validate_workflow_schema_async(
@@ -690,6 +709,4 @@ async def validate_workflow_schema_async(
     except WorkflowValidationError:
         raise
     except Exception as e:
-        raise WorkflowValidationError(
-            f"Failed to validate workflow schema: {e}"
-        ) from e
+        raise WorkflowValidationError(f"Failed to validate workflow schema: {e}") from e

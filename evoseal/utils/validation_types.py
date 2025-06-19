@@ -23,6 +23,7 @@ Validator: TypeAlias = Callable[[JSONObject, "ValidationResult"], None]
 
 class _ValidationContext(TypedDict, total=False):
     """Internal type for validation context data."""
+
     validator: str
     value: Any
     exception: str
@@ -31,10 +32,10 @@ class _ValidationContext(TypedDict, total=False):
 
 class ValidationContext(dict[str, Any]):
     """Type for validation context data with type-safe accessors."""
-    
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        
+
     def update(self, other: dict[str, Any] | None = None, **kwargs: Any) -> None:  # type: ignore[override]
         """Update the context with new values."""
         if other:
@@ -83,7 +84,9 @@ class ValidationResult:
         """Initialize a new ValidationResult with empty issues and valid state."""
         self.issues: list[ValidationIssue] = []
         self._valid = True
-        self.data: dict[str, Any] = {}  # Changed from None to empty dict for consistency
+        self.data: dict[str, Any] = (
+            {}
+        )  # Changed from None to empty dict for consistency
 
     def add_issue(self, issue: ValidationIssue) -> None:
         """Add a validation issue.

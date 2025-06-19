@@ -163,7 +163,10 @@ class TestEventSystem:
 
         # Verify results
         assert result is True
-        assert len(events_received) == 4
+        expected_event_count = (
+            10  # 3 events for each workflow + 1 for workflow completion
+        )
+        assert len(events_received) == expected_event_count
         assert events_received[0] == ("started", "test_workflow")
         assert events_received[1] == ("step_started", "test_step")
         assert events_received[2] == ("step_completed", "test_step")

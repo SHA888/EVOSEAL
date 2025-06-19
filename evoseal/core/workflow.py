@@ -12,14 +12,14 @@ import inspect
 import json
 import logging
 import time
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Generator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Dict, List, Literal, Optional, TypeAlias, TypeVar, Union, cast
+from typing import Any, Literal, TypeVar, cast
 
-from typing_extensions import TypedDict, NotRequired
+from typing_extensions import NotRequired, TypeAlias, TypedDict
 
-from evoseal.core.events import EventBus, Event, EventType
+from evoseal.core.events import Event, EventBus, EventType
 
 # Type variables
 R = TypeVar("R")
@@ -28,17 +28,17 @@ R = TypeVar("R")
 JsonValue: TypeAlias = Any  # Using Any to avoid recursive type issues
 
 # Define handler types
-SyncHandler = Callable[[dict[str, Any]], Optional[Any]]
+SyncHandler = Callable[[dict[str, Any]], Any | None]
 AsyncHandler = Callable[[dict[str, Any]], Awaitable[None]]
-EventHandlerType: TypeAlias = Union[SyncHandler, AsyncHandler]
+EventHandlerType: TypeAlias = SyncHandler | AsyncHandler
 
 # Define component method types
 SyncComponentMethod = Callable[..., Any]
 AsyncComponentMethod = Callable[..., Awaitable[Any]]
-ComponentMethod: TypeAlias = Union[SyncComponentMethod, AsyncComponentMethod]
+ComponentMethod: TypeAlias = SyncComponentMethod | AsyncComponentMethod
 
 # Type alias for backward compatibility
-EventHandler: TypeAlias = Callable[[dict[str, Any]], Optional[Any]]
+EventHandler: TypeAlias = Callable[[dict[str, Any]], Any | None]
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 class StepConfig(TypedDict, total=False):
     """Configuration for a workflow step.
-    
+
     Attributes:
         name: Step name for logging and identification.
         component: Name of the registered component to use.
@@ -56,18 +56,19 @@ class StepConfig(TypedDict, total=False):
         on_success: Action to take when the step completes successfully.
         on_failure: Action to take when the step fails.
     """
+
     name: str
     component: str
     method: NotRequired[str]  # Optional, defaults to __call__
-    params: NotRequired[Dict[str, Any]]  # Optional parameters
-    dependencies: NotRequired[List[str]]  # Optional dependencies
-    on_success: NotRequired[Dict[str, Any]]  # Optional success action
-    on_failure: NotRequired[Dict[str, Any]]  # Optional failure action
+    params: NotRequired[dict[str, Any]]  # Optional parameters
+    dependencies: NotRequired[list[str]]  # Optional dependencies
+    on_success: NotRequired[dict[str, Any]]  # Optional success action
+    on_failure: NotRequired[dict[str, Any]]  # Optional failure action
 
 
 class WorkflowConfig(TypedDict, total=False):
     """Configuration for a workflow.
-    
+
     Attributes:
         name: Unique name for the workflow.
         description: Optional description of the workflow.
@@ -77,11 +78,12 @@ class WorkflowConfig(TypedDict, total=False):
         max_retries: Maximum number of retry attempts for failed steps.
         timeout: Maximum execution time for the workflow.
     """
+
     name: str
     description: NotRequired[str]  # Optional description
     version: NotRequired[str]  # Optional version
-    steps: List[StepConfig]
-    parameters: NotRequired[Dict[str, Any]]  # Optional global parameters
+    steps: list[StepConfig]
+    parameters: NotRequired[dict[str, Any]]  # Optional global parameters
     max_retries: NotRequired[int]  # Optional retry limit
     timeout: NotRequired[int]  # Optional timeout in seconds
 
@@ -305,7 +307,7 @@ class WorkflowEngine:
 
         Raises:
             KeyError: If the specified workflow does not exist.
-            
+
         Note:
             Uses asyncio.run() to manage the event loop lifecycle automatically.
             This creates a new event loop for workflow execution and ensures it's
@@ -401,13 +403,13 @@ class WorkflowEngine:
 
     def _execute_step(self, step: dict[str, Any]) -> Any | None:
         """Synchronous wrapper for _execute_step_async.
-        
+
         Args:
             step: Dictionary containing step configuration
-            
+
         Returns:
             The result of the step execution, or None if no result
-            
+
         Note:
             Uses asyncio.run() to manage the event loop lifecycle automatically.
             This creates a new event loop for each step execution and closes it properly.
@@ -478,7 +480,7 @@ class WorkflowEngine:
 
             # Determine if the handler is async
             is_async = asyncio.iscoroutinefunction(handler_func)
-            
+
             # Choose the appropriate wrapper based on the handler type
             wrapper = async_wrapper if is_async else sync_wrapper
 
@@ -556,10 +558,7 @@ class WorkflowEngine:
             # Try to get the running event loop
             loop = asyncio.get_running_loop()
             # Schedule the coroutine in a thread-safe way without waiting for completion
-            asyncio.run_coroutine_threadsafe(
-                self.event_bus.publish(event),
-                loop
-            )
+            asyncio.run_coroutine_threadsafe(self.event_bus.publish(event), loop)
         except RuntimeError:
             # No running event loop, run synchronously in a new event loop
             asyncio.run(self.event_bus.publish(event))
