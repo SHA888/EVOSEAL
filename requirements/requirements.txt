@@ -9,10 +9,10 @@ idna==3.10
 jiter==0.10.0
 joblib==1.5.1
 numpy==2.3.0
-openai==1.87.0
+openai==1.88.0
 pandas==2.3.0
 pydantic==2.11.7
-pydantic_core==2.33.2
+pydantic_core==2.35.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 pytz==2025.2
