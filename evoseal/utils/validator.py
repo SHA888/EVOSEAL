@@ -398,13 +398,17 @@ class WorkflowValidator:
 
         for task_name, task in tasks.items():
             # Check dependencies
-            if not self._validate_dependencies(task_name, task, task_names, result, partial):
+            deps_valid = self._validate_dependencies(task_name, task, task_names, result, partial)
+            if not deps_valid and partial:
                 return False
+            is_valid = is_valid and deps_valid
 
             # Check on_success and on_failure actions
             for action_type in ["on_success", "on_failure"]:
-                if not self._validate_action(task_name, task, action_type, task_names, result, partial):
+                action_valid = self._validate_action(task_name, task, action_type, task_names, result, partial)
+                if not action_valid and partial:
                     return False
+                is_valid = is_valid and action_valid
 
         return is_valid
 
