@@ -301,6 +301,79 @@ class WorkflowValidator:
 
         return True
 
+    def _validate_dependencies(
+        self,
+        task_name: str,
+        task: dict[str, Any],
+        task_names: set[str],
+        result: ValidationResult,
+        partial: bool,
+    ) -> bool:
+        """Validate task dependencies.
+
+        Args:
+            task_name: Name of the current task.
+            task: The task definition.
+            task_names: Set of valid task names.
+            result: The validation result to populate.
+            partial: Whether to stop after the first error.
+
+        Returns:
+            bool: True if all dependencies are valid.
+        """
+        is_valid = True
+        for i, dep in enumerate(task.get("dependencies", [])):
+            if dep not in task_names:
+                result.add_error(
+                    f"undefined task '{dep}'",
+                    code="undefined_reference",
+                    path=f"tasks.{task_name}.dependencies.{i}",
+                )
+                is_valid = False
+                if partial:
+                    return False
+        return is_valid
+
+    def _validate_action(
+        self,
+        task_name: str,
+        task: dict[str, Any],
+        action_type: str,
+        task_names: set[str],
+        result: ValidationResult,
+        partial: bool,
+    ) -> bool:
+        """Validate a single action (on_success or on_failure).
+
+        Args:
+            task_name: Name of the current task.
+            task: The task definition.
+            action_type: Type of action ('on_success' or 'on_failure').
+            task_names: Set of valid task names.
+            result: The validation result to populate.
+            partial: Whether to stop after the first error.
+
+        Returns:
+            bool: True if the action is valid.
+        """
+        if action_type not in task:
+            return True
+
+        action = task[action_type]
+        if not isinstance(action, dict) or "task" not in action:
+            return True
+
+        next_task = action["task"]
+        if next_task != "end" and next_task not in task_names:
+            result.add_error(
+                f"undefined task '{next_task}'",
+                code="undefined_reference",
+                path=f"tasks.{task_name}.{action_type}.task",
+            )
+            if partial:
+                return False
+        return True
+
     def _check_undefined_references(
         self,
         tasks: dict[str, dict[str, Any]],
@@ -323,32 +396,13 @@ class WorkflowValidator:
 
         for task_name, task in tasks.items():
             # Check dependencies
-            for i, dep in enumerate(task.get("dependencies", [])):
-                if dep not in task_names:
-                    result.add_error(
-                        f"undefined task '{dep}'",
-                        code="undefined_reference",
-                        path=f"tasks.{task_name}.dependencies.{i}",
-                    )
-                    is_valid = False
-                    if partial:
-                        return False
+            if not self._validate_dependencies(task_name, task, task_names, result, partial):
+                return False
 
             # Check on_success and on_failure actions
             for action_type in ["on_success", "on_failure"]:
-                if action_type in task:
-                    action = task[action_type]
-                    if isinstance(action, dict) and "task" in action:
-                        next_task = action["task"]
-                        if next_task != "end" and next_task not in task_names:
-                            result.add_error(
-                                f"undefined task '{next_task}'",
-                                code="undefined_reference",
-                                path=f"tasks.{task_name}.{action_type}.task",
-                            )
-                            is_valid = False
-                            if partial:
-                                return False
+                if not self._validate_action(task_name, task, action_type, task_names, result, partial):
+                    return False
 
         return is_valid
 
