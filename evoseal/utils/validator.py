@@ -696,4 +696,3 @@ async def validate_workflow_schema_async(
         raise WorkflowValidationError(
             f"Failed to validate workflow schema: {e}"
         ) from e
-        return False
