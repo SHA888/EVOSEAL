@@ -132,17 +132,14 @@ class ContextFilter(logging.Filter):
         Returns:
             bool: Always returns True to indicate the record should be processed
         """
-        # Add request ID and hostname to the record
-        if not hasattr(record, 'request_id') or getattr(record, 'request_id') is None:
-            if self._request_id is not None:
-                setattr(record, 'request_id', self._request_id)
-            else:
-                setattr(record, 'request_id', "global")
+        # Add request ID and hostname to the record using direct attribute access
+        if not hasattr(record, 'request_id') or record.request_id is None:
+            record.request_id = self._request_id if self._request_id is not None else "global"
             
-        if not hasattr(record, 'hostname') or getattr(record, 'hostname') is None:
-            setattr(record, 'hostname', platform.node())
+        if not hasattr(record, 'hostname') or record.hostname is None:
+            record.hostname = platform.node()
 
-        # Add all context items as attributes on the record
+        # For dynamic context keys, still use getattr/setattr
         for key, value in self._context.items():
             if not hasattr(record, key) or getattr(record, key) is None:
                 setattr(record, key, value)
