@@ -130,7 +130,7 @@
               1
             ],
             "details": "Define and implement communication patterns for the workflow engine to interact with external systems, services, and UI components. Include event emission, subscription mechanisms, callback handling, and asynchronous communication. Ensure the patterns are consistent and follow best practices for decoupling components.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 5,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-18T14:16:24.529Z",
+      "updated": "2025-06-19T03:37:22.329Z",
       "description": "Tasks for master context"
     }
   }
