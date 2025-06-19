@@ -1,0 +1,42 @@
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Assign PRs to the default assignee
+    assignees:
+      - "@me"
+    # Add a label to all PRs
+    labels:
+      - "dependencies"
+      - "automated"
+      - "security"
+    # Only allow updates to the lockfile in GitHub Actions
+    versioning-strategy: increase
+
+  # Enable version updates for pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "09:00"
+      timezone: "Asia/Kuala_Lumpur"
+    assignees:
+      - "@me"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+    reviewers:
+      - "@me"
+    # Group updates for similar dependencies together
+    groups:
+      python-packages:
+        patterns:
+          - "*"
+    # Ignore major version updates
+    versioning-strategy: auto
+    # Only allow updates to the lockfile in GitHub Actions
+    versioning-strategy: increase-if-necessary
