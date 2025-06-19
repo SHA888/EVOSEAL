@@ -26,12 +26,12 @@ class EventType(Enum):
     WORKFLOW_STARTED = "workflow_started"
     WORKFLOW_COMPLETED = "workflow_completed"
     WORKFLOW_FAILED = "workflow_failed"
-    
+
     # Step events
     STEP_STARTED = "step_started"
     STEP_COMPLETED = "step_completed"
     STEP_FAILED = "step_failed"
-    
+
     # Custom events
     CUSTOM = "custom"
 ```
@@ -62,7 +62,7 @@ def on_workflow_start(event):
 # Using method call
 def on_step_complete(event):
     print(f"Step completed: {event.data['step']}")
-    
+
 engine.register_event_handler(EventType.STEP_COMPLETED, on_step_complete)
 ```
 
@@ -184,18 +184,18 @@ class WorkflowMonitor:
             'steps': {}
         }
         self._register_handlers()
-    
+
     def _register_handlers(self):
         @self.engine.register_event_handler(EventType.WORKFLOW_STARTED)
         def on_start(event):
             self.stats['started'] += 1
             print(f"Workflow started: {event.data['workflow']}")
-        
+
         @self.engine.register_event_handler(EventType.WORKFLOW_COMPLETED)
         def on_complete(event):
             self.stats['completed'] += 1
             print(f"Workflow completed: {event.data['workflow']}")
-        
+
         @self.engine.register_event_handler(EventType.STEP_COMPLETED)
         def on_step_complete(event):
             step_name = event.data['step']

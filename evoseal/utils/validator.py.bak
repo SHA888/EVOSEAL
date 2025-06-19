@@ -172,11 +172,11 @@ class WorkflowValidator:
         """Type guard to check if an object is a dictionary with string keys."""
         if not isinstance(obj, dict):
             return False
-            
+
         # Check all keys are strings
         if not all(isinstance(k, str) for k in obj.keys()):
             return False
-            
+
         # Check all values are JSON-serializable
         def is_json_serializable(value: object) -> bool:
             """Check if a value is JSON-serializable."""
@@ -192,7 +192,7 @@ class WorkflowValidator:
                     all(is_json_serializable(v) for v in value.values())
                 )
             return False
-            
+
         return all(is_json_serializable(v) for v in obj.values())
 
     def _parse_workflow(
@@ -399,7 +399,7 @@ class WorkflowValidator:
                     "schema_path": list(error.schema_path),
                     "instance": error.instance,
                 }
-                
+
                 # Only include schema if it's not too large
                 if error.schema and len(str(error.schema)) < 1000:  # Arbitrary size limit
                     context["schema"] = error.schema
@@ -586,7 +586,7 @@ class WorkflowValidator:
                     "schema_path": list(error.schema_path),
                     "instance": error.instance,
                 }
-                
+
                 # Only include schema if it's not too large
                 if error.schema and len(str(error.schema)) < 1000:  # Arbitrary size limit
                     context["schema"] = error.schema

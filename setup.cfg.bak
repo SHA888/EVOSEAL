@@ -1,5 +1,5 @@
 [metadata]
-description-file = README.md
+description_file = README.md
 license_files = LICENSE
 
 [pycodestyle]
@@ -37,7 +37,7 @@ ignore =
     B029,  # Using `except` without `Exception` as the first argument may hide real exceptions.
     B030,  # Unnecessary `else` after `return`
     B031,  # Using the `assert` statement for data validation can be disabled with the `-O` flag
-    B032,  # Possible unbalanced tuple unpacking with sequence: left side has %d label(s), right side has %d value(s)
+    B032,  # Possible unbalanced tuple unpacking with sequence: left side has %%d label(s), right side has %%d value(s)
     B033,  # Use of `assert` detected. The enclosed code will be removed when compiling to optimised bytecode.
     B034,  # Using `assert` detected. The enclosed code will be removed when compiling to optimised bytecode.
     B035,  # Using `assert` detected. The enclosed code will be removed when compiling to optimised bytecode.

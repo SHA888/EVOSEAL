@@ -111,8 +111,8 @@ class ContextFilter(logging.Filter):
         """
         self._context = context.copy()
         # Update request_id if it's in the context
-        if 'request_id' in context:
-            self._request_id = context['request_id']
+        if "request_id" in context:
+            self._request_id = context["request_id"]
 
     def set_request_id(self, request_id: str) -> None:
         """Set the request ID for correlation.
@@ -121,7 +121,7 @@ class ContextFilter(logging.Filter):
             request_id: The request ID to use for correlation
         """
         self._request_id = request_id
-        self._context['request_id'] = request_id
+        self._context["request_id"] = request_id
 
     def filter(self, record: logging.LogRecord) -> bool:
         """Add context to log record.
@@ -133,17 +133,19 @@ class ContextFilter(logging.Filter):
             bool: Always returns True to indicate the record should be processed
         """
         # Add request ID and hostname to the record using direct attribute access
-        if not hasattr(record, 'request_id') or record.request_id is None:
-            record.request_id = self._request_id if self._request_id is not None else "global"
-            
-        if not hasattr(record, 'hostname') or record.hostname is None:
+        if not hasattr(record, "request_id") or record.request_id is None:
+            record.request_id = (
+                self._request_id if self._request_id is not None else "global"
+            )
+
+        if not hasattr(record, "hostname") or record.hostname is None:
             record.hostname = platform.node()
 
         # For dynamic context keys, still use getattr/setattr
         for key, value in self._context.items():
             if not hasattr(record, key) or getattr(record, key) is None:
                 setattr(record, key, value)
-                
+
         return True
 
 
