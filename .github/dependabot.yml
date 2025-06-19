@@ -21,8 +21,6 @@ updates:
     commit-message:
       prefix: "chore(deps): "
       include: "scope"
-    # Allow updates to any part of the version
-    versioning-strategy: increase
 
   # Enable version updates for pip
   - package-ecosystem: "pip"
@@ -40,18 +38,16 @@ updates:
       - "automated"
     reviewers:
       - "@me"
-    # Group updates for similar dependencies together
-    groups:
-      python-packages:
-        patterns:
-          - "*"
     # Set commit message
     commit-message:
       prefix: "chore(deps): "
       prefix-development: "chore(dev-deps): "
       include: "scope"
-    # Update lockfile only when needed
-    versioning-strategy: increase-if-necessary
+    # Group updates for similar dependencies together
+    groups:
+      python-packages:
+        patterns:
+          - "*"
     # Ignore specific updates
     ignore:
       # Ignore major version updates for now
