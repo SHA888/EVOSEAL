@@ -1,0 +1,1132 @@
+"""
+Workflow Definition Validator
+
+This module provides comprehensive validation for workflow definitions, including:
+- JSON Schema validation
+- Semantic validation
+- Asynchronous validation
+- Partial validation support
+- Detailed error reporting
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+import sys
+from collections.abc import Callable, Collection, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from functools import partial
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    TypeVar,
+    cast,
+    get_args,
+    get_origin,
+    get_type_hints,
+    overload,
+)
+
+import jsonschema
+from jsonschema import Draft7Validator, ValidationError
+from jsonschema.protocols import Validator as JsonschemaValidator
+from jsonschema.validators import validators
+from typing_extensions import TypeAlias, TypeGuard
+
+from evoseal.utils.validation_types import (
+    JSONObject,
+    JSONValue,
+    ValidationContext,
+    ValidationLevel,
+    ValidationResult,
+    Validator,
+    ValidatorFunction,
+)
+
+# Get the directory containing this file
+SCHEMA_DIR = Path(__file__).parent.parent / "schemas"
+WORKFLOW_SCHEMA_PATH = SCHEMA_DIR / "workflow_schema.json"
+
+# Type variables for generic validation
+T = TypeVar("T")  # Generic type variable
+
+# Type aliases for better readability
+StringDict: TypeAlias = dict[str, Any]
+StringDictTypeGuard = TypeVar("StringDictTypeGuard", bound=dict[str, Any])
+
+
+# ValidationResult is now imported from validation_types
+
+
+class WorkflowValidationError(ValueError):
+    """Raised when a workflow fails validation."""
+
+    def __init__(
+        self,
+        message: str,
+        validation_result: Optional[ValidationResult] = None,
+        **kwargs: Any,
+    ) -> None:
+        self.message = message
+        self.validation_result = validation_result or ValidationResult()
+        # Handle the case where 'errors' is passed instead of 'validation_result' for backward compatibility
+        if "errors" in kwargs and not self.validation_result.issues:
+            for error in kwargs["errors"]:
+                self.validation_result.add_error(
+                    error.get("message", "Unknown error"),
+                    code=error.get("code", "unknown_error"),
+                    path=error.get("path"),
+                )
+        super().__init__(self.message)
+
+    def __str__(self) -> str:
+        if not self.validation_result.issues:
+            return self.message
+
+        error_messages = []
+        for error in self.validation_result.get_errors():
+            msg = error["message"]
+            if "path" in error and error["path"]:
+                msg = f"{error['path']}: {msg}"
+            if "code" in error and error["code"]:
+                msg = f"{error['code']}: {msg}"
+            error_messages.append(msg)
+
+        return "\n".join([self.message, *error_messages])
+
+
+class WorkflowValidator:
+    """Validates workflow definitions against the schema and business rules."""
+
+    def __init__(
+        self, schema_path: str | Path | None = None, load_schema: bool = True
+    ) -> None:
+        """Initialize the validator with the schema.
+
+        Args:
+            schema_path: Optional path to a custom schema file.
+                        If not provided, uses the default schema.
+            load_schema: Whether to load the schema during initialization.
+                        Set to False for testing or when you'll load it later.
+        """
+        self.schema_path = Path(schema_path) if schema_path else WORKFLOW_SCHEMA_PATH
+        self.schema: dict[str, JSONValue] | None = None
+        self.validator: JsonschemaValidator | None = None
+        self._validators: list[Validator] = []
+
+        if load_schema:
+            self._load_schema()
+
+    def register_validator(self, validator: Validator) -> None:
+        """Register a custom validator function.
+
+        Args:
+            validator: A function that takes a workflow dictionary and a ValidationResult,
+                     and adds any validation issues to the result.
+        """
+        self._validators.append(validator)
+
+    def _load_schema(self) -> dict[str, JSONValue]:
+        """Load the JSON schema from file.
+
+        Returns:
+            The loaded JSON schema as a dictionary.
+
+        Raises:
+            FileNotFoundError: If the schema file does not exist.
+            json.JSONDecodeError: If the schema file contains invalid JSON.
+            ValueError: If the schema is not a JSON object.
+        """
+        try:
+            with open(self.schema_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                schema = json.loads(content)
+
+            if not isinstance(schema, dict):
+                raise ValueError("Schema must be a JSON object")
+
+            self.schema = schema
+            # Create a validator instance for this schema
+            self.validator = Draft7Validator(self.schema)
+            return self.schema
+
+        except FileNotFoundError as e:
+            raise FileNotFoundError(
+                f"Schema file not found: {self.schema_path}"
+            ) from e
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Invalid JSON in schema file: {self.schema_path}",
+                e.doc,
+                e.pos,
+            ) from e
+
+    @staticmethod
+    def _is_string_dict(obj: object) -> TypeGuard[dict[str, Any]]:
+        """Type guard to check if an object is a dictionary with string keys."""
+        if not isinstance(obj, dict):
+            return False
+            
+        # Check all keys are strings
+        if not all(isinstance(k, str) for k in obj.keys()):
+            return False
+            
+        # Check all values are JSON-serializable
+        def is_json_serializable(value: object) -> bool:
+            """Check if a value is JSON-serializable."""
+            if value is None:
+                return True
+            if isinstance(value, (str, int, float, bool)):
+                return True
+            if isinstance(value, (list, tuple)):
+                return all(is_json_serializable(item) for item in value)
+            if isinstance(value, dict):
+                return (
+                    all(isinstance(k, str) for k in value.keys()) and
+                    all(is_json_serializable(v) for v in value.values())
+                )
+            return False
+            
+        return all(is_json_serializable(v) for v in obj.values())
+
+    def _parse_workflow(
+        self, workflow_definition: JSONObject | str | Path
+    ) -> tuple[JSONObject, ValidationResult]:
+        """Parse a workflow definition from various input types.
+
+        Args:
+            workflow_definition: The workflow definition as a dict, JSON string, or file path.
+
+        Returns:
+            A tuple of (parsed_workflow, validation_result).
+        """
+        result = ValidationResult()
+        workflow: JSONObject = {}
+
+        try:
+            if isinstance(workflow_definition, (str, Path)):
+                path = Path(workflow_definition)
+                if path.exists():
+                    with open(path, encoding="utf-8") as f:
+                        content = f.read()
+                        workflow = json.loads(content)
+                else:
+                    # Try to parse as JSON string
+                    workflow = json.loads(workflow_definition)
+            else:
+                workflow = workflow_definition
+
+            if not isinstance(workflow, dict):
+                result.add_error(
+                    "Workflow must be a JSON object",
+                    code="invalid_type",
+                    context={"expected": "object", "actual": type(workflow).__name__}
+                )
+                return {}, result
+
+            # Validate the workflow structure
+            if not self._is_string_dict(workflow):
+                result.add_error(
+                    "Workflow must be a dictionary with string keys and JSON-serializable values",
+                    code="invalid_structure"
+                )
+                return {}, result
+
+            return workflow, result
+
+        except json.JSONDecodeError as e:
+            result.add_error(
+                f"Invalid JSON: {str(e)}",
+                code="invalid_json",
+                context={"error": str(e), "position": getattr(e, 'pos', None)}
+            )
+            return {}, result
+        except Exception as e:
+            result.add_error(
+                f"Failed to parse workflow: {str(e)}",
+                code="parse_error",
+                context={"exception": str(e)},
+            )
+            return {}, result
+        else:
+            raise ValueError(
+                f"Expected dict, str, or Path, got {type(workflow_definition).__name__}"
+            )
+
+        # Parse JSON content and validate type
+        try:
+            # Parse JSON and ensure it's a dictionary
+            parsed = json.loads(content)
+            if not isinstance(parsed, dict):
+                raise ValueError("Workflow must be a JSON object")
+
+            # Convert to dict with string keys
+            result = {str(k): v for k, v in parsed.items()}
+            return result
+        except (TypeError, json.JSONDecodeError) as e:
+            error_message = str(e)
+            if hasattr(e, "doc") and hasattr(e, "pos"):
+                raise json.JSONDecodeError(
+                    f"Invalid JSON: {error_message}",
+                    doc=e.doc,
+                    pos=e.pos,
+                ) from e
+            raise json.JSONDecodeError(
+                f"Invalid JSON: {error_message}",
+                doc=str(workflow_definition)[:100],
+                pos=0,
+            ) from e
+
+    def validate(
+        self,
+        workflow_definition: JSONObject | str | Path,
+        level: ValidationLevel | str = ValidationLevel.FULL,
+        partial: bool = False,
+    ) -> ValidationResult:
+        """Validate a workflow definition.
+
+        This is the main entry point for workflow validation. It performs schema
+        validation followed by semantic validation based on the specified level.
+
+        Args:
+            workflow_definition: The workflow definition to validate. Can be a
+                             dictionary, JSON string, or file path.
+            level: The validation level to use. Can be a ValidationLevel enum or
+                  string ('schema_only', 'basic', or 'full').
+            partial: If True, allows validation to continue after errors are found.
+
+        Returns:
+            A ValidationResult object containing any validation errors or warnings.
+
+        Example:
+            >>> validator = WorkflowValidator()
+            >>> result = validator.validate({"tasks": {"task1": {"command": "echo hello"}}})
+            >>> if not result.is_valid:
+            ...     for error in result.get_errors():
+            ...         print(f"Error: {error.message} at {error.path or ''}")
+        """
+        result = ValidationResult()
+
+        try:
+            # Parse the workflow definition
+            workflow, parse_result = self._parse_workflow(workflow_definition)
+            result.issues.extend(parse_result.issues)
+
+            # If parsing failed and we're not in partial mode, return early
+            if not parse_result.is_valid and not partial:
+                return result
+
+            # Convert string level to enum if needed
+            if isinstance(level, str):
+                try:
+                    level = ValidationLevel[level.upper()]
+                except KeyError as e:
+                    result.add_error(
+                        f"Invalid validation level: {level}",
+                        code="invalid_validation_level",
+                        context={"valid_levels": [l.name.lower() for l in ValidationLevel]},
+                    )
+                    return result
+
+            # Load schema if not already loaded
+            if self.validator is None:
+                try:
+                    self._load_schema()
+                except Exception as e:
+                    result.add_error(
+                        f"Failed to load schema: {str(e)}",
+                        code="schema_load_error",
+                        context={"exception": str(e)},
+                    )
+                    return result
+
+            # Perform schema validation
+            self._validate_schema(workflow, result)
+
+            # If schema validation failed and we're not in partial mode, return early
+            if not result.is_valid and not partial:
+                return result
+
+            # Perform semantic validation if requested
+            if level != ValidationLevel.SCHEMA_ONLY:
+                self._validate_semantics(workflow, result, level)
+
+            return result
+
+        except Exception as e:
+            result.add_error(
+                f"Unexpected error during validation: {str(e)}",
+                code="validation_error",
+                context={"exception": str(e)},
+            )
+            return result
+
+    def _validate_schema(self, workflow: JSONObject, result: ValidationResult) -> None:
+        """Validate a workflow against the JSON schema.
+
+        Args:
+            workflow: The workflow to validate.
+            result: The validation result to populate with any errors.
+
+        Note:
+            This method modifies the ValidationResult in place to add any validation errors.
+        """
+        if self.validator is None:
+            result.add_error(
+                message="Validator not initialized. Call _load_schema() first.",
+                code="validator_not_initialized",
+            )
+            return
+
+        try:
+            # Clear any existing validation errors
+            validation_errors = list(self.validator.iter_errors(workflow))
+
+            for error in validation_errors:
+                # Extract the path as a string (e.g., "tasks.task1.command")
+                path = ".".join(str(p) for p in error.absolute_path) if error.absolute_path else "."
+
+                # Add context with schema validation details
+                context: dict[str, Any] = {
+                    "validator": error.validator,
+                    "validator_value": error.validator_value,
+                    "schema_path": list(error.schema_path),
+                    "instance": error.instance,
+                }
+                
+                # Only include schema if it's not too large
+                if error.schema and len(str(error.schema)) < 1000:  # Arbitrary size limit
+                    context["schema"] = error.schema
+
+                # Add the validation error to our result
+                result.add_error(
+                    message=str(error.message),
+                    code=error.validator or "schema_validation_error",
+                    path=path,
+                    context=context,
+                )
+
+        except Exception as e:
+            result.add_error(
+                f"Schema validation failed: {str(e)}",
+                code="schema_validation_error",
+                context={"exception": str(e)},
+            )
+            result.is_valid = False
+
+    def _check_undefined_references(
+        self, workflow: JSONObject, valid_references: set[str], result: ValidationResult
+    ) -> None:
+        """Check for undefined task references in the workflow.
+
+        This method validates that all task references in dependencies, on_success,
+        and on_failure actions point to defined tasks.
+
+        Args:
+            workflow: The workflow to check.
+            valid_references: Set of valid task names that can be referenced.
+            result: The validation result to populate with any errors.
+        """
+        if not self._is_string_dict(workflow):
+            result.add_error(
+                message="Workflow must be a JSON object",
+                code="invalid_workflow_type"
+            )
+            return
+
+        tasks = workflow.get("tasks", {})
+        if not isinstance(tasks, dict):
+            result.add_error(
+                message="'tasks' must be a dictionary",
+                code="invalid_tasks_type",
+                path="tasks",
+            )
+            return
+
+        for task_name, task in tasks.items():
+            if not isinstance(task, dict):
+                result.add_error(
+                    message=f"Task '{task_name}' must be a dictionary",
+                    code="invalid_task_type",
+                    path=f"tasks.{task_name}",
+                )
+                continue
+
+            # Check dependencies
+            deps = task.get("dependencies", [])
+            if not isinstance(deps, list):
+                result.add_error(
+                    message=f"Task '{task_name}' has invalid 'dependencies' (must be a list)",
+                    path=f"tasks.{task_name}.dependencies",
+                    code="invalid_dependencies_type",
+                )
+                continue
+
+            for i, dep in enumerate(deps):
+                if not isinstance(dep, (str, int, float, bool)):
+                    result.add_error(
+                        message=f"Task '{task_name}' has invalid dependency at index {i} (must be a string or number)",
+                        path=f"tasks.{task_name}.dependencies[{i}]",
+                        code="invalid_dependency_type",
+                    )
+                    continue
+
+                dep_str = str(dep)
+                if dep_str not in valid_references:
+                    result.add_error(
+                        message=f"Task '{task_name}' depends on undefined task '{dep_str}'",
+                        path=f"tasks.{task_name}.dependencies[{i}]",
+                        code="undefined_reference",
+                    )
+
+            # Check on_success and on_failure actions
+            for action_type in ["on_success", "on_failure"]:
+                actions = task.get(action_type, [])
+                if not isinstance(actions, list):
+                    result.add_error(
+                        message=f"Task '{task_name}' has invalid '{action_type}' (must be a list)",
+                        path=f"tasks.{task_name}.{action_type}",
+                        code=f"invalid_{action_type}_type",
+                    )
+                    continue
+
+                for i, action in enumerate(actions):
+                    if not isinstance(action, dict):
+                        result.add_error(
+                            message=f"Task '{task_name}' has invalid {action_type} action at index {i} (must be a dictionary)",
+                            path=f"tasks.{task_name}.{action_type}[{i}]",
+                            code=f"invalid_{action_type}_action",
+                        )
+                        continue
+
+                    next_task = action.get("next")
+                    if next_task and next_task not in valid_references:
+                        result.add_error(
+                            message=f"Task '{task_name}' {action_type} action references undefined task '{next_task}'",
+                            path=f"tasks.{task_name}.{action_type}[{i}].next",
+                            code="undefined_reference",
+                        )
+
+    def _validate_semantics(
+        self, workflow: JSONObject, result: ValidationResult, level: ValidationLevel
+    ) -> None:
+        """Perform semantic validation of the workflow.
+
+        This method performs various semantic checks on the workflow based on the
+        specified validation level. The results are added to the provided
+        ValidationResult object.
+
+        Args:
+            workflow: The workflow to validate.
+            result: The validation result to populate with any errors.
+            level: The validation level to use (BASIC, FULL, or SCHEMA_ONLY).
+        """
+        if level == ValidationLevel.SCHEMA_ONLY:
+            return
+
+        # Get the tasks dictionary or use an empty dict if not present
+        tasks = workflow.get("tasks", {})
+        if not isinstance(tasks, dict):
+            result.add_error(
+                message="'tasks' must be a dictionary",
+                code="invalid_tasks_type",
+                path="tasks",
+            )
+            return
+
+        # Check for undefined references in task dependencies and actions
+        if level in (ValidationLevel.BASIC, ValidationLevel.FULL):
+            valid_references = set(tasks.keys()) | {"start", "end"}
+            self._check_undefined_references(workflow, valid_references, result)
+
+        # Check for circular dependencies
+        if level == ValidationLevel.FULL:
+            self._check_circular_dependencies(workflow, result)
+
+        # Run custom validators if any are registered
+        if level == ValidationLevel.FULL and self._validators:
+            for validator in self._validators:
+                try:
+                    validator(workflow, result)
+                except Exception as e:
+                    result.add_error(
+                        message=f"Error in custom validator: {str(e)}",
+                        code="validator_error",
+                        context={"exception": str(e)},
+                    )
+
+    def _validate_schema(self, workflow: JSONObject, result: ValidationResult) -> None:
+        """Validate a workflow against the JSON schema.
+
+        Args:
+            workflow: The workflow to validate.
+            result: The validation result to populate with any errors.
+        """
+        if self.validator is None:
+            self._load_schema()
+
+        try:
+            # Clear any existing validation errors
+            validation_errors = list(self.validator.iter_errors(workflow))
+
+            for error in validation_errors:
+                # Extract the path as a string (e.g., "tasks.task1.command")
+                path = ".".join(str(p) for p in error.absolute_path) if error.absolute_path else "."
+
+                # Add context with schema validation details
+                context: dict[str, Any] = {
+                    "validator": error.validator,
+                    "validator_value": error.validator_value,
+                    "schema_path": list(error.schema_path),
+                    "instance": error.instance,
+                }
+                
+                # Only include schema if it's not too large
+                if error.schema and len(str(error.schema)) < 1000:  # Arbitrary size limit
+                    context["schema"] = error.schema
+
+                # Add the validation error to our result
+                result.add_error(
+                    message=str(error.message),
+                    code=error.validator or "schema_validation_error",
+                    path=path,
+                    context=context,
+                )
+
+        except Exception as e:
+            result.add_error(
+                message=f"Schema validation failed: {str(e)}",
+                code="schema_validation_error",
+                context={"exception": str(e)},
+            )
+            result.is_valid = False
+
+    # Run custom validators if any are registered
+    if level == ValidationLevel.FULL and self._validators:
+        for validator in self._validators:
+            try:
+                validator(workflow, result)
+            except Exception as e:
+                result.add_error(
+
+        # Check dependencies
+        dependencies = task.get("dependencies", [])
+        if not isinstance(dependencies, list):
+            dependencies = []
+
+        for i, dep in enumerate(dependencies):
+            dep_str = str(dep)
+            if dep_str not in valid_references:
+                result.add_error(
+                    message=f"Task '{task_name}' depends on undefined task '{dep_str}'",
+                    path=f"tasks.{task_name}.dependencies[{i}]",
+                    code="undefined_reference",
+                )
+
+        # Check on_success and on_failure actions
+        for action_type in ["on_success", "on_failure"]:
+            actions = task.get(action_type, [])
+            if not isinstance(actions, list):
+                continue
+
+            for i, action in enumerate(actions):
+                if not isinstance(action, dict):
+                    result.add_error(
+                        message=f"Task '{task_name}' has invalid {action_type} action at index {i} (must be a dictionary)",
+                        path=f"tasks.{task_name}.{action_type}[{i}]",
+                        code=f"invalid_{action_type}_action",
+                    )
+                    continue
+
+                next_task = action.get("next")
+                if next_task and next_task not in valid_references:
+                    result.add_error(
+                        message=f"Task '{task_name}' {action_type} action references undefined task '{next_task}'",
+                        path=f"tasks.{task_name}.{action_type}[{i}].next",
+                        code="undefined_reference",
+                    )
+
+def _get_task_dependencies(self, task: JSONObject) -> list[str]:
+    """Extract the list of dependencies from a task definition.
+
+    def _get_task_dependencies(self, task: JSONObject) -> list[str]:
+        """Extract the list of dependencies from a task definition.
+
+        Args:
+            task: The task definition.
+
+        Returns:
+            List of dependency task names.
+        """
+        deps = task.get("dependencies")
+        if isinstance(deps, list):
+            return [str(d) for d in deps if isinstance(d, (str, int, float, bool))]
+        return []
+
+    def _get_action_targets(self, task: JSONObject, action_type: str) -> list[str]:
+        """Extract target task names from action lists (on_success/on_failure).
+
+        Args:
+            task: The task definition.
+            action_type: Either 'on_success' or 'on_failure'.
+
+        Returns:
+            List of target task names.
+        """
+        targets: list[str] = []
+        actions = task.get(action_type, [])
+        if not isinstance(actions, list):
+            return targets
+
+        for action in actions:
+            if isinstance(action, dict) and "target" in action:
+                target = action["target"]
+                if isinstance(target, str):
+                    targets.append(target)
+        return targets
+
+    def _check_circular_dependencies(
+        self, workflow: JSONObject, result: ValidationResult
+    ) -> None:
+        """Check for circular dependencies in the workflow.
+
+        Args:
+            workflow: The workflow definition to check.
+            result: The validation result to populate with any errors.
+        """
+        tasks = workflow.get("tasks", {})
+        if not isinstance(tasks, dict):
+            return
+
+        cycles = self._find_cycles(tasks)
+        for cycle in cycles:
+            if len(cycle) > 1:  # Only report cycles with at least 2 nodes
+                cycle_path = " -> ".join(cycle)
+                result.add_error(
+                    message=f"Circular dependency detected: {cycle_path}",
+                    path="tasks",
+                    code="circular_dependency",
+                    context={"cycle": cycle},
+                )
+
+    def _find_cycles(self, tasks: JSONObject) -> list[list[str]]:
+        """Find circular dependencies in the workflow.
+
+        This method implements a depth-first search to detect cycles in the task
+        dependency graph. It returns a list of cycles, where each cycle is a list
+        of task names that form a circular dependency.
+
+        Args:
+            tasks: Dictionary of task definitions, where keys are task names and
+                  values are task definitions.
+
+        Returns:
+            A list of cycles, where each cycle is represented as a list of task names.
+            Returns an empty list if no cycles are found.
+        """
+        if not isinstance(tasks, dict):
+            return []
+
+        # Convert tasks to a dictionary with string keys and set of dependencies
+        graph: dict[str, set[str]] = {}
+        for task_name, task in tasks.items():
+            if not isinstance(task, dict):
+                continue
+
+            deps = task.get("dependencies", [])
+            if not isinstance(deps, list):
+                deps = []
+
+            graph[str(task_name)] = {
+                str(dep)
+                for dep in deps
+                if isinstance(dep, (str, int, float, bool)) and str(dep) in tasks
+            }
+
+        # Implement cycle detection using depth-first search
+        visited: set[str] = set()
+        path: list[str] = []
+        cycles: list[list[str]] = []
+
+        def has_cycle(node: str) -> bool:
+            """Recursive helper to detect cycles using DFS."""
+            if node in path:
+                # Found a cycle, record it
+                cycle_start = path.index(node)
+                cycles.append(path[cycle_start:] + [node])
+                return True
+
+            if node in visited:
+                return False
+
+            visited.add(node)
+            path.append(node)
+
+            # Recursively check all dependencies
+            for neighbor in graph.get(node, set()):
+                has_cycle(neighbor)  # Don't return here to find all cycles
+
+            path.pop()
+            return False
+
+        # Check each unvisited node
+        for node in graph:
+            if node not in visited:
+                has_cycle(node)
+
+        return cycles
+
+    def validate_strict(
+        self,
+        workflow_definition: Union[JSONObject, str, Path],
+        level: Union[ValidationLevel, str] = ValidationLevel.FULL,
+        partial: bool = False,
+    ) -> bool:
+        """Validate a workflow definition and raise an exception if invalid.
+
+        This is a convenience method that wraps the validate() method and raises
+        a WorkflowValidationError if the workflow is invalid.
+
+        Args:
+            workflow_definition: The workflow definition to validate.
+            level: The validation level to use.
+            partial: If True, allows validation to continue after errors are found.
+
+        Returns:
+            bool: True if the workflow is valid.
+
+        Raises:
+            WorkflowValidationError: If the workflow is invalid.
+        """
+        result = self.validate(workflow_definition, level=level, partial=partial)
+        if not result.is_valid:
+            raise WorkflowValidationError(
+                "Workflow validation failed", validation_result=result
+            )
+        return True
+
+    async def validate_async(
+        self,
+        workflow_definition: Union[JSONObject, str, Path],
+        level: Union[ValidationLevel, str] = ValidationLevel.FULL,
+        partial: bool = False,
+    ) -> ValidationResult:
+        """Asynchronously validate a workflow definition.
+
+        This is an async version of the validate method that can be used in async contexts.
+        It provides the same functionality as validate() but is designed to work in
+        asynchronous code.
+
+        Args:
+            workflow_definition: The workflow definition to validate. Can be a
+                               dictionary, JSON string, or file path.
+            level: The validation level to use. Can be a ValidationLevel enum or
+                  string ('schema_only', 'basic', or 'full').
+            partial: If True, allows validation to continue after errors are found.
+
+        Returns:
+            A ValidationResult object containing any validation errors or warnings.
+            >>> validator = WorkflowValidator()
+            >>> result = await validator.validate_async({"tasks": {"task1": {"command": "echo hello"}}})
+            >>> if not result.is_valid:
+            ...     for error in result.get_errors():
+            ...         print(f"Error: {error['message']} at {error.get('path', '')}")
+        """
+        # In a real implementation, we would use async file I/O here
+        # For now, we'll run the synchronous version in a thread pool
+        from functools import partial
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, partial(self.validate, workflow_definition, level, partial)
+        )
+
+    async def validate_strict_async(
+        self,
+        workflow_definition: Union[JSONObject, str, Path],
+        level: Union[ValidationLevel, str] = ValidationLevel.FULL,
+        partial: bool = False,
+    ) -> bool:
+        """Asynchronously validate a workflow and raise an exception if invalid.
+
+        This is an async version of validate_strict that can be used in async contexts.
+
+        Args:
+            workflow_definition: The workflow definition to validate.
+            level: The validation level to use.
+            partial: If True, allows partial validation to continue after errors.
+
+        Returns:
+            True if the workflow is valid.
+
+        Raises:
+            WorkflowValidationError: If the workflow is invalid.
+        """
+        result = await self.validate_async(workflow_definition, level, partial)
+        if not result.is_valid:
+            raise WorkflowValidationError(
+                "Workflow validation failed", validation_result=result
+            )
+        return True
+
+
+def validate_workflow(
+    workflow_definition: Union[JSONObject, str, Path],
+    level: Union[ValidationLevel, str] = ValidationLevel.FULL,
+    partial: bool = False,
+    strict: bool = True,
+) -> Union[bool, ValidationResult]:
+    """Convenience function to validate a workflow definition.
+
+    This function creates a WorkflowValidator instance and uses it to validate
+    the workflow. It provides a simplified interface for common validation needs.
+
+    Args:
+        workflow_definition: The workflow definition to validate.
+                           Can be a dictionary, JSON string, or file path.
+        level: The validation level to use. Can be a string ('schema_only', 'basic', 'full')
+              or a ValidationLevel enum value.
+        partial: If True, allows validation to continue after errors are found.
+        strict: If True, raises an exception on validation errors. If False,
+              returns the full ValidationResult.
+
+    Returns:
+        bool: True if the workflow is valid and strict=True.
+        ValidationResult: If strict=False, returns the full validation result.
+
+    Raises:
+        WorkflowValidationError: If the workflow is invalid and strict=True.
+        FileNotFoundError: If workflow_definition is a path that doesn't exist.
+        json.JSONDecodeError: If workflow_definition is an invalid JSON string.
+        ValueError: If an invalid validation level is provided.
+        Exception: For other unexpected errors during validation.
+    """
+    try:
+        # Create validator with schema loading disabled initially
+        validator = WorkflowValidator(load_schema=False)
+
+        # Load schema with better error handling
+        try:
+            validator._load_schema()
+        except FileNotFoundError as e:
+            if strict:
+                raise WorkflowValidationError(
+                    f"Failed to load schema: {e}",
+                    code="schema_load_error",
+                ) from e
+            result = ValidationResult()
+            result.add_error(
+                f"Failed to load schema: {e}",
+                code="schema_load_error",
+                validator="validate_workflow",
+            )
+            return result
+
+        result = validator.validate(workflow_definition, level=level, partial=partial)
+
+        if strict and not result.is_valid:
+            raise WorkflowValidationError(
+                "Workflow validation failed",
+                validation_result=result,
+            )
+
+        return result if not strict else result.is_valid
+
+    except Exception as e:
+        if strict:
+            if not isinstance(e, WorkflowValidationError):
+                raise WorkflowValidationError(
+                    f"Validation error: {str(e)}",
+                    code="validation_error",
+                ) from e
+            raise
+
+        # For non-strict mode, return a failed validation result
+        result = ValidationResult()
+        result.add_error(
+            str(e),
+            code="validation_error",
+            validator="validate_workflow",
+            exception=str(e),
+        )
+        return result
+
+
+async def validate_workflow_async(
+    workflow_definition: Union[JSONObject, str, Path],
+    level: Union[ValidationLevel, str] = ValidationLevel.FULL,
+    partial: bool = False,
+    strict: bool = True,
+) -> Union[bool, ValidationResult]:
+    """Asynchronously validate a workflow definition.
+
+    This function creates a WorkflowValidator instance and uses it to validate
+    the workflow asynchronously. It provides a simplified interface for common
+    async validation needs.
+
+    Args:
+        workflow_definition: The workflow definition to validate.
+                           Can be a dictionary, JSON string, or file path.
+        level: The validation level to use. Can be a string ('schema_only', 'basic', 'full')
+              or a ValidationLevel enum value.
+        partial: If True, allows validation to continue after errors are found.
+        strict: If True, raises an exception on validation errors. If False,
+              returns the full ValidationResult.
+
+    Returns:
+        bool: True if the workflow is valid and strict=True.
+        ValidationResult: If strict=False, returns the full validation result.
+
+    Raises:
+        WorkflowValidationError: If the workflow is invalid and strict=True.
+        FileNotFoundError: If workflow_definition is a path that doesn't exist.
+        json.JSONDecodeError: If workflow_definition is an invalid JSON string.
+        ValueError: If an invalid validation level is provided.
+        Exception: For other unexpected errors during validation.
+    """
+    try:
+        # Create validator with schema loading disabled initially
+        validator = WorkflowValidator(load_schema=False)
+
+        # Load schema with better error handling
+        try:
+            validator._load_schema()
+        except FileNotFoundError as e:
+            if strict:
+                raise WorkflowValidationError(
+                    f"Failed to load schema: {e}",
+                    code="schema_load_error",
+                ) from e
+            result = ValidationResult()
+            result.add_error(
+                f"Failed to load schema: {e}",
+                code="schema_load_error",
+                validator="validate_workflow_async",
+            )
+            return result
+
+        # Run the validation asynchronously
+        result = await validator.validate_async(
+            workflow_definition, level=level, partial=partial
+        )
+
+        if strict and not result.is_valid:
+            raise WorkflowValidationError(
+                "Workflow validation failed",
+                validation_result=result,
+            )
+
+        return result if not strict else result.is_valid
+
+    except Exception as e:
+        if strict:
+            if not isinstance(e, WorkflowValidationError):
+                raise WorkflowValidationError(
+                    f"Validation error: {str(e)}",
+                    code="validation_error",
+                ) from e
+            raise
+
+        # For non-strict mode, return a failed validation result
+        result = ValidationResult()
+        result.add_error(
+            str(e),
+            code="validation_error",
+            validator="validate_workflow_async",
+            exception=str(e),
+        )
+        return result
+
+
+def validate_workflow_schema(workflow_definition: Union[JSONObject, str, Path]) -> bool:
+    """Quickly validate a workflow against just the JSON schema.
+
+    This is a convenience function that performs only schema validation
+    without any additional semantic checks.
+
+
+    Args:
+        workflow_definition: The workflow definition to validate.
+                          Can be a dictionary, JSON string, or file path.
+
+    Returns:
+        bool: True if the workflow is valid against the schema, False otherwise.
+
+    Raises:
+        FileNotFoundError: If workflow_definition is a path that doesn't exist.
+        json.JSONDecodeError: If workflow_definition is an invalid JSON string.
+        WorkflowValidationError: If there's an error loading the schema.
+    """
+    try:
+        validator = WorkflowValidator(load_schema=True)
+        result = validator.validate(
+            workflow_definition, level=ValidationLevel.SCHEMA_ONLY, partial=False
+        )
+        if not result.is_valid:
+            raise WorkflowValidationError(
+                "Workflow validation failed against schema", validation_result=result
+            )
+        return True
+    except WorkflowValidationError:
+        raise
+    except Exception as e:
+        raise WorkflowValidationError(
+            f"Failed to validate workflow schema: {e}", errors=[{"message": str(e)}]
+        ) from e
+    return False
+
+
+async def validate_workflow_schema_async(
+    workflow_definition: Union[JSONObject, str, Path]
+) -> bool:
+    """Quickly validate a workflow against just the JSON schema asynchronously.
+
+    This is an async version of validate_workflow_schema that can be used in
+    async contexts. It performs only schema validation without any additional
+    semantic checks.
+
+    Args:
+        workflow_definition: The workflow definition to validate.
+                          Can be a dictionary, JSON string, or file path.
+
+    Returns:
+        bool: True if the workflow is valid against the schema.
+
+    Raises:
+        FileNotFoundError: If workflow_definition is a path that doesn't exist.
+        json.JSONDecodeError: If workflow_definition is an invalid JSON string.
+        WorkflowValidationError: If the workflow is invalid against the schema.
+    """
+    # Create a validator instance with schema loading disabled initially
+    validator = WorkflowValidator(load_schema=False)
+
+    try:
+        # Load the schema with better error handling
+        validator._load_schema()
+    except Exception as e:
+        error_msg = f"Failed to load schema: {e}"
+        if isinstance(e, FileNotFoundError):
+            error_msg = f"Schema file not found: {e}"
+        raise WorkflowValidationError(
+            error_msg,
+            code="schema_load_error",
+        ) from e
+
+    # Validate the workflow against the schema
+    result = await validator.validate_async(
+        workflow_definition, level=ValidationLevel.SCHEMA_ONLY, partial=True
+    )
+
+    if not result.is_valid:
+        raise WorkflowValidationError(
+            "Workflow validation failed against schema",
+            validation_result=result,
+        )
+
+    return True
