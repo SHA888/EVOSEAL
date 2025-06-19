@@ -1,10 +1,11 @@
 """Unit tests for the error handling framework."""
+
 import logging
 import sys
 import time
 import unittest
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from evoseal.core.errors import (
@@ -131,46 +132,52 @@ class TestErrorHandlingUtils(unittest.TestCase):
         """Test logging an error with the log_error function."""
         # Create a string buffer to capture log output
         from io import StringIO
+
         log_stream = StringIO()
-        
+
         # Configure the logger to use our stream with a formatter that includes the message
         handler = logging.StreamHandler(log_stream)
-        formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+        formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
         handler.setFormatter(formatter)
-        
-        logger = logging.getLogger('test_logger')
+
+        logger = logging.getLogger("test_logger")
         logger.setLevel(logging.ERROR)
         logger.handlers = [handler]
-        
+
         # Log the error
         error = ValidationError("Invalid input", field="username")
         log_error(error, "Custom message", {"extra": "data"}, logger)
-        
+
         # Get the log output
         log_output = log_stream.getvalue()
-        
+
         # Check that the error was logged with the expected format
-        self.assertIn("ERROR:test_logger:Custom message: VALIDATION_ERROR: Invalid input", log_output)
-        
+        self.assertIn(
+            "ERROR:test_logger:Custom message: VALIDATION_ERROR: Invalid input",
+            log_output,
+        )
+
         # Check the error details
         self.assertEqual(error.context.details.get("field"), "username")
 
-    @patch('logging.basicConfig')
+    @patch("logging.basicConfig")
     def test_setup_logging(self, mock_basic_config: MagicMock) -> None:
         """Test setting up logging configuration."""
         setup_logging(logging.DEBUG, "/tmp/test.log")
         mock_basic_config.assert_called_once()
         args, kwargs = mock_basic_config.call_args
-        self.assertEqual(kwargs['level'], logging.DEBUG)
-        self.assertEqual(len(kwargs['handlers']), 2)  # stderr and file handler
+        self.assertEqual(kwargs["level"], logging.DEBUG)
+        self.assertEqual(len(kwargs["handlers"]), 2)  # stderr and file handler
 
     def test_handle_errors_context_manager(self) -> None:
         """Test the handle_errors context manager."""
-        with self.assertLogs(__name__, level='ERROR') as cm:
+        with self.assertLogs(__name__, level="ERROR") as cm:
             with self.assertRaises(ValueError):
-                with handle_errors("test_component", "test_operation", logger=self.logger):
+                with handle_errors(
+                    "test_component", "test_operation", logger=self.logger
+                ):
                     raise ValueError("Something went wrong")
-        
+
         # Check that the error was logged
         self.assertIn("Error in test_component.test_operation", cm.output[0])
         self.assertIn("ValueError: Something went wrong", cm.output[0])
@@ -179,62 +186,72 @@ class TestErrorHandlingUtils(unittest.TestCase):
         """Test the error_handler decorator."""
         # Create a custom logger for this test
         from io import StringIO
+
         log_stream = StringIO()
         handler = logging.StreamHandler(log_stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
-        logger = logging.getLogger('test_error_handler')
+        handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+        logger = logging.getLogger("test_error_handler")
         logger.setLevel(logging.ERROR)
         logger.handlers = [handler]
-        
+
         @error_handler(ValueError, logger=logger)
         def failing_function() -> None:
             raise ValueError("Invalid value")
-        
+
         with self.assertRaises(ValueError):
             failing_function()
-        
+
         # Get the log output
         log_output = log_stream.getvalue()
         self.assertIn("ERROR:test_error_handler:", log_output)
-        self.assertIn("Error in tests.unit.test_error_handling.failing_function", log_output)
+        self.assertIn(
+            "Error in tests.unit.test_error_handling.failing_function", log_output
+        )
         self.assertIn("ValueError: Invalid value", log_output)
 
     def test_retry_on_error_decorator(self) -> None:
         """Test the retry_on_error decorator."""
         call_count = 0
-        
+        max_attempts = 3  # Number of attempts before success
+
         @retry_on_error(
-            max_retries=3, 
-            delay=0.1, 
-            backoff=1.0, 
+            max_retries=max_attempts
+            - 1,  # max_retries is the number of retries, not attempts
+            delay=0.1,
+            backoff=1.0,
             exceptions=(ValueError,),
             logger=self.logger,
         )
         def flaky_function() -> int:
-            nonlocal call_count
+            nonlocal call_count, max_attempts
             call_count += 1
-            if call_count < 3:
+            if (
+                call_count < max_attempts
+            ):  # Will fail on first two attempts, succeed on third
                 raise ValueError("Temporary failure")
             return 42
-        
-        with self.assertLogs(__name__, level='WARNING') as cm:
+
+        with self.assertLogs(__name__, level="WARNING") as cm:
             result = flaky_function()
-        
-        self.assertEqual(result, 42)
-        self.assertEqual(call_count, 3)
+
+        expected_result = 42
+        expected_retry_count = 3
+        self.assertEqual(result, expected_result)
+        self.assertEqual(call_count, expected_retry_count)
         self.assertIn("Retrying flaky_function", cm.output[0])
         self.assertIn("1/3", cm.output[0])
         self.assertIn("2/3", cm.output[1])
 
     def test_error_boundary_decorator(self) -> None:
         """Test the error_boundary decorator."""
+
         @error_boundary(default=0, logger=self.logger)
         def divide(a: int, b: int) -> float:
             return a / b
-        
-        with self.assertLogs(__name__, level='ERROR') as cm:
+
+        with self.assertLogs(__name__, level="ERROR") as cm:
             result = divide(10, 0)
-        
+
         self.assertEqual(result, 0)
         self.assertIn("Error in divide", cm.output[0])
         self.assertIn("ZeroDivisionError", cm.output[0])
@@ -246,23 +263,23 @@ class TestErrorHandlingUtils(unittest.TestCase):
             field="email",
             details={"format": "must be a valid email"},
         )
-        
+
         response = create_error_response(
             error,
             status_code=400,
             include_traceback=True,
         )
-        
-        error_data = response['error']
-        self.assertEqual(error_data['type'], 'ValidationError')
-        self.assertEqual(error_data['message'], 'VALIDATION_ERROR: Invalid input')
-        self.assertEqual(error_data['status'], 400)
-        self.assertEqual(error_data['code'], 'VALIDATION_ERROR')
-        self.assertEqual(error_data['category'], 'VALIDATION')
-        self.assertEqual(error_data['severity'], 'ERROR')
-        self.assertEqual(error_data['context']['details']['field'], 'email')
-        self.assertIn('traceback', error_data)
+
+        error_data = response["error"]
+        self.assertEqual(error_data["type"], "ValidationError")
+        self.assertEqual(error_data["message"], "VALIDATION_ERROR: Invalid input")
+        self.assertEqual(error_data["status"], 400)
+        self.assertEqual(error_data["code"], "VALIDATION_ERROR")
+        self.assertEqual(error_data["category"], "VALIDATION")
+        self.assertEqual(error_data["severity"], "ERROR")
+        self.assertEqual(error_data["context"]["details"]["field"], "email")
+        self.assertIn("traceback", error_data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
