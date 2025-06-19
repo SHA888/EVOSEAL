@@ -13,12 +13,13 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Optional, TypeVar, Union, cast
+from typing import Any, Dict, List, Literal, Optional, TypeAlias, TypeVar, Union, cast
 
-from typing_extensions import TypeAlias
+from typing_extensions import TypedDict, NotRequired
 
-from .events import Event, EventBus, EventType
+from evoseal.core.events import EventBus, Event, EventType
 
 # Type variables
 R = TypeVar("R")
@@ -43,12 +44,46 @@ EventHandler: TypeAlias = Callable[[dict[str, Any]], Optional[Any]]
 logger = logging.getLogger(__name__)
 
 
-class StepConfig(dict[str, Any]):
-    """Configuration for a workflow step."""
+class StepConfig(TypedDict, total=False):
+    """Configuration for a workflow step.
+    
+    Attributes:
+        name: Step name for logging and identification.
+        component: Name of the registered component to use.
+        method: Method to call on the component (defaults to __call__).
+        params: Parameters to pass to the component method.
+        dependencies: List of step names that must complete before this step runs.
+        on_success: Action to take when the step completes successfully.
+        on_failure: Action to take when the step fails.
+    """
+    name: str
+    component: str
+    method: NotRequired[str]  # Optional, defaults to __call__
+    params: NotRequired[Dict[str, Any]]  # Optional parameters
+    dependencies: NotRequired[List[str]]  # Optional dependencies
+    on_success: NotRequired[Dict[str, Any]]  # Optional success action
+    on_failure: NotRequired[Dict[str, Any]]  # Optional failure action
 
 
-class WorkflowConfig(dict[str, Any]):
-    """Configuration for a workflow."""
+class WorkflowConfig(TypedDict, total=False):
+    """Configuration for a workflow.
+    
+    Attributes:
+        name: Unique name for the workflow.
+        description: Optional description of the workflow.
+        version: Version of the workflow definition.
+        steps: List of step configurations.
+        parameters: Global parameters available to all steps.
+        max_retries: Maximum number of retry attempts for failed steps.
+        timeout: Maximum execution time for the workflow.
+    """
+    name: str
+    description: NotRequired[str]  # Optional description
+    version: NotRequired[str]  # Optional version
+    steps: List[StepConfig]
+    parameters: NotRequired[Dict[str, Any]]  # Optional global parameters
+    max_retries: NotRequired[int]  # Optional retry limit
+    timeout: NotRequired[int]  # Optional timeout in seconds
 
 
 class WorkflowStatus(Enum):
