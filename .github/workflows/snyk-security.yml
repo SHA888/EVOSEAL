@@ -56,15 +56,24 @@ jobs:
             exit 1
           fi
           snyk auth $SNYK_TOKEN
-          snyk test --severity-threshold=high --sarif-file-output=snyk.sarif || echo "Snyk test found vulnerabilities"
+          # Create a directory for the SARIF file
+          mkdir -p .github/snyk
+          # Run Snyk test and output to the SARIF file
+          snyk test --severity-threshold=high --sarif-file-output=.github/snyk/snyk.sarif || echo "Snyk test found vulnerabilities"
+          # Check if the file was created
+          if [ -f ".github/snyk/snyk.sarif" ]; then
+            echo "SARIF file created successfully"
+          else
+            echo "Warning: SARIF file was not created"
+          fi
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           
       - name: Upload SARIF file
-        if: always() && steps.snyk-test.outcome == 'success' || steps.snyk-test.outcome == 'failure'
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: snyk.sarif
+          sarif_file: .github/snyk/snyk.sarif
           
       - name: Snyk Monitor
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.snyk-test.outcome == 'success'
