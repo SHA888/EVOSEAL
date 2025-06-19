@@ -529,7 +529,8 @@ class WorkflowEngine:
         Trigger an event with the given data.
 
         This method safely publishes events in both synchronous and asynchronous contexts
-        without race conditions by using asyncio.run_coroutine_threadsafe when needed.
+        by using asyncio.run_coroutine_threadsafe when an event loop is running,
+        or asyncio.run when no event loop is available.
 
         Args:
             event_type: The type of event to trigger
@@ -548,31 +549,17 @@ class WorkflowEngine:
             data=data,
         )
 
-        # Get the current event loop, creating a new one if necessary
         try:
+            # Try to get the running event loop
             loop = asyncio.get_running_loop()
-            # Schedule the coroutine in a thread-safe way
-            future = asyncio.run_coroutine_threadsafe(
+            # Schedule the coroutine in a thread-safe way without waiting for completion
+            asyncio.run_coroutine_threadsafe(
                 self.event_bus.publish(event),
                 loop
             )
-            # Don't wait for completion to avoid blocking
-            return
         except RuntimeError:
             # No running event loop, run synchronously in a new event loop
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # This should be rare, but handle the case where get_event_loop
-                    # returns a running loop after get_running_loop failed
-                    future = asyncio.run_coroutine_threadsafe(
-                        self.event_bus.publish(event),
-                        loop
-                    )
-                    return
-            except RuntimeError:
-                # No event loop at all, create a new one
-                asyncio.run(self.event_bus.publish(event))
+            asyncio.run(self.event_bus.publish(event))
 
     def get_status(self) -> WorkflowStatus:
         """Get the current status of the workflow engine.
