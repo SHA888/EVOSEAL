@@ -7,6 +7,59 @@
 | 1.0.x   | :white_check_mark: |
 | < 1.0   | :x:                |
 
+## Dependency Security
+
+### Dependency Management
+
+EVOSEAL uses a comprehensive approach to dependency management to ensure security and stability:
+
+1. **Pinned Dependencies**: All dependencies are pinned to specific versions in:
+   - `requirements/pinned_requirements.txt` (core dependencies)
+   - `requirements/pinned_dev_requirements.txt` (development dependencies)
+   - `requirements/security.txt` (security tools)
+
+2. **Update Process**:
+   ```bash
+   # Update all dependencies
+   ./scripts/update_dependencies.sh
+
+   # Fix dependency conflicts (if any)
+   ./scripts/fix_dependencies.sh
+   ```
+
+### Security Scanning
+
+We use the following tools to maintain dependency security:
+
+1. **Safety**: For checking Python dependencies against known vulnerabilities
+   ```bash
+   pip install safety
+   safety check --full-report
+   ```
+
+2. **Bandit**: For identifying common security issues in Python code
+   ```bash
+   pip install bandit
+   bandit -r .
+   ```
+
+3. **Dependabot**: Automated dependency updates with security alerts (enabled in GitHub)
+
+### Best Practices
+
+1. **Regular Updates**:
+   - Run security scans weekly
+   - Update dependencies monthly or when critical vulnerabilities are reported
+   - Review and update security tools quarterly
+
+2. **Pre-commit Hooks**:
+   - Security checks are integrated into pre-commit hooks
+   - All dependencies are validated before commit
+
+3. **CI/CD Integration**:
+   - Security scans are part of the CI/CD pipeline
+   - Builds fail on high/critical vulnerabilities
+
 ## Reporting a Vulnerability
 
 We take the security of our software seriously. If you discover a security vulnerability in EVOSEAL, we appreciate your help in disclosing it to us in a responsible manner.
