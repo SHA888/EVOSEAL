@@ -36,7 +36,7 @@ Welcome to the EVOSEAL development guide! This document provides all the informa
 2. **Set up a virtual environment**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source .venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install development dependencies**

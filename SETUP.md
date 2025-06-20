@@ -32,7 +32,7 @@ This guide will help you set up the EVOSEAL development environment.
 
 3. **Activate the virtual environment**
    ```bash
-   source venv/bin/activate
+   source .venv/bin/activate
    ```
 
 4. **Configure environment variables**
@@ -72,7 +72,7 @@ evo-seal/
 
 1. **Activate the virtual environment**
    ```bash
-   source venv/bin/activate
+   source .venv/bin/activate
    ```
 
 2. **Run tests**

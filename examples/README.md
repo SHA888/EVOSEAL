@@ -8,7 +8,7 @@ This directory contains example scripts and notebooks demonstrating how to use E
    ```bash
    # From the project root
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source .venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    pip install -r examples/requirements.txt
    ```

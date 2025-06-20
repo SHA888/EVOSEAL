@@ -11,8 +11,8 @@ git submodule update --init --recursive
 
 # Create and activate virtual environment
 echo "🔧 Creating Python virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 
 # Upgrade pip
 echo "🔄 Upgrading pip..."
@@ -61,5 +61,5 @@ echo "✅ Environment setup complete!"
 echo "📁 Creating necessary directories..."
 mkdir -p logs data/knowledge
 
-echo "✨ Setup complete! Activate the virtual environment with 'source venv/bin/activate'"
+echo "✨ Setup complete! Activate the virtual environment with 'source .venv/bin/activate'"
 echo "📝 Don't forget to update your .env file with your API keys and other configuration"

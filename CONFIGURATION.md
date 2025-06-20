@@ -121,7 +121,7 @@ Environment-specific settings are loaded from JSON files in the `config/` direct
    ./scripts/setup.sh
 
    # Activate the virtual environment
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+   source .venv/bin/activate  # On Windows: .\venv\Scripts\activate
    ```
 
 3. **Configure environment variables** (if needed):
