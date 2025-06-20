@@ -29,7 +29,7 @@ Welcome to the EVOSEAL User Manual. This document provides comprehensive informa
 2. **Set Up Virtual Environment**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source .venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install Dependencies**

@@ -36,8 +36,8 @@ git clone https://github.com/SHA888/EVOSEAL.git
 cd EVOSEAL
 
 # Set up virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -97,8 +97,8 @@ EVOSEAL uses a structured requirements system to manage dependencies across diff
 
 1. **Create and activate a virtual environment**:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
 2. **Install base requirements (recommended for most users)**:
