@@ -1,0 +1,50 @@
+# Development Dependencies
+-r updated_requirements.txt
+
+# Code Quality
+black>=24.4.0
+isort>=5.13.2
+flake8>=7.0.0
+mypy>=1.10.0
+pylint>=3.1.0
+ruff>=0.4.7
+pre-commit>=3.6.0
+
+# Testing
+pytest>=8.4.1  # Updated to fix security vulnerabilities
+pytest-cov>=5.0.0
+pytest-mock>=3.12.0
+pytest-asyncio>=0.23.0
+pytest-xdist>=3.5.0
+pylint-pytest>=2.0.0  # Updated to be compatible with pytest 8.4.1
+
+# Type stubs
+types-PyYAML>=6.0.0
+types-requests>=2.31.0
+types-python-dateutil>=2.8.0
+types-pytz>=2023.3
+types-setuptools>=68.0.0
+
+# Documentation
+sphinx>=7.0.0
+sphinx-rtd-theme>=2.0.0
+sphinx-autodoc-typehints>=1.25.0
+myst-parser>=2.0.0
+sphinx-copybutton>=0.5.2
+sphinxcontrib-mermaid>=0.8.1
+
+# Code quality plugins
+flake8-bugbear>=24.2.6
+flake8-comprehensions>=3.14.0
+flake8-docstrings>=1.7.0
+flake8-rst-docstrings>=0.3.0
+flake8-annotations>=3.1.0
+flake8-import-order>=0.18.2
+flake8-typing-imports>=1.15.0
+
+# Jupyter for exploration
+jupyter>=1.0.0
+ipykernel>=6.4.1
+nbconvert>=7.0.0
+nbformat>=5.9.0
+ipywidgets>=8.1.0
