@@ -7,6 +7,7 @@ a simple workflow with multiple steps and components.
 
 import logging
 
+from evoseal.core.events import Event
 from evoseal.core.workflow import WorkflowEngine, WorkflowStatus
 
 # Configure logging
@@ -40,12 +41,13 @@ class DataSaver:
         return True
 
 
-def workflow_completed_callback(data: dict) -> None:
+def workflow_completed_callback(event: Event) -> None:
     """Example callback for workflow completion.
 
     Args:
-        data: Dictionary containing workflow completion data
+        event: Event object containing workflow completion data
     """
+    data = event.data
     logger.info(f"Workflow completed: {data['workflow']}")
 
 

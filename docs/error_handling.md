@@ -179,7 +179,7 @@ except BaseError as e:
     return jsonify(response), 400
 except Exception as e:
     response = create_error_response(
-        e, 
+        e,
         status_code=500,
         include_traceback=app.debug,
     )
@@ -208,7 +208,7 @@ except Exception as e:
 def get_user(user_id: str) -> dict:
     if not user_id:
         raise ValidationError("User ID is required", field="user_id")
-    
+
     try:
         user = user_repository.get(user_id)
         if not user:
@@ -232,7 +232,7 @@ def get_user(user_id: str) -> dict:
 
 ```python
 @error_handler(
-    ValidationError, 
+    ValidationError,
     status_code=400,
     logger=logger
 )

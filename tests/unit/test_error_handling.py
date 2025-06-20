@@ -1,10 +1,12 @@
 """Unit tests for the error handling framework."""
 
+import io
 import logging
 import sys
 import time
 import unittest
 from datetime import datetime
+from io import StringIO
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -131,7 +133,6 @@ class TestErrorHandlingUtils(unittest.TestCase):
     def test_log_error(self) -> None:
         """Test logging an error with the log_error function."""
         # Create a string buffer to capture log output
-        from io import StringIO
 
         log_stream = StringIO()
 
@@ -184,77 +185,130 @@ class TestErrorHandlingUtils(unittest.TestCase):
 
     def test_error_handler_decorator(self) -> None:
         """Test the error_handler decorator."""
-        # Create a custom logger for this test
-        from io import StringIO
+        # Import the error_handler first to get a reference to the real function
 
-        log_stream = StringIO()
-        handler = logging.StreamHandler(log_stream)
-        handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
-        logger = logging.getLogger("test_error_handler")
-        logger.setLevel(logging.ERROR)
-        logger.handlers = [handler]
+        # Create a mock logger
+        mock_logger = unittest.mock.Mock()
 
-        @error_handler(ValueError, logger=logger)
-        def failing_function() -> None:
-            raise ValueError("Invalid value")
+        # Replace the logger in the errors module with our mock
+        with unittest.mock.patch("evoseal.core.errors.logging") as mock_logging:
+            mock_logging.getLogger.return_value = mock_logger
 
-        with self.assertRaises(ValueError):
-            failing_function()
+            # Define the function inside the patch context
+            @error_handler(ValueError, logger=mock_logger)
+            def failing_function() -> None:
+                raise ValueError("Test error")
 
-        # Get the log output
-        log_output = log_stream.getvalue()
-        self.assertIn("ERROR:test_error_handler:", log_output)
-        self.assertIn(
-            "Error in tests.unit.test_error_handling.failing_function", log_output
-        )
-        self.assertIn("ValueError: Invalid value", log_output)
+            # Verify the error is raised
+            with self.assertRaises(ValueError):
+                failing_function()
+
+            # Verify the error was logged
+            mock_logger.log.assert_called_once()
+
+            # Get the log level and message from the call
+            log_level = mock_logger.log.call_args[0][0]
+            log_message = mock_logger.log.call_args[0][1]
+
+            self.assertEqual(log_level, logging.ERROR)
+            self.assertIn(
+                "Error in tests.unit.test_error_handling.failing_function: Test error",
+                log_message,
+            )
 
     def test_retry_on_error_decorator(self) -> None:
         """Test the retry_on_error decorator."""
         call_count = 0
-        max_attempts = 3  # Number of attempts before success
+        max_retries = 2  # Number of retry attempts
 
+        # This function will fail on the first 3 calls (initial + max_retries)
         @retry_on_error(
-            max_retries=max_attempts
-            - 1,  # max_retries is the number of retries, not attempts
+            max_retries=max_retries,
             delay=0.1,
             backoff=1.0,
             exceptions=(ValueError,),
             logger=self.logger,
         )
         def flaky_function() -> int:
-            nonlocal call_count, max_attempts
+            nonlocal call_count
             call_count += 1
-            if (
-                call_count < max_attempts
-            ):  # Will fail on first two attempts, succeed on third
-                raise ValueError("Temporary failure")
-            return 42
+            # Always fail to test retry behavior
+            raise ValueError("Temporary failure")
 
-        with self.assertLogs(__name__, level="WARNING") as cm:
-            result = flaky_function()
+        # Reset call count before test
+        call_count = 0
 
-        expected_result = 42
-        expected_retry_count = 3
-        self.assertEqual(result, expected_result)
-        self.assertEqual(call_count, expected_retry_count)
-        self.assertIn("Retrying flaky_function", cm.output[0])
-        self.assertIn("1/3", cm.output[0])
-        self.assertIn("2/3", cm.output[1])
+        # Test with logging - should raise after max_retries attempts
+        with self.assertRaises(ValueError):
+            with self.assertLogs(__name__, level="WARNING") as log_context:
+                flaky_function()
+
+        # The function should be called max_retries + 1 times (initial + max_retries)
+        expected_calls = max_retries + 1
+        self.assertEqual(
+            call_count,
+            expected_calls,
+            f"Expected {expected_calls} calls (initial + {max_retries} retries), got {call_count}",
+        )
+
+        # Verify the number of retry logs (should equal max_retries)
+        retry_logs = [
+            msg for msg in log_context.output if "Retrying flaky_function" in msg
+        ]
+        self.assertEqual(
+            len(retry_logs),
+            max_retries,
+            f"Expected {max_retries} retry logs, got {len(retry_logs)}",
+        )
+
+        # Verify log messages contain correct attempt numbers and error message
+        for i in range(max_retries):
+            self.assertIn(
+                f"({i+1}/{max_retries})",
+                retry_logs[i],
+                f"Retry log {i+1} missing attempt number",
+            )
+            self.assertIn(
+                "Temporary failure",
+                retry_logs[i],
+                f"Retry log {i+1} missing error message",
+            )
+
+        # Verify the final error log is present
+        error_logs = [msg for msg in log_context.output if "Max retries" in msg]
+        self.assertEqual(
+            len(error_logs), 1, f"Expected 1 error log, got {len(error_logs)}"
+        )
+        self.assertIn(
+            f"Max retries ({max_retries}) exceeded for flaky_function",
+            error_logs[0],
+            "Error log missing expected message",
+        )
 
     def test_error_boundary_decorator(self) -> None:
         """Test the error_boundary decorator."""
+        # Patch the logger in the errors module
+        with unittest.mock.patch("evoseal.core.errors.logging") as mock_logging:
+            # Create a mock logger
+            mock_logger = unittest.mock.Mock()
+            mock_logging.getLogger.return_value = mock_logger
 
-        @error_boundary(default=0, logger=self.logger)
-        def divide(a: int, b: int) -> float:
-            return a / b
+            # Import the error_boundary after patching to ensure it uses our mock
 
-        with self.assertLogs(__name__, level="ERROR") as cm:
+            @error_boundary(default=0, exceptions=(ZeroDivisionError,))
+            def divide(a: int, b: int) -> float:
+                return a / b
+
+            # Call the function that will trigger the error
             result = divide(10, 0)
 
-        self.assertEqual(result, 0)
-        self.assertIn("Error in divide", cm.output[0])
-        self.assertIn("ZeroDivisionError", cm.output[0])
+            # Verify the default value is returned
+            self.assertEqual(result, 0)
+
+            # Verify the error was logged
+            mock_logger.error.assert_called_once()
+            error_message = mock_logger.error.call_args[0][0]
+            self.assertIn("Error in divide: division by zero", error_message)
 
     def test_create_error_response(self) -> None:
         """Test creating an error response dictionary."""

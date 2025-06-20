@@ -9,19 +9,21 @@ control, and error handling.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection, Coroutine
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from functools import wraps
-from typing import Any, TypeVar, cast, overload
+from typing import Any, Optional, TypeVar, Union, cast, overload
+
+from typing_extensions import TypeAlias, TypedDict
 
 logger = logging.getLogger(__name__)
 
 # Type variables for better type hints
 T = TypeVar("T")
-EventHandler = Callable[[Any], None | Awaitable[None]]
 
 
 class EventType(Enum):
@@ -57,6 +59,15 @@ class Event:
         self._stop_propagation = True
 
 
+# Define the handler type after Event is defined
+EventHandler: TypeAlias = Union[
+    Callable[[Event], None],
+    Callable[[Event], Awaitable[None]],
+    Callable[[Event], Coroutine[Any, Any, None]],
+    Callable[[Event], Optional[Awaitable[None]]],
+]
+
+
 class EventBus:
     """
     A flexible event bus supporting both sync and async event handling.
@@ -78,7 +89,7 @@ class EventBus:
     def _add_handler_info(
         self,
         event_str: str | None,
-        handler_func: Callable[[Event], None | Awaitable[None]],
+        handler_func: EventHandler,
         priority: int,
         filter_fn: Callable[[Event], bool] | None,
     ) -> Callable[[], None]:
@@ -93,46 +104,29 @@ class EventBus:
         Returns:
             An unsubscribe function for this handler
         """
-        is_async = asyncio.iscoroutinefunction(handler_func) or (
-            hasattr(handler_func, "__code__")
-            and asyncio.iscoroutinefunction(handler_func.__code__)
-        )
-
-        handler_info = {
+        handler_info: dict[str, Any] = {
             "handler": handler_func,
             "priority": priority,
-            "filter": filter_fn,
-            "is_async": is_async,
+            "filter_fn": filter_fn,
         }
 
         if event_str is None:
-            # Add to default handlers
             self._default_handlers.append(handler_info)
-            self._default_handlers.sort(key=lambda x: x["priority"], reverse=True)
-
-            def unsubscribe() -> None:
-                self._default_handlers = [
-                    h for h in self._default_handlers if h["handler"] != handler_func
-                ]
-
         else:
-            # Add to specific event type handlers
             if event_str not in self._handlers:
                 self._handlers[event_str] = []
             self._handlers[event_str].append(handler_info)
-            self._handlers[event_str].sort(key=lambda x: x["priority"], reverse=True)
 
-            def unsubscribe() -> None:
-                if event_str in self._handlers:
-                    self._handlers[event_str] = [
-                        h
-                        for h in self._handlers[event_str]
-                        if h["handler"] != handler_func
-                    ]
-
-        # Store the unsubscribe function on the handler
-        if not hasattr(handler_func, "_unsubscribe"):
-            handler_func._unsubscribe = unsubscribe  # type: ignore
+        def unsubscribe() -> None:
+            """Unsubscribe this handler."""
+            if event_str is None:
+                if handler_info in self._default_handlers:
+                    self._default_handlers.remove(handler_info)
+            elif (
+                event_str in self._handlers
+                and handler_info in self._handlers[event_str]
+            ):
+                self._handlers[event_str].remove(handler_info)
 
         return unsubscribe
 
@@ -141,10 +135,7 @@ class EventBus:
         event_type: EventType | str | None,
         priority: int = 0,
         filter_fn: Callable[[Event], bool] | None = None,
-    ) -> Callable[
-        [Callable[[Event], None | Awaitable[None]]],
-        Callable[[Event], None | Awaitable[None]],
-    ]:
+    ) -> Callable[[EventHandler], EventHandler]:
         """Create a decorator for subscribing to events.
 
         Args:
@@ -161,9 +152,7 @@ class EventBus:
             else str(event_type) if event_type is not None else None
         )
 
-        def decorator(
-            handler_func: Callable[[Event], None | Awaitable[None]],
-        ) -> Callable[[Event], None | Awaitable[None]]:
+        def decorator(handler_func: EventHandler) -> EventHandler:
             self._add_handler_info(event_str, handler_func, priority, filter_fn)
             return handler_func
 
@@ -172,7 +161,7 @@ class EventBus:
     def _subscribe_direct(
         self,
         event_type: EventType | str | None,
-        handler: Callable[[Event], None | Awaitable[None]],
+        handler: EventHandler,
         priority: int = 0,
         filter_fn: Callable[[Event], bool] | None = None,
     ) -> Callable[[], None]:
@@ -188,13 +177,9 @@ class EventBus:
             An unsubscribe function for this handler
         """
         event_str = (
-            event_type.value
-            if isinstance(event_type, EventType)
-            else str(event_type) if event_type is not None else None
+            event_type.value if isinstance(event_type, EventType) else event_type
         )
-
-        unsubscribe = self._add_handler_info(event_str, handler, priority, filter_fn)
-        return unsubscribe
+        return self._add_handler_info(event_str, handler, priority, filter_fn)
 
     @overload
     def subscribe(
@@ -203,22 +188,19 @@ class EventBus:
         *,
         priority: int = 0,
         filter_fn: Callable[[Event], bool] | None = None,
-    ) -> Callable[
-        [Callable[[Event], None | Awaitable[None]]],
-        Callable[[Event], None | Awaitable[None]],
-    ]: ...
+    ) -> Callable[[EventHandler], EventHandler]: ...
 
     @overload
     def subscribe(
         self,
-        event_type: Callable[[Event], None | Awaitable[None]],
-    ) -> Callable[[Event], None | Awaitable[None]]: ...
+        event_type: EventHandler,
+    ) -> EventHandler: ...
 
     @overload
     def subscribe(
         self,
         event_type: EventType | str | None,
-        handler: Callable[[Event], None | Awaitable[None]],
+        handler: EventHandler,
         *,
         priority: int = 0,
         filter_fn: Callable[[Event], bool] | None = None,
@@ -227,19 +209,13 @@ class EventBus:
     def subscribe(
         self,
         event_type: (
-            EventType | str | None | Callable[[Event], None | Awaitable[None]]
+            EventType | str | Callable[[Event], None | Awaitable[None]] | None
         ) = None,
-        handler: Callable[[Event], None | Awaitable[None]] | None = None,
+        handler: EventHandler | None = None,
         *,
         priority: int = 0,
         filter_fn: Callable[[Event], bool] | None = None,
-    ) -> (
-        Callable[[], None]
-        | Callable[
-            [Callable[[Event], None | Awaitable[None]]],
-            Callable[[Event], None | Awaitable[None]],
-        ]
-    ):
+    ) -> Callable[[], None] | Callable[[EventHandler], EventHandler] | EventHandler:
         """
         Subscribe to events of a specific type.
 
@@ -273,7 +249,7 @@ class EventBus:
     def unsubscribe(
         self,
         event_type: EventType | str | None,
-        handler: Callable[[Event], None | Awaitable[None]],
+        handler: EventHandler,
     ) -> None:
         """
         Unsubscribe a handler from an event type.
@@ -306,43 +282,43 @@ class EventBus:
         Returns:
             The event object after processing
         """
-        if not isinstance(event, Event):
-            event = Event(
-                event_type=event,
-                source=kwargs.get("source", "unknown"),
-                data=kwargs.get("data", {}),
-                context=kwargs.get("context", {}),
-            )
+        # Create event object if a string is provided
+        if isinstance(event, str):
+            event = Event(event_type=event, source="system", data=kwargs)
+        elif kwargs:
+            # Update event data with any additional kwargs
+            event.data.update(kwargs)
 
-        # Get all relevant handlers
-        handlers: list[dict[str, Any]] = []
-
-        # Get specific handlers for this event type
-        event_type_str = (
+        # Get event type as string for handler lookup
+        event_type = (
             event.event_type.value
             if isinstance(event.event_type, EventType)
-            else event.event_type
+            else str(event.event_type)
         )
-        if event_type_str in self._handlers:
-            handlers.extend(self._handlers[event_type_str])
 
-        # Add default handlers (for all event types)
-        handlers.extend(self._default_handlers)
+        # Get all relevant handlers
+        handlers = self._default_handlers.copy()
+        if event_type in self._handlers:
+            handlers.extend(self._handlers[event_type])
 
-        # Execute handlers in order of priority
+        # Sort by priority (highest first)
+        handlers.sort(key=lambda x: cast(int, x["priority"]), reverse=True)
+
+        # Process handlers
         for handler_info in handlers:
             if event._stop_propagation:
                 break
 
             # Skip if filter doesn't pass
-            if handler_info["filter"] and not handler_info["filter"](event):
+            if handler_info.get("filter_fn") and not handler_info["filter_fn"](event):
                 continue
 
             try:
-                if handler_info["is_async"]:
-                    await handler_info["handler"](event)
+                handler = handler_info["handler"]
+                if asyncio.iscoroutinefunction(handler) or asyncio.iscoroutine(handler):
+                    await handler(event)
                 else:
-                    handler_info["handler"](event)
+                    handler(event)
             except Exception as e:
                 logger.error(
                     f"Error in {handler_info['handler'].__name__} "
@@ -361,23 +337,17 @@ event_bus = EventBus()
 @overload
 def subscribe(
     event_type: EventType | str | None = None,
-    handler: Callable[[Event], None | Awaitable[None]] | None = None,
+    handler: EventHandler | None = None,
     *,
     priority: int = 0,
     filter_fn: Callable[[Event], bool] | None = None,
-) -> (
-    Callable[[], None]
-    | Callable[
-        [Callable[[Event], None | Awaitable[None]]],
-        Callable[[Event], None | Awaitable[None]],
-    ]
-): ...
+) -> Callable[[EventHandler], EventHandler]: ...
 
 
 @overload
 def subscribe(
-    handler: Callable[[Event], None | Awaitable[None]],
-) -> Callable[[Event], None | Awaitable[None]]: ...
+    handler: EventHandler,
+) -> EventHandler: ...
 
 
 def subscribe(*args: Any, **kwargs: Any) -> Any:
@@ -401,7 +371,7 @@ def subscribe(*args: Any, **kwargs: Any) -> Any:
     return event_bus.subscribe(*args, **kwargs)
 
 
-def publish(event: Event | str, **kwargs: Any) -> Event:
+def publish(event: Event | str, **kwargs: Any) -> Event | asyncio.Task[Event]:
     """
     Publish an event using the global event bus.
 
@@ -413,18 +383,17 @@ def publish(event: Event | str, **kwargs: Any) -> Event:
         **kwargs: Additional data for the event
 
     Returns:
-        The event object after processing
+        The event object after processing, or a Task if running in an async context
 
     Raises:
         RuntimeError: If called from a running event loop and there's an error
     """
-
     try:
         loop = asyncio.get_running_loop()
         # We're in a running event loop, schedule the coroutine
         if loop.is_running():
-            # Create a task and return the event immediately
-            # The caller should handle the task appropriately
+            # Create a task and return it immediately
+            # The caller should await this task if they need the result
             return loop.create_task(event_bus.publish(event, **kwargs))
     except RuntimeError:
         # No running loop, create a new one
@@ -436,7 +405,7 @@ def publish(event: Event | str, **kwargs: Any) -> Event:
 
 def unsubscribe(
     event_type: EventType | str | None,
-    handler: Callable[[Event], None | Awaitable[None]],
+    handler: EventHandler,
 ) -> None:
     """
     Unsubscribe a handler using the global event bus.

@@ -107,8 +107,9 @@ class TestWorkflowEngineIntegration:
         success = await engine.execute_workflow_async("test_workflow")
 
         # Verify
+        expected_event_count = 2  # WORKFLOW_STARTED and STEP_COMPLETED
         assert success is True
-        assert len(event_log) == 2  # WORKFLOW_STARTED and STEP_COMPLETED
+        assert len(event_log) == expected_event_count
         assert event_log[0][0] == "workflow_started"
         assert event_log[1][0] == "step_completed"
 
@@ -219,16 +220,22 @@ class TestWorkflowEngineIntegration:
         ]
         engine.define_workflow("event_workflow", workflow_steps)
 
-        # Track published events
+        # Track published events and their order
         published_events = []
+        event_order = []
 
         # Create a mock event handler that captures events
         async def event_handler(event):
-            published_events.append((event.event_type, event.data.get("workflow")))
+            event_type = event.event_type
+            published_events.append(event_type)
+            # Only add to event_order if not already present to avoid duplicates
+            if event_type not in event_order:
+                event_order.append(event_type)
 
-        # Register the event handler for all event types
-        for event_type in EventType:
-            engine.event_bus.subscribe(event_handler, event_type.value)
+        # Register a single handler for all events
+        engine.event_bus.subscribe(
+            event_handler, None
+        )  # None means subscribe to all events
 
         # Execute the workflow
         success = await engine.execute_workflow_async("event_workflow")
@@ -236,16 +243,34 @@ class TestWorkflowEngineIntegration:
         # Verify
         assert success is True
 
-        # Check that we received the expected events
-        event_types = [event[0] for event in published_events]
-        expected_event_count = (
-            4  # WORKFLOW_STARTED, STEP_STARTED, STEP_COMPLETED, WORKFLOW_COMPLETED
-        )
-        assert len(event_types) == expected_event_count
-        assert EventType.WORKFLOW_STARTED in event_types
-        assert EventType.STEP_STARTED in event_types
-        assert EventType.STEP_COMPLETED in event_types
-        assert EventType.WORKFLOW_COMPLETED in event_types
+        # Check that we received the expected events in the correct order
+        expected_events = [
+            EventType.WORKFLOW_STARTED.value,
+            EventType.STEP_STARTED.value,
+            EventType.STEP_COMPLETED.value,
+            EventType.WORKFLOW_COMPLETED.value,
+        ]
+
+        # Check that we have exactly the expected number of unique events
+        assert len(event_order) == len(
+            expected_events
+        ), f"Expected {len(expected_events)} unique events, got {len(event_order)}: {event_order}"
+
+        # Check that all expected events are present in the correct order
+        for i, expected in enumerate(expected_events):
+            assert (
+                event_order[i] == expected
+            ), f"Expected {expected} at position {i}, got {event_order[i]}"
+
+        # Verify that each event type appears the expected number of times
+        # (should be exactly once for each event type)
+        event_counts = {
+            event: published_events.count(event) for event in set(published_events)
+        }
+        for event_type, count in event_counts.items():
+            assert (
+                count == 1
+            ), f"Expected {event_type} to appear exactly once, but it appeared {count} times"
 
     @pytest.mark.asyncio
     async def test_workflow_cleanup(self, engine, mock_component):
