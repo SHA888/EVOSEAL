@@ -177,7 +177,7 @@
             "description": "Design and implement the Code Archive data model to store code snippets with appropriate metadata.",
             "dependencies": [],
             "details": "Create a data model that includes fields for code content, language, timestamp, author, version, and tags. Implement basic validation for required fields. Ensure the model is serializable and can be stored efficiently.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 2,
@@ -185,7 +185,7 @@
             "description": "Design and implement the Evaluation Results data model to store performance metrics and test outcomes.",
             "dependencies": [],
             "details": "Create a data model with fields for metrics (accuracy, precision, recall, etc.), test case results, timestamp, and reference to the associated code. Include validation logic for numerical metrics and ensure proper relationships with the Code Archive model.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 3,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-20T03:07:23.635Z",
+      "updated": "2025-06-20T22:19:00.625Z",
       "description": "Tasks for master context"
     }
   }
