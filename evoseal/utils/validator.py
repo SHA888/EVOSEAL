@@ -357,21 +357,44 @@ class WorkflowValidator:
         if not action:
             return True
 
-        if not isinstance(action, str):
+        # Handle both string and list of objects formats
+        if isinstance(action, str):
+            # String format - validate it's a valid task reference
+            if action not in ctx.task_names and action != "end":
+                ctx.result.add_error(
+                    f"{ctx.action_type} references undefined task: {action}",
+                    path=f"tasks.{ctx.task_name}.{ctx.action_type}",
+                )
+                return False
+            return True
+        elif isinstance(action, list):
+            # List of objects format - validate each action
+            valid = True
+            for i, action_item in enumerate(action):
+                if not isinstance(action_item, dict):
+                    ctx.result.add_error(
+                        f"{ctx.action_type} action at index {i} must be an object",
+                        path=f"tasks.{ctx.task_name}.{ctx.action_type}[{i}]",
+                    )
+                    valid = False
+                    continue
+
+                next_task = action_item.get("next")
+                if next_task and next_task not in ctx.task_names and next_task != "end":
+                    ctx.result.add_error(
+                        f"{ctx.action_type} action at index {i} references undefined task: {next_task}",
+                        path=f"tasks.{ctx.task_name}.{ctx.action_type}[{i}].next",
+                    )
+                    valid = False
+
+            return valid
+        else:
+            # Invalid format
             ctx.result.add_error(
-                f"{ctx.action_type} must be a string",
+                f"{ctx.action_type} must be a string or a list of objects",
                 path=f"tasks.{ctx.task_name}.{ctx.action_type}",
             )
             return False
-
-        if action not in ctx.task_names and action != "end":
-            ctx.result.add_error(
-                f"{ctx.action_type} references undefined task: {action}",
-                path=f"tasks.{ctx.task_name}.{ctx.action_type}",
-            )
-            return False
-
-        return True
 
     def _check_undefined_references(
         self,

@@ -49,7 +49,7 @@ class ErrorCategory(enum.Enum):
 @dataclass
 class ErrorConfig:
     """Configuration for error creation."""
-    
+
     code: str = "UNKNOWN_ERROR"
     category: ErrorCategory = ErrorCategory.UNKNOWN
     severity: ErrorSeverity = ErrorSeverity.ERROR
@@ -85,23 +85,23 @@ class BaseError(Exception):
         **kwargs: Any,
     ) -> None:
         """Initialize the error.
-        
+
         Args:
             message: Human-readable error message.
             config: Optional error configuration. If not provided, a default one will be created.
             **kwargs: Additional configuration overrides.
         """
         self.message = message
-        
+
         # Create or update config
         if config is None:
             config = ErrorConfig()
-            
+
         # Apply any overrides from kwargs
         for key, value in kwargs.items():
             if hasattr(config, key):
                 setattr(config, key, value)
-        
+
         self.code = config.code
         self.category = config.category
         self.severity = config.severity
@@ -172,7 +172,7 @@ class ValidationError(BaseError):
             operation=kwargs.pop("operation", None),
             details=details,
         )
-        
+
         # Create config with validation-specific defaults
         config = ErrorConfig(
             code=kwargs.pop("code", "VALIDATION_ERROR"),
@@ -180,7 +180,7 @@ class ValidationError(BaseError):
             severity=kwargs.pop("severity", ErrorSeverity.ERROR),
             context=context,
         )
-        
+
         super().__init__(message=message, config=config, **kwargs)
 
 
@@ -200,7 +200,7 @@ class ConfigurationError(BaseError):
             operation=kwargs.pop("operation", None),
             details=details,
         )
-        
+
         # Create config with configuration-specific defaults
         config = ErrorConfig(
             code=kwargs.pop("code", "CONFIGURATION_ERROR"),
@@ -208,7 +208,7 @@ class ConfigurationError(BaseError):
             severity=kwargs.pop("severity", ErrorSeverity.ERROR),
             context=context,
         )
-        
+
         super().__init__(message=message, config=config, **kwargs)
 
 
@@ -228,7 +228,7 @@ class IntegrationError(BaseError):
             operation=kwargs.pop("operation", None),
             details=details,
         )
-        
+
         # Create config with integration-specific defaults
         config = ErrorConfig(
             code=kwargs.pop("code", "INTEGRATION_ERROR"),
@@ -236,7 +236,7 @@ class IntegrationError(BaseError):
             severity=kwargs.pop("severity", ErrorSeverity.ERROR),
             context=context,
         )
-        
+
         super().__init__(message=message, config=config, **kwargs)
 
 
@@ -261,7 +261,7 @@ class RetryableError(BaseError):
             operation=kwargs.pop("operation", None),
             details=details,
         )
-        
+
         # Create config with retry-specific defaults
         config = ErrorConfig(
             code=kwargs.pop("code", "RETRYABLE_ERROR"),
@@ -269,7 +269,7 @@ class RetryableError(BaseError):
             severity=kwargs.pop("severity", ErrorSeverity.WARNING),
             context=context,
         )
-        
+
         super().__init__(message=message, config=config, **kwargs)
 
 
@@ -280,7 +280,7 @@ def error_handler(
     log_level: int = logging.ERROR,
     reraise: bool = True,
     logger: logging.Logger | None = None,
-):
+) -> Callable[[F], F]:
     """Decorator to handle specific exceptions in a consistent way.
 
     Args:
@@ -298,8 +298,12 @@ def error_handler(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
-            except error_types if error_types else Exception as e:  # noqa: B030
-                # Handle both specific error types and general exceptions
+            except Exception as e:  # Catch all exceptions first
+                # Check if we should handle this exception type
+                if error_types and not isinstance(e, error_types):
+                    raise
+
+                # Handle the exception
                 # Get function signature for better error context
                 sig = inspect.signature(func)
                 bound_args = sig.bind(*args, **kwargs)
@@ -334,7 +338,7 @@ def retry_on_error(
     backoff: float = 2.0,
     exceptions: tuple[type[BaseException], ...] = (Exception,),
     logger: logging.Logger | None = None,
-):
+) -> Callable[[F], F]:
     """Retry a function when specified exceptions are raised.
 
     Args:
@@ -350,14 +354,15 @@ def retry_on_error(
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            mtries, mdelay = max_retries, delay
+            attempts = 0
+            mdelay = delay
 
-            while mtries > 0:
+            while attempts <= max_retries:
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
-                    mtries -= 1
-                    if mtries == 0:
+                    attempts += 1
+                    if attempts > max_retries:
                         logger.error(
                             f"Max retries ({max_retries}) exceeded for {func.__name__}",
                             exc_info=True,
@@ -366,7 +371,7 @@ def retry_on_error(
 
                     logger.warning(
                         f"Retrying {func.__name__} in {mdelay} seconds... "
-                        f"({max_retries - mtries}/{max_retries}): {e}"
+                        f"({attempts}/{max_retries}): {e}"
                     )
                     time.sleep(mdelay)
                     mdelay *= backoff
@@ -384,7 +389,7 @@ def error_boundary(
     default: Any = None,
     exceptions: tuple[type[BaseException], ...] = (Exception,),
     logger: logging.Logger | None = None,
-):
+) -> Callable[[F], F]:
     """Decorator to catch and log exceptions, returning a default value.
 
     Args:

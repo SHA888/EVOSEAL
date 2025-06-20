@@ -22,7 +22,7 @@ class TestWorkflowEngine:
 
     def test_initialization(self, engine):
         """Test that the engine initializes correctly."""
-        assert engine.get_status() == WorkflowStatus.PENDING
+        assert engine.get_status() == WorkflowStatus.IDLE
         assert len(engine.components) == 0
         assert len(engine.workflows) == 0
 
@@ -60,7 +60,7 @@ class TestWorkflowEngine:
 
     def test_execute_workflow_nonexistent(self, engine):
         """Test executing non-existent workflow raises KeyError."""
-        with pytest.raises(KeyError, match="Workflow not found: nonexistent"):
+        with pytest.raises(KeyError, match="Workflow 'nonexistent' not found"):
             engine.execute_workflow("nonexistent")
 
     def test_event_handling(self, engine, mock_component):

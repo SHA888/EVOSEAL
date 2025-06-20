@@ -54,7 +54,7 @@ def setup_logging(
         log_level: Logging level (e.g., logging.INFO, logging.DEBUG).
         log_file: Optional path to a log file. If not provided, logs to stderr.
     """
-    handlers = [logging.StreamHandler(sys.stderr)]
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
 
     if log_file:
         file_handler = logging.FileHandler(log_file)
@@ -178,7 +178,7 @@ def error_handler(
     log_level: int = logging.ERROR,
     reraise: bool = True,
     logger: logging.Logger | None = None,
-):
+) -> Callable[[F], F]:
     """Decorator to handle specific exceptions in a consistent way.
 
     Args:
@@ -201,7 +201,7 @@ def error_handler(
                 # or if no specific types were provided
                 if error_types and not isinstance(e, error_types):
                     raise
-                
+
                 # Get function signature for better error context
                 sig = inspect.signature(func)
                 bound_args = sig.bind(*args, **kwargs)
@@ -214,7 +214,6 @@ def error_handler(
                     "error_type": type(e).__name__,
                     "error_message": str(e),
                 }
-
 
                 # Log the error with context
                 logger.log(
@@ -241,7 +240,7 @@ def retry_on_error(
     backoff: float = 2.0,
     exceptions: tuple[type[BaseException], ...] = (Exception,),
     logger: logging.Logger | None = None,
-):
+) -> Callable[[F], F]:
     """Retry a function when specified exceptions are raised.
 
     Args:
@@ -291,7 +290,7 @@ def error_boundary(
     default: Any = None,
     exceptions: tuple[type[BaseException], ...] = (Exception,),
     logger: logging.Logger | None = None,
-):
+) -> Callable[[F], F]:
     """Decorator to catch and log exceptions, returning a default value.
 
     Args:
