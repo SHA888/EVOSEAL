@@ -169,7 +169,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -177,7 +177,7 @@
             "description": "Design and implement the Code Archive data model to store code snippets with appropriate metadata.",
             "dependencies": [],
             "details": "Create a data model that includes fields for code content, language, timestamp, author, version, and tags. Implement basic validation for required fields. Ensure the model is serializable and can be stored efficiently.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 2,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-20T01:40:19.989Z",
+      "updated": "2025-06-20T03:07:23.635Z",
       "description": "Tasks for master context"
     }
   }
