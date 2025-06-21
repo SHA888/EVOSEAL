@@ -265,7 +265,7 @@
               3
             ],
             "details": "Develop a prompt template system with support for variable substitution, context management, and template versioning. Implement template categories for different agent functions (reasoning, planning, evaluation). Create methods for template optimization based on performance metrics.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 5,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T06:59:52.307Z",
+      "updated": "2025-06-21T07:14:16.305Z",
       "description": "Tasks for master context"
     }
   }
