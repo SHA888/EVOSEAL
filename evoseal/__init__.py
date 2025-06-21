@@ -8,16 +8,73 @@ combining Darwin Godel Machine, OpenEvolve, and SEAL.
 from __future__ import annotations
 
 import logging
+import sys
 from importlib.metadata import version as _get_version
-from typing import Any, TypeVar, cast
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import structlog
 from structlog.contextvars import bind_contextvars
 from structlog.processors import TimeStamper, format_exc_info
 from structlog.stdlib import add_log_level, filter_by_level
-from structlog.types import Processor, WrappedLogger
 
-from .__version__ import __version__, __version_info__
+# Import Processor type only for type checking
+if TYPE_CHECKING:
+    from structlog.types import Processor, WrappedLogger
+
+# Core type stubs for type checking
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import (
+        TypeAlias,  # type: ignore[import-untyped,unused-ignore]
+    )
+
+# Version information for EVOSEAL
+# This version should be kept in sync with pyproject.toml and setup.cfg
+# Minimum Python version: 3.9
+__version__ = "0.1.0"
+
+# Type variable for generic types
+T_co = TypeVar("T_co", covariant=True)  # For covariant types
+T_contra = TypeVar("T_contra", contravariant=True)  # For contravariant types
+
+# Configuration dictionary to store settings
+_config: dict[str, Any] = {}
+
+# Type stubs for core components
+CodeVariant: TypeAlias = Any
+EvolutionConfig: TypeAlias = Any
+EvolutionResult: TypeAlias = Any
+FitnessFunction: TypeAlias = Any
+MutationStrategy: TypeAlias = Any
+SelectionStrategy: TypeAlias = Any
+
+# Initialize logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stderr,
+)
+
+# Configure structlog for structured logging
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.dev.set_exc_info,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.JSONRenderer(),
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=False,
+)
+
+# Create logger
+logger = structlog.get_logger("evoseal")
 
 # Type variables
 T = TypeVar("T")
@@ -125,6 +182,58 @@ def configure_logging(level: int = logging.INFO, **kwargs: Any) -> None:
 
 # Initialize logging with default configuration when module is imported
 configure_logging()
+
+# Version information for EVOSEAL
+# Minimum Python version: 3.9
+# This version should be kept in sync with pyproject.toml and setup.cfg
+__version__ = "0.1.0"
+
+# CLI functionality
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+
+    try:
+        __version__ = metadata.version("evoseal")
+    except metadata.PackageNotFoundError:
+        pass  # Use the default version defined above
+else:
+    import importlib_metadata as metadata  # type: ignore[import-not-found]
+
+    try:
+        __version__ = metadata.version("evoseal")
+    except metadata.PackageNotFoundError:
+        pass  # Use the default version defined above
+
+# Import the CLI app
+from evoseal.cli import app, run  # noqa: E402
+
+# Re-export the CLI app
+__all__ = ["app", "run"]
+
+
+def get_version() -> str:
+    """Get the current version of EVOSEAL.
+
+    Returns:
+        str: The current version string.
+    """
+    return __version__
+
+
+def print_version() -> None:
+    """Print the current version of EVOSEAL to stdout."""
+    print(f"EVOSEAL v{__version__}")
+
+
+# Add a console script entry point for the CLI
+def main() -> None:
+    """Entry point for the EVOSEAL CLI."""
+    run()
+
+
+# This allows running the package with python -m evoseal
+if __name__ == "__main__":
+    main()
 
 # Clean up namespace - only keep public API
 __all__ = [
