@@ -354,7 +354,7 @@
               4
             ],
             "details": "Implement various selection strategies (tournament selection, roulette wheel, etc.) that can be configured based on the project needs. Include mechanisms to maintain diversity in the population while favoring higher-fitness individuals. The selection algorithm should be pluggable to allow for experimentation with different approaches.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 6,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T09:21:45.090Z",
+      "updated": "2025-06-21T09:27:43.445Z",
       "description": "Tasks for master context"
     }
   }
