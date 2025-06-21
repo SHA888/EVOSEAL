@@ -30,6 +30,42 @@ class DummyAgent:
 EXPECTED_AGENT_COUNT = 1
 
 
+class RealAgent:
+    def __init__(self):
+        self.acted = []
+        self.received = []
+
+    def act(self, observation):
+        self.acted.append(observation)
+        return f"acted:{observation}"
+
+    def receive(self, message):
+        self.received.append(message)
+
+    def get_status(self):
+        return {"acted": len(self.acted), "received": len(self.received)}
+
+
+def test_real_agent_integration():
+    sys = AgenticSystem()
+    agent = RealAgent()
+    sys.create_agent("real", agent)
+    assert sys.list_agents() == ["real"]
+    sys.send_message("real", "msg")
+    assert agent.received == ["msg"]
+    res = sys.assign_task("real", "task1")
+    assert res == "acted:task1"
+    status = sys.get_agent_status("real")
+    assert status["acted"] == 1 and status["received"] == 1
+    sys.destroy_agent("real")
+    assert "real" not in sys.list_agents()
+    with pytest.raises(KeyError):
+        sys.get_agent_status("real")
+    with pytest.raises(ValueError):
+        sys.create_agent("real", agent)
+        sys.create_agent("real", agent)
+
+
 def test_create_and_destroy_agent():
     sys = AgenticSystem()
     agent = DummyAgent("A")
