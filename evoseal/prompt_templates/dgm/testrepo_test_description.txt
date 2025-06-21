@@ -1,0 +1,6 @@
+# ---
+# category: testrepo
+# version: 1
+# description: Template for generating the test description for test repositories
+# ---
+The tests in the repository can be run with the bash command `{test_command}`. If no specific test files are provided, all tests will be run. The given command-line options must be used EXACTLY as specified. Do not use any other command-line options. {test_hint}

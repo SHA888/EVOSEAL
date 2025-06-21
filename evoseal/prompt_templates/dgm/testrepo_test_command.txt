@@ -1,0 +1,8 @@
+# ---
+# category: testrepo
+# version: 1
+# description: Template for generating the test command for test repositories
+# ---
+cd /testbed/ && {test_command} <specific test files>
+
+{test_hint}

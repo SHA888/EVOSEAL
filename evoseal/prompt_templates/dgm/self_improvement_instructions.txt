@@ -1,0 +1,26 @@
+# ---
+# category: self-improvement
+# version: 1
+# description: Instructions for self-improvement tasks for the agent
+# ---
+# Coding Agent Summary
+
+- **Main File**: `coding_agent.py`
+  - Primary Class: `AgenticSystem`
+  - The `forward()` function is the central entry point.
+  - Prompts are located either within the `forward()` function or in the `prompts/` directory.
+- **Tools**: `tools/`
+  - The `tools/` directory contains various tools that SEALs can use to perform specific tasks.
+  - Each tool must have a `tool_info()` function that returns a JSON object containing 'name', 'description', and 'input_schema'. The 'input_schema' should be a JSON object containing 'type', 'properties', and 'required'.
+  - Each tool must have a `tool_function()` function that takes the arguments defined in input_schema, performs the tool's task, and returns a string.
+  - See other tools for reference.
+- **Utilities**: `utils/`
+  - The `utils/` directory contains utility functions used across the codebase.
+
+- **Additional Details**:
+  - The agent is very good at automatically utilizing the right available tools at the right time. So do not have an agentic flow that explicitly forces a tool's usage.
+  - Common tools, such as file editing and bash commands, are easy for the agent to recognize and use appropriately. However, more complex and niche tools may require explicit instructions in the prompt.
+  - Tools should be designed to be as general as possible, ensuring they work across any GitHub repository. Avoid hardcoding repository-specific details or behaviors (e.g., paths).
+  - Do not use 'while True' loops in the agent's code. This can cause the agent to get stuck and not respond.
+  - Verify the implementation details of helper functions prior to usage to ensure proper integration and expected behavior.
+  - Do not install additional packages or dependencies directly. Update `requirements.txt` if new dependencies are required and install them using `pip install -r requirements.txt`.

@@ -1,0 +1,17 @@
+# ---
+# category: tool-use
+# version: 1
+# description: Prompt for instructing agent on available tools and tool usage format
+# ---
+Here are the available tools:
+{tools_available}
+
+Use the available tools in this format:
+```
+<tool_use>
+{{
+    'tool_name': ...,
+    'tool_input': ...
+}}
+</tool_use>
+```
