@@ -46,20 +46,43 @@ EVOSEAL uses environment variables for sensitive or environment-specific configu
 
 ## Configuration Files
 
-EVOSEAL uses a hierarchical configuration system that loads settings from multiple sources in this order:
+EVOSEAL supports YAML configuration files in addition to JSON. The recommended approach is to use YAML for main project configuration, as it is more readable and supports comments.
 
-1. Default values in `config/settings.py`
-2. Environment variables (with `__` for nested values)
-3. JSON config files in `config/{ENV}.json`
-4. `.env` file in the project root
+### SystemConfig Model (YAML Support)
+
+The `evoseal.models.system_config.SystemConfig` class provides:
+- Loading configuration from YAML: `SystemConfig.from_yaml('path/to/config.yaml')`
+- Dot-notation access: `config.get('dgm.max_iterations')`
+- Validation of required sections: `dgm`, `openevolve`, `seal`, `integration`
+
+**Example YAML structure:**
+```yaml
+dgm:
+  enabled: true
+  max_iterations: 100
+openevolve:
+  enabled: true
+seal:
+  enabled: true
+integration:
+  foo: bar
+```
+
+**Example usage:**
+```python
+from evoseal.models.system_config import SystemConfig
+config = SystemConfig.from_yaml('configs/evoseal.yaml')
+config.validate()  # Raises if required sections are missing
+max_iters = config.get('dgm.max_iterations', 100)
+```
 
 ### Environment-Specific Configuration
 
-Environment-specific settings are loaded from JSON files in the `config/` directory:
+Environment-specific settings are loaded from JSON or YAML files in the `config/` directory:
 
-- `config/development.json` - Development settings (local development)
-- `config/testing.json` - Testing settings (CI/CD, local testing)
-- `config/production.json` - Production settings
+- `config/development.json` or `.yaml` - Development settings (local development)
+- `config/testing.json` or `.yaml` - Testing settings (CI/CD, local testing)
+- `config/production.json` or `.yaml` - Production settings
 
 ## Component Configuration
 
