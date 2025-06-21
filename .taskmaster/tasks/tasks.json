@@ -305,7 +305,7 @@
         "dependencies": [
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -313,7 +313,7 @@
             "description": "Create the Controller class that orchestrates the evolutionary process and manages interactions between components.",
             "dependencies": [],
             "details": "Implement the Controller class with methods for initializing the evolutionary process, managing generations, coordinating between TestRunner and Evaluator, and handling the selection of candidates. Include proper error handling and logging. The Controller should maintain the current state of evolution and provide interfaces for the CLI to interact with the system.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 2,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T08:37:16.767Z",
+      "updated": "2025-06-21T08:45:11.869Z",
       "description": "Tasks for master context"
     }
   }
