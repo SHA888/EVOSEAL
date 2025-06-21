@@ -85,6 +85,7 @@ ensure_newline_before_comments = true
 # Basic settings
 line-length = 88
 target-version = "py39"
+exclude = ["openevolve/*"]
 
 [tool.ruff.lint]
 # Enable rules
@@ -100,6 +101,7 @@ ignore = ["E203", "E501", "F401", "F403"]
     "PLC0415"  # Allow imports inside functions for lazy loading
 ]
 "tests/*" = ["S101", "E402"]  # Ignore assert statements and import order in tests
+"evoseal/version_database.py" = ["PLR0913"]  # Allow >5 arguments in this module
 
 # Mypy configuration has been moved to mypy.ini for better control
 # over the configuration and to avoid TOML parsing issues with regex patterns.
