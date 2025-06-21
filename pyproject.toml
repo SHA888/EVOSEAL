@@ -99,7 +99,7 @@ ignore = ["E203", "E501", "F401", "F403"]
     "F401",  # Allow unused imports in __init__.py
     "PLC0415"  # Allow imports inside functions for lazy loading
 ]
-"tests/*" = ["S101"]  # Ignore assert statements in tests
+"tests/*" = ["S101", "E402"]  # Ignore assert statements and import order in tests
 
 # Mypy configuration has been moved to mypy.ini for better control
 # over the configuration and to avoid TOML parsing issues with regex patterns.

@@ -5,15 +5,9 @@ Covers initialization, archive management, mutation/crossover, and error handlin
 
 import os
 import sys
-import tempfile
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from integration.dgm.data_adapter import DGMDataAdapter
-from integration.dgm.evolution_manager import EvolutionManager
-
-# Patch all external DGM dependencies and submodules for unit testing
+# Patch all major DGM/SEAL/LLM/Agentic and openevolve external dependencies
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 sys.modules["docker.models"] = MagicMock()
@@ -27,6 +21,16 @@ sys.modules["swebench.harness.test_spec"] = MagicMock()
 sys.modules["swebench.harness.docker_build"] = MagicMock()
 sys.modules["swebench.harness.utils"] = MagicMock()
 sys.modules["git"] = MagicMock()
+sys.modules["openevolve"] = MagicMock()
+sys.modules["openevolve.prompt"] = MagicMock()
+sys.modules["openevolve.prompt.templates"] = MagicMock()
+
+import tempfile
+
+import pytest
+
+from integration.dgm.data_adapter import DGMDataAdapter
+from integration.dgm.evolution_manager import EvolutionManager
 
 EXPECTED_ARCHIVE_LEN = 2  # Expected length for test_get_archive
 EXPECTED_GENERATION_AFTER_INCREMENT = 3  # For test_increment_generation
