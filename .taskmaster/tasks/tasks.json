@@ -359,13 +359,13 @@
           {
             "id": 6,
             "title": "Develop CLI Interface",
-            "description": "Create a command-line interface for interacting with the OpenEvolve system.",
+            "description": "Create a command-line interface for interacting with the all components in the EVOSEAL system.",
             "dependencies": [
               1,
               4
             ],
             "details": "Implement a comprehensive CLI that allows users to initialize projects, configure evolution parameters, start/stop evolution processes, view results, and export variants. Include interactive and non-interactive modes, help documentation, and support for configuration files. The CLI should provide meaningful feedback and progress indicators.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 7,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T09:35:42.114Z",
+      "updated": "2025-06-21T11:00:42.266Z",
       "description": "Tasks for master context"
     }
   }

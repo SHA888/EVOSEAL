@@ -48,6 +48,148 @@ python examples/quickstart.py
 
 For detailed installation and usage instructions, see the [Documentation](https://sha888.github.io/EVOSEAL/).
 
+## Command Line Interface (CLI)
+
+EVOSEAL provides a powerful command-line interface for managing all aspects of the system. The CLI is built using [Typer](https://typer.tiangolo.com/) and supports both interactive and non-interactive usage.
+
+### Installation
+
+The CLI is installed automatically with the main package. You can access it using the `evoseal` command:
+
+```bash
+evoseal --help
+```
+
+### Basic Commands
+
+#### Initialize a New Project
+
+Create a new EVOSEAL project with the standard directory structure:
+
+```bash
+evoseal init project my_project
+```
+
+Use `--force` to initialize in a non-empty directory:
+
+```bash
+evoseal init project my_project --force
+```
+
+#### Configuration Management
+
+View and modify configuration settings:
+
+```bash
+# List all configuration values
+evoseal config list
+
+# Get a specific configuration value
+evoseal config get seal.model
+
+# Set a configuration value
+evoseal config set seal.model gpt-4
+
+# Unset a configuration value
+evoseal config unset seal.model
+```
+
+#### Component Management
+
+Manage SEAL, OpenEvolve, and DGM components:
+
+```bash
+# SEAL model operations
+evoseal seal --help
+
+# OpenEvolve processes
+evoseal openevolve --help
+
+# DGM workflows
+evoseal dgm --help
+```
+
+#### Process Control
+
+Start, stop, and monitor EVOSEAL processes:
+
+```bash
+# Start the API server
+evoseal start api
+
+# Start a worker process
+evoseal start worker
+
+# Stop all processes
+evoseal stop all
+
+# Check system status
+evoseal status
+```
+
+#### Exporting Results
+
+Export evolution results and code variants:
+
+```bash
+# Export results to a file
+evoseal export results results.json
+
+# Export a specific variant
+evoseal export variant variant_id output/
+```
+
+### Example Workflow
+
+Here's a complete example workflow:
+
+```bash
+# Initialize a new project
+evoseal init project my_project
+cd my_project
+
+# Configure the project
+evoseal config set seal.model gpt-4
+evoseal config set evolve.population_size 50
+
+# Start the evolution process
+evoseal evolve start
+
+# Monitor progress
+evoseal status
+
+# Export results
+evoseal export results results.json
+```
+
+### Advanced Usage
+
+#### Custom Configuration Files
+
+By default, EVOSEAL looks for configuration in `.evoseal/config.yaml`. You can specify a custom config file:
+
+```bash
+evoseal --config path/to/config.yaml [COMMAND]
+```
+
+#### Non-Interactive Mode
+
+For scripting and automation, use the `--no-input` flag to disable interactive prompts:
+
+```bash
+echo "y" | evoseal config set seal.model gpt-4 --no-input
+```
+
+#### Debug Mode
+
+Enable debug output with the `--debug` flag:
+
+```bash
+evoseal --debug [COMMAND]
+```
+
+For more detailed information, run `evoseal --help` or `evoseal [COMMAND] --help` for specific command documentation.
+
 ## Documentation
 
 Comprehensive documentation is available at [https://sha888.github.io/EVOSEAL/](https://sha888.github.io/EVOSEAL/), including:

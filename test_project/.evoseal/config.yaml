@@ -1,0 +1,27 @@
+# EVOSEAL Configuration
+# This file contains configuration for all EVOSEAL components
+
+# SEAL Configuration
+seal:
+  model: "gpt-4"  # Default model
+  temperature: 0.7
+  max_tokens: 2048
+
+# OpenEvolve Configuration
+openevolve:
+  population_size: 100
+  max_iterations: 1000
+  checkpoint_interval: 10
+
+# DGM Configuration
+dgm:
+  max_generations: 50
+  mutation_rate: 0.1
+  elitism: 2
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "logs/evoseal.log"
+  max_size_mb: 10
+  backup_count: 5
