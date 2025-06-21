@@ -14,7 +14,7 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 - **OpenEvolve**: An evolutionary framework for program optimization that uses a MAP-Elites process to maintain diversity, comprehensive checkpointing, and a sophisticated database system to track program versions and their performance metrics.
 
-- **DGM (Darwin Godel Machine)**: Implements a Darwinian approach to code improvement using language models to progressively enhance code quality through multiple generations. DGM maintains an archive of successful improvements and uses sophisticated selection mechanisms to guide evolution.
+- **DGM (Darwin Godel Machine)**: Implements a Darwinian approach to code improvement using SEAL models to progressively enhance code quality through multiple generations. DGM maintains an archive of successful improvements and uses sophisticated selection mechanisms to guide evolution.
 
 ## Features
 
@@ -32,7 +32,7 @@ Get started with EVOSEAL in minutes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/SHA888/EVOSEAL.git
+git clone https://github.com/Continual-Intelligence/SEAL
 cd EVOSEAL
 
 # Set up virtual environment
@@ -81,6 +81,7 @@ Project Link: [https://github.com/SHA888/EVOSEAL](https://github.com/SHA888/EVOS
 - [Anthropic](https://www.anthropic.com/)
 - [MkDocs](https://www.mkdocs.org/)
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
+- [SEAL (Self-Adapting Language Models)](https://github.com/SHA888/SEAL)
 
 ## Installation
 
@@ -158,12 +159,12 @@ DGM is implemented through a collection of Python modules that work together to 
   - Interfaces with Git repositories for version control
   - Manages code edits and improvement processes
   - Runs regression tests to verify improvements
-  - Handles communication with language models
+  - Handles communication with SEAL models
 
-- `llm_withtools.py`: Provides sophisticated LLM integration:
+- `llm_withtools.py`: Provides sophisticated SEAL integration:
   - Supports both Claude and OpenAI models
   - Implements tool-calling capabilities for code manipulation
-  - Handles message history conversion between different LLM formats
+  - Handles message history conversion between different SEAL formats
   - Manages backoff and retry mechanisms for API stability
 
 #### OpenEvolve Implementation Details
@@ -172,14 +173,14 @@ OpenEvolve provides a robust framework for program evolution with several key co
 
 - `controller.py`: The central orchestration module containing the `OpenEvolve` class that:
   - Manages the entire evolution process from initialization to completion
-  - Coordinates between the prompt sampler, LLM ensemble, evaluator, and program database
+  - Coordinates between the prompt sampler, SEAL ensemble, evaluator, and program database
   - Implements checkpoint saving and loading mechanisms
   - Tracks the best program across evolution steps
 
 - `evaluator.py`: Handles program evaluation through:
   - Integration with external evaluation scripts
   - Collection and normalization of performance metrics
-  - Support for LLM-based evaluation when needed
+  - Support for SEAL-based evaluation when needed
 
 - `database.py`: Sophisticated program version management system for:
   - Storing and retrieving program variants
@@ -196,7 +197,7 @@ SEAL provides the theoretical foundation and implementation for self-adapting la
   - Evaluation frameworks for measuring adaptation quality
   - Example tasks and benchmarks
 
-- `knowledge-incorporation/`: Focuses on techniques for adding factual knowledge to LLMs:
+- `knowledge-incorporation/`: Focuses on techniques for adding factual knowledge to SEALs:
   - Methods for identifying and incorporating new information
   - Verification mechanisms for knowledge consistency
   - Evaluation metrics for knowledge retention

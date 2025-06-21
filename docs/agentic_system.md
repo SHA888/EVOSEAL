@@ -3,6 +3,8 @@
 ## Overview
 The `AgenticSystem` is a flexible, extensible framework for managing agent lifecycles, communication, task assignment, and performance monitoring in EVOSEAL. It supports agent groups, integrates with real EVOSEAL modules (like `WorkflowEngine`), and is ready for both synchronous and asynchronous agent implementations.
 
+**Note:** EVOSEAL is designed to integrate with SEAL (Self-Adapting Language Models). See the [/SEAL](../SEAL) folder or [SEAL on GitHub](https://github.com/Continual-Intelligence/SEAL) for more information. All references to "LLM" or "language models" in this project refer to SEAL.
+
 ## Features
 - **Lifecycle Management:** Create, destroy, and group agents.
 - **Interaction:** Send messages and assign tasks (sync/async) to agents or groups.
