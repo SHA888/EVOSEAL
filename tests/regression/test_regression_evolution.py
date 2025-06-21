@@ -3,11 +3,11 @@ Regression test for DGM evolutionary system.
 Ensures previously fixed bugs/invariants remain fixed.
 """
 
-import sys
+# isort: skip_file
 from unittest.mock import MagicMock, patch
+import sys
 
-from integration.dgm.evolution_manager import EvolutionManager
-
+# Patch major external dependencies, including openevolve and submodules
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 sys.modules["docker.models"] = MagicMock()
@@ -24,6 +24,8 @@ sys.modules["git"] = MagicMock()
 sys.modules["openevolve"] = MagicMock()
 sys.modules["openevolve.prompt"] = MagicMock()
 sys.modules["openevolve.prompt.templates"] = MagicMock()
+
+from integration.dgm.evolution_manager import EvolutionManager
 
 
 def test_no_duplicate_in_archive(tmp_path):
