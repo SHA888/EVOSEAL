@@ -323,7 +323,7 @@
               1
             ],
             "details": "Implement the Evaluator with methods to calculate fitness scores based on test results, code quality metrics, and other configurable criteria. Include support for different evaluation strategies and weightings. The Evaluator should provide clear feedback on why certain variants were scored as they were.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 3,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T08:45:11.869Z",
+      "updated": "2025-06-21T08:59:16.464Z",
       "description": "Tasks for master context"
     }
   }
