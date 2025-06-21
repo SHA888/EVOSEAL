@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "System Configuration",
+  "description": "Schema for validating system configuration files (YAML or JSON)",
+  "type": "object",
+  "required": ["dgm", "openevolve", "seal", "integration"],
+  "properties": {
+    "dgm": {
+      "type": "object",
+      "description": "Darwin Godel Machine configuration",
+      "additionalProperties": true
+    },
+    "openevolve": {
+      "type": "object",
+      "description": "OpenEvolve configuration",
+      "additionalProperties": true
+    },
+    "seal": {
+      "type": "object",
+      "description": "SEAL model configuration",
+      "additionalProperties": true
+    },
+    "integration": {
+      "type": "object",
+      "description": "Integration configuration",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

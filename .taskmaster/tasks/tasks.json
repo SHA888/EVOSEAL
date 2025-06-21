@@ -205,7 +205,7 @@
               3
             ],
             "details": "Create functions to convert model instances to JSON, YAML, or other appropriate formats. Implement deserialization with proper error handling and validation. Ensure backward compatibility for future model changes.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 5,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T02:56:31.560Z",
+      "updated": "2025-06-21T04:44:52.412Z",
       "description": "Tasks for master context"
     }
   }

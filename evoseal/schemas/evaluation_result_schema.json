@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Evaluation Result",
+  "description": "Schema for representing an evaluation result for code or workflow execution",
+  "type": "object",
+  "required": ["test_id", "status", "metrics"],
+  "properties": {
+    "test_id": {
+      "type": "string",
+      "description": "Unique identifier for the evaluation/test"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pass", "fail", "error"],
+      "description": "Status of the evaluation"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Dictionary of metric names to values",
+      "additionalProperties": { "type": "number" }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of when the evaluation was performed"
+    },
+    "details": {
+      "type": "object",
+      "description": "Additional details about the evaluation",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
