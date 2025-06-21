@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Code Change",
+  "description": "Schema for representing a code change (diff, patch, or file update)",
+  "type": "object",
+  "required": ["file_path", "change_type", "content"],
+  "properties": {
+    "file_path": {
+      "type": "string",
+      "description": "Path to the file being changed"
+    },
+    "change_type": {
+      "type": "string",
+      "enum": ["add", "modify", "delete", "rename"],
+      "description": "Type of change applied to the file"
+    },
+    "content": {
+      "type": ["string", "null"],
+      "description": "New content for the file (null if deleted)"
+    },
+    "old_path": {
+      "type": ["string", "null"],
+      "description": "Old file path if this is a rename"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the change",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
