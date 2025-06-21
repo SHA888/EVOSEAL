@@ -1,0 +1,20 @@
+# ---
+# category: self-improvement
+# version: 1
+# description: Prompt for handling stochasticity in agent self-improvement tasks
+# ---
+Since the coding agent is stochastic, it may not produce the correct patch for the given problem statement on the first try. Take into account the agent's stochastic nature and provide a solution to handle such cases. For example, one solution could be to ask the agent to try multiple times and select the best patch. The file `utils/eval_utils.py` contains helper functions to evaluate the generated patches. Giving previous attempts as context to the agent may also help.
+
+Respond precisely in the following format including the JSON start and end markers:
+
+```json
+<JSON>
+```
+
+In <JSON>, provide a JSON response with the following fields:
+- "potential_improvements": Identify potential improvements to the coding agent's system. All necessary dependencies and environment setup have already been handled, so do not focus on these aspects.
+- "improvement_proposal": Choose ONE high-impact improvement from the identified potential improvements and describe it in detail. This should be a focused and comprehensive plan to enhance the agent's overall coding ability.
+- "implementation_suggestion": Referring to the coding agent's summary and implementation, think critically about what feature could be added or improved to best implement the proposed improvement.
+- "problem_description": Phrase the improvement proposal and implementation suggestion as a GitHub issue description. It should clearly describe the feature so that a software engineer viewing the issue and the repository can implement it.
+
+Your response will be automatically parsed, so ensure that the string response is precisely in the correct format. Do NOT include the <JSON> tag in your output.

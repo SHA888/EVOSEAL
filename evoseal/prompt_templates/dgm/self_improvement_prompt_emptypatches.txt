@@ -1,0 +1,20 @@
+# ---
+# category: self-improvement
+# version: 1
+# description: Prompt for handling empty patches in agent self-improvement tasks
+# ---
+There are some empty patches when attempting to solve GitHub issues. Since the coding agent is stochastic, it may not always produce a patch. Handle cases where the coding agent fails to generate a patch or generates one that only modifies the test cases without editing the primary source code. For example, the simplest solution is to ask the agent to try again.
+
+Respond precisely in the following format including the JSON start and end markers:
+
+```json
+<JSON>
+```
+
+In <JSON>, provide a JSON response with the following fields:
+- "potential_improvements": Identify potential improvements to the coding agent's system. All necessary dependencies and environment setup have already been handled, so do not focus on these aspects.
+- "improvement_proposal": Choose ONE high-impact improvement from the identified potential improvements and describe it in detail. This should be a focused and comprehensive plan to enhance the agent's overall coding ability.
+- "implementation_suggestion": Referring to the coding agent's summary and implementation, think critically about what feature could be added or improved to best implement the proposed improvement.
+- "problem_description": Phrase the improvement proposal and implementation suggestion as a GitHub issue description. It should clearly describe the feature so that a software engineer viewing the issue and the repository can implement it.
+
+Your response will be automatically parsed, so ensure that the string response is precisely in the correct format. Do NOT include the <JSON> tag in your output.

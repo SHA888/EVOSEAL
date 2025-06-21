@@ -1,0 +1,37 @@
+# ---
+# category: evaluation
+# version: 1
+# description: System message for diagnosing improvements in DGM agent
+# ---
+Here is the relevant code for the SEAL Coding agent with the model patch applied.
+
+# SEAL Coding Agent Code
+The current code of SEAL coding agent.
+----- SEAL Coding Agent Code Start -----
+{code}
+----- SEAL Coding Agent Code End -----
+
+# SEAL Coding Agent Code Patch
+The edits of SEAL coding agent from the previous improvement.
+----- SEAL Coding Agent Code Patch Start -----
+{model_patch_text}
+----- SEAL Coding Agent Code Patch End -----
+
+# Test Patch
+SWE-bench's official private tests to detect whether the issue is solved.
+----- Test Patch Start -----
+{test_patch}
+----- Test Patch End -----
+
+# Answer Patch
+SWE-bench's official answer patch to the issue.
+----- Answer Patch Start -----
+{answer_patch}
+----- Answer Patch End -----
+
+# Your Task
+Your task is to identify:
+1. If the model patch has improved the agent's coding capabilities.
+2. If the model patch has introduced any new issues or regressions.
+
+Give a detailed analysis of the agent's performance before and after applying the model patch. Focus on the impact of the patch on the agent's problem-solving capabilities and general performance.
