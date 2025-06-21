@@ -35,6 +35,20 @@ This project and everyone participating in it is governed by our [Code of Conduc
    pre-commit install
    ```
 
+---
+
+### Configuration for Contributors
+
+- EVOSEAL uses YAML files for most configuration. See `configs/evoseal.yaml` and the [CONFIGURATION.md](CONFIGURATION.md) guide.
+- Use the `SystemConfig` model (`evoseal.models.system_config.SystemConfig`) to load and validate configuration in new code:
+  ```python
+  from evoseal.models.system_config import SystemConfig
+  config = SystemConfig.from_yaml('configs/evoseal.yaml')
+  config.validate()
+  value = config.get('dgm.max_iterations')
+  ```
+- Ensure any new configuration keys are documented and, if required, validated in your code.
+
 ## Development Workflow
 
 1. Create a new branch for your feature or bugfix

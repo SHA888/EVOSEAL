@@ -353,6 +353,23 @@ EVOSEAL can be configured through YAML files that control each component's behav
 - `configs/openevolve.yaml`: OpenEvolve parameters
 - `configs/seal.yaml`: SEAL model configuration
 
+#### SystemConfig Model (YAML Support)
+
+EVOSEAL provides a `SystemConfig` model for loading and validating configuration from YAML files. This model supports:
+- Loading config via `SystemConfig.from_yaml('path/to/config.yaml')`
+- Dot-notation access to nested keys: `config.get('dgm.max_iterations')`
+- Validation of required sections (`dgm`, `openevolve`, `seal`, `integration`)
+
+**Example usage:**
+```python
+from evoseal.models.system_config import SystemConfig
+config = SystemConfig.from_yaml('configs/evoseal.yaml')
+config.validate()  # Raises if required sections are missing
+max_iters = config.get('dgm.max_iterations', 100)
+```
+
+See [CONFIGURATION.md](CONFIGURATION.md) for details on the required YAML structure.
+
 ## Usage Examples
 
 ### Basic Usage
