@@ -255,7 +255,7 @@
             "description": "Develop the interface layer for communication with language models",
             "dependencies": [],
             "details": "Implement the SEALInterface module with abstraction layers for different SEAL providers (e.g https://github.com/Continual-Intelligence/SEAL) . Include methods for prompt submission, response parsing, and error handling. Design for asynchronous operation and implement rate limiting and retry logic for API stability.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 4,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-21T06:40:20.800Z",
+      "updated": "2025-06-21T06:56:07.043Z",
       "description": "Tasks for master context"
     }
   }
