@@ -56,4 +56,6 @@ class EvaluationResult(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str, **kwargs: Any) -> EvaluationResult:
-        return cast(EvaluationResult, cls.model_validate_json(str(json_str), **kwargs))
+        result = cls.model_validate_json(str(json_str), **kwargs)
+        assert isinstance(result, EvaluationResult)
+        return result

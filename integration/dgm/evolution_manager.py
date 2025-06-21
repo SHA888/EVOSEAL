@@ -13,6 +13,8 @@ import sys
 from pathlib import Path
 from typing import Optional, Union
 
+from .data_adapter import DGMDataAdapter
+
 # Dynamically add DGM submodule to sys.path if not already present
 DGM_PATH = Path(__file__).resolve().parents[2] / "dgm"
 if str(DGM_PATH) not in sys.path:
@@ -38,6 +40,7 @@ class EvolutionManager:
         self.output_dir = output_dir
         self.prevrun_dir = prevrun_dir
         self.polyglot = polyglot
+        self.data_adapter = DGMDataAdapter(output_dir)
         # Archive: list of commit/run IDs (str)
         self.archive, self.start_gen_num = DGM_outer.initialize_run(
             output_dir, prevrun_dir, polyglot
@@ -162,6 +165,11 @@ class EvolutionManager:
         """
         if run_id is None:
             run_id = self.archive[-1]
+        # Try to load EvaluationResult
+        eval_result = self.data_adapter.load_evaluation_result(run_id)
+        if eval_result:
+            return {**eval_result.metrics, "run_id": run_id}
+        # Fallback to legacy JSON if not found
         metadata_path = os.path.join(self.output_dir, run_id, "metadata.json")
         if not os.path.exists(metadata_path):
             raise FileNotFoundError(f"Metadata file not found at {metadata_path}")
@@ -187,7 +195,7 @@ class EvolutionManager:
         for run_id in self.archive:
             try:
                 metrics = self.get_fitness_metrics(run_id)
-                fitness_history.append({"run_id": run_id, **metrics})
+                fitness_history.append(metrics)
             except Exception:
                 continue
-        return list(fitness_history)
+        return fitness_history
