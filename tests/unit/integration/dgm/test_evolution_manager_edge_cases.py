@@ -73,3 +73,54 @@ def test_invalid_fitness_metrics(temp_output_dir):
         # Should raise FileNotFoundError due to missing metadata.json
         with pytest.raises(FileNotFoundError):
             manager.get_fitness_metrics("run")
+
+
+def test_dgm_outer_raises_on_init(temp_output_dir):
+    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+        mock_dgm.initialize_run.side_effect = RuntimeError("init fail")
+        with pytest.raises(RuntimeError):
+            EvolutionManager(temp_output_dir)
+
+
+def test_malformed_legacy_metadata_json(temp_output_dir):
+    import pydantic_core
+
+    with (
+        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("os.path.exists", return_value=True),
+        patch("builtins.open", new_callable=MagicMock) as mock_open,
+        patch("os.makedirs", return_value=None),
+        patch("os.path.join", side_effect=lambda *args: "/".join(args)),
+    ):
+        mock_dgm.initialize_run.return_value = (["run"], 0)
+        mock_open.return_value.__enter__.return_value.read.return_value = "not json"
+        manager = EvolutionManager(temp_output_dir)
+        # Should raise a ValidationError from Pydantic when parsing invalid JSON
+        with pytest.raises(pydantic_core._pydantic_core.ValidationError):
+            manager.get_fitness_metrics("run")
+
+
+def test_data_adapter_returns_none(temp_output_dir):
+    with (
+        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch(
+            "integration.dgm.evolution_manager.DGMDataAdapter.load_evaluation_result",
+            return_value=None,
+        ),
+        patch("os.path.exists", return_value=False),
+        patch("os.makedirs", return_value=None),
+        patch("os.path.join", side_effect=lambda *args: "/".join(args)),
+    ):
+        mock_dgm.initialize_run.return_value = (["run"], 0)
+        manager = EvolutionManager(temp_output_dir)
+        with pytest.raises(FileNotFoundError):
+            manager.get_fitness_metrics("run")
+
+
+def test_corrupted_archive_entries(temp_output_dir):
+    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+        mock_dgm.initialize_run.return_value = (["run1", None, "run2", ""], 0)
+        manager = EvolutionManager(temp_output_dir)
+        # Archive currently preserves all entries as-is (including None/empty)
+        # Document this behavior and assert the actual content
+        assert manager.archive == ["run1", None, "run2", ""]
