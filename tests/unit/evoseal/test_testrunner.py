@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from evoseal.core.testrunner import TestRunner
+from evoseal.testrunner import TestRunner
 
 MAGIC_MAX_WORKERS = 2
 

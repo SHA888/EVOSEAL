@@ -37,7 +37,7 @@ EXPECTED_SUCCESSFUL_ITERATIONS = 3  # Expected successful iterations (one fails)
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
-from evoseal.core.models import Program
+from evoseal.models import Program
 from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
 
 

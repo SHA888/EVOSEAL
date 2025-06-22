@@ -28,7 +28,8 @@ sys.modules["openevolve"] = MagicMock()
 from evoseal.models import Program
 
 # Import after path setup
-from evoseal.seal_interface import SEALInterface, SEALProvider
+from evoseal.integration.seal.seal_interface import SEALInterface
+from evoseal.providers.seal_providers import SEALProvider
 
 # Re-export for convenience
 pytest_plugins = ["pytest_asyncio"]
@@ -156,10 +157,10 @@ def mock_evolution_engine():
 
 
 @pytest.fixture
-def mock_openevolve():
-    """Create a mock OpenEvolve instance for testing."""
+def mock_controller():
+    """Create a mock Controller instance for testing."""
 
-    class MockOpenEvolve:
+    class MockController:
         def __init__(self, config=None):
             self.config = config or {}
             self.population = []
@@ -168,7 +169,7 @@ def mock_openevolve():
             self.population = [f"program_{i}" for i in range(size)]
             return self.population
 
-    return MockOpenEvolve()
+    return MockController()
 
 
 @pytest.fixture(scope="function")
