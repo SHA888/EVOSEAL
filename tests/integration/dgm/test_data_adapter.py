@@ -6,7 +6,7 @@ import pytest
 
 from evoseal.models.code_archive import CodeArchive, create_code_archive
 from evoseal.models.evaluation import EvaluationResult, TestCaseResult
-from integration.dgm.data_adapter import DGMDataAdapter
+from evoseal.integration.dgm.data_adapter import DGMDataAdapter
 
 
 @pytest.fixture

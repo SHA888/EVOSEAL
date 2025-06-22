@@ -37,10 +37,9 @@ sys.path.insert(0, str(project_root))
 
 # Import after path setup
 from evoseal.core.controller import Controller
-
-from evoseal.core.models import Program, EvaluationResult
+from evoseal.models import Program, EvaluationResult
 from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
-from evoseal.integration.dgm.evolution import EvolutionEngine, EvolutionConfig
+from evoseal.integration.dgm.evolution_manager import EvolutionManager
 from evoseal.agents.agentic_system import AgenticSystem
 
 
@@ -88,7 +87,7 @@ def test_full_evolutionary_run(
 ):
     # Patch DGM_outer to simulate evolutionary logic
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch("os.path.exists", return_value=True),
         patch("builtins.open", new_callable=MagicMock),
         patch("os.makedirs", return_value=None),
@@ -115,10 +114,11 @@ def test_full_evolutionary_run(
         assert controller.evaluator is mock_evaluator
 
         # Simulate a generation
-        result = controller.run_generation()
-        assert (
-            result is not None
-        )  # Basic check, actual assertions would depend on implementation
+        controller.run_generation()
+        # Verify that the generation counter was incremented
+        assert controller.current_generation == 1
+        # Verify that the state was updated
+        assert len(controller.state["generations"]) == 1
 
         # Simulate agentic system orchestration
         assert mock_agentic_system.assign_task("dummy-task") == "task-assigned"

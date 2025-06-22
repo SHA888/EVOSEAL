@@ -15,16 +15,20 @@ from typing import Optional, Union
 
 from .data_adapter import DGMDataAdapter
 
-# Dynamically add DGM submodule to sys.path if not already present
-DGM_PATH = Path(__file__).resolve().parents[2] / "dgm"
-if str(DGM_PATH) not in sys.path:
-    sys.path.insert(0, str(DGM_PATH))
+# Add the project root and DGM submodule to sys.path
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DGM_ROOT = PROJECT_ROOT / "dgm"
+
+# Add both the project root and dgm directory to sys.path
+for path in [str(PROJECT_ROOT), str(DGM_ROOT)]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 try:
-    import DGM_outer
+    from dgm import DGM_outer
 except ImportError as e:
     raise ImportError(
-        f"Could not import DGM_outer from DGM submodule at {DGM_PATH}. Error: {e}"
+        f"Could not import DGM_outer from DGM submodule. Make sure the DGM submodule is initialized. Error: {e}"
     ) from e
 
 

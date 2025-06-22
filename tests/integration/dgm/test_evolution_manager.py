@@ -29,8 +29,8 @@ import tempfile
 
 import pytest
 
-from integration.dgm.data_adapter import DGMDataAdapter
-from integration.dgm.evolution_manager import EvolutionManager
+from evoseal.integration.dgm.data_adapter import DGMDataAdapter
+from evoseal.integration.dgm.evolution_manager import EvolutionManager
 
 EXPECTED_ARCHIVE_LEN = 2  # Expected length for test_get_archive
 EXPECTED_GENERATION_AFTER_INCREMENT = 3  # For test_increment_generation
@@ -44,7 +44,7 @@ def temp_output_dir():
 
 def test_initialization(temp_output_dir):
     # Patch DGM_outer.initialize_run to avoid running real logic
-    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+    with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
         mock_dgm.initialize_run.return_value = (["run1", "run2"], 0)
         manager = EvolutionManager(temp_output_dir)
         assert isinstance(manager.data_adapter, DGMDataAdapter)
@@ -53,7 +53,7 @@ def test_initialization(temp_output_dir):
 
 
 def test_update_archive(temp_output_dir):
-    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+    with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
         mock_dgm.initialize_run.return_value = (["runA"], 0)
         mock_dgm.update_archive.return_value = ["runA", "runB"]
         manager = EvolutionManager(temp_output_dir)
@@ -64,8 +64,8 @@ def test_update_archive(temp_output_dir):
 
 def test_get_fitness_metrics_fallback(temp_output_dir):
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
-        patch("integration.dgm.evolution_manager.os.path.exists", return_value=False),
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("os.path.exists", return_value=False),
     ):
         mock_dgm.initialize_run.return_value = (["runX"], 0)
         manager = EvolutionManager(temp_output_dir)
@@ -75,7 +75,7 @@ def test_get_fitness_metrics_fallback(temp_output_dir):
 
 
 def test_increment_generation(temp_output_dir):
-    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+    with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
         mock_dgm.initialize_run.return_value = (["run1"], 2)
         manager = EvolutionManager(temp_output_dir)
         manager.increment_generation()
@@ -83,7 +83,7 @@ def test_increment_generation(temp_output_dir):
 
 
 def test_get_archive(temp_output_dir):
-    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+    with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
         mock_dgm.initialize_run.return_value = (["id1", "id2"], 0)
         manager = EvolutionManager(temp_output_dir)
         archive = manager.get_archive()

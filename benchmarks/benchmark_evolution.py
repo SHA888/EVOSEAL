@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from integration.dgm.evolution_manager import EvolutionManager
+from evoseal.integration.dgm.evolution_manager import EvolutionManager
 
 # Patch all major DGM/SEAL/LLM/Agentic and openevolve external dependencies
 sys.modules["docker"] = MagicMock()
@@ -33,7 +33,7 @@ MAX_BENCHMARK_SECONDS = 5
 
 def test_benchmark_evolution_cycle(tmp_path: Path) -> None:
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch("os.path.exists", return_value=True),
         patch("os.makedirs", return_value=None),
         patch("builtins.open", new_callable=MagicMock),

@@ -33,7 +33,7 @@ sys.path.insert(
 
 import pytest
 
-from integration.dgm.evolution_manager import EvolutionManager
+from evoseal.integration.dgm.evolution_manager import EvolutionManager
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def temp_output_dir():
 
 def test_empty_archive(temp_output_dir):
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch("os.path.exists", return_value=True),
         patch("builtins.open", new_callable=MagicMock),
         patch("os.makedirs", return_value=None),
@@ -56,29 +56,25 @@ def test_empty_archive(temp_output_dir):
 
 
 def test_invalid_fitness_metrics(temp_output_dir):
-    def fake_exists(path):
-        # Simulate metadata.json missing for the run, exists for everything else
-        if path.endswith("run/metadata.json"):
-            return False
-        return True
-
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
-        patch("os.path.exists", side_effect=fake_exists),
-        patch("os.makedirs", return_value=None),
-        patch("os.path.join", side_effect=lambda *args: "/".join(args)),
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("os.path.exists", return_value=False),
     ):
-        mock_dgm.initialize_run.return_value = (["run"], 0)
+        mock_dgm.initialize_run.return_value = (["run1"], 0)
         manager = EvolutionManager(temp_output_dir)
-        # Should raise FileNotFoundError due to missing metadata.json
+        
+        # Should raise FileNotFoundError when metadata file doesn't exist
         with pytest.raises(FileNotFoundError):
-            manager.get_fitness_metrics("run")
+            manager.get_fitness_metrics("run1")
 
 
 def test_dgm_outer_raises_on_init(temp_output_dir):
-    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
-        mock_dgm.initialize_run.side_effect = RuntimeError("init fail")
-        with pytest.raises(RuntimeError):
+    with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+        # Make initialize_run raise an exception
+        mock_dgm.initialize_run.side_effect = RuntimeError("DGM initialization failed")
+        
+        # The actual error message should match what's raised by the code
+        with pytest.raises(RuntimeError, match="DGM initialization failed"):
             EvolutionManager(temp_output_dir)
 
 
@@ -86,7 +82,7 @@ def test_malformed_legacy_metadata_json(temp_output_dir):
     import pydantic_core
 
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch("os.path.exists", return_value=True),
         patch("builtins.open", new_callable=MagicMock) as mock_open,
         patch("os.makedirs", return_value=None),
@@ -102,9 +98,9 @@ def test_malformed_legacy_metadata_json(temp_output_dir):
 
 def test_data_adapter_returns_none(temp_output_dir):
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch(
-            "integration.dgm.evolution_manager.DGMDataAdapter.load_evaluation_result",
+            "evoseal.integration.dgm.evolution_manager.DGMDataAdapter.load_evaluation_result",
             return_value=None,
         ),
         patch("os.path.exists", return_value=False),
@@ -118,7 +114,7 @@ def test_data_adapter_returns_none(temp_output_dir):
 
 
 def test_corrupted_archive_entries(temp_output_dir):
-    with patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
+    with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
         mock_dgm.initialize_run.return_value = (["run1", None, "run2", ""], 0)
         manager = EvolutionManager(temp_output_dir)
         # Archive currently preserves all entries as-is (including None/empty)
