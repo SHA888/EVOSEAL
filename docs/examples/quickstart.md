@@ -37,12 +37,12 @@ This guide will help you get started with EVOSEAL quickly.
    ```
 
 2. **Run the Basic Example**
-   
+
    You can run the quickstart example directly:
    ```bash
    python -m evoseal.examples.basic.quickstart
    ```
-   
+
    Or use it in your code:
    ```python
    from evoseal import EVOSEAL

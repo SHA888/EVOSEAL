@@ -25,7 +25,7 @@ This guide provides information for developers who want to contribute to the EVO
 
    # Install development dependencies
    pip install -r requirements-dev.txt
-   
+
    # Install package in development mode
    pip install -e .
 

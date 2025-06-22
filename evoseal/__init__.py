@@ -13,22 +13,21 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
 
-"""EVOSEAL: Evolutionary Self-Improving AI Agent Framework.
-
-EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution
-while continuously improving its own architecture.
-"""
-
 import structlog
 from structlog.contextvars import bind_contextvars
 from structlog.processors import TimeStamper, format_exc_info
 from structlog.stdlib import add_log_level, filter_by_level
 
-# Import Processor type only for type checking
+# Import version information early to avoid circular imports
+from evoseal.__version__ import __version__, __version_info__
+
+# Re-export core functionality
+from evoseal.core import Controller, Evaluator, SelectionStrategy, VersionDatabase
+
+# Core type stubs for type checking
 if TYPE_CHECKING:
     from structlog.types import Processor, WrappedLogger
 
-# Core type stubs for type checking
 if sys.version_info >= (3, 10):
     from typing import TypeAlias
 else:
@@ -36,19 +35,19 @@ else:
         TypeAlias,  # type: ignore[import-untyped,unused-ignore]
     )
 
-# Import version information
-from evoseal.__version__ import __version__, __version_info__
+"""EVOSEAL: Evolutionary Self-Improving AI Agent Framework.
 
-# Re-export core functionality
-from evoseal.core import Controller, Evaluator, SelectionStrategy, VersionDatabase
+EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution
+while continuously improving its own architecture.
+"""
 
 __all__ = [
-    'Controller',
-    'Evaluator',
-    'SelectionStrategy',
-    'VersionDatabase',
-    '__version__',
-    '__version_info__',
+    "Controller",
+    "Evaluator",
+    "SelectionStrategy",
+    "VersionDatabase",
+    "__version__",
+    "__version_info__",
 ]
 
 # Type variable for generic types
@@ -64,7 +63,7 @@ EvolutionConfig: TypeAlias = Any
 EvolutionResult: TypeAlias = Any
 FitnessFunction: TypeAlias = Any
 MutationStrategy: TypeAlias = Any
-SelectionStrategy: TypeAlias = Any
+# SelectionStrategy is imported from evoseal.core
 
 # Initialize logging
 logging.basicConfig(
@@ -143,6 +142,7 @@ seal = _LazyModule("seal")
 # Get version from package metadata if installed
 try:
     from importlib.metadata import version
+
     __version__ = version("evoseal")
     __version_info__ = tuple(int(i) for i in __version__.split(".") if i.isdigit())
 except ImportError:

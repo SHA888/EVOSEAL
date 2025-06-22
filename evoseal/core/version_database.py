@@ -7,15 +7,17 @@ for persistence.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Optional, TypedDict
 
 # Type definitions
 VariantID = str
-VariantInfo = Dict[str, Any]
-LineageInfo = Dict[VariantID, List[VariantID]]
-VariantHistory = List[VariantID]
+VariantInfo = dict[str, Any]
+LineageInfo = dict[VariantID, list[VariantID]]
+VariantHistory = list[VariantID]
+VariantMetadata = dict[str, Any]  # Type alias for variant metadata
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -36,8 +38,8 @@ class VersionDatabase:
         source: str,
         test_results: Any,
         eval_score: float,
-        parent_ids: Optional[list[str]] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        parent_ids: list[str] | None = None,
+        metadata: Mapping[str, Any] | None = None,
     ) -> None:
         """Store a new code variant and its associated data."""
         self.variants[variant_id] = {
@@ -51,9 +53,28 @@ class VersionDatabase:
         self.lineage[variant_id] = parent_ids or []
         self.history.append(variant_id)
 
-    def get_variant(self, variant_id: str) -> Optional[dict[str, Any]]:
-        """Retrieve a variant and its data by ID."""
+    def get_variant(self, variant_id: str) -> dict[str, Any] | None:
+        """Retrieve a variant and its data by ID.
+
+        Args:
+            variant_id: The ID of the variant to retrieve
+
+        Returns:
+            The variant data dictionary, or None if not found
+        """
         return self.variants.get(variant_id)
+
+    def get_variant_metadata(self, variant_id: VariantID) -> VariantMetadata | None:
+        """Retrieve metadata for a specific variant.
+
+        Args:
+            variant_id: The ID of the variant to retrieve metadata for
+
+        Returns:
+            The variant's metadata dictionary, or None if the variant doesn't exist
+        """
+        variant = self.variants.get(variant_id)
+        return variant.get("metadata") if variant else None
 
     def query_variants(self, criteria: dict[str, Any]) -> list[dict[str, Any]]:
         """Return all variants matching the given criteria (AND match)."""

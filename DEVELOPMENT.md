@@ -186,10 +186,10 @@ tests/
    def test_functionality():
        # Arrange
        # Set up test data and mocks
-       
+
        # Act
        # Execute the code being tested
-       
+
        # Assert
        # Verify the results
    ```
@@ -197,7 +197,7 @@ tests/
 2. **Fixtures**:
    ```python
    import pytest
-   
+
    @pytest.fixture
    def sample_config():
        return {"param": "value"}
@@ -206,7 +206,7 @@ tests/
 3. **Mocks**:
    ```python
    from unittest.mock import Mock, patch
-   
+
    def test_with_mock():
        mock_service = Mock()
        mock_service.method.return_value = "mocked"
@@ -216,7 +216,7 @@ tests/
 4. **Parametrized Tests**:
    ```python
    import pytest
-   
+
    @pytest.mark.parametrize("input,expected", [
        (1, 2),
        (2, 4),

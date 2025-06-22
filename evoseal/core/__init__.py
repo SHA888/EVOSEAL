@@ -10,8 +10,8 @@ from evoseal.core.selection import SelectionAlgorithm as SelectionStrategy
 from evoseal.core.version_database import VersionDatabase
 
 __all__ = [
-    'Controller',
-    'Evaluator',
-    'SelectionStrategy',
-    'VersionDatabase',
+    "Controller",
+    "Evaluator",
+    "SelectionStrategy",
+    "VersionDatabase",
 ]

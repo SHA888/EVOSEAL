@@ -25,10 +25,9 @@ sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 sys.modules["openevolve"] = MagicMock()
 
-from evoseal.models import Program
-
 # Import after path setup
 from evoseal.integration.seal.seal_interface import SEALInterface
+from evoseal.models import Program
 from evoseal.providers.seal_providers import SEALProvider
 
 # Re-export for convenience

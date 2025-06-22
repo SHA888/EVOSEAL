@@ -1,24 +1,26 @@
-# Test constants
-TEST_FITNESS = 0.9
-TEST_ACCURACY = 0.95
-TEST_LATENCY = 0.1
-TEST_POPULATION_SIZE = 10
-
 """
 Integration tests for cross-module interactions.
 
-Tests the interaction between components, including data flow, state management, 
+Tests the interaction between components, including data flow, state management,
 and error handling across module boundaries.
 """
+
+from __future__ import annotations
 
 import asyncio
 import os
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any, Dict, Optional
 
 import pytest
+
+# Test constants
+TEST_FITNESS = 0.9
+TEST_ACCURACY = 0.95
+TEST_LATENCY = 0.1
+TEST_POPULATION_SIZE = 10
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -28,11 +30,11 @@ sys.path.insert(0, str(project_root))
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
-from evoseal.models import Program
 from evoseal.core.controller import Controller
 
 # Import after path setup
 from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
+from evoseal.models import Program
 
 
 # Mock the components for testing
@@ -43,15 +45,15 @@ class MockController(Controller):
         super().__init__(test_runner, evaluator, logger)
         self.seal_interface = None
         self._loop = asyncio.new_event_loop()
-        
+
     def set_seal_interface(self, seal_interface):
         """Set the SEAL interface for testing."""
         self.seal_interface = seal_interface
-        
-    def initialize(self, config: Dict[str, Any]) -> None:
+
+    def initialize(self, config: dict[str, Any]) -> None:
         """Initialize the controller with the given config."""
         super().initialize(config)
-        
+
     async def _run_generation_async(self):
         """Run a single generation asynchronously."""
         if self.seal_interface:
@@ -59,8 +61,8 @@ class MockController(Controller):
             response = await self.seal_interface.submit("test prompt")
             return response
         return None
-        
-    def run_generation(self) -> Dict[str, Any]:
+
+    def run_generation(self) -> dict[str, Any]:
         """Run a single generation and return results."""
         if self._loop.is_running():
             # If we're already in an event loop, use it
@@ -68,23 +70,16 @@ class MockController(Controller):
         else:
             # Otherwise, create a new event loop
             response = asyncio.run(self._run_generation_async())
-            
-        # Simulate a successful generation
-        return {
-            "best_program": Program(
-                id="test_prog_1", code="def test(): return 42", language="python"
-            ),
-            "metrics": response,
-        }
+        return response or {"success": False, "message": "No SEAL interface configured"}
 
 
 # Mock test runner and evaluator for the controller
 class MockTestRunner:
     """Mock TestRunner for testing."""
-    
+
     def __init__(self):
         self.test_results = {}
-    
+
     def run_tests(self, generation):
         """Return mock test results."""
         return {"test_result": f"test_result_gen_{generation}"}
@@ -92,10 +87,10 @@ class MockTestRunner:
 
 class MockEvaluator:
     """Mock Evaluator for testing."""
-    
+
     def __init__(self):
         self.eval_results = {}
-    
+
     def evaluate(self, test_results):
         """Return mock evaluation results."""
         return {"eval_result": f"eval_result_{test_results['test_result']}"}
@@ -114,9 +109,11 @@ def mock_components():
     # Create mock test runner and evaluator
     mock_test_runner = MockTestRunner()
     mock_evaluator = MockEvaluator()
-    
+
     # Create mock controller
-    mock_controller = MockController(test_runner=mock_test_runner, evaluator=mock_evaluator)
+    mock_controller = MockController(
+        test_runner=mock_test_runner, evaluator=mock_evaluator
+    )
     mock_controller.set_seal_interface(mock_seal)
 
     # Create mock program
@@ -138,7 +135,7 @@ async def test_cross_module_workflow(mock_components):
     """Test the complete workflow across components."""
     mock_seal = mock_components["seal"]
     mock_controller = mock_components["controller"]
-    mock_program = mock_components["program"]
+    _ = mock_components["program"]  # Keep for test context
 
     # Initialize the controller
     config = {"population_size": 10, "max_generations": 100}
@@ -182,8 +179,8 @@ async def test_data_flow_between_components(mock_components):
     """Test data flow between components."""
     mock_seal = mock_components["seal"]
     mock_controller = mock_components["controller"]
-    mock_test_runner = mock_components["test_runner"]
-    mock_evaluator = mock_components["evaluator"]
+    _ = mock_components["test_runner"]  # Keep for test context
+    _ = mock_components["evaluator"]  # Keep for test context
 
     # Initialize the controller
     config = {"population_size": 10, "max_generations": 100}
