@@ -25,8 +25,13 @@ from typer.testing import CliRunner
 HIGH_SCORE_THRESHOLD = 0.9
 LOW_SCORE_THRESHOLD = 0.1
 
+# Add the project root to the Python path
+project_root = str(Path(__file__).parent.parent.parent)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 # Add the OpenEvolve module to the Python path
-openevolve_path = str(Path(__file__).parent.parent.parent / "openevolve")
+openevolve_path = str(Path(project_root) / "openevolve")
 if openevolve_path not in sys.path:
     sys.path.insert(0, openevolve_path)
 

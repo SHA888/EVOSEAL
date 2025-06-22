@@ -25,7 +25,7 @@ CROSSOVER_RATE = 0.8
 ELITISM = 1
 
 # Test data directory
-TEST_DATA_DIR = Path(__file__).parent / ".." / "data"
+TEST_DATA_DIR = Path(__file__).parent.parent / "data"
 TEST_CONFIG = {
     "openevolve": {
         "population_size": 10,
@@ -162,7 +162,9 @@ def test_end_to_end_evolution(test_project: Path):
             crossover_rate=CROSSOVER_RATE,
             elitism=ELITISM,
         )
-        assert engine.population_size == test_population_size, "Engine population size mismatch"
+        assert (
+            engine.population_size == test_population_size
+        ), "Engine population size mismatch"
 
     except ImportError as e:
         pytest.skip(f"Could not import OpenEvolve components: {e}")
