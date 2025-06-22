@@ -40,6 +40,9 @@ pytest tests/unit/
 # Integration tests
 pytest tests/integration/
 
+# Test DGM integration
+pytest tests/integration/dgm/
+
 # Test a specific file
 pytest tests/unit/test_module.py
 

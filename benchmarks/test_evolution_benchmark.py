@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from integration.dgm.evolution_manager import EvolutionManager
+from evoseal.integration.dgm.evolution_manager import EvolutionManager
 
 # Ensure project root is in sys.path for local imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -45,7 +45,7 @@ def temp_output_dir() -> Generator[str, None, None]:
 
 def test_evolution_benchmark(temp_output_dir: str) -> None:
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch("os.path.exists", return_value=True),
         patch("os.makedirs", return_value=None),
         patch("builtins.open", new_callable=MagicMock),

@@ -25,12 +25,12 @@ sys.modules["openevolve"] = MagicMock()
 sys.modules["openevolve.prompt"] = MagicMock()
 sys.modules["openevolve.prompt.templates"] = MagicMock()
 
-from integration.dgm.evolution_manager import EvolutionManager
+from evoseal.integration.dgm.evolution_manager import EvolutionManager
 
 
 def test_no_duplicate_in_archive(tmp_path):
     with (
-        patch("integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
+        patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,
         patch("os.path.exists", return_value=True),
         patch("builtins.open", new_callable=MagicMock),
         patch("os.makedirs", return_value=None),
