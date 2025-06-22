@@ -6,8 +6,8 @@ import asyncio
 
 import pytest
 
-from evoseal.seal_interface import SEALInterface
-from evoseal.seal_providers import DummySEALProvider
+from evoseal.integration.seal.seal_interface import SEALInterface
+from evoseal.providers.seal_providers import DummySEALProvider
 
 
 @pytest.mark.asyncio

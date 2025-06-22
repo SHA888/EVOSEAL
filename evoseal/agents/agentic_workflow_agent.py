@@ -4,7 +4,7 @@ Agent implementation that wraps the WorkflowEngine for integration with AgenticS
 
 from typing import Any
 
-from evoseal.agentic_system import Agent
+from evoseal.agents.agentic_system import Agent
 from evoseal.core.workflow import WorkflowEngine
 
 

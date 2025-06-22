@@ -37,17 +37,18 @@ else:
     )
 
 # Import version information
-from evoseal.__version__ import __version__
+from evoseal.__version__ import __version__, __version_info__
 
 # Re-export core functionality
-from evoseal.core import OpenEvolve, Evaluator, SelectionStrategy, VersionDatabase
+from evoseal.core import Controller, Evaluator, SelectionStrategy, VersionDatabase
 
 __all__ = [
-    'OpenEvolve',
+    'Controller',
     'Evaluator',
     'SelectionStrategy',
     'VersionDatabase',
     '__version__',
+    '__version_info__',
 ]
 
 # Type variable for generic types
@@ -141,7 +142,9 @@ seal = _LazyModule("seal")
 
 # Get version from package metadata if installed
 try:
-    __version__ = _get_version("evoseal")
+    from importlib.metadata import version
+    __version__ = version("evoseal")
+    __version_info__ = tuple(int(i) for i in __version__.split(".") if i.isdigit())
 except ImportError:
     # Package not installed, use version from __version__.py
     pass
