@@ -1,11 +1,16 @@
 """
 Controller class for orchestrating the OpenEvolve evolutionary process.
+
 Manages initialization, generations, coordination between TestRunner and Evaluator,
 candidate selection, and provides CLI/system interfaces.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from evoseal.core.evaluator import Evaluator
+    from evoseal.core.testrunner import TestRunner
 
 
 class Controller:

@@ -1,11 +1,12 @@
 """
 Unit tests for the VersionDatabase class in evoseal.
+
 Covers add, get, query, lineage, and history functionality.
 """
 
 import pytest
 
-from evoseal.version_database import VersionDatabase
+from evoseal.core.version_database import VersionDatabase
 
 MAGIC_EVAL_SCORE = 0.95
 MAGIC_QUERY_RESULT_LEN = 2

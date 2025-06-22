@@ -17,17 +17,31 @@ EVOSEAL uses a modular architecture with the following key components:
 
 ```
 EVOSEAL/
-├── dgm/                 # Darwin Godel Machine submodule
-├── openevolve/          # OpenEvolve submodule
-├── SEAL/                # SEAL (Self-Adapting Language Models) submodule
 ├── evoseal/             # Main package
-│   ├── core/            # Core functionality
-│   ├── integration/     # Integration with DGM, OpenEvolve, and SEAL
-│   └── utils/           # Utility functions
-├── config/              # Configuration files
+│   ├── core/            # Core framework components
+│   │   ├── controller.py
+│   │   ├── evaluator.py
+│   │   ├── selection.py
+│   │   └── version_database.py
+│   │
+│   ├── integration/     # Integration modules
+│   │   ├── dgm/         # Darwin Godel Machine
+│   │   ├── openevolve/  # OpenEvolve framework
+│   │   └── seal/        # SEAL interface
+│   │
+│   ├── models/         # Data models and schemas
+│   ├── providers/       # AI/ML model providers
+│   ├── storage/         # Data persistence
+│   ├── utils/           # Utility functions
+│   └── examples/        # Example scripts and templates
+│       ├── basic/       # Basic usage examples
+│       ├── workflows/   # Workflow examples
+│       └── templates/   # Project templates
+│
+├── config/            # Configuration files
 │   ├── development.json
 │   ├── testing.json
-│   ├── production.json
+│   └── production.json
 │   └── settings.py      # Main configuration module
 └── scripts/             # Utility scripts
 ```

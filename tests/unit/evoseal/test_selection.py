@@ -1,11 +1,12 @@
 """
 Unit tests for the SelectionAlgorithm class in evoseal.
+
 Covers tournament, roulette, elitism, and edge cases.
 """
 
 import pytest
 
-from evoseal.selection import SelectionAlgorithm
+from evoseal.core.selection import SelectionAlgorithm
 
 TOURNAMENT_SIZE = 2
 NUM_SELECTED_TOURNAMENT = 3

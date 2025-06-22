@@ -24,6 +24,7 @@ Welcome to the EVOSEAL development guide! This document provides all the informa
 - Python 3.10+
 - Git
 - (Optional) Docker and Docker Compose
+- (Optional) Task Master CLI for task management
 
 ### Quick Start
 
@@ -57,16 +58,37 @@ Welcome to the EVOSEAL development guide! This document provides all the informa
 
 ## Code Organization
 
+The project follows a modular architecture:
+
 ```
-evoseal/
-  core/           # Core functionality
-  models/         # Model implementations
-  evolvers/       # Evolution algorithms
-  utils/          # Utility functions
-  tests/          # Test files
-  examples/       # Example scripts
-  docs/           # Documentation
-  scripts/        # Development scripts
+EVOSEAL/
+├── evoseal/             # Main package
+│   ├── core/            # Core framework components
+│   │   ├── controller.py
+│   │   ├── evaluator.py
+│   │   ├── selection.py
+│   │   └── version_database.py
+│   │
+│   ├── integration/     # Integration modules
+│   │   ├── dgm/         # Darwin Godel Machine
+│   │   ├── openevolve/  # OpenEvolve framework
+│   │   └── seal/        # SEAL interface
+│   │
+│   ├── models/         # Data models and schemas
+│   ├── providers/       # AI/ML model providers
+│   ├── storage/         # Data persistence
+│   ├── utils/           # Utility functions
+│   └── examples/        # Example scripts and templates
+│       ├── basic/       # Basic usage examples
+│       ├── workflows/   # Workflow examples
+│       └── templates/   # Project templates
+│
+├── config/            # Configuration files
+├── docs/               # Documentation
+├── scripts/            # Utility scripts
+└── tests/              # Test suite
+    ├── integration/    # Integration tests
+    └── unit/           # Unit tests
 ```
 
 ## Development Workflow
@@ -86,11 +108,24 @@ evoseal/
    # Run all tests
    pytest
 
-   # Run linting
-   flake8 evoseal
+   # Run tests with coverage
+   pytest --cov=evoseal --cov-report=term-missing
 
-   # Run type checking
-   mypy evoseal
+   # Run specific test category
+   pytest tests/unit/           # Unit tests
+   pytest tests/integration/    # Integration tests
+
+   # Run specific test file
+   pytest tests/unit/core/test_controller.py
+
+   # Run specific test function
+   pytest tests/unit/core/test_controller.py::test_controller_initialization
+
+   # Run with verbose output
+   pytest -v
+
+   # Run with debug output
+   pytest --log-cli-level=DEBUG
    ```
 
 4. **Commit your changes**
@@ -129,9 +164,68 @@ pytest --cov=evoseal --cov-report=html tests/
 
 ### Writing Tests
 
-- Place test files in the `tests/` directory
-- Name test files with `test_` prefix
-- Use descriptive test function names
+#### Test Organization
+
+```
+tests/
+├── integration/          # Integration tests
+│   ├── dgm/             # DGM integration tests
+│   ├── openevolve/      # OpenEvolve integration tests
+│   └── seal/            # SEAL integration tests
+└── unit/                # Unit tests
+    ├── core/            # Core components tests
+    ├── models/          # Model tests
+    ├── providers/       # Provider tests
+    └── utils/           # Utility function tests
+```
+
+#### Best Practices
+
+1. **Test Structure**:
+   ```python
+   def test_functionality():
+       # Arrange
+       # Set up test data and mocks
+       
+       # Act
+       # Execute the code being tested
+       
+       # Assert
+       # Verify the results
+   ```
+
+2. **Fixtures**:
+   ```python
+   import pytest
+   
+   @pytest.fixture
+   def sample_config():
+       return {"param": "value"}
+   ```
+
+3. **Mocks**:
+   ```python
+   from unittest.mock import Mock, patch
+   
+   def test_with_mock():
+       mock_service = Mock()
+       mock_service.method.return_value = "mocked"
+       # Test with mock
+   ```
+
+4. **Parametrized Tests**:
+   ```python
+   import pytest
+   
+   @pytest.mark.parametrize("input,expected", [
+       (1, 2),
+       (2, 4),
+       (3, 6),
+   ])
+   def test_multiply_by_two(input, expected):
+       assert input * 2 == expected
+   ```
+
 - Follow the Arrange-Act-Assert pattern
 - Use fixtures for common setup/teardown
 
@@ -152,22 +246,62 @@ def test_feature():
 
 ## Documentation
 
+### Code Documentation
+
+We use Google-style docstrings with type hints:
+
+```python
+def function_name(param1: type, param2: type) -> return_type:
+    """Short description of the function.
+
+    Longer description with more details about the function's behavior,
+    parameters, return values, and any exceptions raised.
+
+    Args:
+        param1: Description of the first parameter.
+        param2: Description of the second parameter.
+
+    Returns:
+        Description of the return value.
+
+        Include the type in the description if not obvious.
+
+        Can span multiple lines.
+
+    Raises:
+        ValueError: If the parameters are invalid.
+
+    Examples:
+        >>> result = function_name(1, 2)
+        >>> print(result)
+        3
+    """
+    pass
+```
+
+### Project Documentation
+
+- `README.md`: Project overview and quick start
+- `CHANGELOG.md`: Release notes and changes
+- `docs/`: Detailed documentation
+  - `user/`: User guides and tutorials
+  - `api/`: API reference
+  - `examples/`: Example usage
+  - `development/`: Developer guides
+
 ### Building Documentation
 
 ```bash
 # Install documentation dependencies
 pip install -r docs/requirements.txt
 
-# Build the documentation
+# Build the docs
 mkdocs build
 
-# Serve documentation locally
+# Serve the docs locally
 mkdocs serve
 ```
 
-### Writing Documentation
-
-- Update `docs/` directory
 - Follow existing style
 - Use Markdown
 - Include examples
@@ -175,13 +309,69 @@ mkdocs serve
 
 ## Code Style
 
-We use:
-- **Black** for code formatting
-- **isort** for import sorting
-- **Flake8** for linting
-- **Mypy** for type checking
+### Automated Formatting
 
-These are enforced via pre-commit hooks.
+We use several tools to maintain consistent code style:
+
+- **Black** - Code formatting
+- **isort** - Import sorting
+- **Ruff** - Linting and style enforcement
+- **Mypy** - Static type checking
+- **Blacken-docs** - Format code in documentation
+
+### Pre-commit Hooks
+
+Pre-commit hooks automatically run these checks before each commit:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install git hooks
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
+```
+
+### Type Hints
+
+Use type hints for all function signatures and important variables:
+
+```python
+def process_data(data: list[dict[str, Any]]) -> pd.DataFrame:
+    """Process input data into a DataFrame."""
+    return pd.DataFrame(data)
+```
+
+### Naming Conventions
+
+- **Variables**: `snake_case`
+- **Constants**: `UPPER_SNAKE_CASE`
+- **Classes**: `PascalCase`
+- **Private**: `_private_var` (single underscore)
+- **Dunder**: `__dunder__` (double underscore)
+
+### Imports
+
+Group imports in the following order:
+
+1. Standard library imports
+2. Third-party imports
+3. Local application imports
+
+With a blank line between each group:
+
+```python
+import os
+from typing import Any, Optional
+
+import numpy as np
+import pandas as pd
+
+from evoseal.core.controller import Controller
+from evoseal.utils.helpers import helper_function
+```
 
 ## Dependency Management
 

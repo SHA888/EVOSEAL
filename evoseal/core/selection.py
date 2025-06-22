@@ -1,13 +1,27 @@
 """
 SelectionAlgorithm for choosing code variants for the next generation.
+
 Supports tournament, roulette wheel, and pluggable strategies with diversity options.
 """
 
-import random
-from typing import Any, Callable, Optional
+from __future__ import annotations
 
+import logging
+import random
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar, Union
+
+# Type variables for generic types
+T = TypeVar('T')
+Individual = Dict[str, Any]
+Population = List[Individual]
+
+# Constants
 DEFAULT_TOURNAMENT_SIZE = 3
 DEFAULT_ELITISM = 1
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 class SelectionAlgorithm:

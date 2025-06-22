@@ -19,32 +19,122 @@ This document provides guidelines and instructions for testing the EVOSEAL proje
 Make sure you have installed the development dependencies:
 
 ```bash
-pip install -r requirements/dev.txt
+pip install -r requirements-dev.txt
+pip install -e .  # Install package in development mode
 ```
 
-### Running All Tests
+### Running Tests
 
-To run all tests:
+#### Run All Tests
 
 ```bash
 pytest
 ```
 
-### Running Specific Tests
-
-Run tests in a specific file:
+#### Run Tests by Category
 
 ```bash
-pytest tests/test_module.py
+# Unit tests
+pytest tests/unit/
+
+# Integration tests
+pytest tests/integration/
+
+# Test a specific file
+pytest tests/unit/test_module.py
+
+# Test a specific function
+pytest tests/unit/test_module.py::test_function_name
 ```
 
-Run a specific test function:
+#### Run with Coverage
 
 ```bash
-pytest tests/test_module.py::test_function_name
+pytest --cov=evoseal --cov-report=term-missing
 ```
 
-### Test Coverage
+#### Run with Verbose Output
+
+```bash
+pytest -v
+```
+
+#### Run with Debug Output
+
+```bash
+pytest --log-cli-level=DEBUG
+```
+
+### Test Organization
+
+Tests follow the same structure as the source code:
+
+```
+tests/
+├── integration/          # Integration tests
+│   ├── dgm/             # DGM integration tests
+│   ├── openevolve/      # OpenEvolve integration tests
+│   └── seal/            # SEAL integration tests
+└── unit/                # Unit tests
+    ├── core/            # Core components tests
+    ├── models/          # Model tests
+    ├── providers/       # Provider tests
+    └── utils/           # Utility function tests
+```
+
+### Test Naming Conventions
+
+- Test files should be named `test_*.py` or `*_test.py`
+- Test functions should be named `test_*`
+- Test classes should be named `Test*`
+- Test methods should be named `test_*`
+
+## Writing Tests
+
+### Writing Good Tests
+
+1. **Isolation**: Each test should be independent and not rely on the state from other tests
+2. **Descriptive Names**: Test names should clearly describe what they're testing
+3. **AAA Pattern**: Follow Arrange-Act-Assert pattern
+4. **Test Coverage**: Aim for high test coverage, especially for critical paths
+5. **Mocks**: Use mocks for external services and slow operations
+
+### Example Test
+
+```python
+def test_controller_initialization():
+    # Arrange
+    mock_evaluator = Mock()
+    mock_selector = Mock()
+    
+    # Act
+    controller = Controller(evaluator=mock_evaluator, selector=mock_selector)
+    
+    # Assert
+    assert controller.evaluator == mock_evaluator
+    assert controller.selector == mock_selector
+```
+
+### Fixtures
+
+Use fixtures for common test setup:
+
+```python
+import pytest
+
+@pytest.fixture
+def sample_config():
+    return {
+        'population_size': 100,
+        'mutation_rate': 0.1,
+        'crossover_rate': 0.8
+    }
+
+def test_evolution_config(sample_config):
+    assert sample_config['population_size'] == 100
+```
+
+## Test Coverage
 
 To generate a coverage report:
 
@@ -58,76 +148,6 @@ For an HTML report:
 pytest --cov=evoseal --cov-report=html tests/
 open htmlcov/index.html  # On macOS
 ```
-
-## Writing Tests
-
-### Test Structure
-
-Tests are organized in the `tests/` directory, mirroring the structure of the `evoseal/` package. For example:
-
-```
-evoseal/
-  module/
-    __init__.py
-    module.py
-tests/
-  module/
-    __init__.py
-    test_module.py
-```
-
-### Example Test
-
-```python
-import pytest
-from evoseal.module import some_function
-
-def test_some_function():
-    """Test that some_function returns expected results."""
-    # Setup
-    input_value = "test"
-    expected = "expected output"
-
-    # Exercise
-    result = some_function(input_value)
-
-    # Verify
-    assert result == expected
-
-    # Cleanup (if needed)
-```
-
-### Fixtures
-
-Use fixtures for common test setup and teardown:
-
-```python
-import pytest
-
-@pytest.fixture
-test_data():
-    """Provide test data for tests."""
-    data = {"key": "value"}
-    yield data
-    # Cleanup code here
-
-def test_with_fixture(test_data):
-    assert "key" in test_data
-```
-
-## Test Organization
-
-### Unit Tests
-
-- Test individual functions and classes in isolation
-- Place in `tests/unit/`
-- Should be fast and not require external services
-
-### Integration Tests
-
-- Test interactions between components
-- Place in `tests/integration/`
-- May require external services or databases
 
 ## Continuous Integration
 
@@ -174,8 +194,6 @@ pytest --log-cli-level=INFO
 6. **Mocks**: Use mocks for external dependencies
 7. **Fixtures**: Use fixtures for common test setup
 8. **CI**: Ensure all tests pass before merging to main
-
-## Writing Good Tests
 
 - **Arrange-Act-Assert**: Structure tests with clear sections
 - **One Assert Per Test**: Each test should verify one thing

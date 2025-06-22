@@ -8,10 +8,16 @@ combining Darwin Godel Machine, OpenEvolve, and SEAL.
 from __future__ import annotations
 
 import logging
+import os
 import sys
-from importlib.metadata import version as _get_version
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
+
+"""EVOSEAL: Evolutionary Self-Improving AI Agent Framework.
+
+EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution
+while continuously improving its own architecture.
+"""
 
 import structlog
 from structlog.contextvars import bind_contextvars
@@ -30,10 +36,19 @@ else:
         TypeAlias,  # type: ignore[import-untyped,unused-ignore]
     )
 
-# Version information for EVOSEAL
-# This version should be kept in sync with pyproject.toml and setup.cfg
-# Minimum Python version: 3.9
-__version__ = "0.1.0"
+# Import version information
+from evoseal.__version__ import __version__
+
+# Re-export core functionality
+from evoseal.core import OpenEvolve, Evaluator, SelectionStrategy, VersionDatabase
+
+__all__ = [
+    'OpenEvolve',
+    'Evaluator',
+    'SelectionStrategy',
+    'VersionDatabase',
+    '__version__',
+]
 
 # Type variable for generic types
 T_co = TypeVar("T_co", covariant=True)  # For covariant types
