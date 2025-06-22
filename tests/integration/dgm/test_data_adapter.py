@@ -4,9 +4,9 @@ import tempfile
 
 import pytest
 
+from evoseal.integration.dgm.data_adapter import DGMDataAdapter
 from evoseal.models.code_archive import CodeArchive, create_code_archive
 from evoseal.models.evaluation import EvaluationResult, TestCaseResult
-from evoseal.integration.dgm.data_adapter import DGMDataAdapter
 
 
 @pytest.fixture

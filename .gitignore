@@ -413,3 +413,8 @@ site/
 # Local development
 .cache/
 .mkdocs-touch
+
+# Exclude submodules
+dgm/
+openevolve/
+SEAL/
