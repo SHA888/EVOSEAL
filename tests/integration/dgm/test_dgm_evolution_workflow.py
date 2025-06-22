@@ -4,8 +4,13 @@ Integration test: Simulate full DGM evolutionary run with mocked SEAL/LLM respon
 Covers initialization, mutation/crossover, fitness evaluation, and generation increment.
 """
 
+import os
 import sys
-from unittest.mock import MagicMock
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Patch all major DGM/SEAL/LLM/Agentic and openevolve external dependencies
 sys.modules["docker"] = MagicMock()
@@ -25,13 +30,12 @@ sys.modules["openevolve"] = MagicMock()
 sys.modules["openevolve.prompt"] = MagicMock()
 sys.modules["openevolve.prompt.templates"] = MagicMock()
 
-import os
-import tempfile
-import pytest
-from unittest.mock import patch
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from evoseal.seal_interface import SEALInterface
-from integration.dgm.data_adapter import DGMDataAdapter
+from evoseal.dgm.data_adapter import DGMDataAdapter
 from integration.dgm.evolution_manager import EvolutionManager
 
 

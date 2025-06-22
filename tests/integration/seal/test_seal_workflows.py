@@ -19,6 +19,20 @@ import pytest
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Test constants
+TEST_FITNESS = 0.9
+TEST_ACCURACY = 0.95
+TEST_LATENCY = 0.1
+TEST_POPULATION_SIZE = 10
+TEST_MAX_GENERATIONS = 5
+TEST_MUTATION_RATE = 0.1
+TEST_CROSSOVER_RATE = 0.8
+
+# Test constants for error recovery test
+ERROR_ITERATION = 2  # The iteration where we'll simulate an error
+TOTAL_ITERATIONS = 4  # Total number of iterations to run
+EXPECTED_SUCCESSFUL_ITERATIONS = 3  # Expected successful iterations (one fails)
+
 # Mock external dependencies
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
@@ -37,8 +51,8 @@ class MockSEALProvider:
         self.submit_prompt = AsyncMock(return_value="dummy response")
         self.parse_response = AsyncMock(
             return_value={
-                "fitness": 0.9,
-                "metrics": {"accuracy": 0.95, "latency": 0.1},
+                "fitness": TEST_FITNESS,
+                "metrics": {"accuracy": TEST_ACCURACY, "latency": TEST_LATENCY},
                 "passed": True,
             }
         )
@@ -112,7 +126,7 @@ async def test_seal_workflow_execution(workflow_config, mock_seal_provider):
     # Set up mock responses
     mock_seal_provider.parse_response.side_effect = [
         {"fitness": 0.8, "metrics": {"accuracy": 0.85}, "passed": True},
-        {"fitness": 0.9, "metrics": {"accuracy": 0.92}, "passed": True},
+        {"fitness": TEST_FITNESS, "metrics": {"accuracy": 0.92}, "passed": True},
         {"fitness": 0.95, "metrics": {"accuracy": 0.96}, "passed": True},
     ]
 
@@ -157,13 +171,13 @@ async def test_workflow_with_error_recovery(workflow_config):
         nonlocal call_count
         call_count += 1
         print(f"\n=== Mock parse_response called, call_count={call_count} ===")
-        if call_count == 2:  # Second call fails
+        if call_count == ERROR_ITERATION:  # Second call fails
             print("=== Raising simulated error ===")
             raise Exception("Simulated evaluation error")
         print("=== Returning success response ===")
         return {
-            "fitness": 0.9,
-            "metrics": {"accuracy": 0.95, "latency": 0.1},
+            "fitness": TEST_FITNESS,
+            "metrics": {"accuracy": TEST_ACCURACY, "latency": TEST_LATENCY},
             "passed": True,
         }
 
@@ -194,10 +208,18 @@ async def test_workflow_with_error_recovery(workflow_config):
     assert isinstance(result["final_metrics"], dict)
 
     # The workflow should have completed all iterations despite the error
-    assert call_count == 4  # 4 calls in total
-    assert mock_provider.submit_prompt.await_count == 4
-    assert mock_provider.parse_response.await_count == 4
-    assert len(workflow.results) == 3  # 3 results (one error was caught and handled)
+    assert (
+        call_count == TOTAL_ITERATIONS
+    ), f"Expected {TOTAL_ITERATIONS} total calls, got {call_count}"  # 4 calls in total
+    assert (
+        mock_provider.submit_prompt.await_count == TOTAL_ITERATIONS
+    ), f"Expected {TOTAL_ITERATIONS} submit_prompt calls, got {mock_provider.submit_prompt.await_count}"
+    assert (
+        mock_provider.parse_response.await_count == TOTAL_ITERATIONS
+    ), f"Expected {TOTAL_ITERATIONS} parse_response calls, got {mock_provider.parse_response.await_count}"
+    assert (
+        len(workflow.results) == EXPECTED_SUCCESSFUL_ITERATIONS
+    ), f"Expected {EXPECTED_SUCCESSFUL_ITERATIONS} successful results, got {len(workflow.results)}"  # 3 results (one error was caught and handled)
 
 
 # Add more test cases for specific workflow scenarios

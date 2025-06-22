@@ -1,3 +1,9 @@
+# Test constants
+TEST_FITNESS = 0.9
+TEST_ACCURACY = 0.95
+TEST_LATENCY = 0.1
+TEST_POPULATION_SIZE = 10
+
 """
 Integration tests for cross-module interactions.
 
@@ -14,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # Add project root to path
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Mock external dependencies
@@ -37,12 +43,15 @@ class MockEvolutionEngine:
 
     async def run_evolution_step(self):
         """Run a single evolution step."""
+        # Simulate calling the SEAL interface
+        response = await self.seal_interface.submit("test prompt")
+
         # Simulate a successful evolution step
         return {
             "best_program": Program(
                 id="test_prog_1", code="def test(): return 42", language="python"
             ),
-            "metrics": {"fitness": 0.9, "accuracy": 0.95},
+            "metrics": response,
         }
 
 
@@ -73,8 +82,8 @@ def mock_components():
     mock_seal_provider.submit_prompt = AsyncMock(return_value="dummy response")
     mock_seal_provider.parse_response = AsyncMock(
         return_value={
-            "fitness": 0.9,
-            "metrics": {"accuracy": 0.95, "latency": 0.1},
+            "fitness": TEST_FITNESS,
+            "metrics": {"accuracy": TEST_ACCURACY, "latency": TEST_LATENCY},
             "passed": True,
         }
     )
@@ -110,6 +119,9 @@ async def test_cross_module_workflow(mock_components):
     """Test the complete workflow across DGM, SEAL, and OpenEvolve."""
     engine = mock_components["evolution_engine"]
 
+    # Initialize the population in OpenEvolve
+    mock_components["openevolve"].initialize_population(10)
+
     # Run a single evolution step
     result = await engine.run_evolution_step()
 
@@ -117,29 +129,38 @@ async def test_cross_module_workflow(mock_components):
     assert result is not None
     assert "best_program" in result
     assert "metrics" in result
-    assert result["metrics"]["fitness"] == 0.9
+    assert result["metrics"]["fitness"] == TEST_FITNESS
 
     # Verify SEAL provider methods were called
     mock_components["mock_seal_provider"].submit_prompt.assert_called()
     mock_components["mock_seal_provider"].parse_response.assert_called()
 
     # Verify OpenEvolve state was updated
-    assert len(mock_components["openevolve"].population) > 0
+    assert len(mock_components["openevolve"].population) == TEST_POPULATION_SIZE
 
 
 @pytest.mark.asyncio
 async def test_error_handling_across_modules(mock_components):
     """Test error handling across module boundaries."""
-    # Simulate an error in SEAL evaluation
+    # Reset any previous side effects
+    mock_components["mock_seal_provider"].submit_prompt.side_effect = None
+
+    # Set up the error for the next call
     mock_components["mock_seal_provider"].submit_prompt.side_effect = Exception(
         "Test error"
     )
 
-    # Verify the error is properly caught and handled
-    with pytest.raises(Exception) as exc_info:
+    # Verify the error is properly propagated and wrapped by SEALInterface
+    with pytest.raises(
+        RuntimeError, match="SEALInterface failed after 3 retries"
+    ) as exc_info:
         await mock_components["evolution_engine"].run_evolution_step()
 
-    assert "Test error" in str(exc_info.value)
+    # Verify the original error is in the exception chain
+    assert "Test error" in str(exc_info.value.__cause__)
+
+    # Verify the SEAL interface was called (max_retries + 1 times)
+    assert mock_components["mock_seal_provider"].submit_prompt.call_count >= 1
 
 
 @pytest.mark.asyncio
