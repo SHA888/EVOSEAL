@@ -62,7 +62,7 @@ def test_invalid_fitness_metrics(temp_output_dir):
     ):
         mock_dgm.initialize_run.return_value = (["run1"], 0)
         manager = EvolutionManager(temp_output_dir)
-        
+
         # Should raise FileNotFoundError when metadata file doesn't exist
         with pytest.raises(FileNotFoundError):
             manager.get_fitness_metrics("run1")
@@ -72,7 +72,7 @@ def test_dgm_outer_raises_on_init(temp_output_dir):
     with patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm:
         # Make initialize_run raise an exception
         mock_dgm.initialize_run.side_effect = RuntimeError("DGM initialization failed")
-        
+
         # The actual error message should match what's raised by the code
         with pytest.raises(RuntimeError, match="DGM initialization failed"):
             EvolutionManager(temp_output_dir)

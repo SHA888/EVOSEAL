@@ -1,3 +1,12 @@
+# Global exclude patterns - applies to all hooks
+exclude: |
+  (?x)^(
+    dgm/|            # DGM submodule
+    openevolve/|     # OpenEvolve submodule
+    SEAL/|           # SEAL submodule
+    .*\.git/.*       # Git internals
+  )$
+
 repos:
   # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -19,6 +28,12 @@ repos:
       - id: black
         language_version: python3
         args: [--line-length=88]
+        exclude: |
+          (?x)^(
+            dgm/|
+            openevolve/|
+            SEAL/
+          )$
 
   # Python imports sorting
   - repo: https://github.com/pycqa/isort
@@ -42,3 +57,9 @@ repos:
       - id: mypy
         args: [--ignore-missing-imports, --disallow-untyped-defs]
         additional_dependencies: [types-requests, types-pyyaml]
+        exclude: |
+          (?x)^(
+            dgm/|
+            openevolve/|
+            SEAL/
+          )$
