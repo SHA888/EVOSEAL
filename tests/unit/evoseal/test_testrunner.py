@@ -1,5 +1,6 @@
 """
 Unit tests for the TestRunner class in evoseal.
+
 Covers test execution, timeout, error handling, and parallelism.
 """
 
@@ -7,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from evoseal.testrunner import TestRunner
+from evoseal.core.testrunner import TestRunner
 
 MAGIC_MAX_WORKERS = 2
 

@@ -37,10 +37,8 @@ EXPECTED_SUCCESSFUL_ITERATIONS = 3  # Expected successful iterations (one fails)
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
-from evoseal.models import Program
-
-# Import after path setup
-from evoseal.seal_interface import SEALInterface, SEALProvider
+from evoseal.core.models import Program
+from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
 
 
 # Create a mock provider class that implements the required interface

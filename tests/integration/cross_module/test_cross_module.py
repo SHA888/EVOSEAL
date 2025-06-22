@@ -27,14 +27,14 @@ sys.path.insert(0, str(project_root))
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
-from evoseal.models import Program
+from evoseal.core.models import Program
 
 # Import after path setup
-from evoseal.seal_interface import SEALInterface, SEALProvider
+from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
 
 
 # Mock the DGM and OpenEvolve imports to avoid circular dependencies
-class MockEvolutionEngine:
+class MockEvolutionEngine(EvolutionEngine):
     """Mock EvolutionEngine for testing."""
 
     def __init__(self, seal_interface, openevolve):
@@ -61,7 +61,7 @@ sys.modules["dgm.evolution"].EvolutionEngine = MockEvolutionEngine
 
 
 # Mock OpenEvolve
-class MockOpenEvolve:
+class MockOpenEvolve(OpenEvolve):
     """Mock OpenEvolve for testing."""
 
     def __init__(self, config=None):

@@ -4,7 +4,21 @@ evaluation scores, and lineage. Efficient in-memory implementation with extensib
 for persistence.
 """
 
-from typing import Any, Optional
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, TypedDict, Union
+
+# Type definitions
+VariantID = str
+VariantInfo = Dict[str, Any]
+LineageInfo = Dict[VariantID, List[VariantID]]
+VariantHistory = List[VariantID]
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 class VersionDatabase:

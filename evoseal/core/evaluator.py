@@ -4,7 +4,15 @@ code quality metrics, and configurable criteria. Supports multiple strategies an
 provides feedback on scoring.
 """
 
-from typing import Any, Callable, Optional
+from __future__ import annotations
+
+import logging
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+
+# Type variables for generic types
+T = TypeVar('T')
+EvaluationResult = Dict[str, Union[float, bool, str]]
+EvaluationResults = List[EvaluationResult]
 
 COVERAGE_THRESHOLD = 0.8
 QUALITY_THRESHOLD = 0.7

@@ -19,8 +19,15 @@ This guide provides information for developers who want to contribute to the EVO
 
 2. **Set up the development environment**:
    ```bash
-   # Install dependencies
-   poetry install
+   # Create and activate virtual environment
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+   # Install development dependencies
+   pip install -r requirements-dev.txt
+   
+   # Install package in development mode
+   pip install -e .
 
    # Install pre-commit hooks
    pre-commit install
@@ -31,23 +38,76 @@ This guide provides information for developers who want to contribute to the EVO
    git checkout -b feature/your-feature-name
    ```
 
-## Code Style
+## Code Style and Quality
 
-We use the following tools to maintain code quality:
+We maintain high code quality using several tools:
 
-- **Black** for code formatting
-- **isort** for import sorting
-- **Flake8** for linting
-- **Mypy** for type checking
+### Pre-commit Hooks
+Automatically run on each commit:
+- **Black** - Code formatting
+- **isort** - Import sorting
+- **Ruff** - Linting and style enforcement
+- **Mypy** - Static type checking
+- **Blacken-docs** - Format code in documentation
 
-These are automatically run on commit via pre-commit hooks.
+### Manual Checks
+Run these before pushing:
+```bash
+# Format code with Black
+black .
+
+
+# Sort imports
+isort .
+
+
+# Run type checking
+mypy .
+
+
+# Run linter
+ruff check .
+```
+
+### Pre-commit Installation
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install git hooks
+pre-commit install
+```
+
+## Project Structure
+
+```
+evoseal/
+├── core/               # Core framework components
+├── integration/        # Integration modules (DGM, OpenEvolve, SEAL)
+├── models/            # Data models
+├── providers/         # AI/ML model providers
+├── storage/           # Data persistence
+├── utils/             # Utility functions
+└── examples/          # Example scripts and templates
+```
 
 ## Testing
 
 Run the test suite with:
 
 ```bash
+# Run all tests
 pytest
+
+# Run unit tests only
+pytest tests/unit/
+
+# Run integration tests
+pytest tests/integration/
+
+# Run tests with coverage
+pytest --cov=evoseal tests/
+```
 ```
 
 ## Documentation
@@ -58,13 +118,39 @@ We use MkDocs with the Material theme for documentation. To serve the docs local
 mkdocs serve
 ```
 
-## Pull Requests
+## Development Workflow
 
+### Using Task Master
+We use `task-master` for task management:
+
+```bash
+# List all tasks
+task-master list
+
+# Show details of a task
+task-master show <task_id>
+
+# Mark a task as done
+task-master set-status --id=<task_id> --status=done
+
+# Generate task files
+task-master generate
+```
+
+### Pull Request Process
 1. Ensure all tests pass
 2. Update documentation as needed
-3. Add/update unit tests
-4. Run pre-commit checks
-5. Open a PR with a clear description of changes
+3. Run pre-commit checks
+4. Create a pull request with:
+   - Clear description of changes
+   - Related issue numbers
+   - Screenshots if applicable
+   - Updated documentation
+
+### Versioning
+- We follow [Semantic Versioning](https://semver.org/)
+- Update version in `evoseal/__version__.py`
+- Update `CHANGELOG.md` with release notes
 
 ## Code Review Process
 

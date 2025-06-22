@@ -34,9 +34,10 @@ sys.modules["openevolve.prompt.templates"] = MagicMock()
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from evoseal.seal_interface import SEALInterface
-from evoseal.dgm.data_adapter import DGMDataAdapter
-from integration.dgm.evolution_manager import EvolutionManager
+from evoseal.core.models import Program, EvaluationResult
+from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
+from evoseal.integration.dgm.evolution import EvolutionEngine, EvolutionConfig
+from evoseal.agents.agentic_system import AgenticSystem
 
 
 @pytest.fixture

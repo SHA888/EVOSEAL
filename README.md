@@ -25,6 +25,7 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 - 📝 Comprehensive documentation
 - 🧪 Test coverage and CI/CD ready
 - 🔒 Secure and privacy-focused
+- 🏗️ Modular architecture with clear separation of concerns
 
 ## Quick Start
 
@@ -42,8 +43,59 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Install in development mode
+pip install -e .
+
 # Run the basic example
-python examples/quickstart.py
+python -m evoseal.examples.basic.quickstart
+```
+
+## Project Templates
+
+Start a new project using our template:
+
+```bash
+# Copy the template to a new directory
+cp -r evoseal/examples/templates/basic my_project
+cd my_project
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+## Project Structure
+
+```
+evoseal/
+├── core/                    # Core framework components
+│   ├── __init__.py          # Package initialization
+│   ├── controller.py        # Main orchestration logic
+│   ├── evaluator.py         # Fitness evaluation
+│   ├── selection.py         # Selection algorithms
+│   └── version_database.py  # Tracking program versions
+│
+├── integration/            # Integration modules
+│   ├── dgm/                # Darwin Godel Machine
+│   ├── openevolve/         # OpenEvolve framework
+│   └── seal/               # SEAL interface
+│
+├── agents/                # Agent implementations
+│   ├── __init__.py
+│   ├── agentic_system.py
+│   └── agentic_workflow_agent.py
+│
+├── providers/             # AI/ML model providers
+│   ├── __init__.py
+│   └── seal_providers.py
+│
+├── models/                # Data models and schemas
+├── storage/                # Data persistence
+└── utils/                  # Utility functions
+
+tests/                     # Test suite
+├── integration/            # Integration tests
+├── unit/                   # Unit tests
+└── regression/             # Regression tests
 ```
 
 For detailed installation and usage instructions, see the [Documentation](https://sha888.github.io/EVOSEAL/).
@@ -192,7 +244,17 @@ For more detailed information, run `evoseal --help` or `evoseal [COMMAND] --help
 
 ## Documentation
 
-Comprehensive documentation is available at [https://sha888.github.io/EVOSEAL/](https://sha888.github.io/EVOSEAL/), including:
+For detailed documentation, please visit [https://sha888.github.io/EVOSEAL/](https://sha888.github.io/EVOSEAL/).
+
+### Key Components
+
+- **Core**: Contains the main evolutionary algorithms and orchestration logic
+- **Integration**: Modules for integrating with external systems (DGM, OpenEvolve, SEAL)
+- **Agents**: Implements different agent behaviors and workflows
+- **Providers**: Interfaces to various AI/ML model providers
+- **Models**: Data structures and schemas used throughout the system
+- **Storage**: Persistence layer for programs and metadata
+- **Utils**: Shared utility functions and helpers
 
 - [User Guide](https://sha888.github.io/EVOSEAL/user/manual/)
 - [API Reference](https://sha888.github.io/EVOSEAL/api/)

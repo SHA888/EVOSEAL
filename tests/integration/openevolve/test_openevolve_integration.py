@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from evoseal.cli.main import app
+from evoseal.integration.openevolve.cli.main import app
 
 # Constants for test values
 GENERATIONS = 5

@@ -37,11 +37,66 @@ Welcome to the EVOSEAL User Manual. This document provides comprehensive informa
    pip install -r requirements.txt
    ```
 
-## Configuration
+4. **Install in Development Mode**
+   ```bash
+   pip install -e .
+   ```
 
-### Environment Variables
+## Project Structure
 
-Create a `.env` file in the project root with the following variables:
+EVOSEAL follows a modular structure:
+
+```
+evoseal/
+├── core/               # Core framework components
+├── integration/        # Integration modules (DGM, OpenEvolve, SEAL)
+├── models/            # Data models
+├── providers/         # AI/ML model providers
+├── storage/           # Data persistence
+├── utils/             # Utility functions
+└── examples/          # Example scripts and templates
+    ├── basic/        # Basic usage examples
+    ├── workflows/    # Workflow examples
+    └── templates/   # Project templates
+```
+
+## Basic Usage
+
+### Running Examples
+
+EVOSEAL provides several example scripts to help you get started:
+
+1. **Quickstart Example**
+   ```bash
+   python -m evoseal.examples.basic.quickstart
+   ```
+
+2. **Logging Example**
+   ```bash
+   python -m evoseal.examples.basic.logging_example
+   ```
+
+3. **Basic Usage Example**
+   ```bash
+   python -m evoseal.examples.basic.basic_usage
+   ```
+
+### Using Project Templates
+
+Start a new project using our template:
+
+```bash
+# Copy the template to a new directory
+cp -r evoseal/examples/templates/basic my_project
+cd my_project
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Configuration
+
+Create a `.env` file in your project root with the following variables:
 
 ```ini
 # Required

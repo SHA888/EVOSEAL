@@ -29,6 +29,20 @@ This project and everyone participating in it is governed by our [Code of Conduc
    ```
 3. **Set up** the development environment
    ```bash
+   # Create and activate virtual environment
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   
+   # Install development dependencies
+   pip install -r requirements-dev.txt
+   
+   # Install package in development mode
+   pip install -e .
+   
+   # Install pre-commit hooks
+   pre-commit install
+   ```
+   ```bash
    python -m venv venv
    source .venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements/dev.txt
@@ -51,44 +65,99 @@ This project and everyone participating in it is governed by our [Code of Conduc
 
 ## Development Workflow
 
-1. Create a new branch for your feature or bugfix
+### Task Management
+
+We use `task-master` to manage development tasks. Before starting work:
+
+1. Check available tasks:
+   ```bash
+   task-master list
+   ```
+
+2. Select a task to work on and mark it as in progress:
+   ```bash
+   task-master set-status --id=<task_id> --status=in-progress
+   ```
+
+### Making Changes
+
+1. Create a new branch for your feature or bugfix:
    ```bash
    git checkout -b feature/your-feature-name
    # or
-   git checkout -b bugfix/issue-number-short-description
+   git checkout -b fix/issue-number-description
    ```
 
 2. Make your changes following the code style guidelines
 
-3. Run tests and ensure they pass
+3. Run tests to ensure everything works:
    ```bash
+   # Run all tests
    pytest
+   
+   # Run tests with coverage
+   pytest --cov=evoseal
+   
+   # Run specific test file
+   pytest tests/unit/test_module.py
    ```
 
-4. Commit your changes with a descriptive message
+4. Update documentation if needed
+
+5. Run pre-commit checks:
    ```bash
-   git commit -m "feat: add new feature"
-   # or
-   git commit -m "fix: resolve issue with xyz"
+   pre-commit run --all-files
    ```
 
-5. Push your branch to your fork
+6. Commit your changes with a descriptive message:
+   ```bash
+   git commit -m "feat: add new feature for X"
+   ```
+   
+   Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+
+7. Push your branch to GitHub:
    ```bash
    git push origin your-branch-name
    ```
 
-6. Open a Pull Request against the `main` branch
+8. Open a Pull Request against the `main` branch
+
+9. After PR is merged, mark the task as done:
+   ```bash
+   task-master set-status --id=<task_id> --status=done
+   ```
 
 ## Code Style
 
-We use the following tools to maintain code quality:
+We enforce code style using several tools:
 
+### Formatting
 - **Black** for code formatting
 - **isort** for import sorting
-- **Flake8** for linting
+- **Ruff** for linting
 - **Mypy** for type checking
 
-These are automatically run on commit via pre-commit hooks.
+### Guidelines
+- Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide
+- Use type hints for all function signatures
+- Keep lines under 88 characters
+- Use double quotes for strings
+- Use absolute imports
+- Document all public APIs with docstrings
+
+### Pre-commit Hooks
+We use pre-commit to automatically run these checks before each commit. To set up:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+To run checks manually:
+```bash
+pre-commit run --all-files
+```
 
 ## Testing
 
