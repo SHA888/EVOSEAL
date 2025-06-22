@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import logging
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar, Union
+from typing import Any, Protocol, TypeVar
 
 # Type variables for generic types
-T = TypeVar('T')
-Individual = Dict[str, Any]
-Population = List[Individual]
+T = TypeVar("T")
+Individual = dict[str, Any]
+Population = list[Individual]
 
 # Constants
 DEFAULT_TOURNAMENT_SIZE = 3
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class SelectionAlgorithm:
-    def __init__(self, strategies: Optional[dict[str, Callable]] = None) -> None:
+    def __init__(self, strategies: dict[str, Callable[..., Any]] | None = None) -> None:
         self.strategies = strategies or {
             "tournament": self.tournament_selection,
             "roulette": self.roulette_wheel_selection,

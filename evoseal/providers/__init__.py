@@ -4,6 +4,6 @@ This module contains implementations of various AI/ML model providers that can b
 with EVOSEAL for code generation and analysis.
 """
 
-from evoseal.providers.seal_providers import SEALProvider  # noqa: F401
+from evoseal.providers.seal_providers import SEALProvider
 
-__all__ = ['SEALProvider']
+__all__ = ["SEALProvider"]

@@ -21,8 +21,8 @@ sys.path.insert(0, str(project_root))
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
-from evoseal.models import Program
 from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
+from evoseal.models import Program
 
 # Test constants
 TEST_FITNESS = 0.9

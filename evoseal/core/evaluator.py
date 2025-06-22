@@ -6,24 +6,38 @@ provides feedback on scoring.
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from collections.abc import Callable
+from typing import Any, TypedDict, TypeVar
 
 # Type variables for generic types
-T = TypeVar('T')
-EvaluationResult = Dict[str, Union[float, bool, str]]
-EvaluationResults = List[EvaluationResult]
+T = TypeVar("T")
+
+
+# Type aliases for better readability
+class EvaluationResult(TypedDict, total=False):
+    """Type definition for evaluation results."""
+
+    success: bool
+    score: float
+    metrics: dict[str, float]
+    feedback: str
+
 
 COVERAGE_THRESHOLD = 0.8
 QUALITY_THRESHOLD = 0.7
 
 
 class Evaluator:
+    """Evaluates code variants based on test results and quality metrics."""
+
     def __init__(
         self,
-        strategies: Optional[dict[str, Callable]] = None,
-        default_weights: Optional[dict[str, float]] = None,
-    ):
+        strategies: (
+            dict[str, Callable[[dict[str, Any], dict[str, float]], dict[str, Any]]]
+            | None
+        ) = None,
+        default_weights: dict[str, float] | None = None,
+    ) -> None:
         self.strategies = strategies or {"default": self.default_strategy}
         self.default_weights = default_weights or {
             "pass_rate": 0.7,
@@ -35,7 +49,7 @@ class Evaluator:
         self,
         test_results: list[dict[str, Any]],
         strategy: str = "default",
-        weights: Optional[dict[str, float]] = None,
+        weights: dict[str, float] | None = None,
     ) -> list[dict[str, Any]]:
         """
         Calculate fitness scores for each code variant based on test results and metrics.

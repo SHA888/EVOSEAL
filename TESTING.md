@@ -106,10 +106,10 @@ def test_controller_initialization():
     # Arrange
     mock_evaluator = Mock()
     mock_selector = Mock()
-    
+
     # Act
     controller = Controller(evaluator=mock_evaluator, selector=mock_selector)
-    
+
     # Assert
     assert controller.evaluator == mock_evaluator
     assert controller.selector == mock_selector

@@ -5,8 +5,10 @@ Manages initialization, generations, coordination between TestRunner and Evaluat
 candidate selection, and provides CLI/system interfaces.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from evoseal.core.evaluator import Evaluator
@@ -15,15 +17,18 @@ if TYPE_CHECKING:
 
 class Controller:
     def __init__(
-        self, test_runner: Any, evaluator: Any, logger: Optional[logging.Logger] = None
-    ):
+        self,
+        test_runner: TestRunner,
+        evaluator: Evaluator,
+        logger: logging.Logger | None = None,
+    ) -> None:
         self.test_runner = test_runner
         self.evaluator = evaluator
         self.logger = logger or logging.getLogger(__name__)
         self.current_generation = 0
         self.state: dict[str, Any] = {}
 
-    def initialize(self, config: dict) -> None:
+    def initialize(self, config: dict[str, Any]) -> None:
         """Initialize the evolutionary process with the given configuration."""
         self.logger.info("Initializing evolutionary process with config: %s", config)
         self.state = {"config": config, "generations": []}

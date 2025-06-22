@@ -32,13 +32,13 @@ This project and everyone participating in it is governed by our [Code of Conduc
    # Create and activate virtual environment
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   
+
    # Install development dependencies
    pip install -r requirements-dev.txt
-   
+
    # Install package in development mode
    pip install -e .
-   
+
    # Install pre-commit hooks
    pre-commit install
    ```
@@ -94,10 +94,10 @@ We use `task-master` to manage development tasks. Before starting work:
    ```bash
    # Run all tests
    pytest
-   
+
    # Run tests with coverage
    pytest --cov=evoseal
-   
+
    # Run specific test file
    pytest tests/unit/test_module.py
    ```
@@ -113,7 +113,7 @@ We use `task-master` to manage development tasks. Before starting work:
    ```bash
    git commit -m "feat: add new feature for X"
    ```
-   
+
    Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 
 7. Push your branch to GitHub:
