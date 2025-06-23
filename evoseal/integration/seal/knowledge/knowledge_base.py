@@ -5,10 +5,12 @@ This module provides the KnowledgeBase class for structured storage and retrieva
 of knowledge in the SEAL system.
 """
 
+import fcntl
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from threading import Lock
 from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
 
@@ -21,8 +23,8 @@ class KnowledgeEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     content: Any
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
     tags: List[str] = Field(default_factory=list)
 
@@ -31,7 +33,7 @@ class KnowledgeEntry(BaseModel):
         self.content = new_content
         if metadata is not None:
             self.metadata.update(metadata)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         self.version += 1
 
 
@@ -47,55 +49,37 @@ class KnowledgeBase:
     5. Persistence to disk
     """
     
-    def __init__(self, storage_path: Optional[Union[str, Path]] = None):
-        """Initialize the KnowledgeBase.
-        
-        Args:
-            storage_path: Optional path to persist the knowledge base.
-                         If None, the knowledge base will be in-memory only.
-        """
-        self.storage_path = Path(storage_path) if storage_path else None
+    def __init__(self, storage_path: str):
+        """Initialize the knowledge base with a storage path."""
+        self.storage_path = storage_path
         self.entries: Dict[str, KnowledgeEntry] = {}
+        self._lock = Lock()
+        self._file_lock = Lock()  # For file operations
         self._initialize_storage()
     
     def _initialize_storage(self) -> None:
         """Initialize storage by loading from disk if path exists."""
-        if self.storage_path and self.storage_path.exists():
+        if self.storage_path and os.path.exists(self.storage_path):
             self.load_from_disk(self.storage_path)
     
     def add_entry(
         self,
         content: Any,
-        entry_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        entry_id: Optional[str] = None
     ) -> str:
-        """Add a new entry to the knowledge base.
-        
-        Args:
-            content: The content to store (can be any JSON-serializable object)
-            entry_id: Optional ID for the entry. If not provided, a UUID will be generated.
-            metadata: Optional metadata for the entry.
-            tags: Optional list of tags for the entry.
-            
-        Returns:
-            str: The ID of the created entry.
-        """
-        if metadata is None:
-            metadata = {}
-        if tags is None:
-            tags = []
-            
-        entry = KnowledgeEntry(
-            id=entry_id or str(uuid4()),
-            content=content,
-            metadata=metadata,
-            tags=tags
-        )
-        
-        self.entries[entry.id] = entry
-        self._save_to_disk()
-        return entry.id
+        """Add a new entry to the knowledge base in a thread-safe manner."""
+        with self._lock:  # Use lock for thread safety
+            entry = KnowledgeEntry(
+                id=entry_id or str(uuid4()),
+                content=content,
+                metadata=metadata or {},
+                tags=tags or []
+            )
+            self.entries[entry.id] = entry
+            self._save_to_disk()
+            return entry.id
     
     def get_entry(self, entry_id: str) -> Optional[KnowledgeEntry]:
         """Retrieve an entry by its ID.
@@ -133,7 +117,7 @@ class KnowledgeBase:
             entry.update(new_content, metadata)
         elif metadata is not None:
             entry.metadata.update(metadata)
-            entry.updated_at = datetime.utcnow()
+            entry.updated_at = datetime.now(timezone.utc)
         
         self._save_to_disk()
         return True
@@ -214,7 +198,7 @@ class KnowledgeBase:
             
         if tag not in self.entries[entry_id].tags:
             self.entries[entry_id].tags.append(tag)
-            self.entries[entry_id].updated_at = datetime.utcnow()
+            self.entries[entry_id].updated_at = datetime.now(timezone.utc)
             self._save_to_disk()
         return True
     
@@ -233,7 +217,7 @@ class KnowledgeBase:
             
         if tag in self.entries[entry_id].tags:
             self.entries[entry_id].tags.remove(tag)
-            self.entries[entry_id].updated_at = datetime.utcnow()
+            self.entries[entry_id].updated_at = datetime.now(timezone.utc)
             self._save_to_disk()
             return True
         return False
@@ -245,18 +229,32 @@ class KnowledgeBase:
             path: Optional path to save to. If not provided, uses the storage_path
                   provided at initialization.
         """
-        if path is None and self.storage_path is None:
+        save_path = str(path) if path is not None else self.storage_path
+        if not save_path:
             raise ValueError("No storage path provided")
             
-        save_path = Path(path) if path else self.storage_path
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        data = {
-            'entries': [entry.model_dump() for entry in self.entries.values()]
-        }
-        
-        with open(save_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, default=str, indent=2)
+        with self._file_lock:
+            try:
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
+                
+                # Use exclusive lock for writing
+                with open(save_path, 'w') as f:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock
+                    try:
+                        data = {
+                            'entries': [
+                                entry.model_dump()
+                                for entry in self.entries.values()
+                            ]
+                        }
+                        json.dump(data, f, indent=2, default=str)
+                        f.flush()
+                        os.fsync(f.fileno())  # Ensure data is written to disk
+                    finally:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
+            except Exception as e:
+                raise RuntimeError(f"Failed to save knowledge base: {e}")
     
     def load_from_disk(self, path: Union[str, Path]) -> None:
         """Load the knowledge base from disk.
@@ -264,23 +262,42 @@ class KnowledgeBase:
         Args:
             path: Path to the knowledge base file.
         """
-        path = Path(path)
-        if not path.exists():
+        path = str(path)
+        if not os.path.exists(path):
             return
             
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        self.entries = {}
-        for entry_data in data.get('entries', []):
-            # Handle datetime deserialization
-            if 'created_at' in entry_data and isinstance(entry_data['created_at'], str):
-                entry_data['created_at'] = datetime.fromisoformat(entry_data['created_at'])
-            if 'updated_at' in entry_data and isinstance(entry_data['updated_at'], str):
-                entry_data['updated_at'] = datetime.fromisoformat(entry_data['updated_at'])
-            
-            entry = KnowledgeEntry(**entry_data)
-            self.entries[entry.id] = entry
+        with self._file_lock:
+            try:
+                with open(path, 'r') as f:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_SH)  # Shared lock for reading
+                    try:
+                        data = json.load(f)
+                        entries = {}
+                        for entry_data in data.get('entries', []):
+                            # Handle datetime deserialization
+                            if 'created_at' in entry_data and isinstance(entry_data['created_at'], str):
+                                entry_data['created_at'] = datetime.fromisoformat(entry_data['created_at'])
+                            if 'updated_at' in entry_data and isinstance(entry_data['updated_at'], str):
+                                entry_data['updated_at'] = datetime.fromisoformat(entry_data['updated_at'])
+                            
+                            entry = KnowledgeEntry(**entry_data)
+                            entries[entry.id] = entry
+                        
+                        # Update entries in a thread-safe way
+                        with self._lock:
+                            self.entries = entries
+                    except json.JSONDecodeError:
+                        # If file is empty or corrupted, start with empty knowledge base
+                        with self._lock:
+                            self.entries = {}
+                    finally:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
+            except FileNotFoundError:
+                # File was deleted between existence check and opening
+                with self._lock:
+                    self.entries = {}
+            except Exception as e:
+                raise RuntimeError(f"Failed to load knowledge base: {e}")
     
     def _save_to_disk(self) -> None:
         """Internal method to save to the default storage path if configured."""
@@ -289,12 +306,14 @@ class KnowledgeBase:
     
     def clear(self) -> None:
         """Clear all entries from the knowledge base."""
-        self.entries.clear()
-        self._save_to_disk()
+        with self._lock:
+            self.entries.clear()
+            self._save_to_disk()
     
     def __len__(self) -> int:
         """Return the number of entries in the knowledge base."""
-        return len(self.entries)
+        with self._lock:
+            return len(self.entries)
     
     def get_all_entries(self) -> List[KnowledgeEntry]:
         """Get all entries in the knowledge base.
@@ -302,7 +321,8 @@ class KnowledgeBase:
         Returns:
             List[KnowledgeEntry]: List of all entries.
         """
-        return list(self.entries.values())
+        with self._lock:
+            return list(self.entries.values())
 
 
 # Example usage
