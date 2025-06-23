@@ -57,7 +57,7 @@ class FewShotLearner:
     
     def __init__(
         self,
-        base_model_name: str = "meta-llama/Llama-3.2-1B-Instruct",
+        base_model_name: str = "gpt2",
         lora_rank: int = 16,
         lora_alpha: int = 32,
         lora_dropout: float = 0.05,
@@ -78,12 +78,14 @@ class FewShotLearner:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.cache_dir = str(cache_dir) if cache_dir else None
         
-        # Store configuration
+        # Default LoRA configuration for GPT-2
         self.lora_config = {
             "r": lora_rank,
             "lora_alpha": lora_alpha,
             "lora_dropout": lora_dropout,
-            "task_type": "CAUSAL_LM"
+            "bias": "none",
+            "task_type": "CAUSAL_LM",
+            "target_modules": ["c_attn", "c_proj"],  # Target attention layers for GPT-2
         }
         
         # Initialize storage for examples
@@ -134,12 +136,26 @@ class FewShotLearner:
         self.model.print_trainable_parameters()
         self.is_initialized = True
     
-    def add_example(self, example: FewShotExample) -> None:
+    def add_example(self, example: Union[Dict[str, Any], FewShotExample]) -> None:
         """Add a new few-shot example to the learner.
         
         Args:
-            example: The FewShotExample to add
+            example: The FewShotExample or dictionary with 'input' and 'output' keys to add
+            
+        Raises:
+            ValueError: If the example format is invalid
         """
+        if isinstance(example, dict):
+            if 'input' not in example or 'output' not in example:
+                raise ValueError("Example must contain 'input' and 'output' keys")
+            example = FewShotExample(
+                input_data=example['input'],
+                output_data=example['output'],
+                metadata=example.get('metadata', {})
+            )
+        elif not isinstance(example, FewShotExample):
+            raise ValueError("Example must be a FewShotExample or a dictionary with 'input' and 'output' keys")
+            
         self.examples.append(example)
     
     def remove_example(self, index: int) -> None:
@@ -377,8 +393,12 @@ class FewShotLearner:
             logging_steps=logging_steps,
             save_steps=save_steps,
             save_total_limit=3,
-            load_best_model_at_end=True,
-            evaluation_strategy="no",
+            # Disable load_best_model_at_end since we're not doing evaluation
+            load_best_model_at_end=False,
+            # Set save strategy to steps
+            save_strategy="steps",
+            # Set logging strategy to steps
+            logging_strategy="steps",
             logging_dir=f"{output_dir}/logs",
             **training_kwargs
         )
