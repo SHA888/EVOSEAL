@@ -9,6 +9,7 @@ mypy==1.10.0
 pylint==3.1.0
 ruff==0.4.7
 pre-commit==3.6.0
+typer>=0.12.0  # For CLI development
 
 # Testing
 pytest==8.2.0
@@ -31,6 +32,8 @@ types-tqdm>=4.67.0  # For tqdm type hints
 # Testing utilities for PyTorch and Transformers
 pytest-timeout==2.3.1  # For timing out long-running tests
 parameterized==0.9.0  # For parameterized testing
+pytest-mock==3.12.0  # For mocking in tests
+pytest-cov==5.0.0  # For test coverage reporting
 
 # Security tools
 safety>=2.0.0,<3.0.0  # Version compatible with Pydantic 2.x
