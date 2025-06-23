@@ -35,15 +35,17 @@ def test_knowledge_entry_update():
     assert entry.updated_at > old_updated_at
 
 
-def test_knowledge_base_initialization():
+def test_knowledge_base_initialization(tmp_path):
     """Test initializing a KnowledgeBase."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_init.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     assert len(kb) == 0
 
 
-def test_add_and_get_entry():
+def test_add_and_get_entry(tmp_path):
     """Test adding and retrieving an entry."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_add_get.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     entry_id = kb.add_entry("Test content", tags=["test"])
     
     entry = kb.get_entry(entry_id)
@@ -52,9 +54,10 @@ def test_add_and_get_entry():
     assert "test" in entry.tags
 
 
-def test_update_entry():
+def test_update_entry(tmp_path):
     """Test updating an entry."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_update.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     entry_id = kb.add_entry("Old content")
     
     updated = kb.update_entry(entry_id, "New content", {"source": "test"})
@@ -66,9 +69,10 @@ def test_update_entry():
     assert entry.version == 2
 
 
-def test_delete_entry():
+def test_delete_entry(tmp_path):
     """Test deleting an entry."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_delete.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     entry_id = kb.add_entry("Test content")
     
     deleted = kb.delete_entry(entry_id)
@@ -76,9 +80,10 @@ def test_delete_entry():
     assert kb.get_entry(entry_id) is None
 
 
-def test_search_entries():
+def test_search_entries(tmp_path):
     """Test searching for entries."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_search.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     
     # Add test entries
     kb.add_entry("Python is a programming language", tags=["programming", "python"])
@@ -123,9 +128,10 @@ def test_save_and_load(tmp_path: Path):
     assert any(entry.content == "Test content 2" for entry in results)
 
 
-def test_add_remove_tags():
+def test_add_remove_tags(tmp_path):
     """Test adding and removing tags from entries."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_tags.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     entry_id = kb.add_entry("Test content")
     
     # Add tags
@@ -144,9 +150,10 @@ def test_add_remove_tags():
     assert kb.remove_tag(entry_id, "nonexistent") is False
 
 
-def test_clear():
+def test_clear(tmp_path):
     """Test clearing the knowledge base."""
-    kb = KnowledgeBase()
+    storage_path = str(tmp_path / "test_kb_clear.db")
+    kb = KnowledgeBase(storage_path=storage_path)
     kb.add_entry("Test 1")
     kb.add_entry("Test 2")
     
