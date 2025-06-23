@@ -402,7 +402,7 @@
             "description": "Create the FewShotLearner class that handles few-shot learning capabilities for the SEAL implementation.",
             "dependencies": [],
             "details": "Develop a FewShotLearner class that can: 1) Store and manage example patterns, 2) Select relevant examples based on input context, 3) Format examples for inclusion in prompts, 4) Implement methods for adding/removing examples programmatically, 5) Include configuration options for example selection strategies.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 2,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-22T22:43:53.564Z",
+      "updated": "2025-06-23T08:13:12.918Z",
       "description": "Tasks for master context"
     }
   }
