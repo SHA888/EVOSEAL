@@ -1,6 +1,9 @@
 # Core Dependencies
 python-dotenv==1.1.0
 PyYAML==6.0.2
+pydantic==2.11.7
+pydantic-core==2.33.2  # Must match pydantic's requirement
+typing-extensions>=4.2.0  # Required by PyTorch, Transformers, and KnowledgeBase
 
 # Data Processing & Scientific Computing
 numpy>=1.20.0,<2.0.0  # Required by PyTorch and Transformers

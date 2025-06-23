@@ -410,7 +410,7 @@
             "description": "Implement the KnowledgeBase class to store and retrieve knowledge for the SEAL system.",
             "dependencies": [],
             "details": "Create a KnowledgeBase class that: 1) Provides structured storage for domain knowledge, 2) Implements efficient retrieval mechanisms, 3) Supports different knowledge formats (text, structured data), 4) Includes methods for knowledge update and maintenance, 5) Handles versioning of knowledge entries.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 3,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-23T08:13:12.918Z",
+      "updated": "2025-06-23T22:55:53.470Z",
       "description": "Tasks for master context"
     }
   }
