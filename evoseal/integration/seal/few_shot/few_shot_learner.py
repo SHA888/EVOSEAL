@@ -2,7 +2,39 @@
 FewShotLearner module for handling few-shot learning capabilities in EVOSEAL.
 
 This module provides a flexible interface for few-shot learning that can be used
-with various language models and adapters.
+with various language models and adapters. It supports:
+
+1. Multiple example selection strategies (first_k, random, similarity-based)
+2. Various similarity metrics (cosine, euclidean, jaccard)
+3. Fine-grained example management
+4. Model fine-tuning with LoRA
+5. Prompt formatting and generation
+
+Example usage:
+    ```python
+    from evoseal.integration.seal.few_shot import FewShotLearner, FewShotExample
+    
+    # Initialize the learner
+    learner = FewShotLearner()
+    
+    # Add examples
+    learner.add_example({
+        'input': 'How do I reset my password?',
+        'output': 'You can reset your password by...',
+        'metadata': {'source': 'faq', 'category': 'account'}
+    })
+    
+    # Get relevant examples for a query
+    examples = learner.get_relevant_examples(
+        'I forgot my password',
+        strategy='similarity',
+        similarity_metric='cosine',
+        k=3
+    )
+    
+    # Generate a response
+    response = learner.generate('How can I recover my account?')
+    ```
 """
 
 from dataclasses import dataclass, field
@@ -97,44 +129,101 @@ class FewShotLearner:
         self.is_initialized = False
     
     def _initialize_model(self) -> None:
-        """Initialize the model and tokenizer if not already done."""
+        """Initialize the model and tokenizer if not already done.
+        
+        This method initializes the tokenizer and model with the specified configuration,
+        and sets up LoRA for parameter-efficient fine-tuning.
+        
+        Raises:
+            ImportError: If required packages are not installed
+            OSError: If model files cannot be loaded
+            RuntimeError: If there's an error during model initialization
+            ValueError: If the model configuration is invalid
+        """
         if self.is_initialized:
             return
             
         logger.info(f"Initializing model: {self.base_model_name}")
         
-        # Initialize tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.base_model_name,
-            cache_dir=self.cache_dir,
-            padding_side="left"
-        )
-        
-        if not self.tokenizer.pad_token:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        
-        # Initialize model
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.base_model_name,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto",
-            cache_dir=self.cache_dir,
-            trust_remote_code=True
-        )
-        
-        # Initialize LoRA
-        lora_config = LoraConfig(
-            r=self.lora_config["r"],
-            lora_alpha=self.lora_config["lora_alpha"],
-            lora_dropout=self.lora_config["lora_dropout"],
-            bias="none",
-            task_type=self.lora_config["task_type"],
-            target_modules=["q_proj", "v_proj"]  # Common for LLaMA models
-        )
-        
-        self.model = get_peft_model(self.model, lora_config)
-        self.model.print_trainable_parameters()
-        self.is_initialized = True
+        try:
+            # Initialize tokenizer
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.base_model_name,
+                    cache_dir=self.cache_dir,
+                    padding_side="left"
+                )
+                
+                if not self.tokenizer.pad_token:
+                    self.tokenizer.pad_token = self.tokenizer.eos_token
+                    
+            except Exception as e:
+                logger.error(f"Failed to initialize tokenizer: {str(e)}")
+                raise RuntimeError(f"Failed to initialize tokenizer: {str(e)}") from e
+            
+            # Initialize model
+            try:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    self.base_model_name,
+                    torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+                    device_map="auto" if torch.cuda.is_available() else None,
+                    cache_dir=self.cache_dir,
+                    trust_remote_code=True
+                )
+            except ImportError as e:
+                logger.error(f"Missing required dependencies: {str(e)}")
+                raise ImportError(
+                    f"Failed to load model {self.base_model_name}. "
+                    "Make sure all required dependencies are installed."
+                ) from e
+            except OSError as e:
+                logger.error(f"Model files not found: {str(e)}")
+                raise OSError(
+                    f"Could not find model files for {self.base_model_name}. "
+                    "Check if the model name is correct and you have an internet connection."
+                ) from e
+            
+            # Initialize LoRA
+            try:
+                lora_config = LoraConfig(
+                    r=self.lora_config["r"],
+                    lora_alpha=self.lora_config["lora_alpha"],
+                    lora_dropout=self.lora_config["lora_dropout"],
+                    bias="none",
+                    task_type=self.lora_config["task_type"],
+                    target_modules=["c_attn", "c_proj"]  # For GPT-2 architecture
+                )
+                
+                self.model = get_peft_model(self.model, lora_config)
+                
+                # Log trainable parameters
+                trainable_params = sum(
+                    p.numel() for p in self.model.parameters() if p.requires_grad
+                )
+                total_params = sum(
+                    p.numel() for p in self.model.parameters()
+                )
+                logger.info(
+                    f"Trainable params: {trainable_params:,} || "
+                    f"All params: {total_params:,} || "
+                    f"Trainable%: {100 * trainable_params / total_params:.2f}%"
+                )
+                
+                self.is_initialized = True
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize LoRA: {str(e)}")
+                raise RuntimeError(
+                    f"Failed to initialize LoRA adapters: {str(e)}. "
+                    "Check if the target modules are correct for your model architecture."
+                ) from e
+                
+        except Exception as e:
+            self.model = None
+            self.tokenizer = None
+            self.is_initialized = False
+            logger.error(f"Model initialization failed: {str(e)}")
+            raise
     
     def add_example(self, example: Union[Dict[str, Any], FewShotExample]) -> None:
         """Add a new few-shot example to the learner.
@@ -173,13 +262,99 @@ class FewShotLearner:
             raise IndexError(f"Index {index} out of range for examples list (length: {len(self.examples)})")
     
     def clear_examples(self) -> None:
-        """Remove all stored examples."""
+        """Remove all stored examples.
+        
+        Returns:
+            int: Number of examples removed
+        """
+        count = len(self.examples)
         self.examples = []
+        return count
+        
+    def get_example(self, index: int) -> FewShotExample:
+        """Get a specific example by index.
+        
+        Args:
+            index: Index of the example to retrieve
+            
+        Returns:
+            The requested FewShotExample
+            
+        Raises:
+            IndexError: If index is out of range
+        """
+        if 0 <= index < len(self.examples):
+            return self.examples[index]
+        raise IndexError(f"Index {index} out of range for examples list (length: {len(self.examples)})")
+    
+    def update_example(self, index: int, new_example: Union[Dict[str, Any], FewShotExample]) -> None:
+        """Update an existing example.
+        
+        Args:
+            index: Index of the example to update
+            new_example: New example data to replace the existing one
+            
+        Raises:
+            IndexError: If index is out of range
+            ValueError: If the new example format is invalid
+        """
+        if isinstance(new_example, dict):
+            if 'input' not in new_example or 'output' not in new_example:
+                raise ValueError("Example must contain 'input' and 'output' keys")
+            new_example = FewShotExample(
+                input_data=new_example['input'],
+                output_data=new_example['output'],
+                metadata=new_example.get('metadata', {})
+            )
+        elif not isinstance(new_example, FewShotExample):
+            raise ValueError("Example must be a FewShotExample or a dictionary with 'input' and 'output' keys")
+            
+        if 0 <= index < len(self.examples):
+            self.examples[index] = new_example
+        else:
+            raise IndexError(f"Index {index} out of range for examples list (length: {len(self.examples)})")
+    
+    def find_examples(self, query: str, field: str = "input_data", case_sensitive: bool = False) -> List[int]:
+        """Find examples containing the query string in the specified field.
+        
+        Args:
+            query: String to search for
+            field: Field to search in ('input_data', 'output_data', or 'metadata')
+            case_sensitive: Whether the search should be case sensitive
+            
+        Returns:
+            List of indices of matching examples
+            
+        Raises:
+            ValueError: If field is not valid
+        """
+        if field not in ["input_data", "output_data", "metadata"]:
+            raise ValueError("Field must be one of: 'input_data', 'output_data', 'metadata'")
+            
+        query = query if case_sensitive else query.lower()
+        matches = []
+        
+        for i, example in enumerate(self.examples):
+            value = getattr(example, field)
+            if field == "metadata":
+                # Convert metadata dict to string for searching
+                value = str(value)
+            elif not isinstance(value, str):
+                value = str(value)
+                
+            if not case_sensitive:
+                value = value.lower()
+                
+            if query in value:
+                matches.append(i)
+                
+        return matches
     
     def get_relevant_examples(
         self, 
         query: str, 
         k: int = 5,
+        strategy: str = "first_k",
         similarity_metric: str = "cosine",
         **kwargs
     ) -> List[FewShotExample]:
@@ -188,18 +363,89 @@ class FewShotLearner:
         Args:
             query: The input query to find relevant examples for
             k: Maximum number of examples to return
-            similarity_metric: The similarity metric to use ('cosine' or 'euclidean')
+            strategy: Strategy for selecting examples ('first_k', 'random', 'similarity')
+            similarity_metric: The similarity metric to use for 'similarity' strategy
+                             ('cosine', 'euclidean', or 'jaccard')
             **kwargs: Additional arguments for the similarity function
             
         Returns:
             List of relevant FewShotExample objects
+            
+        Raises:
+            ValueError: If an invalid strategy or similarity metric is provided
         """
         if not self.examples:
             return []
             
-        # For now, return the first k examples
-        # In a production system, you'd want to implement proper semantic search here
-        return self.examples[:min(k, len(self.examples))]
+        if k <= 0:
+            return []
+            
+        # Limit k to the number of available examples
+        k = min(k, len(self.examples))
+        
+        if strategy == "first_k":
+            # Return the first k examples (default behavior)
+            return self.examples[:k]
+            
+        elif strategy == "random":
+            # Return k random examples
+            import random
+            return random.sample(self.examples, k)
+            
+        elif strategy == "similarity":
+            # Import required libraries only when needed
+            try:
+                from sklearn.feature_extraction.text import TfidfVectorizer
+                from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
+                from sklearn.metrics import jaccard_score
+                import numpy as np
+            except ImportError:
+                logger.warning(
+                    "scikit-learn not installed. Falling back to 'first_k' strategy. "
+                    "Install with: pip install scikit-learn"
+                )
+                return self.examples[:k]
+            
+            # Prepare texts for similarity comparison
+            texts = [str(ex.input_data) for ex in self.examples]
+            texts = [query] + texts  # Add query as first element
+            
+            # Create TF-IDF vectors
+            vectorizer = TfidfVectorizer()
+            try:
+                tfidf_matrix = vectorizer.fit_transform(texts)
+            except ValueError:
+                # Fallback if no features are extracted
+                return self.examples[:k]
+            
+            # Calculate similarities
+            query_vector = tfidf_matrix[0:1]
+            example_vectors = tfidf_matrix[1:]
+            
+            if similarity_metric == "cosine":
+                similarities = cosine_similarity(query_vector, example_vectors).flatten()
+            elif similarity_metric == "euclidean":
+                distances = euclidean_distances(query_vector, example_vectors).flatten()
+                # Convert distances to similarities (higher is better)
+                similarities = 1 / (1 + distances)
+            elif similarity_metric == "jaccard":
+                # Convert to binary features for Jaccard
+                binary_matrix = (tfidf_matrix > 0).astype(int)
+                query_binary = binary_matrix[0:1].toarray()
+                examples_binary = binary_matrix[1:].toarray()
+                similarities = np.array([
+                    jaccard_score(query_binary[0], ex_binary, average='micro')
+                    for ex_binary in examples_binary
+                ])
+            else:
+                raise ValueError(f"Unsupported similarity metric: {similarity_metric}")
+            
+            # Get indices of top k most similar examples
+            top_indices = np.argsort(similarities)[-k:][::-1]
+            return [self.examples[i] for i in top_indices]
+            
+        else:
+            raise ValueError(f"Unknown strategy: {strategy}")
     
     def format_prompt(
         self, 
