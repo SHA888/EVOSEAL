@@ -47,6 +47,13 @@ cover/
 .hypothesis/
 .pytest_cache/
 
+# Requirements backup and temporary files
+*.bak
+*~
+updated_*.txt
+pinned_*.txt
+frozen_*.txt
+
 # Virtual Environment
 venv/
 env/

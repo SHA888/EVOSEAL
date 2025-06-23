@@ -112,12 +112,12 @@ FewShotLearner(
 def custom_formatter(query: str, examples: List[FewShotExample]) -> str:
     """Custom prompt formatter."""
     prompt = "Answer the following question based on the examples:\n\n"
-    
+
     for i, ex in enumerate(examples, 1):
         prompt += f"Example {i}:\n"
         prompt += f"Q: {ex.input_data}\n"
         prompt += f"A: {ex.output_data}\n\n"
-    
+
     prompt += f"Q: {query}\nA:"
     return prompt
 
