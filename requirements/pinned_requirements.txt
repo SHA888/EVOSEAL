@@ -9,13 +9,13 @@ scipy==1.15.3
 scikit-learn==1.7.0
 
 # AI/ML
-openai==1.87.0
+openai==1.90.0
 pydantic==2.11.7
-pydantic-core==2.33.2  # Must match pydantic's requirement
+pydantic-core==2.35.1  # Must match pydantic's requirement
 
 # Utilities
 tqdm==4.67.1
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
 typing-extensions==4.14.0
 typing-inspection==0.4.1
 

@@ -2,46 +2,46 @@
 -r pinned_requirements.txt
 
 # Code Quality
-black==24.4.0
+black==24.10.0
 isort==5.13.2
-flake8==7.0.0
-mypy==1.10.0
-pylint==3.1.0
-ruff==0.4.7
-pre-commit==3.6.0
+flake8==7.3.0
+mypy==1.16.1
+pylint==3.3.7
+ruff==0.12.0
+pre-commit==3.8.0
 
 # Testing
-pytest==8.2.0
+pytest==8.4.1
 pytest-cov==5.0.0
-pytest-mock==3.12.0
+pytest-mock==3.14.1
 pytest-asyncio==1.0.0
-pytest-xdist==3.5.0
+pytest-xdist==3.7.0
 pytest-benchmark==4.0.0
 pylint-pytest==1.1.8  # Pinned to be compatible with pytest 8.2.0
 
 # Type stubs
-types-PyYAML==6.0.0
-types-requests==2.31.0
-types-python-dateutil==2.8.0
-types-pytz==2023.3
-types-setuptools==68.0.0
+types-PyYAML==6.0.12.20250516
+types-requests==2.32.4.20250611
+types-python-dateutil==2.9.0.20250516
+types-pytz==2023.4.0.20240130
+types-setuptools==68.2.0.2
 
 # Documentation
-sphinx==7.3.7  # Updated to be compatible with sphinx-autodoc-typehints
+sphinx==7.4.7  # Updated to be compatible with sphinx-autodoc-typehints
 sphinx-rtd-theme==2.0.0
 sphinx-autodoc-typehints==1.25.3  # Latest version compatible with Python 3.12
 myst-parser==2.0.0
 sphinx-copybutton==0.5.2
-sphinxcontrib-mermaid==0.8.1
+sphinxcontrib-mermaid==0.9.2
 
 # Code quality plugins
-flake8-bugbear==24.2.6
-flake8-comprehensions==3.14.0
+flake8-bugbear==24.12.12
+flake8-comprehensions==3.16.0
 flake8-docstrings==1.7.0
-flake8-rst-docstrings==0.3.0
-flake8-annotations==3.1.0
-flake8-import-order==0.18.2
-flake8-typing-imports==1.15.0
+flake8-rst-docstrings==0.3.1
+flake8-annotations==3.1.1
+flake8-import-order==0.19.1
+flake8-typing-imports==1.16.0
 
 # Jupyter for exploration
 jupyter>=1.0.0
