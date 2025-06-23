@@ -3,10 +3,14 @@ python-dotenv==1.1.0
 PyYAML==6.0.2
 
 # Data Processing & Scientific Computing
-numpy==2.3.0
+numpy>=1.20.0,<2.0.0  # Required by PyTorch and Transformers
 pandas==2.3.0
 scipy==1.15.3
 scikit-learn==1.7.0
+
+# Deep Learning
+torch>=2.0.0  # PyTorch for model training and inference
+transformers>=4.30.0  # Hugging Face Transformers for model loading and training
 
 # AI/ML
 openai==1.87.0
@@ -16,7 +20,7 @@ pydantic-core==2.33.2  # Must match pydantic's requirement
 # Utilities
 tqdm==4.67.1
 python-dateutil==2.9.0
-typing-extensions==4.14.0
+typing-extensions>=4.2.0  # Required by PyTorch and Transformers
 typing-inspection==0.4.1
 
 # HTTP/Networking
