@@ -38,8 +38,8 @@ for suggestion in suggestions:
 
 ```python
 from evoseal.integration.seal.self_editor import (
-    SelfEditor, 
-    EditStrategy, 
+    SelfEditor,
+    EditStrategy,
     EditSuggestion,
     EditOperation,
     EditCriteria
@@ -47,11 +47,11 @@ from evoseal.integration.seal.self_editor import (
 
 class GrammarCheckStrategy(EditStrategy):
     """A simple grammar checking strategy."""
-    
+
     def evaluate(self, content: str, **kwargs) -> list[EditSuggestion]:
         # In a real implementation, this would use a grammar checking library
         suggestions = []
-        
+
         # Example: Check for common errors
         if "design to" in content and "designed to" not in content:
             suggestions.append(EditSuggestion(
@@ -62,9 +62,9 @@ class GrammarCheckStrategy(EditStrategy):
                 confidence=0.9,
                 explanation="Correct verb form should be 'designed to' in this context"
             ))
-            
+
         return suggestions
-    
+
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
         return content.replace(suggestion.original_text, suggestion.suggested_text)
 
@@ -160,7 +160,7 @@ class MyCustomStrategy(EditStrategy):
     def evaluate(self, content: str, **kwargs) -> list[EditSuggestion]:
         # Your evaluation logic here
         pass
-    
+
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
         # Your edit application logic here
         pass
