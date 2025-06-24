@@ -1,0 +1,377 @@
+{
+  "entries": [
+    {
+      "id": "68400e14-de0e-46da-818a-494cd9dec954",
+      "content": "Always use type hints for function parameters and return values.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:34:13.985566+00:00",
+      "updated_at": "2025-06-24 01:34:13.985577+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "best-practices",
+        "type-hints"
+      ]
+    },
+    {
+      "id": "a7ce8e81-1486-4473-9ec6-ce28bd7e7724",
+      "content": "Use docstrings to document classes, methods, and functions.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:34:13.989208+00:00",
+      "updated_at": "2025-06-24 01:34:13.989212+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "documentation",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "6e703c97-14b7-453c-b822-6f256dc32cbb",
+      "content": "Write unit tests for your code to ensure it works as expected.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:34:13.992732+00:00",
+      "updated_at": "2025-06-24 01:34:13.992735+00:00",
+      "version": 1,
+      "tags": [
+        "testing",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "7628f858-3834-4fd7-9cd6-7cd2df78fa23",
+      "content": "Always use type hints for function parameters and return values in Python code.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:35:13.176212+00:00",
+      "updated_at": "2025-06-24 01:35:13.176219+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "best-practices",
+        "type-hints",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "47341975-8766-4e32-8beb-ea136955dc70",
+      "content": "Use docstrings to document classes, methods, and functions following Google or NumPy style.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:35:13.181237+00:00",
+      "updated_at": "2025-06-24 01:35:13.181245+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "documentation",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "6d6bfa16-2933-483d-9402-3990fbef166c",
+      "content": "Write unit tests for your code to ensure it works as expected and to prevent regressions.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:35:13.185477+00:00",
+      "updated_at": "2025-06-24 01:35:13.185482+00:00",
+      "version": 1,
+      "tags": [
+        "testing",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "ca2927c8-10c6-46d7-84d9-717285822151",
+      "content": "Use meaningful variable and function names that clearly indicate their purpose.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:35:13.189923+00:00",
+      "updated_at": "2025-06-24 01:35:13.189929+00:00",
+      "version": 1,
+      "tags": [
+        "naming",
+        "readability",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "dfdc68c5-38df-4fc2-9644-3a9e204b3f5d",
+      "content": "Keep functions small and focused on doing one thing well (Single Responsibility Principle).",
+      "metadata": {},
+      "created_at": "2025-06-24 01:35:13.194896+00:00",
+      "updated_at": "2025-06-24 01:35:13.194901+00:00",
+      "version": 1,
+      "tags": [
+        "functions",
+        "design-principles",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "279e5a4e-3d93-4137-9de7-60a19ef1257d",
+      "content": "Always use type hints for function parameters and return values in Python code.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:36:13.590078+00:00",
+      "updated_at": "2025-06-24 01:36:13.590086+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "best-practices",
+        "type-hints",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "fe01d205-839c-4c56-b383-b73e350e3bbd",
+      "content": "Use docstrings to document classes, methods, and functions following Google or NumPy style.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:36:13.595069+00:00",
+      "updated_at": "2025-06-24 01:36:13.595075+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "documentation",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "cc0134b7-ebad-4d86-b3d3-581356066917",
+      "content": "Write unit tests for your code to ensure it works as expected and to prevent regressions.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:36:13.599918+00:00",
+      "updated_at": "2025-06-24 01:36:13.599924+00:00",
+      "version": 1,
+      "tags": [
+        "testing",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "0fd79de1-256a-4e98-8c8e-6ca661875a49",
+      "content": "Use meaningful variable and function names that clearly indicate their purpose.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:36:13.604361+00:00",
+      "updated_at": "2025-06-24 01:36:13.604366+00:00",
+      "version": 1,
+      "tags": [
+        "naming",
+        "readability",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "3e6fcff8-8bbb-44d1-80d4-09a7d78b1f8a",
+      "content": "Keep functions small and focused on doing one thing well (Single Responsibility Principle).",
+      "metadata": {},
+      "created_at": "2025-06-24 01:36:13.609146+00:00",
+      "updated_at": "2025-06-24 01:36:13.609151+00:00",
+      "version": 1,
+      "tags": [
+        "functions",
+        "design-principles",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "fa480ab2-428a-45f8-af24-34655980890c",
+      "content": "Always use type hints for function parameters and return values in Python code.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:37:53.616496+00:00",
+      "updated_at": "2025-06-24 01:37:53.616502+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "best-practices",
+        "type-hints",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "6f946b2b-bf40-4821-85c1-d33ffa86de4f",
+      "content": "Use docstrings to document classes, methods, and functions following Google or NumPy style.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:37:53.620504+00:00",
+      "updated_at": "2025-06-24 01:37:53.620507+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "documentation",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "25bf0256-d8fb-45ac-9cda-4da07c85240a",
+      "content": "Write unit tests for your code to ensure it works as expected and to prevent regressions.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:37:53.624388+00:00",
+      "updated_at": "2025-06-24 01:37:53.624392+00:00",
+      "version": 1,
+      "tags": [
+        "testing",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "761f0f79-a803-484b-b60a-b59c2ad4be40",
+      "content": "Use meaningful variable and function names that clearly indicate their purpose.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:37:53.628740+00:00",
+      "updated_at": "2025-06-24 01:37:53.628743+00:00",
+      "version": 1,
+      "tags": [
+        "naming",
+        "readability",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "0597a57a-f02b-4cd9-a6aa-0380c87124a9",
+      "content": "Keep functions small and focused on doing one thing well (Single Responsibility Principle).",
+      "metadata": {},
+      "created_at": "2025-06-24 01:37:53.632971+00:00",
+      "updated_at": "2025-06-24 01:37:53.632973+00:00",
+      "version": 1,
+      "tags": [
+        "functions",
+        "design-principles",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "97c58f84-5a16-4f9e-a1f4-bbab48507cff",
+      "content": "Always use type hints for function parameters and return values in Python code.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:39:58.251445+00:00",
+      "updated_at": "2025-06-24 01:39:58.251451+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "best-practices",
+        "type-hints",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "63d10a15-6ce4-42f3-acd2-2e5aedcb8e3e",
+      "content": "Use docstrings to document classes, methods, and functions following Google or NumPy style.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:39:58.254720+00:00",
+      "updated_at": "2025-06-24 01:39:58.254723+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "documentation",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "886ec932-6602-4e9f-9c52-37f288ed585e",
+      "content": "Write unit tests for your code to ensure it works as expected and to prevent regressions.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:39:58.258104+00:00",
+      "updated_at": "2025-06-24 01:39:58.258107+00:00",
+      "version": 1,
+      "tags": [
+        "testing",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "334dcd23-9be0-40d8-ae6f-19504d9a7ab8",
+      "content": "Use meaningful variable and function names that clearly indicate their purpose.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:39:58.260963+00:00",
+      "updated_at": "2025-06-24 01:39:58.260965+00:00",
+      "version": 1,
+      "tags": [
+        "naming",
+        "readability",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "cbd39e8c-9368-4711-9873-26b961e34c41",
+      "content": "Keep functions small and focused on doing one thing well (Single Responsibility Principle).",
+      "metadata": {},
+      "created_at": "2025-06-24 01:39:58.263945+00:00",
+      "updated_at": "2025-06-24 01:39:58.263948+00:00",
+      "version": 1,
+      "tags": [
+        "functions",
+        "design-principles",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "7e902711-463a-4c8b-8816-68d12e87bccf",
+      "content": "Always use type hints for function parameters and return values in Python code.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:41:23.431951+00:00",
+      "updated_at": "2025-06-24 01:41:23.431957+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "best-practices",
+        "type-hints",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "e11daadc-bcad-4174-89d7-323da57da495",
+      "content": "Use docstrings to document classes, methods, and functions following Google or NumPy style.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:41:23.443645+00:00",
+      "updated_at": "2025-06-24 01:41:23.443648+00:00",
+      "version": 1,
+      "tags": [
+        "python",
+        "documentation",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "178a34e6-4ab7-482f-84e5-5e4486730256",
+      "content": "Write unit tests for your code to ensure it works as expected and to prevent regressions.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:41:23.448920+00:00",
+      "updated_at": "2025-06-24 01:41:23.448924+00:00",
+      "version": 1,
+      "tags": [
+        "testing",
+        "best-practices",
+        "code-quality"
+      ]
+    },
+    {
+      "id": "49ca2803-6f29-4bd4-bc72-e1d67a12c1f0",
+      "content": "Use meaningful variable and function names that clearly indicate their purpose.",
+      "metadata": {},
+      "created_at": "2025-06-24 01:41:23.454419+00:00",
+      "updated_at": "2025-06-24 01:41:23.454426+00:00",
+      "version": 1,
+      "tags": [
+        "naming",
+        "readability",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "bcbe0fab-80ab-4171-ae15-40bf215008a0",
+      "content": "Keep functions small and focused on doing one thing well (Single Responsibility Principle).",
+      "metadata": {},
+      "created_at": "2025-06-24 01:41:23.461787+00:00",
+      "updated_at": "2025-06-24 01:41:23.461795+00:00",
+      "version": 1,
+      "tags": [
+        "functions",
+        "design-principles",
+        "best-practices"
+      ]
+    }
+  ]
+}

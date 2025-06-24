@@ -34,6 +34,7 @@ class EditOperation(str, Enum):
 class EditCriteria(str, Enum):
     """Criteria for evaluating content quality."""
     
+    # Core quality attributes
     CLARITY = "clarity"
     CONCISENESS = "conciseness"
     ACCURACY = "accuracy"
@@ -41,7 +42,14 @@ class EditCriteria(str, Enum):
     COMPLETENESS = "completeness"
     COHERENCE = "coherence"
     STYLE = "style"
-    GRAMMAR = "grammar"
+    
+    # Code quality specific
+    DOCUMENTATION = "documentation"  # For documentation-related suggestions
+    SECURITY = "security"  # For security-related suggestions
+    ROBUSTNESS = "robustness"  # For code resilience and error handling
+    BEST_PRACTICE = "best_practice"  # For following language/framework best practices
+    ERROR_HANDLING = "error_handling"  # For proper error handling
+    PERFORMANCE = "performance"  # For performance-related suggestions
 
 
 class EditSuggestion(BaseModel):
@@ -118,31 +126,101 @@ class DefaultEditStrategy:
     
     def __init__(self, criteria: Optional[List[EditCriteria]] = None):
         self.criteria = criteria or [
+            # Core quality criteria
             EditCriteria.CLARITY,
             EditCriteria.CONCISENESS,
             EditCriteria.ACCURACY,
-            EditCriteria.GRAMMAR
+            EditCriteria.RELEVANCE,
+            EditCriteria.COMPLETENESS,
+            
+            # Code quality criteria
+            EditCriteria.STYLE,
+            EditCriteria.DOCUMENTATION,
+            EditCriteria.SECURITY,
+            EditCriteria.ROBUSTNESS,
+            EditCriteria.BEST_PRACTICE,
+            EditCriteria.ERROR_HANDLING,
+            EditCriteria.PERFORMANCE
         ]
     
     def evaluate(self, content: str, **kwargs: Any) -> List[EditSuggestion]:
         """Evaluate content and return suggested edits.
         
-        This is a placeholder implementation. In a real implementation, this would
-        use various NLP techniques to analyze the content and suggest improvements.
+        This implementation provides basic code analysis and suggestions.
+        In a production environment, this would integrate with more sophisticated
+        static analysis tools and language models.
         """
-        # TODO: Implement actual content evaluation logic
-        return []
+        suggestions = []
+        
+        # Check for common Python style issues
+        if "  " in content:  # Multiple spaces
+            lines = content.split('\n')
+            for i, line in enumerate(lines):
+                if "  " in line.rstrip() and not line.strip().startswith('#'):
+                    suggestions.append(EditSuggestion(
+                        operation=EditOperation.REWRITE,
+                        criteria=[EditCriteria.STYLE],
+                        original_text=line,
+                        suggested_text=line.replace("  ", " "),
+                        confidence=0.8,
+                        explanation="Replace multiple spaces with a single space"
+                    ))
+        
+        # Check for long lines (over 88 characters, PEP 8 recommendation)
+        lines = content.split('\n')
+        for i, line in enumerate(lines):
+            if len(line) > 88 and not line.strip().startswith('#'):
+                suggestions.append(EditSuggestion(
+                    operation=EditOperation.REWRITE,
+                    criteria=[EditCriteria.STYLE, EditCriteria.READABILITY],
+                    original_text=line,
+                    suggested_text=line,  # Actual line wrapping would be done in apply_edit
+                    confidence=0.7,
+                    explanation=f"Line {i+1} exceeds 88 characters (PEP 8 recommendation)"
+                ))
+        
+        # Check for potential security issues
+        security_keywords = [
+            "subprocess.call(", "os.system(", "eval(", "exec(", "pickle.loads(",
+            "yaml.load(", "json.loads(", "input(", "execfile(", "compile("
+        ]
+        
+        for keyword in security_keywords:
+            if keyword in content:
+                suggestions.append(EditSuggestion(
+                    operation=EditOperation.CLARIFY,
+                    criteria=[EditCriteria.SECURITY],
+                    original_text=content,
+                    suggested_text=f"# SECURITY: {content}",
+                    confidence=0.9,
+                    explanation=f"Potential security issue detected: {keyword}"
+                ))
+        
+        return suggestions
     
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
-        """Apply a suggested edit to the content."""
-        if suggestion.operation == EditOperation.REPLACE:
-            return content.replace(suggestion.original_text, suggestion.suggested_text)
-        elif suggestion.operation == EditOperation.ADD:
-            return f"{content} {suggestion.suggested_text}"
-        elif suggestion.operation == EditOperation.REMOVE:
-            return content.replace(suggestion.original_text, "")
-        elif suggestion.operation == EditOperation.REWRITE:
-            return suggestion.suggested_text
+        """Apply a suggested edit to the content.
+        
+        This implementation handles basic edit operations. More complex operations
+        might require specialized tools or libraries.
+        """
+        if not suggestion.original_text or suggestion.original_text in content:
+            if suggestion.operation == EditOperation.REPLACE:
+                return content.replace(suggestion.original_text, suggestion.suggested_text)
+            elif suggestion.operation == EditOperation.ADD:
+                return f"{suggestion.suggested_text}\n{content}"
+            elif suggestion.operation == EditOperation.REMOVE:
+                return content.replace(suggestion.original_text, "")
+            elif suggestion.operation == EditOperation.REWRITE:
+                return suggestion.suggested_text
+            elif suggestion.operation == EditOperation.FORMAT:
+                # Simple formatting - in a real implementation, use a formatter like black
+                return "\n".join(line.rstrip() for line in content.split("\n"))
+            elif suggestion.operation == EditOperation.CLARIFY:
+                # For now, just return the original content with a comment
+                return f"# NOTE: {suggestion.explanation}\n{content}"
+        
+        # If we get here, the operation wasn't applied
         return content
 
 
