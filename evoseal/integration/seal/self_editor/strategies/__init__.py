@@ -4,6 +4,16 @@ Edit strategies for the SelfEditor.
 This package contains various editing strategies that can be used with the SelfEditor.
 """
 
-from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import KnowledgeAwareStrategy
+from .knowledge_aware_strategy import KnowledgeAwareStrategy
+from .base_strategy import BaseEditStrategy
+from .code_style_strategy import CodeStyleStrategy
+from .documentation_strategy import DocumentationStrategy, DocumentationConfig, DocstringStyle
 
-__all__ = ["KnowledgeAwareStrategy"]
+__all__ = [
+    'BaseEditStrategy',
+    'CodeStyleStrategy',
+    'DocumentationStrategy',
+    'DocumentationConfig',
+    'DocstringStyle',
+    'KnowledgeAwareStrategy'
+]
