@@ -14,6 +14,8 @@ from evoseal.integration.seal.self_editor.self_editor import (
     DefaultEditStrategy
 )
 
+from evoseal.integration.seal.self_editor.strategies import KnowledgeAwareStrategy
+
 __all__ = [
     "SelfEditor",
     "EditSuggestion",
@@ -21,5 +23,6 @@ __all__ = [
     "EditCriteria",
     "EditHistory",
     "EditStrategy",
-    "DefaultEditStrategy"
+    "DefaultEditStrategy",
+    "KnowledgeAwareStrategy"
 ]
