@@ -333,7 +333,32 @@ class KnowledgeBase:
     def _save_to_disk(self) -> None:
         """Internal method to save to the default storage path if configured."""
         if self.storage_path:
-            self.save_to_disk()
+            # Directly save to disk without calling save_to_disk to prevent infinite recursion
+            with self._file_lock:
+                try:
+                    # Ensure directory exists
+                    os.makedirs(
+                        os.path.dirname(os.path.abspath(self.storage_path)),
+                        exist_ok=True,
+                    )
+
+                    # Use exclusive lock for writing
+                    with open(self.storage_path, "w") as f:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock
+                        try:
+                            data = {
+                                "entries": [
+                                    entry.model_dump()
+                                    for entry in self.entries.values()
+                                ]
+                            }
+                            json.dump(data, f, indent=2, default=str)
+                            f.flush()
+                            os.fsync(f.fileno())  # Ensure data is written to disk
+                        finally:
+                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
+                except Exception as e:
+                    raise RuntimeError(f"Failed to save knowledge base: {e}") from e
 
     def clear(self) -> None:
         """Clear all entries from the knowledge base."""
