@@ -5,49 +5,37 @@ This module provides the SelfEditor class that enables the system to review and 
 """
 
 from .models import (
-    EditSuggestion,
-    EditOperation,
+    ContentState,
     EditCriteria,
     EditHistoryEntry,
-    ContentState,
-    EditResult
+    EditOperation,
+    EditResult,
+    EditSuggestion,
 )
-
-from .self_editor import (
-    SelfEditor,
-    EditStrategy,
-    DefaultEditStrategy
-)
-
-from .strategies import (
-    BaseEditStrategy,
-    CodeStyleStrategy,
-    KnowledgeAwareStrategy
-)
+from .self_editor import DefaultEditStrategy, EditStrategy, SelfEditor
+from .strategies import BaseEditStrategy, CodeStyleStrategy, KnowledgeAwareStrategy
 
 __all__ = [
     # Core classes
-    'SelfEditor',
-    'EditStrategy',
-    'DefaultEditStrategy',
-    
+    "SelfEditor",
+    "EditStrategy",
+    "DefaultEditStrategy",
     # Models
-    'EditSuggestion',
-    'EditOperation',
-    'EditCriteria',
-    'EditHistoryEntry',
-    'ContentState',
-    'EditResult',
-    
+    "EditSuggestion",
+    "EditOperation",
+    "EditCriteria",
+    "EditHistoryEntry",
+    "ContentState",
+    "EditResult",
     # Strategies
-    'BaseEditStrategy',
-    'CodeStyleStrategy',
-    'KnowledgeAwareStrategy',
+    "BaseEditStrategy",
+    "CodeStyleStrategy",
+    "KnowledgeAwareStrategy",
     "EditSuggestion",
     "EditOperation",
     "EditCriteria",
     "EditHistory",
     "EditStrategy",
     "DefaultEditStrategy",
-    "KnowledgeAwareStrategy"
+    "KnowledgeAwareStrategy",
 ]

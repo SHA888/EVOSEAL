@@ -61,6 +61,13 @@ app.add_typer(export.app, name="export", help="Export results/variants")
 
 
 # Main callback with version flag support
+def version_callback(value: bool) -> None:
+    """Handle the --version flag."""
+    if value:
+        typer.echo(get_version())
+        raise typer.Exit()
+
+
 @app.callback(
     invoke_without_command=True,
     no_args_is_help=True,
@@ -72,7 +79,7 @@ def main(
         "--version",
         "-v",
         help="Show version and exit.",
-        callback=lambda: typer.echo(get_version()) or typer.Exit(),
+        callback=version_callback,
         is_eager=True,
     )
 ) -> None:
@@ -82,7 +89,9 @@ def main(
     """
     # This will only be reached if no subcommand is provided and --version is not used
     if len(sys.argv) == 1:
-        typer.echo(app.get_help())
+        # Use the context to show help
+        ctx = typer.Context(typer.main.get_command(app))
+        typer.echo(ctx.get_help())
         raise typer.Exit()
 
 

@@ -38,7 +38,9 @@ class Controller:
         """Run a single generation: evaluate, test, and select candidates."""
         self.logger.info("Running generation %d", self.current_generation)
         # Example: orchestrate test runner and evaluator
-        test_results = self.test_runner.run_tests(self.current_generation)
+        # Use the current working directory as the base path for tests
+        test_path = "."  # This should be the path to the test directory
+        test_results = self.test_runner.run_tests(test_path)
         eval_results = self.evaluator.evaluate(test_results)
         selected = self.select_candidates(eval_results)
         self.state["generations"].append(

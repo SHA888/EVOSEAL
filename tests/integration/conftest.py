@@ -30,10 +30,6 @@ from evoseal.integration.seal.seal_interface import SEALInterface
 from evoseal.models import Program
 from evoseal.providers.seal_providers import SEALProvider
 
-# Re-export for convenience
-pytest_plugins = ["pytest_asyncio"]
-
-
 # Define SEALProvider protocol for type checking
 class SEALProviderProtocol:
     """Protocol for SEAL providers."""
