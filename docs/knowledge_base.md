@@ -67,17 +67,17 @@ print(enhanced_prompt)
 ```python
 class KnowledgeBase:
     def __init__(self, storage_path: Optional[Union[str, Path]] = None)
-    def add_entry(self, content: Any, entry_id: Optional[str] = None, 
-                 metadata: Optional[Dict[str, Any]] = None, 
+    def add_entry(self, content: Any, entry_id: Optional[str] = None,
+                 metadata: Optional[Dict[str, Any]] = None,
                  tags: Optional[List[str]] = None) -> str
     def get_entry(self, entry_id: str) -> Optional[KnowledgeEntry]
-    def update_entry(self, entry_id: str, 
-                    new_content: Optional[Any] = None, 
+    def update_entry(self, entry_id: str,
+                    new_content: Optional[Any] = None,
                     metadata: Optional[Dict[str, Any]] = None) -> bool
     def delete_entry(self, entry_id: str) -> bool
-    def search_entries(self, query: Optional[str] = None, 
-                      tags: Optional[List[str]] = None, 
-                      metadata: Optional[Dict[str, Any]] = None, 
+    def search_entries(self, query: Optional[str] = None,
+                      tags: Optional[List[str]] = None,
+                      metadata: Optional[Dict[str, Any]] = None,
                       limit: int = 10) -> List[KnowledgeEntry]
     def save_to_disk(self, path: Optional[Union[str, Path]] = None) -> None
     def load_from_disk(self, path: Union[str, Path]) -> None
@@ -89,12 +89,12 @@ class KnowledgeBase:
 ```python
 class SEALKnowledge:
     def __init__(self, knowledge_base: Optional[KnowledgeBase] = None)
-    def enhance_prompt(self, prompt: str, max_examples: int = 3, 
+    def enhance_prompt(self, prompt: str, max_examples: int = 3,
                       similarity_threshold: float = 0.3) -> str
-    def learn_from_interaction(self, prompt: str, response: str, 
-                             metadata: Optional[Dict[str, Any]] = None, 
+    def learn_from_interaction(self, prompt: str, response: str,
+                             metadata: Optional[Dict[str, Any]] = None,
                              tags: Optional[List[str]] = None) -> str
-    def get_knowledge_for_task(self, task_description: str, 
+    def get_knowledge_for_task(self, task_description: str,
                              max_entries: int = 5) -> List[Dict[str, Any]]
     def clear_knowledge(self) -> None
 ```
