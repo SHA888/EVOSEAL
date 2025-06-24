@@ -8,6 +8,7 @@ from .knowledge_aware_strategy import KnowledgeAwareStrategy
 from .base_strategy import BaseEditStrategy
 from .code_style_strategy import CodeStyleStrategy
 from .documentation_strategy import DocumentationStrategy, DocumentationConfig, DocstringStyle
+from .security_analysis_strategy import SecurityAnalysisStrategy, SecurityConfig, SecurityIssueSeverity
 
 __all__ = [
     'BaseEditStrategy',
@@ -15,5 +16,8 @@ __all__ = [
     'DocumentationStrategy',
     'DocumentationConfig',
     'DocstringStyle',
-    'KnowledgeAwareStrategy'
+    'KnowledgeAwareStrategy',
+    'SecurityAnalysisStrategy',
+    'SecurityConfig',
+    'SecurityIssueSeverity'
 ]
