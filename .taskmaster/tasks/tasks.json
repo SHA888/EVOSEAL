@@ -410,7 +410,7 @@
             "description": "Implement the KnowledgeBase class to store and retrieve knowledge for the SEAL system.",
             "dependencies": [],
             "details": "Create a KnowledgeBase class that: 1) Provides structured storage for domain knowledge, 2) Implements efficient retrieval mechanisms, 3) Supports different knowledge formats (text, structured data), 4) Includes methods for knowledge update and maintenance, 5) Handles versioning of knowledge entries.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 3,
@@ -418,7 +418,7 @@
             "description": "Create the SelfEditor class that enables the system to review and improve its own outputs.",
             "dependencies": [],
             "details": "Implement a SelfEditor that: 1) Defines editing criteria and rules, 2) Evaluates generated content against these criteria, 3) Suggests or applies improvements to outputs, 4) Maintains an editing history for tracking changes, 5) Provides configurable editing strategies.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 4,
@@ -807,7 +807,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-23T22:55:53.470Z",
+      "updated": "2025-06-24T01:06:49.520Z",
       "description": "Tasks for master context"
     }
   }
