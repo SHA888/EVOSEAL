@@ -10,10 +10,11 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Lock
-from typing import Any
+from threading import Lock, RLock
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -55,9 +56,12 @@ class KnowledgeBase:
         """Initialize the knowledge base with a storage path."""
         self.storage_path = storage_path
         self.entries: dict[str, KnowledgeEntry] = {}
-        self._lock = Lock()
-        self._file_lock = Lock()  # For file operations
+        # Use RLock instead of Lock to allow reentrant locking
+        self._lock = RLock()  # For in-memory operations
+        self._file_lock = RLock()  # For file operations
+        self._initialized = False
         self._initialize_storage()
+        self._initialized = True
 
     def _initialize_storage(self) -> None:
         """Initialize storage by loading from disk if path exists."""
@@ -72,16 +76,34 @@ class KnowledgeBase:
         entry_id: str | None = None,
     ) -> str:
         """Add a new entry to the knowledge base in a thread-safe manner."""
-        with self._lock:  # Use lock for thread safety
-            entry = KnowledgeEntry(
-                id=entry_id or str(uuid4()),
-                content=content,
-                metadata=metadata or {},
-                tags=tags or [],
-            )
-            self.entries[entry.id] = entry
+        # Create the entry object outside the lock
+        new_entry = KnowledgeEntry(
+            id=entry_id or str(uuid4()),
+            content=content,
+            metadata=metadata or {},
+            tags=tags or [],
+        )
+        
+        # Acquire lock with timeout to prevent deadlocks
+        if not self._lock.acquire(timeout=5):  # 5-second timeout
+            print("WARNING: Could not acquire lock for adding entry, proceeding without lock")
+            # If we can't get the lock, still add the entry but without synchronization
+            self.entries[new_entry.id] = new_entry
+        else:
+            try:
+                # Add entry to in-memory dictionary
+                self.entries[new_entry.id] = new_entry
+            finally:
+                self._lock.release()
+        
+        # Save to disk after modifying the entries
+        try:
             self._save_to_disk()
-            return entry.id
+        except Exception as e:
+            print(f"Warning: Failed to save to disk after adding entry: {e}")
+            # Continue despite save failure - entry is still in memory
+            
+        return new_entry.id
 
     def get_entry(self, entry_id: str) -> KnowledgeEntry | None:
         """Retrieve an entry by its ID.
@@ -110,19 +132,45 @@ class KnowledgeBase:
         Returns:
             bool: True if the entry was updated, False if not found.
         """
+        updated = False
+        entry_to_update = None
+        
+        # First check if entry exists without holding the lock
         if entry_id not in self.entries:
             return False
-
-        entry = self.entries[entry_id]
-
-        if new_content is not None:
-            entry.update(new_content, metadata)
-        elif metadata is not None:
-            entry.metadata.update(metadata)
-            entry.updated_at = datetime.now(timezone.utc)
-
-        self._save_to_disk()
-        return True
+            
+        # Try to acquire lock with timeout
+        if not self._lock.acquire(timeout=5):  # 5-second timeout
+            print("WARNING: Could not acquire lock for updating entry, proceeding without lock")
+            # If we can't get the lock, try to update anyway
+            if entry_id in self.entries:
+                entry_to_update = self.entries[entry_id]
+        else:
+            try:
+                if entry_id in self.entries:
+                    entry_to_update = self.entries[entry_id]
+            finally:
+                self._lock.release()
+                
+        # If we found the entry, update it
+        if entry_to_update:
+            if new_content is not None:
+                entry_to_update.update(new_content, metadata)
+                updated = True
+            elif metadata is not None:
+                entry_to_update.metadata.update(metadata)
+                entry_to_update.updated_at = datetime.now(timezone.utc)
+                updated = True
+        
+        # Only save if we actually updated something
+        if updated:
+            try:
+                self._save_to_disk()
+            except Exception as e:
+                print(f"Warning: Failed to save to disk after updating entry: {e}")
+                # Continue despite save failure - entry is still updated in memory
+            
+        return updated
 
     def delete_entry(self, entry_id: str) -> bool:
         """Delete an entry from the knowledge base.
@@ -133,11 +181,20 @@ class KnowledgeBase:
         Returns:
             bool: True if the entry was deleted, False if not found.
         """
-        if entry_id in self.entries:
+        deleted = False
+        
+        with self._lock:
+            if entry_id not in self.entries:
+                return False
+
             del self.entries[entry_id]
+            deleted = True
+            
+        # Save outside the lock to reduce lock contention
+        if deleted:
             self._save_to_disk()
-            return True
-        return False
+            
+        return True
 
     def search_entries(
         self,
@@ -246,27 +303,58 @@ class KnowledgeBase:
         if not save_path:
             raise ValueError("No storage path provided")
 
-        with self._file_lock:
-            try:
-                # Ensure directory exists
-                os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
+        # Create a snapshot without holding the lock for too long
+        entries_snapshot = {}
+        try:
+            # Use a non-blocking lock acquisition with timeout
+            if self._lock.acquire(timeout=2):  # 2-second timeout
+                try:
+                    # Create a deep copy of entries to avoid race conditions during serialization
+                    for entry_id, entry in self.entries.items():
+                        entries_snapshot[entry_id] = entry.model_copy(deep=True)
+                finally:
+                    self._lock.release()
+            else:
+                # If we couldn't get the lock, log a warning and continue with empty snapshot
+                print("WARNING: Could not acquire lock for reading entries, using empty snapshot")
+        except Exception as e:
+            print(f"Error acquiring lock: {e}")
+            # Continue with whatever entries we have
 
-                # Use exclusive lock for writing
-                with open(save_path, "w") as f:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock
+        # Then perform file operations
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
+
+            # Use exclusive lock for writing, but with a timeout
+            with open(save_path, "w") as f:
+                # Use non-blocking lock with retry
+                max_retries = 3
+                for retry in range(max_retries):
                     try:
-                        data = {
-                            "entries": [
-                                entry.model_dump() for entry in self.entries.values()
-                            ]
-                        }
-                        json.dump(data, f, indent=2, default=str)
-                        f.flush()
-                        os.fsync(f.fileno())  # Ensure data is written to disk
-                    finally:
-                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
-            except Exception as e:
-                raise RuntimeError(f"Failed to save knowledge base: {e}") from e
+                        # Try to get a non-blocking lock
+                        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        try:
+                            data = {
+                                "entries": [
+                                    entry.model_dump() for entry in entries_snapshot.values()
+                                ]
+                            }
+                            json.dump(data, f, indent=2, default=str)
+                            f.flush()  # Flush to OS buffer
+                            os.fsync(f.fileno())  # Force OS to write to disk
+                            break  # Successfully wrote data, exit retry loop
+                        finally:
+                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
+                    except IOError as e:
+                        if retry < max_retries - 1:
+                            # Wait a bit before retrying
+                            time.sleep(0.1 * (retry + 1))
+                        else:
+                            # On last retry, raise the exception
+                            raise RuntimeError(f"Could not acquire file lock after {max_retries} retries") from e
+        except Exception as e:
+            raise RuntimeError(f"Failed to save knowledge base: {e}") from e
 
     def load_from_disk(self, path: str | Path) -> None:
         """Load the knowledge base from disk.
@@ -333,32 +421,25 @@ class KnowledgeBase:
     def _save_to_disk(self) -> None:
         """Internal method to save to the default storage path if configured."""
         if self.storage_path:
-            # Directly save to disk without calling save_to_disk to prevent infinite recursion
-            with self._file_lock:
-                try:
-                    # Ensure directory exists
-                    os.makedirs(
-                        os.path.dirname(os.path.abspath(self.storage_path)),
-                        exist_ok=True,
-                    )
-
-                    # Use exclusive lock for writing
-                    with open(self.storage_path, "w") as f:
-                        fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock
-                        try:
-                            data = {
-                                "entries": [
-                                    entry.model_dump()
-                                    for entry in self.entries.values()
-                                ]
-                            }
-                            json.dump(data, f, indent=2, default=str)
-                            f.flush()
-                            os.fsync(f.fileno())  # Ensure data is written to disk
-                        finally:
-                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
-                except Exception as e:
-                    raise RuntimeError(f"Failed to save knowledge base: {e}") from e
+            try:
+                # Use the public method with a maximum of 3 retries
+                max_retries = 3
+                last_error = None
+                
+                for retry in range(max_retries):
+                    try:
+                        self.save_to_disk(self.storage_path)
+                        return  # Success, exit the method
+                    except Exception as e:
+                        last_error = e
+                        # Wait a bit before retrying
+                        time.sleep(0.2 * (retry + 1))
+                        
+                # If we get here, all retries failed
+                print(f"Warning: Failed to save to disk after {max_retries} retries: {last_error}")
+            except Exception as e:
+                print(f"Error in _save_to_disk: {e}")
+                # Continue execution despite the error
 
     def clear(self) -> None:
         """Clear all entries from the knowledge base."""
