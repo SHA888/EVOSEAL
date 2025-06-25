@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Example of using SelfEditor with KnowledgeAwareStrategy.
 
@@ -13,7 +15,7 @@ import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 # Add the project root to the path so we can import evoseal
 project_root = str(Path(__file__).parent.parent)
@@ -21,15 +23,13 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
-from evoseal.integration.seal.self_editor.self_editor import (
-    KnowledgeAwareStrategy,
-    SelfEditor,
-)
 from evoseal.integration.seal.self_editor.models import (
     EditCriteria,
     EditOperation,
     EditSuggestion,
 )
+from evoseal.integration.seal.self_editor.self_editor import SelfEditor
+from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import KnowledgeAwareStrategy
 
 
 def setup_knowledge_base() -> KnowledgeBase:
@@ -130,7 +130,7 @@ def process_items(items):
 """
 
 
-def print_suggestions(suggestions: List[EditSuggestion]) -> None:
+def print_suggestions(suggestions: list[EditSuggestion]) -> None:
     """Print the suggestions in a user-friendly format."""
     if not suggestions:
         print("\n✅ No suggestions available. The code looks good!")
@@ -139,7 +139,7 @@ def print_suggestions(suggestions: List[EditSuggestion]) -> None:
     print("\n🔍 Found", len(suggestions), "suggestions for improvement:")
 
     # Group suggestions by category
-    by_category: Dict[str, List[EditSuggestion]] = {}
+    by_category: dict[str, list[EditSuggestion]] = {}
     for suggestion in suggestions:
         if not hasattr(suggestion, "criteria") or not suggestion.criteria:
             category = "Other"
@@ -190,7 +190,7 @@ def print_suggestions(suggestions: List[EditSuggestion]) -> None:
 
 
 def apply_suggestions_interactive(
-    editor: SelfEditor, content: str, suggestions: List[EditSuggestion]
+    editor: SelfEditor, content: str, suggestions: list[EditSuggestion]
 ) -> str:
     """Apply suggestions with user confirmation."""
     if not suggestions:
@@ -239,7 +239,7 @@ def apply_suggestions_interactive(
 
     # Get the final edited content
     edited_content = editor.get_current_content(content_id)
-    return edited_content
+    return edited_content if edited_content is not None else content
 
 
 def main():
@@ -270,13 +270,15 @@ def main():
     print_suggestions(suggestions)
 
     # Apply suggestions interactively
-    if suggestions and isinstance(suggestions[0], EditSuggestion):
+    if suggestions and len(suggestions) > 0 and isinstance(suggestions[0], EditSuggestion):
         edited_content = apply_suggestions_interactive(editor, content, suggestions)
 
         print("\n" + "=" * 80)
         print("FINAL EDITED CONTENT".center(80))
         print("=" * 80)
         print(edited_content)
+    else:
+        print("\nNo valid suggestions to apply.")
 
     # Show edit history
     print("\n" + "=" * 80)

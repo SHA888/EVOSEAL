@@ -176,51 +176,80 @@ class DocumentationStrategy(BaseEditStrategy):
             List of suggestions for improving the function docstring
         """
         import logging
+
         suggestions: List[EditSuggestion] = []
 
         # Check for missing sections
-        if hasattr(parsed, 'sections'):
+        if hasattr(parsed, "sections"):
             # Check for Args section if function has parameters (excluding self)
             has_params = (
-                len([p for p in node.args.args if p.arg != 'self']) > 0 or
-                node.args.vararg is not None or
-                node.args.kwarg is not None or
-                len(node.args.kwonlyargs) > 0 or
-                node.args.kw_defaults
+                len([p for p in node.args.args if p.arg != "self"]) > 0
+                or node.args.vararg is not None
+                or node.args.kwarg is not None
+                or len(node.args.kwonlyargs) > 0
+                or node.args.kw_defaults
             )
-            
+
             logging.debug(f"Checking function {node.name} for missing Args section")
             logging.debug(f"Function has params: {has_params}")
             logging.debug(f"Available sections: {getattr(parsed, 'sections', {})}")
-            
-            if has_params and 'Args' not in parsed.sections:
+
+            if has_params and "Args" not in parsed.sections:
                 logging.debug(f"Creating Args section suggestion for {node.name}")
                 # Generate parameter descriptions based on actual parameters
                 param_descriptions = []
-                
+
                 # Add regular parameters
                 for param in node.args.args:
-                    if param.arg != 'self':
-                        param_type = f" ({ast.unparse(param.annotation)}) " if param.annotation else " "
-                        param_descriptions.append(f"    {param.arg}:{param_type}Description of {param.arg}")
-                
+                    if param.arg != "self":
+                        param_type = (
+                            f" ({ast.unparse(param.annotation)}) "
+                            if param.annotation
+                            else " "
+                        )
+                        param_descriptions.append(
+                            f"    {param.arg}:{param_type}Description of {param.arg}"
+                        )
+
                 # Add vararg if present
                 if node.args.vararg:
-                    param_type = f" ({ast.unparse(node.args.vararg.annotation)}) " if node.args.vararg.annotation else " "
-                    param_descriptions.append(f"    *{node.args.vararg.arg}:{param_type}Variable length argument list")
-                
+                    param_type = (
+                        f" ({ast.unparse(node.args.vararg.annotation)}) "
+                        if node.args.vararg.annotation
+                        else " "
+                    )
+                    param_descriptions.append(
+                        f"    *{node.args.vararg.arg}:{param_type}Variable length argument list"
+                    )
+
                 # Add kwarg if present
                 if node.args.kwarg:
-                    param_type = f" ({ast.unparse(node.args.kwarg.annotation)}) " if node.args.kwarg.annotation else " "
-                    param_descriptions.append(f"    **{node.args.kwarg.arg}:{param_type}Arbitrary keyword arguments")
-                
+                    param_type = (
+                        f" ({ast.unparse(node.args.kwarg.annotation)}) "
+                        if node.args.kwarg.annotation
+                        else " "
+                    )
+                    param_descriptions.append(
+                        f"    **{node.args.kwarg.arg}:{param_type}Arbitrary keyword arguments"
+                    )
+
                 # Add keyword-only arguments
                 for kwarg in node.args.kwonlyargs:
-                    param_type = f" ({ast.unparse(kwarg.annotation)}) " if kwarg.annotation else " "
-                    param_descriptions.append(f"    {kwarg.arg}:{param_type}Description of {kwarg.arg}")
-                
-                args_content = "\n".join(param_descriptions) if param_descriptions else "    param: Description of parameter"
-                
+                    param_type = (
+                        f" ({ast.unparse(kwarg.annotation)}) "
+                        if kwarg.annotation
+                        else " "
+                    )
+                    param_descriptions.append(
+                        f"    {kwarg.arg}:{param_type}Description of {kwarg.arg}"
+                    )
+
+                args_content = (
+                    "\n".join(param_descriptions)
+                    if param_descriptions
+                    else "    param: Description of parameter"
+                )
+
                 args_suggestion = self._create_missing_section_suggestion(
                     node,
                     "Args",

@@ -30,6 +30,7 @@ from evoseal.integration.seal.seal_interface import SEALInterface
 from evoseal.models import Program
 from evoseal.providers.seal_providers import SEALProvider
 
+
 # Define SEALProvider protocol for type checking
 class SEALProviderProtocol:
     """Protocol for SEAL providers."""
