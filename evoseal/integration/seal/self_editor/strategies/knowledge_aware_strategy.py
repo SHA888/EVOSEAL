@@ -51,7 +51,6 @@ class KnowledgeAwareStrategy(EditStrategy):
         if not 0.0 <= min_similarity <= 1.0:
             raise ValueError("min_similarity must be between 0.0 and 1.0")
 
-
         super().__init__(**kwargs)
         self.knowledge_base = knowledge_base
         self.min_similarity = min_similarity

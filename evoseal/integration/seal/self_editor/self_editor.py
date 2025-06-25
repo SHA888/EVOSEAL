@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class EditOperation(str, Enum):
     """Types of edit operations that can be performed on content.
-    
+
     - ADD: Add new content
     - REMOVE: Remove existing content
     - REPLACE: Replace existing content with new content
@@ -231,111 +231,205 @@ class DefaultEditStrategy:
 
         return suggestions
 
+    def _normalize_operation(self, operation: Any) -> EditOperation:
+        """Normalize operation to ensure consistent comparison.
+        
+        Args:
+            operation: The operation to normalize (can be string, enum, etc.)
+            
+        Returns:
+            The normalized EditOperation enum value
+            
+        Raises:
+            ValueError: If the operation cannot be normalized to a valid EditOperation
+        """
+        if isinstance(operation, EditOperation):
+            return operation
+            
+        if isinstance(operation, str):
+            try:
+                return EditOperation(operation.lower())
+            except ValueError as e:
+                raise ValueError(f"Invalid operation: {operation}") from e
+                
+        raise TypeError(f"Unsupported operation type: {type(operation).__name__}")
+        
+    def _log_operation_start(self, op_name: str, content: str, suggestion: EditSuggestion) -> None:
+        """Log operation start with relevant debug information."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+            
+        logger.debug(f"{op_name} - Operation: {suggestion.operation}")
+        logger.debug(f"{op_name} - Original text: {suggestion.original_text!r}")
+        logger.debug(f"{op_name} - Suggested text: {suggestion.suggested_text!r}")
+        logger.debug(f"{op_name} - Content length: {len(content)}")
+        
+        if suggestion.original_text:
+            logger.debug(f"{op_name} - Original text in content: "
+                        f"{suggestion.original_text in content}")
+
+    def _handle_rewrite(self, content: str, suggestion: EditSuggestion) -> str:
+        """Handle REWRITE operation.
+        
+        For REWRITE operation, always return the suggested_text regardless of original_text.
+        """
+        self._log_operation_start("REWRITE", content, suggestion)
+        # For REWRITE operation, always return the suggested_text
+        return str(suggestion.suggested_text) if suggestion.suggested_text is not None else ""
+
+    def _handle_add(self, content: str, suggestion: EditSuggestion) -> str:
+        """Handle ADD operation."""
+        self._log_operation_start("ADD", content, suggestion)
+        
+        if not suggestion.original_text:
+            return f"{suggestion.suggested_text or ''}{content}"
+            
+        if suggestion.original_text in content:
+            return content.replace(
+                str(suggestion.original_text), 
+                str(suggestion.suggested_text or ''), 
+                1
+            )
+            
+        return content
+
+    def _handle_remove(self, content: str, suggestion: EditSuggestion) -> str:
+        """Handle REMOVE operation."""
+        self._log_operation_start("REMOVE", content, suggestion)
+        
+        if not suggestion.original_text:
+            logger.debug("REMOVE - No original text provided")
+            return content
+            
+        original_text = str(suggestion.original_text)
+        if original_text not in content:
+            logger.debug(f"REMOVE - Text not found in content")
+            return content
+            
+        result = content.replace(original_text, "", 1)
+        logger.debug(f"REMOVE - Removed {len(original_text)} characters")
+        return result
+
+    def _handle_replace(self, content: str, suggestion: EditSuggestion) -> str:
+        """Handle REPLACE operation."""
+        self._log_operation_start("REPLACE", content, suggestion)
+        
+        if not suggestion.original_text or suggestion.original_text not in content:
+            return content
+            
+        return content.replace(
+            str(suggestion.original_text), 
+            str(suggestion.suggested_text or ''), 
+            1
+        )
+
+    def _handle_format(self, content: str, suggestion: EditSuggestion) -> str:
+        """Handle FORMAT operation."""
+        self._log_operation_start("FORMAT", content, suggestion)
+        return "\n".join(line.rstrip() for line in content.split("\n"))
+
+    def _handle_clarify(self, content: str, suggestion: EditSuggestion) -> str:
+        """Handle CLARIFY operation."""
+        self._log_operation_start("CLARIFY", content, suggestion)
+        explanation = suggestion.explanation or "No explanation provided"
+        return f"# NOTE: {explanation}\n{content}"
+
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
         """Apply a suggested edit to the content.
 
         This implementation handles basic edit operations. More complex operations
         might require specialized tools or libraries.
+
+        Args:
+            content: The content to modify
+            suggestion: The edit suggestion to apply
+            
+        Returns:
+            The modified content after applying the edit
+            
+        Raises:
+            ValueError: If the operation is invalid or unsupported
+            TypeError: If the input types are incorrect
         """
-        # Debug: Print the full suggestion object
-        logger.debug("=" * 80)
-        logger.debug(f"apply_edit - Suggestion object: {suggestion}")
-        logger.debug(f"apply_edit - Suggestion type: {type(suggestion)}")
-        logger.debug(f"apply_edit - operation: {suggestion.operation}")
-        logger.debug(f"apply_edit - operation type: {type(suggestion.operation)}")
-        logger.debug(f"apply_edit - operation value: {suggestion.operation.value!r}")
-        logger.debug(f"apply_edit - content: {content!r}")
-        logger.debug(f"apply_edit - original_text: {suggestion.original_text!r} (type: {type(suggestion.original_text)})")
-        logger.debug(f"apply_edit - suggested_text: {suggestion.suggested_text!r} (type: {type(suggestion.suggested_text)})")
-        logger.debug(f"apply_edit - content type: {type(content)}")
-        logger.debug(f"apply_edit - content length: {len(content)}")
-        logger.debug(f"apply_edit - original_text in content: {suggestion.original_text in content}")
-        logger.debug(f"apply_edit - content bytes: {content.encode('utf-8')}")
-        logger.debug(f"apply_edit - original_text bytes: {suggestion.original_text.encode('utf-8')}")
+        # Handle the case where this method is called directly as a class method
+        # In that case, content is actually self and suggestion is content
+        if isinstance(self, str) and isinstance(content, EditSuggestion):
+            # This is a class method call with (self=content, content=suggestion, suggestion=??)
+            # Shift parameters: content becomes suggestion, self becomes content
+            suggestion = content
+            content = self
+        
+        # Ensure content is a string
+        if not isinstance(content, str):
+            content = str(content)
+        
+        # For direct class method calls, we need to be careful with type checking
+        # as the EditSuggestion import might be different
+        if not hasattr(suggestion, 'operation') or not hasattr(suggestion, 'original_text') or not hasattr(suggestion, 'suggested_text'):
+            raise TypeError(f"Expected EditSuggestion-like object, got {type(suggestion).__name__}")
+        
+        # Get the operation
+        operation = suggestion.operation
+        if isinstance(operation, str):
+            try:
+                operation = EditOperation(operation.lower())
+            except ValueError:
+                # Try to handle the case where operation is a string but not a valid EditOperation value
+                pass
         
         # Handle REWRITE operation - always return the suggested_text
-        if str(suggestion.operation) == str(EditOperation.REWRITE) or suggestion.operation == EditOperation.REWRITE:
-            logger.debug(f"REWRITE - Input content: {content!r}")
-            logger.debug(f"REWRITE - Original text: {suggestion.original_text!r}")
-            logger.debug(f"REWRITE - Suggested text: {suggestion.suggested_text!r}")
-            logger.debug(f"REWRITE - Content matches original: {content == suggestion.original_text}")
-            logger.debug(f"REWRITE - Original in content: {suggestion.original_text in content if suggestion.original_text else 'N/A'}")
-            
-            # For REWRITE operation, always return the suggested_text
-            result = suggestion.suggested_text
-            
-            logger.debug(f"REWRITE - Returning result: {result!r}")
-            logger.debug(f"REWRITE - Result type: {type(result)!r}")
-            
-            return result
-            
+        if str(operation) == str(EditOperation.REWRITE) or operation == EditOperation.REWRITE:
+            return str(suggestion.suggested_text) if suggestion.suggested_text is not None else ""
+        
         # Handle ADD operation
-        if str(suggestion.operation) == str(EditOperation.ADD) or suggestion.operation == EditOperation.ADD:
+        if str(operation) == str(EditOperation.ADD) or operation == EditOperation.ADD:
             if not suggestion.original_text:
                 # Prepend suggested_text when original_text is empty
-                return f"{suggestion.suggested_text}{content}"
-                
+                return f"{suggestion.suggested_text or ''}{content}"
+            
             # If original_text exists, replace it with suggested_text
             if suggestion.original_text in content:
-                return content.replace(suggestion.original_text, suggestion.suggested_text, 1)
+                return content.replace(
+                    str(suggestion.original_text), 
+                    str(suggestion.suggested_text or ''), 
+                    1
+                )
             
             return content
-            
+        
         # Handle REMOVE operation
-        if str(suggestion.operation) == str(EditOperation.REMOVE) or suggestion.operation == EditOperation.REMOVE:
-            logger.debug(f"REMOVE - Input content: {content!r}")
-            logger.debug(f"REMOVE - Original text to remove: {suggestion.original_text!r}")
-            logger.debug(f"REMOVE - Operation type: {type(suggestion.operation)}")
-            logger.debug(f"REMOVE - Operation value: {suggestion.operation.value!r}")
-            logger.debug(f"REMOVE - Operation str: {str(suggestion.operation)!r}")
-            logger.debug(f"REMOVE - EditOperation.REMOVE: {EditOperation.REMOVE!r}")
-            logger.debug(f"REMOVE - str comparison: {str(suggestion.operation) == str(EditOperation.REMOVE)}")
-            
+        if str(operation) == str(EditOperation.REMOVE) or operation == EditOperation.REMOVE:
             if not suggestion.original_text:
-                logger.debug("REMOVE - No original text provided, returning original content")
                 return content
-                
+            
             # Check if the original text is in the content
             if suggestion.original_text not in content:
-                logger.debug(f"REMOVE - Text {suggestion.original_text!r} not found in content")
-                logger.debug(f"REMOVE - Content: {content!r}")
-                logger.debug(f"REMOVE - Original text length: {len(suggestion.original_text)}")
-                logger.debug(f"REMOVE - Content length: {len(content)}")
-                logger.debug(f"REMOVE - Original text in content: {suggestion.original_text in content}")
                 return content
-                
+            
             # Remove the first occurrence of original_text
-            result = content.replace(suggestion.original_text, "", 1)
-            logger.debug(f"REMOVE - Successfully removed text: {suggestion.original_text!r}")
-            logger.debug(f"REMOVE - Original content length: {len(content)}")
-            logger.debug(f"REMOVE - Result content length: {len(result)}")
-            logger.debug(f"REMOVE - Expected result: 'This is important'")
-            logger.debug(f"REMOVE - Actual result: {result!r}")
-            return result
-            
+            return content.replace(suggestion.original_text, "", 1)
+        
         # Handle REPLACE operation
-        if suggestion.operation == EditOperation.REPLACE:
+        if str(operation) == str(EditOperation.REPLACE) or operation == EditOperation.REPLACE:
             if not suggestion.original_text or suggestion.original_text not in content:
-                logger.debug(f"REPLACE (no match) - returning original content: {content!r}")
                 return content
-            result = content.replace(suggestion.original_text, suggestion.suggested_text, 1)
-            logger.debug(f"REPLACE - returning: {result!r}")
-            return result
             
+            return content.replace(
+                str(suggestion.original_text), 
+                str(suggestion.suggested_text or ''), 
+                1
+            )
+        
         # Handle FORMAT operation
-        if suggestion.operation == EditOperation.FORMAT:
-            result = "\n".join(line.rstrip() for line in content.split("\n"))
-            logger.debug(f"FORMAT - returning: {result!r}")
-            return result
-            
+        if str(operation) == str(EditOperation.FORMAT) or operation == EditOperation.FORMAT:
+            return "\n".join(line.rstrip() for line in content.split("\n"))
+        
         # Handle CLARIFY operation
-        if suggestion.operation == EditOperation.CLARIFY:
-            result = f"# NOTE: {suggestion.explanation}\n{content}"
-            logger.debug(f"CLARIFY - returning: {result!r}")
-            return result
-
+        if str(operation) == str(EditOperation.CLARIFY) or operation == EditOperation.CLARIFY:
+            explanation = suggestion.explanation if hasattr(suggestion, 'explanation') and suggestion.explanation else "No explanation provided"
+            return f"# NOTE: {explanation}\n{content}"
+        
         # Default case: return content unchanged
-        logger.debug(f"Unknown operation: {suggestion.operation}, returning original content: {content!r}")
         return content
 
 

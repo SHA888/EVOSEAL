@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 
 class EditOperation(str, Enum):
     """Types of edit operations that can be performed.
-    
+
     - ADD: Add new content
     - REMOVE: Remove existing content
     - REPLACE: Replace existing content with new content
@@ -76,10 +76,10 @@ class EditSuggestion:
 
         if self.confidence < 0 or self.confidence > 1:
             raise ValueError("Confidence must be between 0.0 and 1.0")
-            
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert the EditSuggestion to a dictionary.
-        
+
         Returns:
             Dict containing the EditSuggestion data
         """
@@ -91,16 +91,16 @@ class EditSuggestion:
             "explanation": self.explanation,
             "confidence": self.confidence,
             "line_number": self.line_number,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
-        
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'EditSuggestion':
+    def from_dict(cls, data: Dict[str, Any]) -> "EditSuggestion":
         """Create an EditSuggestion from a dictionary.
-        
+
         Args:
             data: Dictionary containing EditSuggestion data
-            
+
         Returns:
             A new EditSuggestion instance
         """
@@ -112,7 +112,7 @@ class EditSuggestion:
             explanation=data.get("explanation", ""),
             confidence=data.get("confidence", 1.0),
             line_number=data.get("line_number"),
-            metadata=data.get("metadata", {})
+            metadata=data.get("metadata", {}),
         )
 
 

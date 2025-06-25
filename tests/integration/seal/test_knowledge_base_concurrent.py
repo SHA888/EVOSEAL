@@ -115,7 +115,9 @@ def _verify_persisted_data(db_path: Path, num_workers: int) -> None:
     """Verify that changes were persisted correctly."""
     print("\n=== Verifying persistence ===")
     final_kb = KnowledgeBase(db_path)
-    entries = final_kb.search_entries(limit=1000)  # Increase limit to ensure we get all entries
+    entries = final_kb.search_entries(
+        limit=1000
+    )  # Increase limit to ensure we get all entries
 
     print(f"Found {len(entries)} total entries in the database")
     for i, entry in enumerate(entries[:10]):  # Only print first 10 entries
@@ -131,54 +133,71 @@ def _verify_persisted_data(db_path: Path, num_workers: int) -> None:
 
     print(f"\nFound entries from workers: {sorted(worker_entries_found)}")
     assert len(worker_entries_found) > 0, "No worker entries found in the database"
-    
+
     # Instead of requiring all workers, just verify we have some worker entries
-    assert len(worker_entries_found) >= 1, (
-        f"Expected entries from at least 1 worker, got {len(worker_entries_found)}"
-    )
+    assert (
+        len(worker_entries_found) >= 1
+    ), f"Expected entries from at least 1 worker, got {len(worker_entries_found)}"
 
 
 def test_concurrent_access(tmp_path: Path):
-    """Test concurrent access to the knowledge base."""
+    """Test concurrent access to the knowledge base with persistence verification."""
     # Create a subdirectory for the test to avoid permission issues
     test_dir = tmp_path / "test_kb"
-    test_dir.mkdir()
+    test_dir.mkdir(exist_ok=True)
     db_path = test_dir / "concurrent_test.db"
     
     print(f"Using database path: {db_path}")
     print(f"Temporary directory contents: {list(tmp_path.glob('**/*'))}")
-    
-    num_workers = MIN_EXPECTED_WORKERS  # Use a reasonable number of workers for testing
 
+    num_workers = min(3, MIN_EXPECTED_WORKERS)  # Use fewer workers for stability
+
+    # Initialize with a fresh database
+    if db_path.exists():
+        db_path.unlink()
+    
+    # Create parent directory if it doesn't exist
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    
     # Initialize test data
+    print("\n=== Initializing test data ===")
     _initialize_test_knowledge_base(db_path)
     
-    # Verify the database file was created
+    # Verify the database file was created and has content
     assert db_path.exists(), f"Database file was not created at {db_path}"
     print(f"Database file exists after initialization: {db_path.exists()}")
-    print(f"File size: {db_path.stat().st_size if db_path.exists() else 0} bytes")
+    print(f"File size: {db_path.stat().st_size} bytes")
+    
+    # Verify initial data
+    kb = KnowledgeBase(str(db_path))
+    kb.save_to_disk()  # Ensure initial save
+    initial_entries = kb.search_entries(limit=1000)
+    print(f"Found {len(initial_entries)} initial entries")
+    assert len(initial_entries) == TEST_ENTRIES_COUNT, f"Incorrect number of initial entries: expected {TEST_ENTRIES_COUNT}, got {len(initial_entries)}"
 
-    # Run workers sequentially first to ensure basic functionality
+    # Run workers sequentially first
     print("\n=== Running sequential workers ===")
     sequential_results = _run_workers_sequentially(num_workers, db_path)
     _verify_worker_results(sequential_results, "sequential")
     
-    # Verify the database file still exists and has content
-    assert db_path.exists(), "Database file was deleted after sequential operations"
-    print(f"Database file exists after sequential operations: {db_path.exists()}")
-    print(f"File size: {db_path.stat().st_size if db_path.exists() else 0} bytes")
-
-    # Now run workers concurrently
+    # Force sync to disk and reload
+    kb = KnowledgeBase(str(db_path))
+    kb.save_to_disk()  # Ensure all changes are written
+    
+    # Verify sequential operations
+    entries_after_sequential = kb.search_entries(limit=1000)
+    print(f"Found {len(entries_after_sequential)} entries after sequential operations")
+    
+    # Run workers concurrently
     print("\n=== Running concurrent workers ===")
     concurrent_results = _run_workers_concurrently(num_workers, db_path)
     _verify_worker_results(concurrent_results, "concurrent")
     
-    # Verify the database file still exists and has content
-    assert db_path.exists(), "Database file was deleted after concurrent operations"
-    print(f"Database file exists after concurrent operations: {db_path.exists()}")
-    print(f"File size: {db_path.stat().st_size if db_path.exists() else 0} bytes")
-
-    # Verify all results and persistence
+    # Force sync to disk
+    kb = KnowledgeBase(str(db_path))
+    kb.save_to_disk()
+    
+    # Verify all operations
     all_results = sequential_results + concurrent_results
     _verify_worker_results(all_results, "all")
     
@@ -186,21 +205,36 @@ def test_concurrent_access(tmp_path: Path):
     print("\n=== Verifying persistence with new KnowledgeBase instance ===")
     verify_kb = KnowledgeBase(str(db_path))
     entries = verify_kb.search_entries(limit=1000)
-    print(f"Found {len(entries)} entries in the database")
-    for i, entry in enumerate(entries[:5]):  # Print first 5 entries
+    print(f"Found {len(entries)} total entries in the database")
+    
+    # Print sample entries for debugging
+    for i, entry in enumerate(entries[:10]):
         print(f"Entry {i+1}: {entry.content}")
     
-    # Verify we can find entries from at least one worker
-    worker_entries_found = set()
+    # Collect all worker entries
+    worker_entries = {}
     for entry in entries:
         content = str(entry.content)
-        for worker_id in range(num_workers * 2):  # Check all possible worker IDs
-            if f"Worker {worker_id}" in content:
-                worker_entries_found.add(worker_id)
-
-    print(f"\nFound entries from workers: {sorted(worker_entries_found)}")
-    assert len(worker_entries_found) > 0, "No worker entries found in the database"
+        if "Worker" in content and len(content.split()) > 1:
+            try:
+                worker_id = int(content.split()[1])
+                if worker_id not in worker_entries:
+                    worker_entries[worker_id] = 0
+                worker_entries[worker_id] += 1
+            except (ValueError, IndexError):
+                continue
     
+    print(f"\nFound entries from {len(worker_entries)} workers")
+    for worker_id, count in sorted(worker_entries.items()):
+        print(f"Worker {worker_id}: {count} entries")
+    
+    # Verify we have entries from at least one worker
+    assert len(worker_entries) > 0, "No worker entries found in the database"
+    
+    # Verify database file still exists and has content
+    assert db_path.exists(), "Database file was deleted after test"
+    assert db_path.stat().st_size > 0, "Database file is empty"
+    print(f"\nFinal database size: {db_path.stat().st_size} bytes")
     print("\n=== Test completed successfully ===")
 
 
