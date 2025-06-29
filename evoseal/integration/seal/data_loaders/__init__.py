@@ -7,17 +7,14 @@ and examples from various sources and formats.
 
 from .batch import BatchLoader, default_batch_loader, load_batch
 from .cache import CacheEntry, DataCache, cached, default_cache
-from .loaders import (
-    CSVLoader,
-    DataFormat,
-    DataLoader,
-    JSONLoader,
-    YAMLLoader,
-    get_loader,
-    load_data,
-)
+from .core import DataLoaders, default_data_loaders
+from .loaders import CSVLoader, DataLoader, JSONLoader, YAMLLoader, get_loader, load_data
+from .types import DataFormat
 
 __all__ = [
+    # Core
+    'DataLoaders',
+    'default_data_loaders',
     # Loaders
     'DataFormat',
     'DataLoader',
