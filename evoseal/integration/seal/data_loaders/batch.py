@@ -12,8 +12,9 @@ from typing import Any, Dict, Iterable, List, Optional, Type, TypeVar, Union, ca
 
 from tqdm import tqdm
 
-from . import DataFormat, load_data
 from .cache import cached
+from .loaders import load_data
+from .types import DataFormat
 
 T = TypeVar('T')
 

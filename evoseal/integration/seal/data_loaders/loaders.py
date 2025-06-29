@@ -8,23 +8,15 @@ with support for Pydantic model validation.
 import csv
 import json
 from abc import ABC, abstractmethod
-from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
 
 import yaml
 from pydantic import BaseModel, ValidationError
 
+from .types import DataFormat, ModelType
+
 T = TypeVar('T', bound=BaseModel)
-
-
-class DataFormat(str, Enum):
-    """Supported data formats for loading."""
-
-    JSON = 'json'
-    YAML = 'yaml'
-    YML = 'yml'
-    CSV = 'csv'
 
 
 class DataLoader(ABC, Generic[T]):
