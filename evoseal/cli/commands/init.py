@@ -186,8 +186,7 @@ def init_project(
         if project_dir.exists():
             if any(project_dir.iterdir()) and not force:
                 raise ProjectInitializationError(
-                    f"Directory '{project_dir}' is not empty. "
-                    "Use --force to initialize anyway."
+                    f"Directory '{project_dir}' is not empty. " "Use --force to initialize anyway."
                 )
         else:
             if verbose:
@@ -272,9 +271,7 @@ setup(
                 if verbose:
                     typer.echo("Created setup.py")
             except Exception as e:
-                raise ProjectInitializationError(
-                    f"Failed to create setup.py: {str(e)}"
-                ) from e
+                raise ProjectInitializationError(f"Failed to create setup.py: {str(e)}") from e
 
         # Success message
         success_msg = f"\n✅ Successfully initialized EVOSEAL project in {project_dir}"

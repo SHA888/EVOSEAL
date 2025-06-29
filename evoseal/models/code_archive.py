@@ -178,9 +178,7 @@ class CodeArchive(BaseModel):
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
-    def ensure_timezone_aware(
-        cls: type[ModelT], v: datetime | str | None
-    ) -> datetime | None:
+    def ensure_timezone_aware(cls: type[ModelT], v: datetime | str | None) -> datetime | None:
         """Ensure datetime fields are timezone-aware.
 
         Args:
@@ -204,9 +202,7 @@ class CodeArchive(BaseModel):
         elif isinstance(v, datetime):
             dt = v
         else:
-            raise ValueError(
-                f"Expected datetime or ISO format string, got {type(v).__name__}"
-            )
+            raise ValueError(f"Expected datetime or ISO format string, got {type(v).__name__}")
 
         # Ensure timezone is set to UTC if not already set
         if dt.tzinfo is None:
@@ -214,9 +210,7 @@ class CodeArchive(BaseModel):
         return dt
 
     @field_serializer("created_at", "updated_at", when_used="json")
-    def serialize_dt(
-        self: ModelT, dt: datetime | None, _info: Any = None
-    ) -> str | None:
+    def serialize_dt(self: ModelT, dt: datetime | None, _info: Any = None) -> str | None:
         """Serialize datetime fields to ISO format."""
         if dt is None:
             return None
@@ -344,9 +338,7 @@ class CodeArchive(BaseModel):
             "word_count": len(self.content.split()),
         }
 
-    def create_new_version(
-        self, content: str | None = None, **updates: Any
-    ) -> CodeArchive:
+    def create_new_version(self, content: str | None = None, **updates: Any) -> CodeArchive:
         """Create a new version of the code archive.
 
         Args:

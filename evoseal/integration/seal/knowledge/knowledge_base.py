@@ -52,6 +52,15 @@ class KnowledgeBase:
     5. Persistence to disk
     """
 
+    # Constants for timeouts and retries
+    DEFAULT_LOCK_TIMEOUT = 5  # seconds
+    SAVE_LOCK_TIMEOUT = 2  # seconds
+    MAX_RETRIES = 3
+    DEFAULT_SEARCH_LIMIT = 10
+    RETRY_BACKOFF_BASE = 0.1  # seconds
+    SAVE_RETRY_BACKOFF_BASE = 0.2  # seconds
+    JSON_INDENT = 2
+
     def __init__(self, storage_path: str):
         """Initialize the knowledge base with a storage path."""
         self.storage_path = storage_path
@@ -83,7 +92,7 @@ class KnowledgeBase:
             metadata=metadata or {},
             tags=tags or [],
         )
-        
+
         # Acquire lock with timeout to prevent deadlocks
         if not self._lock.acquire(timeout=5):  # 5-second timeout
             print("WARNING: Could not acquire lock for adding entry, proceeding without lock")
@@ -95,14 +104,14 @@ class KnowledgeBase:
                 self.entries[new_entry.id] = new_entry
             finally:
                 self._lock.release()
-        
+
         # Save to disk after modifying the entries
         try:
             self._save_to_disk()
         except Exception as e:
             print(f"Warning: Failed to save to disk after adding entry: {e}")
             # Continue despite save failure - entry is still in memory
-            
+
         return new_entry.id
 
     def get_entry(self, entry_id: str) -> KnowledgeEntry | None:
@@ -134,11 +143,11 @@ class KnowledgeBase:
         """
         updated = False
         entry_to_update = None
-        
+
         # First check if entry exists without holding the lock
         if entry_id not in self.entries:
             return False
-            
+
         # Try to acquire lock with timeout
         if not self._lock.acquire(timeout=5):  # 5-second timeout
             print("WARNING: Could not acquire lock for updating entry, proceeding without lock")
@@ -151,7 +160,7 @@ class KnowledgeBase:
                     entry_to_update = self.entries[entry_id]
             finally:
                 self._lock.release()
-                
+
         # If we found the entry, update it
         if entry_to_update:
             if new_content is not None:
@@ -161,7 +170,7 @@ class KnowledgeBase:
                 entry_to_update.metadata.update(metadata)
                 entry_to_update.updated_at = datetime.now(timezone.utc)
                 updated = True
-        
+
         # Only save if we actually updated something
         if updated:
             try:
@@ -169,7 +178,7 @@ class KnowledgeBase:
             except Exception as e:
                 print(f"Warning: Failed to save to disk after updating entry: {e}")
                 # Continue despite save failure - entry is still updated in memory
-            
+
         return updated
 
     def delete_entry(self, entry_id: str) -> bool:
@@ -182,18 +191,18 @@ class KnowledgeBase:
             bool: True if the entry was deleted, False if not found.
         """
         deleted = False
-        
+
         with self._lock:
             if entry_id not in self.entries:
                 return False
 
             del self.entries[entry_id]
             deleted = True
-            
+
         # Save outside the lock to reduce lock contention
         if deleted:
             self._save_to_disk()
-            
+
         return True
 
     def search_entries(
@@ -201,7 +210,7 @@ class KnowledgeBase:
         query: str | None = None,
         tags: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
-        limit: int = 10,
+        limit: int | None = None,
     ) -> list[KnowledgeEntry]:
         """Search for entries matching the given criteria.
 
@@ -212,15 +221,16 @@ class KnowledgeBase:
             limit: Maximum number of results to return.
 
         Returns:
-            List[KnowledgeEntry]: List of matching entries.
+            list[KnowledgeEntry]: List of matching entries.
         """
+        # Use default limit if None is provided
+        if limit is None:
+            limit = self.DEFAULT_SEARCH_LIMIT
         results = list(self.entries.values())
 
         # Filter by tags if provided
         if tags:
-            results = [
-                entry for entry in results if any(tag in entry.tags for tag in tags)
-            ]
+            results = [entry for entry in results if any(tag in entry.tags for tag in tags)]
 
         # Filter by metadata if provided
         if metadata:
@@ -307,7 +317,7 @@ class KnowledgeBase:
         entries_snapshot = {}
         try:
             # Use a non-blocking lock acquisition with timeout
-            if self._lock.acquire(timeout=2):  # 2-second timeout
+            if self._lock.acquire(timeout=self.SAVE_LOCK_TIMEOUT):
                 try:
                     # Create a deep copy of entries to avoid race conditions during serialization
                     for entry_id, entry in self.entries.items():
@@ -340,19 +350,21 @@ class KnowledgeBase:
                                     entry.model_dump() for entry in entries_snapshot.values()
                                 ]
                             }
-                            json.dump(data, f, indent=2, default=str)
+                            json.dump(data, f, indent=self.JSON_INDENT, default=str)
                             f.flush()  # Flush to OS buffer
                             os.fsync(f.fileno())  # Force OS to write to disk
                             break  # Successfully wrote data, exit retry loop
                         finally:
                             fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
-                    except IOError as e:
+                    except OSError as e:
                         if retry < max_retries - 1:
                             # Wait a bit before retrying
-                            time.sleep(0.1 * (retry + 1))
+                            time.sleep(self.RETRY_BACKOFF_BASE * (retry + 1))
                         else:
                             # On last retry, raise the exception
-                            raise RuntimeError(f"Could not acquire file lock after {max_retries} retries") from e
+                            raise RuntimeError(
+                                f"Could not acquire file lock after {max_retries} retries"
+                            ) from e
         except Exception as e:
             raise RuntimeError(f"Failed to save knowledge base: {e}") from e
 
@@ -378,18 +390,10 @@ class KnowledgeBase:
                 entries = {}
                 for entry_data in data.get("entries", []):
                     # Handle datetime deserialization
-                    if "created_at" in entry_data and isinstance(
-                        entry_data["created_at"], str
-                    ):
-                        entry_data["created_at"] = datetime.fromisoformat(
-                            entry_data["created_at"]
-                        )
-                    if "updated_at" in entry_data and isinstance(
-                        entry_data["updated_at"], str
-                    ):
-                        entry_data["updated_at"] = datetime.fromisoformat(
-                            entry_data["updated_at"]
-                        )
+                    if "created_at" in entry_data and isinstance(entry_data["created_at"], str):
+                        entry_data["created_at"] = datetime.fromisoformat(entry_data["created_at"])
+                    if "updated_at" in entry_data and isinstance(entry_data["updated_at"], str):
+                        entry_data["updated_at"] = datetime.fromisoformat(entry_data["updated_at"])
 
                     entry = KnowledgeEntry(**entry_data)
                     entries[entry.id] = entry
@@ -425,7 +429,7 @@ class KnowledgeBase:
                 # Use the public method with a maximum of 3 retries
                 max_retries = 3
                 last_error = None
-                
+
                 for retry in range(max_retries):
                     try:
                         self.save_to_disk(self.storage_path)
@@ -433,8 +437,8 @@ class KnowledgeBase:
                     except Exception as e:
                         last_error = e
                         # Wait a bit before retrying
-                        time.sleep(0.2 * (retry + 1))
-                        
+                        time.sleep(self.SAVE_RETRY_BACKOFF_BASE * (retry + 1))
+
                 # If we get here, all retries failed
                 print(f"Warning: Failed to save to disk after {max_retries} retries: {last_error}")
             except Exception as e:
@@ -456,7 +460,7 @@ class KnowledgeBase:
         """Get all entries in the knowledge base.
 
         Returns:
-            List[KnowledgeEntry]: List of all entries.
+            list[KnowledgeEntry]: List of all entries.
         """
         with self._lock:
             return list(self.entries.values())
@@ -485,9 +489,7 @@ if __name__ == "__main__":
     print(f"Found {len(results)} entries matching 'python'")
 
     # Update an entry
-    kb.update_entry(
-        entry1_id, "Python is a high-level, interpreted programming language."
-    )
+    kb.update_entry(entry1_id, "Python is a high-level, interpreted programming language.")
 
     # Save to disk (happens automatically when using methods that modify the KB)
     kb.save_to_disk()

@@ -128,9 +128,7 @@ def test_end_to_end_evolution(test_project: Path):
         results = json.load(f)
         assert "best_individual" in results, "Best individual not in results"
         assert "final_generation" in results, "Final generation not in results"
-        assert (
-            results["final_generation"] == GENERATIONS
-        ), "Incorrect number of generations"
+        assert results["final_generation"] == GENERATIONS, "Incorrect number of generations"
 
     # Test direct component usage
     try:
@@ -149,9 +147,7 @@ def test_end_to_end_evolution(test_project: Path):
 
         # Verify we can create a population
         population = Population(size=POPULATION_SIZE)
-        assert (
-            len(population.individuals) == POPULATION_SIZE
-        ), "Population size mismatch"
+        assert len(population.individuals) == POPULATION_SIZE, "Population size mismatch"
 
         # Verify we can create an evolution engine
         # Test population size constant
@@ -162,9 +158,7 @@ def test_end_to_end_evolution(test_project: Path):
             crossover_rate=CROSSOVER_RATE,
             elitism=ELITISM,
         )
-        assert (
-            engine.population_size == test_population_size
-        ), "Engine population size mismatch"
+        assert engine.population_size == test_population_size, "Engine population size mismatch"
 
     except ImportError as e:
         pytest.skip(f"Could not import OpenEvolve components: {e}")

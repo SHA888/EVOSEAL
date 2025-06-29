@@ -74,9 +74,7 @@ class GitStorage:
             result = self._run_git(args)
         except subprocess.CalledProcessError as e:
             if "fatal: Path" in (e.stderr or ""):
-                raise FileNotFoundError(
-                    f"File not found at {ref or 'HEAD'}:{rel_path}"
-                ) from e
+                raise FileNotFoundError(f"File not found at {ref or 'HEAD'}:{rel_path}") from e
             raise
         return dict(json.loads(result.stdout))
 
@@ -108,8 +106,6 @@ class GitStorage:
         """List branches and tags in the repo."""
         branches = self._run_git(["branch", "--list"]).stdout.strip().splitlines()
         tags = self._run_git(["tag", "--list"]).stdout.strip().splitlines()
-        clean_branches = [
-            b.strip().replace("*", "").strip() for b in branches if b.strip()
-        ]
+        clean_branches = [b.strip().replace("*", "").strip() for b in branches if b.strip()]
         clean_tags = [t.strip() for t in tags if t.strip()]
         return {"branches": clean_branches, "tags": clean_tags}

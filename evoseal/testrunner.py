@@ -31,13 +31,9 @@ class TestRunner:
             if test_type not in valid_types:
                 raise ValueError(f"Unknown test type: {test_type}")
         results = []
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.max_workers
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = {
-                executor.submit(
-                    self._run_single_test, variant_path, test_type
-                ): test_type
+                executor.submit(self._run_single_test, variant_path, test_type): test_type
                 for test_type in test_types
             }
             for future in concurrent.futures.as_completed(futures):

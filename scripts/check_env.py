@@ -223,9 +223,7 @@ def check_environment_variables() -> tuple[bool, list[str]]:
             all_success = False
 
     if missing_vars:
-        messages.append(
-            f"✗ Missing required environment variables: {', '.join(missing_vars)}"
-        )
+        messages.append(f"✗ Missing required environment variables: {', '.join(missing_vars)}")
     else:
         messages.append("✓ All required environment variables are set")
 
@@ -451,9 +449,7 @@ def main() -> int:
             print("  2. Install required dependencies:")
             print("     pip install -r requirements.txt")
 
-    print(
-        "\n  After making changes, run this script again to verify your configuration."
-    )
+    print("\n  After making changes, run this script again to verify your configuration.")
 
     sys.exit(0 if success else 1)
 

@@ -42,9 +42,7 @@ def stop_worker(
     ] = None,
     worker_type: Annotated[
         str | None,
-        typer.Option(
-            "--type", "-t", help="Type of worker to stop (seal, openevolve, dgm)."
-        ),
+        typer.Option("--type", "-t", help="Type of worker to stop (seal, openevolve, dgm)."),
     ] = None,
     force: Annotated[
         bool,

@@ -1,7 +1,4 @@
-from __future__ import annotations
-
-"""
-Example of using SelfEditor with KnowledgeAwareStrategy.
+"""Example of using SelfEditor with KnowledgeAwareStrategy.
 
 This example demonstrates how to:
 1. Create and populate a KnowledgeBase
@@ -10,32 +7,50 @@ This example demonstrates how to:
 4. Apply the suggested edits
 """
 
-import json
+from __future__ import annotations
+
+# Standard library imports
 import os
 import sys
+import tempfile
+from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, List, Optional, Union, cast
 
 # Add the project root to the path so we can import evoseal
 project_root = str(Path(__file__).parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# Third-party imports
+# Local application imports
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
-from evoseal.integration.seal.self_editor.models import (
-    EditCriteria,
-    EditOperation,
-    EditSuggestion,
-)
+from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation
+from evoseal.integration.seal.self_editor.models import EditSuggestion as ModelsEditSuggestion
+from evoseal.integration.seal.self_editor.self_editor import EditSuggestion as EditorEditSuggestion
 from evoseal.integration.seal.self_editor.self_editor import SelfEditor
-from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import KnowledgeAwareStrategy
+from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import (
+    KnowledgeAwareStrategy,
+)
+from evoseal.integration.seal.self_editor.utils.code_utils import (
+    apply_edit,
+    apply_edits,
+    get_line_range,
+    get_line_ranges,
+)
+
+# Type alias for either type of EditSuggestion
+AnyEditSuggestion = Union[ModelsEditSuggestion, EditorEditSuggestion, dict[str, Any]]
+AnyEditSuggestionList = List[AnyEditSuggestion]
 
 
 def setup_knowledge_base() -> KnowledgeBase:
-    """Set up a knowledge base with example content for code improvement."""
-    import tempfile
+    """Sets up a knowledge base with example content for code improvement.
 
+    Returns:
+        KnowledgeBase: A knowledge base with example content.
+    """
     # Create a temporary directory for the knowledge base
     temp_dir = tempfile.mkdtemp(prefix="evoseal_kb_")
     kb_path = os.path.join(temp_dir, "knowledge_base.db")
@@ -130,161 +145,223 @@ def process_items(items):
 """
 
 
-def print_suggestions(suggestions: list[EditSuggestion]) -> None:
-    """Print the suggestions in a user-friendly format."""
+def print_suggestions(suggestions: list[AnyEditSuggestion]) -> None:
+    """Print the suggestions in a user-friendly format.
+
+    Args:
+        suggestions: A list of EditSuggestion objects or compatible dicts
+    """
     if not suggestions:
-        print("\n✅ No suggestions available. The code looks good!")
+        print("No suggestions to display.")
         return
 
-    print("\n🔍 Found", len(suggestions), "suggestions for improvement:")
-
     # Group suggestions by category
-    by_category: dict[str, list[EditSuggestion]] = {}
+    by_category: dict[str, list[AnyEditSuggestion]] = {}
     for suggestion in suggestions:
-        if not hasattr(suggestion, "criteria") or not suggestion.criteria:
-            category = "Other"
+        if isinstance(suggestion, dict):
+            category = str(suggestion.get("criteria", "Other"))
+        elif hasattr(suggestion, "criteria") and suggestion.criteria:
+            category = str(suggestion.criteria)
         else:
-            # Use the first criteria as the main category
-            category = suggestion.criteria[0].value.replace("_", " ").title()
-
-        if category not in by_category:
-            by_category[category] = []
-        by_category[category].append(suggestion)
+            category = "Other"
+        by_category.setdefault(category, []).append(suggestion)
 
     # Print suggestions by category
     for category, category_suggestions in by_category.items():
-        print(f"\n📌 {category}:")
+        print(f"\n{category}:")
+        print("-" * len(category))
         for i, suggestion in enumerate(category_suggestions, 1):
-            if not isinstance(suggestion, EditSuggestion):
-                print(f"  {i}. [INVALID SUGGESTION] {suggestion}")
-                continue
+            if isinstance(suggestion, dict):
+                desc = suggestion.get("description", "No description")
+                print(f"\n{i}. {desc}")
+                if "line_number" in suggestion and suggestion["line_number"] is not None:
+                    print(f"   Line: {suggestion['line_number']}")
+                if "original" in suggestion and "suggested" in suggestion:
+                    print("   Original:")
+                    print(f"     {suggestion['original']}")
+                    print("   Suggested:")
+                    print(f"     {suggestion['suggested']}")
+                if "explanation" in suggestion:
+                    print(f"   Explanation: {suggestion['explanation']}")
+                if "severity" in suggestion:
+                    print(f"   Severity: {suggestion['severity']}")
+            else:
+                # Handle both ModelsEditSuggestion and EditorEditSuggestion
+                desc = getattr(suggestion, "description", "No description")
+                print(f"\n{i}. {desc}")
 
-            # Print the main suggestion info
-            print(
-                f"  {i}. {suggestion.operation.value.upper()}: {suggestion.explanation}"
-            )
+                line_number = getattr(suggestion, "line_number", None)
+                if line_number is not None:
+                    print(f"   Line: {line_number}")
 
-            # Show criteria if available
-            if hasattr(suggestion, "criteria") and suggestion.criteria:
-                criteria = ", ".join(c.value for c in suggestion.criteria)
-                print(f"     - Criteria: {criteria}")
+                if hasattr(suggestion, "original") and hasattr(suggestion, "suggested"):
+                    print("   Original:")
+                    print(f"     {suggestion.original}")
+                    print("   Suggested:")
+                    print(f"     {suggestion.suggested}")
+                elif hasattr(suggestion, "code_snippet"):
+                    print("   Code:")
+                    print(f"     {suggestion.code_snippet}")
 
-            # Show confidence if available
-            if hasattr(suggestion, "confidence"):
-                print(f"     - Confidence: {suggestion.confidence:.1f}/1.0")
+                explanation = getattr(suggestion, "explanation", None)
+                if explanation:
+                    print(f"   Explanation: {explanation}")
 
-            # Show before/after for non-trivial changes
-            if hasattr(suggestion, "original_text") and hasattr(
-                suggestion, "suggested_text"
-            ):
-                if suggestion.original_text != suggestion.suggested_text:
-                    print("     - Before:")
-                    for line in str(suggestion.original_text).split("\n"):
-                        if line.strip():
-                            print(f"       | {line}")
-                    print("     - After:")
-                    for line in str(suggestion.suggested_text).split("\n"):
-                        if line.strip():
-                            print(f"       | {line}")
-            print()  # Add spacing between suggestions
+                severity = getattr(suggestion, "severity", None)
+                if severity:
+                    print(f"   Severity: {severity}")
 
 
 def apply_suggestions_interactive(
-    editor: SelfEditor, content: str, suggestions: list[EditSuggestion]
+    editor: SelfEditor, content: str, suggestions: list[AnyEditSuggestion]
 ) -> str:
-    """Apply suggestions with user confirmation."""
+    """Apply suggestions with user confirmation.
+
+    Args:
+        editor: The SelfEditor instance
+        content: The original content
+        suggestions: List of suggestions to apply (EditSuggestion objects or dicts)
+
+    Returns:
+        The modified content after applying selected suggestions
+    """
     if not suggestions:
+        print("No suggestions to apply.")
         return content
 
-    print("\n" + "=" * 80)
-    print("APPLYING SUGGESTIONS".center(80))
-    print("=" * 80)
-
-    # Create a content ID for tracking edits
-    content_id = "interactive_edits"
-
-    # Initialize the content in the editor
-    editor.evaluate_content(content, content_id=content_id)
-    edited_content = content
-
+    print(f"\nFound {len(suggestions)} suggestions:")
     for i, suggestion in enumerate(suggestions, 1):
-        if not isinstance(suggestion, EditSuggestion):
-            continue
-
-        print(
-            f"\nSuggestion {i}/{len(suggestions)}: {suggestion.operation.value.upper()}"
-        )
-        print(f"- {suggestion.explanation}")
-
-        if hasattr(suggestion, "original_text") and hasattr(
-            suggestion, "suggested_text"
-        ):
-            if suggestion.original_text != suggestion.suggested_text:
-                print("\nBefore:")
-                print(suggestion.original_text)
-                print("\nAfter:")
-                print(suggestion.suggested_text)
-
-        apply = input("\nApply this change? [y/n] ").strip().lower()
-        if apply == "y":
-            # Apply the edit using the editor's apply_edit method
-            edited_content = editor.apply_edit(
-                content_id=content_id, suggestion=suggestion, apply=True
-            )
-            print("✅ Change applied")
+        print(f"\nSuggestion {i}:")
+        if isinstance(suggestion, dict):
+            print(f"- Type: {suggestion.get('type', 'N/A')}")
+            print(f"- Description: {suggestion.get('description', 'No description')}")
+            print(f"- Location: {suggestion.get('line_number', 'N/A')}")
+            print(f"- Original: {suggestion.get('original', 'N/A')}")
+            print(f"- Suggested: {suggestion.get('suggested', 'N/A')}")
         else:
-            # Record that we're skipping this suggestion
-            editor.apply_edit(content_id=content_id, suggestion=suggestion, apply=False)
-            print("⏩ Skipped")
+            print(f"- Type: {getattr(suggestion, 'type', 'N/A')}")
+            print(f"- Description: {getattr(suggestion, 'description', 'No description')}")
+            print(f"- Location: {getattr(suggestion, 'line_number', 'N/A')}")
+            if hasattr(suggestion, "original") and hasattr(suggestion, "suggested"):
+                print(f"- Original: {suggestion.original}")
+                print(f"- Suggested: {suggestion.suggested}")
 
-    # Get the final edited content
-    edited_content = editor.get_current_content(content_id)
-    return edited_content if edited_content is not None else content
+    while True:
+        try:
+            choice = input(
+                "\nEnter the number of the suggestion to apply, 'a' for all, or 'q' to quit: "
+            ).lower()
+
+            if choice == "q":
+                return content
+
+            if choice == "a":
+                return _apply_all_suggestions(editor, content, suggestions)
+
+            idx = int(choice) - 1
+            if 0 <= idx < len(suggestions):
+                return _apply_single_suggestion(editor, content, suggestions[idx])
+
+            print(f"Invalid choice: {choice}. Please try again.")
+        except ValueError:
+            print("Please enter a valid number, 'a' for all, or 'q' to quit.")
 
 
-def main():
+def _apply_all_suggestions(
+    editor: SelfEditor, content: str, suggestions: list[AnyEditSuggestion]
+) -> str:
+    """Apply all suggestions to the content."""
+    edited_content = content
+    for i, suggestion in enumerate(suggestions, 1):
+        print(f"\nApplying suggestion {i}/{len(suggestions)}...")
+        if isinstance(suggestion, dict):
+            edited_content = apply_edit(
+                edited_content,
+                EditOperation.REPLACE,
+                suggestion["line_number"],
+                suggestion["original"],
+                suggestion["suggested"],
+            )
+        else:
+            result = editor.apply_edit(
+                content_id="interactive_edits", suggestion=suggestion, apply=True
+            )
+            if result is not None:
+                edited_content = result
+    return edited_content
+
+
+def _apply_single_suggestion(
+    editor: SelfEditor, content: str, suggestion: AnyEditSuggestion
+) -> str:
+    """Apply a single suggestion to the content."""
+    if isinstance(suggestion, dict):
+        return apply_edit(
+            content,
+            EditOperation.REPLACE,
+            suggestion["line_number"],
+            suggestion["original"],
+            suggestion["suggested"],
+        )
+
+    # Convert ModelsEditSuggestion to EditorEditSuggestion if needed
+    if isinstance(suggestion, ModelsEditSuggestion):
+        suggestion_dict = asdict(suggestion)
+        suggestion = EditorEditSuggestion(
+            operation=EditOperation(suggestion_dict["operation"]),
+            original_text=suggestion_dict["original_text"],
+            suggested_text=suggestion_dict["suggested_text"],
+            line_number=suggestion_dict["line_number"],
+            explanation=suggestion_dict.get("explanation", ""),
+        )
+
+    result = editor.apply_edit(
+        content_id="interactive_edit",
+        suggestion=cast(EditorEditSuggestion, suggestion),
+        apply=True,
+    )
+    return result if result is not None else content
+
+
+def main() -> None:
     print("🔧 Setting up KnowledgeBase with example content...")
-    kb = setup_knowledge_base()
+    knowledge_base = setup_knowledge_base()
 
-    print("🚀 Creating KnowledgeAwareStrategy...")
-    strategy = KnowledgeAwareStrategy(knowledge_base=kb)
+    # Create a KnowledgeAwareStrategy with the knowledge base
+    strategy = KnowledgeAwareStrategy(knowledge_base=knowledge_base)
 
-    print("🛠️  Initializing SelfEditor...")
+    # Create a SelfEditor with the strategy
     editor = SelfEditor(strategy=strategy)
 
-    # Get example content
-    content = get_example_content()
+    # Example code to analyze and improve
+    content = """
+def calculate_sum(a, b):
+    # Add two numbers
+    return a + b
 
-    print("\n" + "=" * 80)
-    print("ORIGINAL CONTENT".center(80))
-    print("=" * 80)
-    print(content)
+print(calculate_sum(5, 10))  # This should print 15
+"""
 
     # Get edit suggestions
     print("\n🔍 Analyzing code and generating suggestions...")
+
     # Use evaluate_content with a content_id to track history
     content_id = "example_code"
+    print("\nAnalyzing code...")
     suggestions = editor.evaluate_content(content, content_id=content_id)
 
-    # Print the suggestions
-    print_suggestions(suggestions)
+    # Print suggestions
+    suggestions_list = list(suggestions) if not isinstance(suggestions, list) else suggestions
+    print_suggestions(suggestions_list)
 
-    # Apply suggestions interactively
-    if suggestions and len(suggestions) > 0 and isinstance(suggestions[0], EditSuggestion):
-        edited_content = apply_suggestions_interactive(editor, content, suggestions)
-
+    # Interactive application of suggestions
+    if suggestions_list:
+        # Apply suggestions interactively
+        edited_content = apply_suggestions_interactive(editor, content, suggestions_list)
         print("\n" + "=" * 80)
         print("FINAL EDITED CONTENT".center(80))
         print("=" * 80)
         print(edited_content)
-    else:
-        print("\nNo valid suggestions to apply.")
-
-    # Show edit history
-    print("\n" + "=" * 80)
-    print("EDIT HISTORY".center(80))
-    print("=" * 80)
-    # Use the same content_id that was used for evaluation
     history = editor.get_edit_history(content_id=content_id)
     if history:
         for i, entry in enumerate(history, 1):
@@ -292,9 +369,7 @@ def main():
             if isinstance(entry, tuple) and len(entry) >= 2:
                 operation, description = entry[0], entry[1]
                 operation_str = (
-                    str(operation.value)
-                    if hasattr(operation, "value")
-                    else str(operation)
+                    str(operation.value) if hasattr(operation, "value") else str(operation)
                 )
                 print(f"{i}. {operation_str}: {description}")
             elif hasattr(entry, "operation") and hasattr(entry, "description"):

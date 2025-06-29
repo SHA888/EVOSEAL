@@ -50,9 +50,7 @@ class TestRunner:
             max_workers=min(self.max_workers, len(test_types))
         ) as executor:
             future_to_test = {
-                executor.submit(
-                    self._run_single_test, variant_path, test_type
-                ): test_type
+                executor.submit(self._run_single_test, variant_path, test_type): test_type
                 for test_type in test_types
             }
 

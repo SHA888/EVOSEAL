@@ -2,7 +2,7 @@
 
 import re
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import NamedTuple, Optional, Union
 
 
 class DocstringStyle(Enum):
@@ -27,7 +27,7 @@ class ParsedDocstring:
         self,
         summary: str = "",
         description: str = "",
-        sections: Optional[Dict[str, str]] = None,
+        sections: Optional[dict[str, str]] = None,
         style: DocstringStyle = DocstringStyle.GOOGLE,
     ):
         self.summary = summary
@@ -144,7 +144,7 @@ def parse_docstring(
 def _parse_google_docstring(rest: str, parsed: ParsedDocstring) -> None:
     """Parse the rest of a Google-style docstring."""
     current_section: Optional[str] = None
-    current_content: List[str] = []
+    current_content: list[str] = []
 
     for line in rest.split("\n"):
         line = line.rstrip()

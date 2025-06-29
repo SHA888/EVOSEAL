@@ -5,7 +5,7 @@ Base command class for EVOSEAL CLI commands.
 import abc
 import logging
 import typing
-from typing import Any, Callable, Optional, Type, TypeVar, cast
+from typing import Any, Callable, Optional, TypeVar, Union, cast
 
 import typer
 from click import Group as ClickGroup
@@ -25,27 +25,25 @@ class EVOSEALCommand(abc.ABC, typer.Typer):
         super().__init__(*args, no_args_is_help=True, help=self.__doc__, **kwargs)
 
     @abc.abstractmethod
-    def callback[
-        F: (typing.Callable[..., typing.Any] | type[typing.Any])
-    ](
+    def callback(
         self,
         *,
-        cls: type[ClickGroup] | None = None,
+        cls: Union[type[ClickGroup], None] = None,
         invoke_without_command: bool = False,
         no_args_is_help: bool = True,
-        subcommand_metavar: str | None = None,
+        subcommand_metavar: Union[str, None] = None,
         chain: bool = False,
-        result_callback: typing.Callable[..., typing.Any] | None = None,
-        context_settings: dict[typing.Any, typing.Any] | None = None,
-        help: str | None = None,
-        epilog: str | None = None,
-        short_help: str | None = None,
+        result_callback: Union[typing.Callable[..., typing.Any], None] = None,
+        context_settings: Union[dict[typing.Any, typing.Any], None] = None,
+        help: Union[str, None] = None,
+        epilog: Union[str, None] = None,
+        short_help: Union[str, None] = None,
         options_metavar: str = "[OPTIONS]",
         add_help_option: bool = True,
         hidden: bool = False,
         deprecated: bool = False,
-        rich_help_panel: str | None = None,
-    ) -> typing.Callable[[F], F]:
+        rich_help_panel: Union[str, None] = None,
+    ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
         """The main entry point for the command.
 
         This method is called when the command is executed. It should be implemented
@@ -71,20 +69,23 @@ class EVOSEALCommand(abc.ABC, typer.Typer):
         Returns:
             A decorator that can be applied to command functions.
         """
-        return super().callback(
-            cls=cls,
-            invoke_without_command=invoke_without_command,
-            no_args_is_help=no_args_is_help,
-            subcommand_metavar=subcommand_metavar,
-            chain=chain,
-            result_callback=result_callback,
-            context_settings=context_settings,
-            help=help or self.__doc__,
-            epilog=epilog,
-            short_help=short_help,
-            options_metavar=options_metavar,
-            add_help_option=add_help_option,
-            hidden=hidden,
-            deprecated=deprecated,
-            rich_help_panel=rich_help_panel,
+        return cast(
+            typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]],
+            super().callback(
+                cls=cls,
+                invoke_without_command=invoke_without_command,
+                no_args_is_help=no_args_is_help,
+                subcommand_metavar=subcommand_metavar,
+                chain=chain,
+                result_callback=result_callback,
+                context_settings=context_settings,
+                help=help or self.__doc__,
+                epilog=epilog,
+                short_help=short_help,
+                options_metavar=options_metavar,
+                add_help_option=add_help_option,
+                hidden=hidden,
+                deprecated=deprecated,
+                rich_help_panel=rich_help_panel,
+            ),
         )

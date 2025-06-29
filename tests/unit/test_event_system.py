@@ -235,12 +235,8 @@ class TestEventSystem:
         # Register event handlers
         engine.register_event_handler(EventType.WORKFLOW_STARTED, handlers["on_start"])
         engine.register_event_handler(EventType.STEP_STARTED, handlers["on_step_start"])
-        engine.register_event_handler(
-            EventType.STEP_COMPLETED, handlers["on_step_complete"]
-        )
-        engine.register_event_handler(
-            EventType.WORKFLOW_COMPLETED, handlers["on_complete"]
-        )
+        engine.register_event_handler(EventType.STEP_COMPLETED, handlers["on_step_complete"])
+        engine.register_event_handler(EventType.WORKFLOW_COMPLETED, handlers["on_complete"])
 
         # Run workflow
         result = await engine.execute_workflow_async("test_workflow")
@@ -267,12 +263,8 @@ class TestEventSystem:
         engine.define_workflow("test_workflow", workflow_definition)
         engine.register_event_handler(EventType.WORKFLOW_STARTED, handlers["on_start"])
         engine.register_event_handler(EventType.STEP_STARTED, handlers["on_step_start"])
-        engine.register_event_handler(
-            EventType.STEP_COMPLETED, handlers["on_step_complete"]
-        )
-        engine.register_event_handler(
-            EventType.WORKFLOW_COMPLETED, handlers["on_complete"]
-        )
+        engine.register_event_handler(EventType.STEP_COMPLETED, handlers["on_step_complete"])
+        engine.register_event_handler(EventType.WORKFLOW_COMPLETED, handlers["on_complete"])
 
         # Run workflow
         await engine.execute_workflow_async("test_workflow")
@@ -299,12 +291,8 @@ class TestEventSystem:
         engine.define_workflow("test_workflow", workflow_definition)
         engine.register_event_handler(EventType.WORKFLOW_STARTED, handlers["on_start"])
         engine.register_event_handler(EventType.STEP_STARTED, handlers["on_step_start"])
-        engine.register_event_handler(
-            EventType.STEP_COMPLETED, handlers["on_step_complete"]
-        )
-        engine.register_event_handler(
-            EventType.WORKFLOW_COMPLETED, handlers["on_complete"]
-        )
+        engine.register_event_handler(EventType.STEP_COMPLETED, handlers["on_step_complete"])
+        engine.register_event_handler(EventType.WORKFLOW_COMPLETED, handlers["on_complete"])
 
         # Run workflow
         await engine.execute_workflow_async("test_workflow")
@@ -312,9 +300,5 @@ class TestEventSystem:
         # Verify event ordering
         event_sequence = [e[0] for e in events_received]
         assert event_sequence.index("started") < event_sequence.index("step_started")
-        assert event_sequence.index("step_started") < event_sequence.index(
-            "step_completed"
-        )
-        assert event_sequence.index("step_completed") < event_sequence.index(
-            "completed"
-        )
+        assert event_sequence.index("step_started") < event_sequence.index("step_completed")
+        assert event_sequence.index("step_completed") < event_sequence.index("completed")

@@ -1,7 +1,7 @@
 """Base strategy class for all editing strategies."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 
@@ -24,7 +24,7 @@ class BaseEditStrategy(ABC):
         self.enabled = enabled
 
     @abstractmethod
-    def evaluate(self, content: str, **kwargs: Any) -> List[EditSuggestion]:
+    def evaluate(self, content: str, **kwargs: Any) -> list[EditSuggestion]:
         """Evaluate content and return edit suggestions.
 
         Args:
@@ -49,16 +49,12 @@ class BaseEditStrategy(ABC):
         if not suggestion or not self.enabled:
             return content
 
-        if hasattr(suggestion, "original_text") and hasattr(
-            suggestion, "suggested_text"
-        ):
+        if hasattr(suggestion, "original_text") and hasattr(suggestion, "suggested_text"):
             if suggestion.original_text in content:
-                return content.replace(
-                    suggestion.original_text, suggestion.suggested_text
-                )
+                return content.replace(suggestion.original_text, suggestion.suggested_text)
         return content
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get the current configuration of the strategy.
 
         Returns:

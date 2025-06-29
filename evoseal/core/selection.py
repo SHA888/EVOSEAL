@@ -97,9 +97,7 @@ class SelectionAlgorithm:
         fitnesses = [max(0.0, x.get(fitness_key, 0)) for x in pop]
         total_fitness = sum(fitnesses)
         if total_fitness == 0 and pop:
-            selected.extend(
-                random.sample(pop, min(num_selected - len(selected), len(pop)))
-            )
+            selected.extend(random.sample(pop, min(num_selected - len(selected), len(pop))))
             # If still not enough, fill with randoms from selected
             while len(selected) < num_selected:
                 selected.append(random.choice(selected))

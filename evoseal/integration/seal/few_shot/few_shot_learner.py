@@ -166,9 +166,7 @@ class FewShotLearner:
             try:
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.base_model_name,
-                    torch_dtype=(
-                        torch.bfloat16 if torch.cuda.is_available() else torch.float32
-                    ),
+                    torch_dtype=(torch.bfloat16 if torch.cuda.is_available() else torch.float32),
                     device_map="auto" if torch.cuda.is_available() else None,
                     cache_dir=self.cache_dir,
                     trust_remote_code=True,
@@ -288,9 +286,7 @@ class FewShotLearner:
             f"Index {index} out of range for examples list (length: {len(self.examples)})"
         )
 
-    def update_example(
-        self, index: int, new_example: dict[str, Any] | FewShotExample
-    ) -> None:
+    def update_example(self, index: int, new_example: dict[str, Any] | FewShotExample) -> None:
         """Update an existing example.
 
         Args:
@@ -338,9 +334,7 @@ class FewShotLearner:
             ValueError: If field is not valid
         """
         if field not in ["input_data", "output_data", "metadata"]:
-            raise ValueError(
-                "Field must be one of: 'input_data', 'output_data', 'metadata'"
-            )
+            raise ValueError("Field must be one of: 'input_data', 'output_data', 'metadata'")
 
         query = query if case_sensitive else query.lower()
         matches: list[int] = []
@@ -407,10 +401,7 @@ class FewShotLearner:
                 import numpy as np
                 from sklearn.feature_extraction.text import TfidfVectorizer
                 from sklearn.metrics import jaccard_score
-                from sklearn.metrics.pairwise import (
-                    cosine_similarity,
-                    euclidean_distances,
-                )
+                from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
             except ImportError as e:
                 logger.warning(
                     f"scikit-learn not installed: {e}. Falling back to 'first_k' strategy. "
@@ -427,9 +418,7 @@ class FewShotLearner:
             try:
                 tfidf_matrix = vectorizer.fit_transform(texts)
             except ValueError as e:
-                logger.warning(
-                    f"TF-IDF vectorization failed: {e}. Falling back to 'first_k'"
-                )
+                logger.warning(f"TF-IDF vectorization failed: {e}. Falling back to 'first_k'")
                 return self.examples[:k]
 
             # Calculate similarities
@@ -437,9 +426,7 @@ class FewShotLearner:
             example_vectors = tfidf_matrix[1:]
 
             if similarity_metric == "cosine":
-                similarities = cosine_similarity(
-                    query_vector, example_vectors
-                ).flatten()
+                similarities = cosine_similarity(query_vector, example_vectors).flatten()
             elif similarity_metric == "euclidean":
                 distances = euclidean_distances(query_vector, example_vectors).flatten()
                 # Convert distances to similarities (higher is better)
@@ -466,8 +453,7 @@ class FewShotLearner:
             return [self.examples[i] for i in top_indices]
 
         raise ValueError(
-            f"Unknown strategy: {strategy}. "
-            "Must be one of: 'first_k', 'random', 'similarity'"
+            f"Unknown strategy: {strategy}. " "Must be one of: 'first_k', 'random', 'similarity'"
         )
 
     def generate(
@@ -548,9 +534,7 @@ class FewShotLearner:
         """
         training_config = training_config or {}
         num_epochs = training_config.get("num_epochs", 3)
-        per_device_train_batch_size = training_config.get(
-            "per_device_train_batch_size", 4
-        )
+        per_device_train_batch_size = training_config.get("per_device_train_batch_size", 4)
         learning_rate = training_config.get("learning_rate", 2e-5)
         warmup_steps = training_config.get("warmup_steps", 100)
         logging_steps = training_config.get("logging_steps", 10)
@@ -565,9 +549,7 @@ class FewShotLearner:
         if self.model is None or self.tokenizer is None:
             raise ValueError("Model and tokenizer must be initialized")
 
-        def tokenize_function(
-            examples: dict[str, list[Any]]
-        ) -> dict[str, torch.Tensor]:
+        def tokenize_function(examples: dict[str, list[Any]]) -> dict[str, torch.Tensor]:
             """Tokenize examples for model training.
 
             Args:
@@ -587,9 +569,7 @@ class FewShotLearner:
                     system_prompt=examples.get("system_prompt", [""])[i]
                     or "You are a helpful AI assistant.",
                 )
-                texts.append(
-                    f"{prompt}{examples['output'][i]}{self.tokenizer.eos_token}"
-                )
+                texts.append(f"{prompt}{examples['output'][i]}{self.tokenizer.eos_token}")
 
             tokenized: dict[str, torch.Tensor] = self.tokenizer(
                 texts,
@@ -604,9 +584,7 @@ class FewShotLearner:
         dataset_dict = {
             "input": [str(ex.input_data) for ex in self.examples],
             "output": [str(ex.output_data) for ex in self.examples],
-            "system_prompt": [
-                ex.metadata.get("system_prompt", "") for ex in self.examples
-            ],
+            "system_prompt": [ex.metadata.get("system_prompt", "") for ex in self.examples],
         }
 
         dataset = Dataset.from_dict(dataset_dict)
@@ -644,9 +622,7 @@ class FewShotLearner:
             model=self.model,
             args=training_args,
             train_dataset=tokenized_datasets,
-            data_collator=DataCollatorForLanguageModeling(
-                tokenizer=self.tokenizer, mlm=False
-            ),
+            data_collator=DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False),
         )
 
         # Train the model
@@ -715,9 +691,7 @@ class FewShotLearner:
         texts: list[str] = []
         system_prompts = examples.get("system_prompt", [""] * len(examples["input"]))
 
-        for i, (input_text, output_text) in enumerate(
-            zip(examples["input"], examples["output"])
-        ):
+        for i, (input_text, output_text) in enumerate(zip(examples["input"], examples["output"])):
             prompt = self.format_prompt(
                 query=input_text,
                 examples=[],  # Don't include other examples in each training example

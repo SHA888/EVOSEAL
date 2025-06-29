@@ -16,9 +16,7 @@ T = TypeVar("T", bound="EVOSEALCommand")
 class EVOSEALCommand:
     """Base class for EVOSEAL CLI commands with common functionality."""
 
-    def __init__(
-        self, project_root: Optional[Union[Path, str]] = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, project_root: Optional[Union[Path, str]] = None, **kwargs: Any) -> None:
         """Initialize the command with an optional project root.
 
         Args:
@@ -79,17 +77,7 @@ class EVOSEALCommand:
 
 # Import all command modules to register them with Typer
 # This must be done after the base class is defined
-from . import (  # noqa: E402
-    config,
-    dgm,
-    export,
-    init,
-    openevolve,
-    seal,
-    start,
-    status,
-    stop,
-)
+from . import config, dgm, export, init, openevolve, seal, start, status, stop  # noqa: E402
 
 # List of all command modules for easy access
 COMMAND_MODULES = [

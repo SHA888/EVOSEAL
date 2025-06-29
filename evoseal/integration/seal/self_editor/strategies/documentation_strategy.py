@@ -4,7 +4,7 @@ import ast
 import inspect
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from ..utils import DocstringStyle, ParsedDocstring, parse_docstring
@@ -34,10 +34,10 @@ class DocumentationConfig:
     max_line_length: int = 88
 
     # Custom sections to check for
-    custom_sections: List[str] = field(default_factory=list)
+    custom_sections: list[str] = field(default_factory=list)
 
     # Ignore patterns (regex)
-    ignore_patterns: List[str] = field(default_factory=list)
+    ignore_patterns: list[str] = field(default_factory=list)
 
 
 class DocumentationStrategy(BaseEditStrategy):
@@ -51,9 +51,7 @@ class DocumentationStrategy(BaseEditStrategy):
     - Adding examples
     """
 
-    def __init__(
-        self, config: Optional[DocumentationConfig] = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, config: Optional[DocumentationConfig] = None, **kwargs: Any) -> None:
         """Initialize the documentation strategy.
 
         Args:
@@ -66,7 +64,7 @@ class DocumentationStrategy(BaseEditStrategy):
             re.compile(pattern) for pattern in self.config.ignore_patterns
         ]
 
-    def evaluate(self, content: str, **kwargs: Any) -> List[EditSuggestion]:
+    def evaluate(self, content: str, **kwargs: Any) -> list[EditSuggestion]:
         """Evaluate content for documentation improvements.
 
         Args:
@@ -101,9 +99,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
             # Check all functions and classes
             for node in ast.walk(module):
-                if isinstance(
-                    node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-                ):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     if not self._should_skip_node(node, content):
                         suggestions.extend(self._evaluate_node(node, content))
 
@@ -113,7 +109,7 @@ class DocumentationStrategy(BaseEditStrategy):
             # If we can't parse the content, return an empty list of suggestions
             return []
 
-    def _evaluate_node(self, node: ast.AST, content: str) -> List[EditSuggestion]:
+    def _evaluate_node(self, node: ast.AST, content: str) -> list[EditSuggestion]:
         """Evaluate a single AST node for documentation issues.
 
         Args:
@@ -124,12 +120,14 @@ class DocumentationStrategy(BaseEditStrategy):
             List of documentation improvement suggestions with no None values
         """
         from collections.abc import Iterator, Sequence
-        from typing import Any, TypeVar, cast
-        from typing import List as ListType
+
+        # No need to import List as we use built-in list type
+        from typing import Any
         from typing import Optional as Opt
+        from typing import TypeVar, cast
 
         # Initialize with explicit type annotation to ensure we only store EditSuggestion
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
 
         # Check for missing docstrings
         if self.config.require_docstrings and not self._has_docstring(node):
@@ -140,11 +138,9 @@ class DocumentationStrategy(BaseEditStrategy):
         # Check existing docstring quality
         docstring = self._safe_get_docstring(node)
         if docstring:
-            quality_suggestions = self._check_docstring_quality(
-                node, docstring, content
-            )
+            quality_suggestions = self._check_docstring_quality(node, docstring, content)
             if quality_suggestions:
-                # We know _check_docstring_quality returns List[EditSuggestion] with no Nones
+                # We know _check_docstring_quality returns list[EditSuggestion] with no Nones
                 suggestions.extend(quality_suggestions)
 
         # Check type hints
@@ -153,7 +149,7 @@ class DocumentationStrategy(BaseEditStrategy):
         ):
             type_hint_suggestions = self._check_type_hints(node, content)
             if type_hint_suggestions:
-                # _check_type_hints is typed to return List[EditSuggestion] with no Nones
+                # _check_type_hints is typed to return list[EditSuggestion] with no Nones
                 suggestions.extend(type_hint_suggestions)
 
         # Return a new list to ensure type safety
@@ -164,7 +160,7 @@ class DocumentationStrategy(BaseEditStrategy):
         node: Union[ast.FunctionDef, ast.AsyncFunctionDef],
         parsed: Any,  # Using Any for parsed docstring as we don't have the exact type
         content: str,
-    ) -> List[EditSuggestion]:
+    ) -> list[EditSuggestion]:
         """Check the quality of a function docstring.
 
         Args:
@@ -177,7 +173,7 @@ class DocumentationStrategy(BaseEditStrategy):
         """
         import logging
 
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
 
         # Check for missing sections
         if hasattr(parsed, "sections"):
@@ -203,9 +199,7 @@ class DocumentationStrategy(BaseEditStrategy):
                 for param in node.args.args:
                     if param.arg != "self":
                         param_type = (
-                            f" ({ast.unparse(param.annotation)}) "
-                            if param.annotation
-                            else " "
+                            f" ({ast.unparse(param.annotation)}) " if param.annotation else " "
                         )
                         param_descriptions.append(
                             f"    {param.arg}:{param_type}Description of {param.arg}"
@@ -235,11 +229,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
                 # Add keyword-only arguments
                 for kwarg in node.args.kwonlyargs:
-                    param_type = (
-                        f" ({ast.unparse(kwarg.annotation)}) "
-                        if kwarg.annotation
-                        else " "
-                    )
+                    param_type = f" ({ast.unparse(kwarg.annotation)}) " if kwarg.annotation else " "
                     param_descriptions.append(
                         f"    {kwarg.arg}:{param_type}Description of {kwarg.arg}"
                     )
@@ -310,11 +300,7 @@ class DocumentationStrategy(BaseEditStrategy):
             if hasattr(param, "name") and hasattr(param, "annotation"):
                 # It's a proper Parameter object
                 param_name = param.name
-                param_type = (
-                    str(param.annotation)
-                    if param.annotation != Parameter.empty
-                    else "Any"
-                )
+                param_type = str(param.annotation) if param.annotation != Parameter.empty else "Any"
             else:
                 # Fallback for string parameters
                 param_name = str(param)
@@ -328,9 +314,7 @@ class DocumentationStrategy(BaseEditStrategy):
             param_desc = f"{param_name} ({param_type}): Description of {param_name}"
 
             # Create a new docstring with the missing parameter
-            new_docstring = self._update_param_docstring(
-                docstring, param_name, param_desc
-            )
+            new_docstring = self._update_param_docstring(docstring, param_name, param_desc)
 
             if new_docstring != docstring:
                 return EditSuggestion(
@@ -353,9 +337,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         return None
 
-    def _update_param_docstring(
-        self, docstring: str, param_name: str, param_desc: str
-    ) -> str:
+    def _update_param_docstring(self, docstring: str, param_name: str, param_desc: str) -> str:
         """Update a docstring to include a parameter description.
 
         Args:
@@ -405,13 +387,13 @@ class DocumentationStrategy(BaseEditStrategy):
             An EditSuggestion for removing the parameter, or None if not needed
         """
         try:
-            from typing import Any, Dict
+            # No need to import Dict
 
             # Parse the docstring
             parsed = parse_docstring(docstring, self.config.docstring_style)
 
             # Get the params dictionary safely
-            params: Dict[str, Any] = getattr(parsed, "params", {})
+            params: dict[str, Any] = getattr(parsed, "params", {})
 
             # Check if the parameter exists in the docstring
             if param_name not in params:
@@ -453,7 +435,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _check_parameter_documentation(
         self, node: ast.AST, docstring: str, content: str
-    ) -> List[EditSuggestion]:
+    ) -> list[EditSuggestion]:
         """Check if all parameters are properly documented.
 
         Args:
@@ -464,11 +446,11 @@ class DocumentationStrategy(BaseEditStrategy):
         Returns:
             List of suggestions for improving parameter documentation, with no None values
         """
-        from typing import Any, Dict, cast
-        from typing import List as ListType
+        from typing import Any, cast
 
+        # No need to import List as we use built-in list type
         # Initialize with explicit type annotation to ensure we only store EditSuggestion
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
 
         # Only check functions and methods
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -480,16 +462,14 @@ class DocumentationStrategy(BaseEditStrategy):
 
             # Get the function parameters
             sig = inspect.signature(
-                eval(node.name, {}, {"self": None, "cls": None})
-                if hasattr(node, "name")
-                else None
+                eval(node.name, {}, {"self": None, "cls": None}) if hasattr(node, "name") else None
             )
 
             # Parse the docstring
             parsed = parse_docstring(docstring, self.config.docstring_style)
 
             # Get documented parameters from the parsed docstring
-            doc_params: Dict[str, Any] = getattr(parsed, "params", {})
+            doc_params: dict[str, Any] = getattr(parsed, "params", {})
 
             # Check for missing parameter documentation
             for param_name, param in sig.parameters.items():
@@ -598,9 +578,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         # Find the end of the function signature
         insert_line = start_line + 1
-        while insert_line < len(lines) and not lines[insert_line].strip().startswith(
-            ":"
-        ):
+        while insert_line < len(lines) and not lines[insert_line].strip().startswith(":"):
             insert_line += 1
 
         if insert_line < len(lines):
@@ -624,9 +602,7 @@ class DocumentationStrategy(BaseEditStrategy):
             metadata={"node_type": "function", "node_name": node.name},
         )
 
-    def _create_missing_class_docstring(
-        self, node: ast.ClassDef, content: str
-    ) -> EditSuggestion:
+    def _create_missing_class_docstring(self, node: ast.ClassDef, content: str) -> EditSuggestion:
         """Create a suggestion for a missing class docstring."""
         docstring = f"{node.name} class."
 
@@ -635,9 +611,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         # Find where to insert the docstring (after the class definition)
         insert_line = start_line + 1
-        while insert_line < len(lines) and not lines[insert_line].strip().startswith(
-            ":"
-        ):
+        while insert_line < len(lines) and not lines[insert_line].strip().startswith(":"):
             insert_line += 1
 
         if insert_line < len(lines):
@@ -719,15 +693,13 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _safe_get_docstring(self, node: ast.AST) -> Optional[str]:
         """Safely get docstring from an AST node."""
-        if isinstance(
-            node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)
-        ):
+        if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)):
             return ast.get_docstring(node, clean=False)
         return None
 
     def _check_class_docstring(
         self, node: ast.ClassDef, parsed: ParsedDocstring, content: str
-    ) -> List[EditSuggestion]:
+    ) -> list[EditSuggestion]:
         """Check the quality of a class docstring.
 
         Args:
@@ -738,15 +710,13 @@ class DocumentationStrategy(BaseEditStrategy):
         Returns:
             List of suggestions for improving the class docstring
         """
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
 
         # Check for attributes section if the class has attributes
         if "Attributes" not in parsed.sections:
             # Look for class attributes and instance attributes
             has_attributes = any(
-                isinstance(n, ast.Assign)
-                and n.targets
-                and isinstance(n.targets[0], ast.Name)
+                isinstance(n, ast.Assign) and n.targets and isinstance(n.targets[0], ast.Name)
                 for n in ast.walk(node)
             )
 
@@ -763,8 +733,7 @@ class DocumentationStrategy(BaseEditStrategy):
         # Check for methods section if the class has methods
         if "Methods" not in parsed.sections:
             has_methods = any(
-                isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-                for n in node.body
+                isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) for n in node.body
             )
 
             if has_methods:
@@ -781,7 +750,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _check_docstring_quality(
         self, node: ast.AST, docstring: str, content: str
-    ) -> List[EditSuggestion]:
+    ) -> list[EditSuggestion]:
         """Check the quality of an existing docstring.
 
         Args:
@@ -792,7 +761,7 @@ class DocumentationStrategy(BaseEditStrategy):
         Returns:
             List of suggestions for improving the docstring, with no None values
         """
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
 
         try:
             # Parse the docstring
@@ -816,20 +785,18 @@ class DocumentationStrategy(BaseEditStrategy):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 func_suggestions = self._check_function_docstring(node, parsed, content)
                 if func_suggestions:
-                    # _check_function_docstring is typed to return List[EditSuggestion] with no Nones
+                    # _check_function_docstring is typed to return list[EditSuggestion] with no Nones
                     suggestions.extend(func_suggestions)
             elif isinstance(node, ast.ClassDef):
                 class_suggestions = self._check_class_docstring(node, parsed, content)
                 if class_suggestions:
-                    # _check_class_docstring is typed to return List[EditSuggestion] with no Nones
+                    # _check_class_docstring is typed to return list[EditSuggestion] with no Nones
                     suggestions.extend(class_suggestions)
 
             # Check parameter documentation
-            param_suggestions = self._check_parameter_documentation(
-                node, docstring, content
-            )
+            param_suggestions = self._check_parameter_documentation(node, docstring, content)
             if param_suggestions:
-                # _check_parameter_documentation is typed to return List[EditSuggestion] with no Nones
+                # _check_parameter_documentation is typed to return list[EditSuggestion] with no Nones
                 suggestions.extend(param_suggestions)
 
             # Check line length in docstring
@@ -845,11 +812,7 @@ class DocumentationStrategy(BaseEditStrategy):
                                 f"Docstring line too long ({len(line)} > "
                                 f"{self.config.max_line_length} characters)"
                             ),
-                            line_number=(
-                                node.lineno + i + 1
-                                if hasattr(node, "lineno")
-                                else i + 1
-                            ),
+                            line_number=(node.lineno + i + 1 if hasattr(node, "lineno") else i + 1),
                             metadata={
                                 "node_type": type(node).__name__.lower(),
                                 "line_length": len(line),
@@ -864,7 +827,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
             logging.debug(f"Error checking docstring quality: {e}")
 
-        # Ensure we're returning List[EditSuggestion] with no None values
+        # Ensure we're returning list[EditSuggestion] with no None values
         return [s for s in suggestions if s is not None]
 
     def _create_missing_section_suggestion(
@@ -907,8 +870,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
             # Apply indentation
             new_docstring = "\n".join(
-                (indent + line) if line.strip() else ""
-                for line in new_docstring.split("\n")
+                (indent + line) if line.strip() else "" for line in new_docstring.split("\n")
             )
 
             return EditSuggestion(
@@ -933,7 +895,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _check_type_hints(
         self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef], content: str
-    ) -> List[EditSuggestion]:
+    ) -> list[EditSuggestion]:
         """Check for missing type hints in function parameters and return type."""
         suggestions = []
 
@@ -1011,9 +973,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         return "\n".join(docstring)
 
-    def _generate_args_section(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]
-    ) -> str:
+    def _generate_args_section(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
         """Generate the Args section for a function docstring."""
         args = [arg for arg in node.args.args if arg.arg != "self"]
         if not args and not node.args.vararg and not node.args.kwarg:
@@ -1047,7 +1007,7 @@ class DocumentationStrategy(BaseEditStrategy):
         match = re.match(r"^\s*", line)
         return match.group(0) if match else ""
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get the strategy configuration."""
         return {
             "require_docstrings": self.config.require_docstrings,

@@ -27,9 +27,7 @@ sys.modules["openevolve"] = MagicMock()
 sys.modules["openevolve.prompt"] = MagicMock()
 sys.modules["openevolve.prompt.templates"] = MagicMock()
 
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
-)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../")))
 
 import pytest
 

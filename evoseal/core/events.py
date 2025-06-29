@@ -122,10 +122,7 @@ class EventBus:
             if event_str is None:
                 if handler_info in self._default_handlers:
                     self._default_handlers.remove(handler_info)
-            elif (
-                event_str in self._handlers
-                and handler_info in self._handlers[event_str]
-            ):
+            elif event_str in self._handlers and handler_info in self._handlers[event_str]:
                 self._handlers[event_str].remove(handler_info)
 
         return unsubscribe
@@ -176,9 +173,7 @@ class EventBus:
         Returns:
             An unsubscribe function for this handler
         """
-        event_str = (
-            event_type.value if isinstance(event_type, EventType) else event_type
-        )
+        event_str = event_type.value if isinstance(event_type, EventType) else event_type
         return self._add_handler_info(event_str, handler, priority, filter_fn)
 
     @overload
@@ -208,9 +203,7 @@ class EventBus:
 
     def subscribe(
         self,
-        event_type: (
-            EventType | str | Callable[[Event], None | Awaitable[None]] | None
-        ) = None,
+        event_type: EventType | str | Callable[[Event], None | Awaitable[None]] | None = None,
         handler: EventHandler | None = None,
         *,
         priority: int = 0,
@@ -259,13 +252,9 @@ class EventBus:
             handler: The handler function to remove
         """
         if event_type is None:
-            self._default_handlers = [
-                h for h in self._default_handlers if h["handler"] != handler
-            ]
+            self._default_handlers = [h for h in self._default_handlers if h["handler"] != handler]
         else:
-            event_type_str = (
-                event_type.value if isinstance(event_type, EventType) else event_type
-            )
+            event_type_str = event_type.value if isinstance(event_type, EventType) else event_type
             if event_type_str in self._handlers:
                 self._handlers[event_type_str] = [
                     h for h in self._handlers[event_type_str] if h["handler"] != handler

@@ -44,9 +44,7 @@ try:
     sys.path.insert(0, os.path.abspath("."))  # Add project root to path
     try:
         # Add the project root and openevolve directory to the Python path
-        project_root = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..")
-        )
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         openevolve_dir = os.path.join(project_root, "openevolve")
 
         # Add to sys.path if not already there
@@ -56,13 +54,7 @@ try:
 
         # Import the openevolve package
         import openevolve
-        from openevolve.config import (
-            Config,
-            LLMConfig,
-            LLMModelConfig,
-            PromptConfig,
-            load_config,
-        )
+        from openevolve.config import Config, LLMConfig, LLMModelConfig, PromptConfig, load_config
 
         # Now import the specific modules we need
         from openevolve.controller import OpenEvolve
@@ -89,9 +81,7 @@ try:
             print(f"Files in OpenEvolve directory: {os.listdir(openevolve_path)}")
             openevolve_inner_path = os.path.join(openevolve_path, "openevolve")
             if os.path.exists(openevolve_inner_path):
-                print(
-                    f"Files in inner OpenEvolve directory: {os.listdir(openevolve_inner_path)}"
-                )
+                print(f"Files in inner OpenEvolve directory: {os.listdir(openevolve_inner_path)}")
         raise e
     OPENEVOLVE_AVAILABLE = True
 except ImportError as e:
@@ -101,9 +91,7 @@ except ImportError as e:
     raise e
 
 # Skip all tests if OpenEvolve is not available
-pytestmark = pytest.mark.skipif(
-    not OPENEVOLVE_AVAILABLE, reason="OpenEvolve module not available"
-)
+pytestmark = pytest.mark.skipif(not OPENEVOLVE_AVAILABLE, reason="OpenEvolve module not available")
 
 # Test configuration
 TEST_CONFIG = {
@@ -384,9 +372,7 @@ def test_controller_evolution_step(test_controller: OpenEvolve):
 
         # Check that the best program was updated
         if initial_best is not None:
-            assert new_best.metrics.get("fitness", 0) >= initial_best.metrics.get(
-                "fitness", 0
-            )
+            assert new_best.metrics.get("fitness", 0) >= initial_best.metrics.get("fitness", 0)
         else:
             assert new_best is not None
     except RuntimeError as e:
@@ -406,9 +392,7 @@ def test_controller_evolution_step(test_controller: OpenEvolve):
 
             # Check that the best program was updated
             if initial_best is not None:
-                assert new_best.metrics.get("fitness", 0) >= initial_best.metrics.get(
-                    "fitness", 0
-                )
+                assert new_best.metrics.get("fitness", 0) >= initial_best.metrics.get("fitness", 0)
             else:
                 assert new_best is not None
 
@@ -503,9 +487,7 @@ def test_controller_full_run(test_controller: OpenEvolve):
 
     try:
         # Run the controller
-        best_program = loop.run_until_complete(
-            test_controller.run(iterations=iterations)
-        )
+        best_program = loop.run_until_complete(test_controller.run(iterations=iterations))
 
         # Check that we got a result
         assert best_program is not None
@@ -521,9 +503,7 @@ def test_controller_full_run(test_controller: OpenEvolve):
         assert output_dir.exists()
 
         # Check that we have the expected output files
-        assert (
-            output_dir / "best" / f"best_program{test_controller.file_extension}"
-        ).exists()
+        assert (output_dir / "best" / f"best_program{test_controller.file_extension}").exists()
         assert (output_dir / "best" / "best_program_info.json").exists()
 
         # Check that the results file contains the expected data
@@ -534,9 +514,7 @@ def test_controller_full_run(test_controller: OpenEvolve):
                 assert isinstance(results, dict), "Results should be a dictionary"
                 assert "best_program" in results
                 assert "history" in results
-                assert (
-                    len(results["history"]) >= 1
-                )  # At least one generation should be recorded
+                assert len(results["history"]) >= 1  # At least one generation should be recorded
     finally:
         # Clean up the event loop
         loop.close()

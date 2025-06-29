@@ -1,7 +1,7 @@
 """Strategy for enforcing code style rules."""
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from .base_strategy import BaseEditStrategy
@@ -39,7 +39,7 @@ class CodeStyleStrategy(BaseEditStrategy):
         self.use_spaces = use_spaces
         self.indent_char = " " * indent_size if use_spaces else "\t"
 
-    def evaluate(self, content: str, **kwargs: Any) -> List[EditSuggestion]:
+    def evaluate(self, content: str, **kwargs: Any) -> list[EditSuggestion]:
         """Evaluate content for code style violations.
 
         Args:
@@ -60,21 +60,15 @@ class CodeStyleStrategy(BaseEditStrategy):
 
             # Check line length
             if len(line) > self.max_line_length:
-                suggestions.append(
-                    self._create_line_length_suggestion(line, line_num, len(line))
-                )
+                suggestions.append(self._create_line_length_suggestion(line, line_num, len(line)))
 
             # Check for trailing whitespace
             if line.rstrip() != line:
-                suggestions.append(
-                    self._create_trailing_whitespace_suggestion(line, line_num)
-                )
+                suggestions.append(self._create_trailing_whitespace_suggestion(line, line_num))
 
             # Check for mixed indentation
             if self._has_mixed_indentation(line):
-                suggestions.append(
-                    self._create_mixed_indentation_suggestion(line, line_num)
-                )
+                suggestions.append(self._create_mixed_indentation_suggestion(line, line_num))
 
         # Check for consistent quote usage
         if "'" in content and '"' in content:
@@ -96,9 +90,7 @@ class CodeStyleStrategy(BaseEditStrategy):
             line_number=line_num,
         )
 
-    def _create_trailing_whitespace_suggestion(
-        self, line: str, line_num: int
-    ) -> EditSuggestion:
+    def _create_trailing_whitespace_suggestion(self, line: str, line_num: int) -> EditSuggestion:
         """Create suggestion for trailing whitespace."""
         return EditSuggestion(
             operation=EditOperation.REMOVE,
@@ -127,9 +119,7 @@ class CodeStyleStrategy(BaseEditStrategy):
 
         return False
 
-    def _create_mixed_indentation_suggestion(
-        self, line: str, line_num: int
-    ) -> EditSuggestion:
+    def _create_mixed_indentation_suggestion(self, line: str, line_num: int) -> EditSuggestion:
         """Create suggestion for mixed indentation."""
         # Replace tabs with spaces or vice versa based on configuration
         if self.use_spaces:
@@ -148,7 +138,7 @@ class CodeStyleStrategy(BaseEditStrategy):
             line_number=line_num,
         )
 
-    def _check_quote_consistency(self, content: str) -> List[EditSuggestion]:
+    def _check_quote_consistency(self, content: str) -> list[EditSuggestion]:
         """Check for consistent quote usage."""
         # This is a simplified example - a real implementation would be more sophisticated
         suggestions = []
@@ -170,7 +160,7 @@ class CodeStyleStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get the current configuration of the strategy."""
         config = super().get_config()
         config.update(

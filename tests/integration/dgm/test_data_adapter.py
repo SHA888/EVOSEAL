@@ -92,9 +92,7 @@ def test_run_output_to_evaluation_result(temp_dir):
             "error_message": None,
         }
     ]
-    result = adapter.run_output_to_evaluation_result(
-        "run999", metrics, test_cases, "archive999"
-    )
+    result = adapter.run_output_to_evaluation_result("run999", metrics, test_cases, "archive999")
     assert isinstance(result, EvaluationResult)
     assert result.code_archive_id == "archive999"
     assert result.metrics["score"] == 1.0
