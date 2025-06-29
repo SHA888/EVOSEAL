@@ -459,7 +459,7 @@
               2
             ],
             "details": "Develop loading utilities that: 1) Support multiple file formats (JSON, YAML, CSV, etc.), 2) Validate input data against schemas, 3) Transform raw data into the internal representation, 4) Handle batch loading operations, 5) Implement caching mechanisms for frequently used data.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 5,
@@ -837,7 +837,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-06-24T02:47:13.220Z",
+      "updated": "2025-06-29T21:30:36.916Z",
       "description": "Tasks for master context"
     }
   }
