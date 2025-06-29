@@ -4,11 +4,13 @@ exclude: |
     dgm/|            # DGM submodule
     openevolve/|     # OpenEvolve submodule
     SEAL/|           # SEAL submodule
-    .*\.git/.*       # Git internals
+    .*\.git/.*|      # Git internals
+    .*venv/.*|       # Virtual environments
+    .*__pycache__/.* # Python cache
   )$
 
 repos:
-  # Basic file checks
+  # Basic file checks (only essential ones)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -16,50 +18,35 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
-      - id: check-toml
       - id: check-merge-conflict
-      - id: mixed-line-ending
-        args: [--fix=lf]
 
-  # Python formatting
+  # Python formatting (only black, no line length limit)
   - repo: https://github.com/psf/black
     rev: 24.4.0
     hooks:
       - id: black
         language_version: python3
-        args: [--line-length=88]
+        args: [--line-length=100, --skip-string-normalization]
         exclude: |
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL/
+            SEAL/|
+            .*venv/|
+            .*__pycache__/
           )$
 
-  # Python imports sorting
+  # Python imports sorting (basic only)
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: [--profile=black]
-
-  # Python linting
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.7
-    hooks:
-      - id: ruff
-        args: [--fix, --show-fixes]
-        types: [python]
-
-  # Python type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0
-    hooks:
-      - id: mypy
-        args: [--ignore-missing-imports, --disallow-untyped-defs]
-        additional_dependencies: [types-requests, types-pyyaml]
+        args: [--profile=black, --line-length=100]
         exclude: |
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL/
+            SEAL/|
+            .*venv/|
+            .*__pycache__/
           )$

@@ -33,8 +33,7 @@ class Evaluator:
     def __init__(
         self,
         strategies: (
-            dict[str, Callable[[dict[str, Any], dict[str, float]], dict[str, Any]]]
-            | None
+            dict[str, Callable[[dict[str, Any], dict[str, float]], dict[str, Any]]] | None
         ) = None,
         default_weights: dict[str, float] | None = None,
     ) -> None:
@@ -59,9 +58,7 @@ class Evaluator:
         weights = weights or self.default_weights
         return [strat(result, weights) for result in test_results]
 
-    def default_strategy(
-        self, result: dict[str, Any], weights: dict[str, float]
-    ) -> dict[str, Any]:
+    def default_strategy(self, result: dict[str, Any], weights: dict[str, float]) -> dict[str, Any]:
         """
         Default scoring: weighted sum of pass rate, coverage, and code quality.
         Expects result to have 'pass_rate', 'coverage', and 'quality' keys (0.0-1.0).

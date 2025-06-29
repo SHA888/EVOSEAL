@@ -5,9 +5,7 @@ import pytest
 
 from evoseal.prompt_templates import TemplateManager
 
-TEST_TEMPLATE_DIR = os.path.join(
-    os.path.dirname(__file__), "../../../evoseal/prompt_templates/dgm"
-)
+TEST_TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "../../../evoseal/prompt_templates/dgm")
 
 
 def test_loads_templates_and_metadata():

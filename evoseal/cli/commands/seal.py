@@ -35,9 +35,7 @@ def generate_text(
     ] = 0.7,
     max_tokens: Annotated[
         int,
-        typer.Option(
-            "--max-tokens", "-n", help="Maximum number of tokens to generate."
-        ),
+        typer.Option("--max-tokens", "-n", help="Maximum number of tokens to generate."),
     ] = 2048,
 ) -> None:
     """Generate text using a SEAL model."""

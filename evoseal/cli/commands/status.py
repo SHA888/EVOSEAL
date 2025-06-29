@@ -58,9 +58,7 @@ def worker_status(
     ] = None,
     worker_type: Annotated[
         str | None,
-        typer.Option(
-            "--type", "-t", help="Filter workers by type (seal, openevolve, dgm)."
-        ),
+        typer.Option("--type", "-t", help="Filter workers by type (seal, openevolve, dgm)."),
     ] = None,
 ) -> None:
     format: Annotated[

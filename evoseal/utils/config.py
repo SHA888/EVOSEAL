@@ -72,9 +72,7 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
         with open(config_path, encoding="utf-8") as f:
             exec(f.read(), {}, config)
     except PermissionError as e:
-        raise PermissionError(
-            f"Permission denied reading config file: {config_path}"
-        ) from e
+        raise PermissionError(f"Permission denied reading config file: {config_path}") from e
     except Exception as e:
         raise ValueError(f"Error loading configuration from {config_path}: {e}") from e
 
@@ -82,9 +80,7 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
     return {k: v for k, v in config.items() if not k.startswith("__")}
 
 
-def update_config(
-    new_config: ConfigDict, config_path: str | Path | None = None
-) -> ConfigDict:
+def update_config(new_config: ConfigDict, config_path: str | Path | None = None) -> ConfigDict:
     """
     Update the configuration with new values.
 

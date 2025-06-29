@@ -155,10 +155,7 @@ class TemplateManager:
         Raises:
             ValueError: If the template is not found
         """
-        if (
-            template_name not in self.templates
-            and template_name not in BACKWARD_COMPAT_TEMPLATES
-        ):
+        if template_name not in self.templates and template_name not in BACKWARD_COMPAT_TEMPLATES:
             raise ValueError(f"Template '{template_name}' not found")
 
         metadata = TEMPLATE_METADATA.get(template_name, {})

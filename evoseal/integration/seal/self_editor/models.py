@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 
 class EditOperation(str, Enum):
@@ -61,13 +61,13 @@ class EditSuggestion:
     """
 
     operation: EditOperation
-    criteria: List[EditCriteria]
+    criteria: list[EditCriteria]
     original_text: str = ""
     suggested_text: str = ""
     explanation: str = ""
     confidence: float = 1.0
     line_number: Optional[int] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate the suggestion after initialization."""
@@ -77,7 +77,7 @@ class EditSuggestion:
         if self.confidence < 0 or self.confidence > 1:
             raise ValueError("Confidence must be between 0.0 and 1.0")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the EditSuggestion to a dictionary.
 
         Returns:
@@ -95,7 +95,7 @@ class EditSuggestion:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EditSuggestion":
+    def from_dict(cls, data: dict[str, Any]) -> "EditSuggestion":
         """Create an EditSuggestion from a dictionary.
 
         Args:
@@ -135,7 +135,7 @@ class EditHistoryEntry:
     suggestion: EditSuggestion
     applied: bool
     user: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -155,10 +155,10 @@ class ContentState:
     content_id: str
     original_content: str
     current_content: str
-    history: List[EditHistoryEntry] = field(default_factory=list)
+    history: list[EditHistoryEntry] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_history_entry(self, entry: EditHistoryEntry) -> None:
         """Add an entry to the edit history.

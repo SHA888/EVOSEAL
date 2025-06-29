@@ -82,9 +82,7 @@ def mock_agentic_system():
     return DummyAgenticSystem()
 
 
-def test_full_evolutionary_run(
-    temp_output_dir, mock_seal_interface, mock_agentic_system
-):
+def test_full_evolutionary_run(temp_output_dir, mock_seal_interface, mock_agentic_system):
     # Patch DGM_outer to simulate evolutionary logic
     with (
         patch("evoseal.integration.dgm.evolution_manager.DGM_outer") as mock_dgm,

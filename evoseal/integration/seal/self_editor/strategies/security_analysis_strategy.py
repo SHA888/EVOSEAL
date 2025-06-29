@@ -5,7 +5,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from .base_strategy import BaseEditStrategy
@@ -49,14 +49,21 @@ class SecurityConfig:
     check_xss: bool = True
     check_command_injection: bool = True
     check_file_operations: bool = True
-    ignore_patterns: List[str] = field(default_factory=list)
-    custom_checks: List[
-        Callable[[str, ast.AST, Dict[str, Any]], List[EditSuggestion]]
-    ] = field(default_factory=list)
+    ignore_patterns: list[str] = field(default_factory=list)
+    custom_checks: list[Callable[[str, ast.AST, dict[str, Any]], list[EditSuggestion]]] = field(
+        default_factory=list
+    )
 
 
 class SecurityAnalysisStrategy(BaseEditStrategy):
     """Strategy for identifying and suggesting fixes for security issues."""
+
+    # Confidence level constants
+    CONFIDENCE_VERY_HIGH = 0.95
+    CONFIDENCE_HIGH = 0.9
+    CONFIDENCE_MEDIUM_HIGH = 0.8
+    CONFIDENCE_MEDIUM = 0.7
+    CONFIDENCE_CERTAIN = 1.0
 
     # Common dangerous patterns
     RISKY_IMPORTS = {
@@ -127,13 +134,15 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
         Args:
             config: Configuration for the security analysis. If None, defaults will be used.
         """
-        super().__init__(priority=10)  # Higher priority than documentation/formatting
+        # Define constant for priority level
+        security_priority = 10  # Higher priority than documentation/formatting
+        super().__init__(priority=security_priority)
         self.config = config or SecurityConfig()
         self._compiled_ignore_patterns = [
             re.compile(pattern) for pattern in self.config.ignore_patterns
         ]
 
-    def evaluate(self, content: str, **kwargs: Any) -> List[EditSuggestion]:
+    def evaluate(self, content: str, **kwargs: Any) -> list[EditSuggestion]:
         """Analyze content for security issues.
 
         Args:
@@ -146,7 +155,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
         if not self.config.enabled or not content.strip():
             return []
 
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
 
         try:
             tree = ast.parse(content)
@@ -194,7 +203,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                     original_text=content or "",  # Ensure not None
                     suggested_text=f"# SECURITY WARNING: Syntax error in code - {str(e)}\n{content}",
                     explanation=f"Syntax error in code: {str(e)}",
-                    confidence=1.0,
+                    confidence=self.CONFIDENCE_CERTAIN,
                     line_number=1,
                     metadata={"error_type": "syntax_error", "error": str(e)},
                 )
@@ -202,20 +211,15 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_risky_imports(self, tree: ast.AST, content: str) -> List[EditSuggestion]:
+    def _check_risky_imports(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
         """Check for potentially dangerous imports."""
         suggestions = []
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for name in node.names:
-                    if name.name in self.RISKY_IMPORTS and not self._is_ignored(
-                        name.name
-                    ):
-                        node_text = (
-                            ast.get_source_segment(content, node)
-                            or f"import {name.name}"
-                        )
+                    if name.name in self.RISKY_IMPORTS and not self._is_ignored(name.name):
+                        node_text = ast.get_source_segment(content, node) or f"import {name.name}"
                         suggestions.append(
                             EditSuggestion(
                                 operation=EditOperation.REWRITE,
@@ -235,9 +239,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 module = node.module or ""
                 for name in node.names:
                     full_import = f"{module}.{name.name}" if module else name.name
-                    if full_import in self.RISKY_IMPORTS and not self._is_ignored(
-                        full_import
-                    ):
+                    if full_import in self.RISKY_IMPORTS and not self._is_ignored(full_import):
                         node_text = (
                             ast.get_source_segment(content, node)
                             or f"from {module} import {name.name}"
@@ -260,21 +262,15 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_unsafe_functions(
-        self, tree: ast.AST, content: str
-    ) -> List[EditSuggestion]:
+    def _check_unsafe_functions(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
         """Check for potentially unsafe function calls."""
         suggestions = []
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 func_name = node.func.id
-                if func_name in self.UNSAFE_FUNCTIONS and not self._is_ignored(
-                    func_name
-                ):
-                    node_text = (
-                        ast.get_source_segment(content, node) or f"{node.func.id}()"
-                    )
+                if func_name in self.UNSAFE_FUNCTIONS and not self._is_ignored(func_name):
+                    node_text = ast.get_source_segment(content, node) or f"{node.func.id}()"
                     suggestions.append(
                         EditSuggestion(
                             operation=EditOperation.REWRITE,
@@ -293,7 +289,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_sql_injection(self, tree: ast.AST, content: str) -> List[EditSuggestion]:
+    def _check_sql_injection(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
         """Check for potential SQL injection vulnerabilities."""
         suggestions = []
 
@@ -324,7 +320,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_xss(self, tree: ast.AST, content: str) -> List[EditSuggestion]:
+    def _check_xss(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
         """Check for potential XSS vulnerabilities."""
         suggestions = []
 
@@ -341,18 +337,14 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 # Look for return statements with f-strings or string formatting
                 for stmt in ast.walk(node):
                     if isinstance(stmt, ast.Return) and stmt.value:
-                        if isinstance(
-                            stmt.value, (ast.JoinedStr, ast.FormattedValue)
-                        ) or (
+                        if isinstance(stmt.value, (ast.JoinedStr, ast.FormattedValue)) or (
                             isinstance(stmt.value, ast.Call)
                             and isinstance(stmt.value.func, ast.Attribute)
                             and stmt.value.func.attr in ["format", "format_map"]
                         ):
 
                             # Get the source line for context
-                            source_line = ast.get_source_segment(content, stmt) or str(
-                                stmt
-                            )
+                            source_line = ast.get_source_segment(content, stmt) or str(stmt)
 
                             suggestions.append(
                                 EditSuggestion(
@@ -361,7 +353,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                                     original_text=source_line,
                                     suggested_text=f"# SECURITY: {source_line}  # REVIEW: Potential XSS - escape user input with escape() or use template engine",
                                     explanation="Potential XSS vulnerability - escape user input before including in HTML/JavaScript",
-                                    confidence=0.8,
+                                    confidence=self.CONFIDENCE_MEDIUM_HIGH,
                                     line_number=stmt.lineno,
                                     metadata={
                                         "issue_type": "xss",
@@ -378,10 +370,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and isinstance(node.func, ast.Attribute)
                 and hasattr(node.func, "attr")
                 and node.func.attr in ["write", "send", "respond"]
-                and any(
-                    isinstance(arg, (ast.JoinedStr, ast.FormattedValue))
-                    for arg in node.args
-                )
+                and any(isinstance(arg, (ast.JoinedStr, ast.FormattedValue)) for arg in node.args)
             ):
 
                 source_line = ast.get_source_segment(content, node) or str(node)
@@ -393,7 +382,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                         original_text=node_text,
                         suggested_text=f"# SECURITY: {source_line}  # REVIEW: Potential XSS - escape user input before writing to output",
                         explanation="Potential XSS vulnerability - escape user input before writing to output",
-                        confidence=0.7,
+                        confidence=self.CONFIDENCE_MEDIUM,
                         line_number=node.lineno,
                         metadata={"issue_type": "xss", "context": "direct_output"},
                     )
@@ -401,9 +390,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_command_injection(
-        self, tree: ast.AST, content: str
-    ) -> List[EditSuggestion]:
+    def _check_command_injection(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
         """Check for potential command injection vulnerabilities."""
         suggestions = []
 
@@ -416,9 +403,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and node.func.value.id == "os"
                 and node.func.attr == "system"
                 and node.args
-                and isinstance(
-                    node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name)
-                )
+                and isinstance(node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name))
             ):
                 node_text = ast.get_source_segment(content, node) or "os.system()"
                 suggestions.append(
@@ -436,9 +421,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_file_operations(
-        self, tree: ast.AST, content: str
-    ) -> List[EditSuggestion]:
+    def _check_file_operations(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
         """Check for potentially unsafe file operations."""
         suggestions = []
 
@@ -449,9 +432,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and isinstance(node.func, ast.Name)
                 and node.func.id == "open"
                 and node.args
-                and isinstance(
-                    node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name)
-                )
+                and isinstance(node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name))
             ):
                 node_text = ast.get_source_segment(content, node) or "open()"
                 suggestions.append(
@@ -469,7 +450,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_hardcoded_secrets(self, content: str) -> List[EditSuggestion]:
+    def _check_hardcoded_secrets(self, content: str) -> list[EditSuggestion]:
         """Check for hardcoded secrets and credentials."""
         suggestions = []
 
@@ -483,7 +464,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                             original_text=line,
                             suggested_text=f"# SECURITY: {line}  # REVIEW: {description} - move to configuration/environment variables",
                             explanation=f"{description} found in code - store secrets in environment variables or secure configuration",
-                            confidence=0.95,
+                            confidence=self.CONFIDENCE_VERY_HIGH,  # Very high confidence for hardcoded secrets
                             line_number=line_num,
                             metadata={
                                 "issue_type": "hardcoded_secret",
@@ -498,7 +479,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
         """Check if text matches any ignore patterns."""
         return any(pattern.search(text) for pattern in self._compiled_ignore_patterns)
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get the current configuration as a dictionary."""
         return {
             "enabled": self.config.enabled,

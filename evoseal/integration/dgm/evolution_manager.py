@@ -77,9 +77,7 @@ class EvolutionManager:
         try:
             return list(result)
         except Exception as err:
-            raise RuntimeError(
-                "choose_selfimproves did not return a list-like object"
-            ) from err
+            raise RuntimeError("choose_selfimproves did not return a list-like object") from err
 
     def advance_generation(
         self,
@@ -93,9 +91,7 @@ class EvolutionManager:
         This is a high-level wrapper that chooses parents, runs self-improvement, updates the archive, and logs results.
         Returns a dictionary with generation details.
         """
-        selfimprove_entries = self.choose_parents(
-            selfimprove_size, method, run_baseline
-        )
+        selfimprove_entries = self.choose_parents(selfimprove_size, method, run_baseline)
         return {
             "generation": self.current_generation,
             "selfimprove_entries": selfimprove_entries,

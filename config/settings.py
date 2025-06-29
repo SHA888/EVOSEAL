@@ -42,14 +42,10 @@ class DGMConfig(BaseModel):
     """Configuration for the Darwin Godel Machine component."""
 
     enabled: bool = Field(True, description="Whether DGM is enabled")
-    module_path: str = Field(
-        "dgm", description="Path to the DGM module (relative or absolute)"
-    )
+    module_path: str = Field("dgm", description="Path to the DGM module (relative or absolute)")
     max_iterations: int = Field(100, ge=1, description="Maximum number of iterations")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
-    checkpoint_dir: str = Field(
-        "checkpoints/dgm", description="Directory for storing checkpoints"
-    )
+    checkpoint_dir: str = Field("checkpoints/dgm", description="Directory for storing checkpoints")
 
 
 class OpenEvolveConfig(BaseModel):
@@ -62,25 +58,17 @@ class OpenEvolveConfig(BaseModel):
     population_size: int = Field(50, ge=1, description="Size of the population")
     max_generations: int = Field(100, ge=1, description="Maximum number of generations")
     mutation_rate: float = Field(0.1, ge=0.0, le=1.0, description="Mutation rate")
-    checkpoint_dir: str = Field(
-        "checkpoints/openevolve", description="Directory for checkpoints"
-    )
+    checkpoint_dir: str = Field("checkpoints/openevolve", description="Directory for checkpoints")
 
 
 class SEALConfig(BaseModel):
     """Configuration for the SEAL component."""
 
     enabled: bool = Field(True, description="Whether SEAL is enabled")
-    module_path: str = Field(
-        "SEAL", description="Path to the SEAL module (relative or absolute)"
-    )
+    module_path: str = Field("SEAL", description="Path to the SEAL module (relative or absolute)")
     few_shot_enabled: bool = Field(True, description="Enable few-shot learning")
-    knowledge_base_path: str = Field(
-        "data/knowledge", description="Path to knowledge base"
-    )
-    max_context_length: int = Field(
-        4096, description="Maximum context length for the model"
-    )
+    knowledge_base_path: str = Field("data/knowledge", description="Path to knowledge base")
+    max_context_length: int = Field(4096, description="Maximum context length for the model")
     default_model: str = Field("gpt-4", description="Default model to use")
 
 

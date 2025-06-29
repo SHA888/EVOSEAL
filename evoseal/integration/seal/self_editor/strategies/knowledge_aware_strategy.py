@@ -7,7 +7,7 @@ context-aware editing suggestions.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 from evoseal.integration.seal.self_editor.self_editor import (
@@ -32,7 +32,7 @@ class KnowledgeAwareStrategy(EditStrategy):
         knowledge_base: KnowledgeBase,
         min_similarity: float = 0.3,
         max_context_entries: int = 3,
-        default_strategy: Optional[DefaultEditStrategy] = None,
+        default_strategy: DefaultEditStrategy | None = None,
         **kwargs: Any,
     ):
         """Initialize the KnowledgeAwareStrategy.
@@ -57,7 +57,7 @@ class KnowledgeAwareStrategy(EditStrategy):
         self.max_context_entries = max_context_entries
         self._default_strategy = default_strategy or DefaultEditStrategy()
 
-    def get_relevant_context(self, content: str) -> List[Dict[str, Any]]:
+    def get_relevant_context(self, content: str) -> list[dict[str, Any]]:
         """Retrieve relevant context from the KnowledgeBase.
 
         Args:
@@ -67,17 +67,13 @@ class KnowledgeAwareStrategy(EditStrategy):
             List of relevant context entries from the KnowledgeBase as dictionaries.
         """
         # Simple implementation - can be enhanced with more sophisticated search
-        entries = self.knowledge_base.search_entries(
-            query=content, limit=self.max_context_entries
-        )
+        entries = self.knowledge_base.search_entries(query=content, limit=self.max_context_entries)
         # Convert KnowledgeEntry objects to dictionaries
-        return [
-            entry.to_dict() if hasattr(entry, "to_dict") else entry for entry in entries
-        ]
+        return [entry.to_dict() if hasattr(entry, "to_dict") else entry for entry in entries]
 
     def _analyze_content_with_context(
-        self, content: str, context_entries: List[Dict[str, Any]]
-    ) -> List[EditSuggestion]:
+        self, content: str, context_entries: list[dict[str, Any]]
+    ) -> list[EditSuggestion]:
         """Analyze content using context from the knowledge base.
 
         Args:
@@ -87,9 +83,9 @@ class KnowledgeAwareStrategy(EditStrategy):
         Returns:
             List of suggested edits based on the analysis.
         """
-        suggestions: List[EditSuggestion] = []
+        suggestions: list[EditSuggestion] = []
         lines = content.split("\n")
-        current_function: Optional[str] = None
+        current_function: str | None = None
 
         # First, analyze the entire content for high-level patterns
         self._analyze_imports(content, suggestions)
@@ -120,9 +116,9 @@ class KnowledgeAwareStrategy(EditStrategy):
         self,
         line_num: int,
         line: str,
-        lines: List[str],
-        current_function: Optional[str],
-        suggestions: List[EditSuggestion],
+        lines: list[str],
+        current_function: str | None,
+        suggestions: list[EditSuggestion],
     ) -> None:
         """Analyze a single line for potential improvements."""
         # Check for function definitions
@@ -183,8 +179,8 @@ class KnowledgeAwareStrategy(EditStrategy):
         self,
         line_num: int,
         line: str,
-        lines: List[str],
-        suggestions: List[EditSuggestion],
+        lines: list[str],
+        suggestions: list[EditSuggestion],
     ) -> None:
         """Analyze a function definition for potential improvements."""
         func_def = line.strip()
@@ -211,9 +207,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             )
 
         # Check for missing docstrings
-        if line_num + 1 < len(lines) and not lines[line_num + 1].strip().startswith(
-            '"""'
-        ):
+        if line_num + 1 < len(lines) and not lines[line_num + 1].strip().startswith('"""'):
             self._add_docstring_suggestion(line, func_def, func_name, suggestions)
 
     def _infer_return_type(self, func_name: str) -> str:
@@ -222,9 +216,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             return "bool"
         elif func_name.startswith(("get_", "find_", "load_", "fetch_")):
             return "Any | None"
-        elif func_name.startswith(
-            ("process_", "handle_", "save_", "update_", "delete_")
-        ):
+        elif func_name.startswith(("process_", "handle_", "save_", "update_", "delete_")):
             return "None"
         elif func_name.startswith(("create_", "make_", "build_", "generate_")):
             return "Any"
@@ -235,7 +227,7 @@ class KnowledgeAwareStrategy(EditStrategy):
         line: str,
         func_def: str,
         func_name: str,
-        suggestions: List[EditSuggestion],
+        suggestions: list[EditSuggestion],
     ) -> None:
         """Add a suggestion for a missing docstring."""
         indent = len(line) - len(line.lstrip())
@@ -274,7 +266,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             )
         )
 
-    def _analyze_imports(self, content: str, suggestions: List[EditSuggestion]) -> None:
+    def _analyze_imports(self, content: str, suggestions: list[EditSuggestion]) -> None:
         """Analyze imports for potential improvements."""
         if "import *" in content and "# noqa" not in content:
             suggestions.append(
@@ -282,16 +274,14 @@ class KnowledgeAwareStrategy(EditStrategy):
                     operation=EditOperation.REWRITE,
                     criteria=[EditCriteria.BEST_PRACTICE, EditCriteria.CLARITY],
                     original_text=content,
-                    suggested_text=content.replace(
-                        "import *", "import *  # noqa: F403, F401"
-                    ),
+                    suggested_text=content.replace("import *", "import *  # noqa: F403, F401"),
                     confidence=0.9,
                     explanation="Avoid wildcard imports as they can lead to namespace pollution",
                 )
             )
 
     def _analyze_functions(
-        self, content: str, lines: List[str], suggestions: List[EditSuggestion]
+        self, content: str, lines: list[str], suggestions: list[EditSuggestion]
     ) -> None:
         """Analyze functions for potential improvements."""
         # Check for missing error handling in functions
@@ -321,8 +311,8 @@ class KnowledgeAwareStrategy(EditStrategy):
     def _add_context_based_suggestions(
         self,
         content: str,
-        context_entries: List[Dict[str, Any]],
-        suggestions: List[EditSuggestion],
+        context_entries: list[dict[str, Any]],
+        suggestions: list[EditSuggestion],
     ) -> None:
         """Add suggestions based on knowledge base context."""
         # Check for security-related context
@@ -332,9 +322,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             if any(tag in e.get("tags", []) for tag in ["security", "best-practices"])
         ]
 
-        if security_context and any(
-            unsafe in content for unsafe in ["input(", "eval(", "exec("]
-        ):
+        if security_context and any(unsafe in content for unsafe in ["input(", "eval(", "exec("]):
             suggestions.append(
                 EditSuggestion(
                     operation=EditOperation.CLARIFY,
@@ -346,7 +334,7 @@ class KnowledgeAwareStrategy(EditStrategy):
                 )
             )
 
-    def evaluate(self, content: str, **kwargs: Any) -> List[EditSuggestion]:
+    def evaluate(self, content: str, **kwargs: Any) -> list[EditSuggestion]:
         """Evaluate content and return suggested edits with KnowledgeBase context.
 
         Args:
@@ -360,9 +348,7 @@ class KnowledgeAwareStrategy(EditStrategy):
         context_entries = self.get_relevant_context(content)
 
         # Get suggestions from the knowledge-aware analysis
-        knowledge_suggestions = self._analyze_content_with_context(
-            content, context_entries
-        )
+        knowledge_suggestions = self._analyze_content_with_context(content, context_entries)
 
         # Get suggestions from the default strategy
         default_suggestions = self._default_strategy.evaluate(content, **kwargs)
@@ -393,9 +379,7 @@ class KnowledgeAwareStrategy(EditStrategy):
                 all_suggestions[key] = suggestion
 
         # Sort suggestions by confidence (highest first)
-        return sorted(
-            all_suggestions.values(), key=lambda x: x.confidence, reverse=True
-        )
+        return sorted(all_suggestions.values(), key=lambda x: x.confidence, reverse=True)
 
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
         """Apply a suggested edit to the content.

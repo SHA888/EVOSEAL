@@ -90,9 +90,7 @@ def load_config(config_path: PathLike | None = None) -> dict[str, Any]:
     if config_path is None:
         config_path = get_config_path()
     else:
-        config_path = (
-            Path(config_path) if not isinstance(config_path, Path) else config_path
-        )
+        config_path = Path(config_path) if not isinstance(config_path, Path) else config_path
 
     if not config_path.exists():
         return {}

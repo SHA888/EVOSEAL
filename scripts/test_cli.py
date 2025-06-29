@@ -173,14 +173,10 @@ class TestInitCommand:
         ]
 
         for dir_path in expected_dirs:
-            assert (
-                project_dir / dir_path
-            ).is_dir(), f"Expected directory {dir_path} not found"
+            assert (project_dir / dir_path).is_dir(), f"Expected directory {dir_path} not found"
 
         for file_path in expected_files:
-            assert (
-                project_dir / file_path
-            ).is_file(), f"Expected file {file_path} not found"
+            assert (project_dir / file_path).is_file(), f"Expected file {file_path} not found"
 
         # Check that the output contains success message
         assert (
@@ -201,15 +197,11 @@ class TestInitCommand:
         assert exit_code != 0, "Expected init to fail in non-empty directory"
 
         # Check that the output contains an error message
-        assert (
-            "is not empty" in output
-        ), f"Expected error about non-empty directory, got: {output}"
+        assert "is not empty" in output, f"Expected error about non-empty directory, got: {output}"
 
         # The error message should be in the output (either stdout or stderr)
         # Since we're capturing both in run_cli, we can just check the output
-        assert (
-            "not empty" in output.lower()
-        ), f"Expected 'not empty' in output, got: {output}"
+        assert "not empty" in output.lower(), f"Expected 'not empty' in output, got: {output}"
 
     def test_init_with_force_in_non_empty_dir(self, tmp_path: Path) -> None:
         """Test that init works with --force in non-empty directory."""
@@ -254,16 +246,12 @@ class TestConfigCommands:
         assert exit_code == 0, f"Command failed with output: {output}"
         # Check for the expected YAML structure in the output
         assert "seal:" in output, f"Expected 'seal:' in output, got: {output}"
-        assert (
-            "model: gpt-4" in output
-        ), f"Expected 'model: gpt-4' in output, got: {output}"
+        assert "model: gpt-4" in output, f"Expected 'model: gpt-4' in output, got: {output}"
 
     def test_config_set_nonexistent_key(self) -> None:
         """Test setting a non-existent key."""
         # Set a new config value
-        exit_code, output = run_cli(
-            ["config", "set", "nonexistent.key", "value"], input_text="y\n"
-        )
+        exit_code, output = run_cli(["config", "set", "nonexistent.key", "value"], input_text="y\n")
         assert exit_code == 0, f"Command failed with output: {output}"
         assert "Set nonexistent.key = value" in output, f"Unexpected output: {output}"
 
@@ -280,18 +268,14 @@ class TestConfigCommands:
         # Then unset it
         exit_code, output = run_cli(["config", "unset", "test.key"])
         assert exit_code == 0, f"Command failed with output: {output}"
-        assert (
-            "Unset test.key" in output
-        ), f"Expected 'Unset test.key' in output, got: {output}"
+        assert "Unset test.key" in output, f"Expected 'Unset test.key' in output, got: {output}"
 
         # Verify it's gone
         exit_code, output = run_cli(["config", "show", "test.key"])
         assert (
             exit_code != 0
         ), f"Expected command to fail after unsetting the key, but it succeeded with output: {output}"
-        assert (
-            "not found" in output.lower()
-        ), f"Expected 'not found' in output, got: {output}"
+        assert "not found" in output.lower(), f"Expected 'not found' in output, got: {output}"
 
 
 class TestComponentCommands:
@@ -310,9 +294,7 @@ class TestComponentCommands:
         """Test that the openevolve command has help text."""
         exit_code, output = run_cli(["openevolve", "--help"])
         assert exit_code == 0, f"Command failed with output: {output}"
-        assert (
-            "openevolve" in output.lower()
-        ), f"Expected 'openevolve' in output, got: {output}"
+        assert "openevolve" in output.lower(), f"Expected 'openevolve' in output, got: {output}"
 
     @pytest.mark.skip(reason="DGM command not yet implemented")
     def test_dgm_command_help(self) -> None:
@@ -352,9 +334,7 @@ class TestErrorConditions:
         assert (
             exit_code != 0
         ), f"Expected command to fail with invalid key, but it succeeded with output: {output}"
-        assert (
-            "invalid" in output.lower()
-        ), f"Expected 'invalid' in output, got: {output}"
+        assert "invalid" in output.lower(), f"Expected 'invalid' in output, got: {output}"
 
 
 if __name__ == "__main__":

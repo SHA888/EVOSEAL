@@ -16,12 +16,8 @@ class TestCaseResult(BaseModel):
 class EvaluationResult(BaseModel):
     """Stores evaluation metrics and test outcomes for a code archive."""
 
-    id: str = Field(
-        default_factory=lambda: str(uuid4()), description="Unique evaluation result ID"
-    )
-    code_archive_id: str = Field(
-        ..., description="Reference to associated CodeArchive (by ID)"
-    )
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique evaluation result ID")
+    code_archive_id: str = Field(..., description="Reference to associated CodeArchive (by ID)")
     metrics: dict[str, float] = Field(
         default_factory=dict,
         description="Performance metrics (accuracy, precision, recall, etc.)",
@@ -46,9 +42,7 @@ class EvaluationResult(BaseModel):
         for key, value in v.items():
             if key.lower() in bounded_metrics:
                 if not (0.0 <= value <= 1.0):
-                    raise ValueError(
-                        f"Metric '{key}' must be between 0 and 1 (got {value})"
-                    )
+                    raise ValueError(f"Metric '{key}' must be between 0 and 1 (got {value})")
         return v
 
     def to_json(self, **kwargs: Any) -> str:

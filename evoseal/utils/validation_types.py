@@ -84,9 +84,7 @@ class ValidationResult:
         """Initialize a new ValidationResult with empty issues and valid state."""
         self.issues: list[ValidationIssue] = []
         self._valid = True
-        self.data: dict[str, Any] = (
-            {}
-        )  # Changed from None to empty dict for consistency
+        self.data: dict[str, Any] = {}  # Changed from None to empty dict for consistency
 
     def add_issue(self, issue: ValidationIssue) -> None:
         """Add a validation issue.

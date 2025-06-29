@@ -12,17 +12,7 @@ from pathlib import Path
 import typer
 
 # Import commands first to avoid circular imports
-from evoseal.cli.commands import (
-    config,
-    dgm,
-    export,
-    init,
-    openevolve,
-    seal,
-    start,
-    status,
-    stop,
-)
+from evoseal.cli.commands import config, dgm, export, init, openevolve, seal, start, status, stop
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
