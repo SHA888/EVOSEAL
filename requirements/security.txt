@@ -1,5 +1,5 @@
 # Security tools with compatible versions
 # These versions work with Pydantic 2.11.7
-safety>=2.0.0,<3.0.0  # Version compatible with Pydantic 2.x
+safety>=2.0.0,<4.0.0  # Version compatible with Pydantic 2.x
 bandit>=1.7.0,<2.0.0  # Security linter
 semgrep>=1.0.0  # Static analysis for security issues
