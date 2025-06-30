@@ -1,8 +1,8 @@
 # Core Dependencies
-python-dotenv==1.1.0
+python-dotenv==1.1.1
 PyYAML==6.0.2
 pydantic==2.11.7
-pydantic-core==2.33.2  # Must match pydantic's requirement
+pydantic-core==2.35.2  # Must match pydantic's requirement
 typing-extensions>=4.2.0  # Required by PyTorch, Transformers, and KnowledgeBase
 
 # Data Processing & Scientific Computing
@@ -16,13 +16,13 @@ torch>=2.0.0  # PyTorch for model training and inference
 transformers>=4.30.0  # Hugging Face Transformers for model loading and training
 
 # AI/ML
-openai==1.87.0
+openai==1.93.0
 pydantic==2.11.7
-pydantic-core==2.33.2  # Must match pydantic's requirement
+pydantic-core==2.35.2  # Must match pydantic's requirement
 
 # Utilities
 tqdm==4.67.1
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
 typing-extensions>=4.2.0  # Required by PyTorch and Transformers
 typing-inspection==0.4.1
 
