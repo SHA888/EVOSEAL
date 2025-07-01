@@ -1,4 +1,0 @@
-# This file points to the base requirements
-# For development, use requirements/dev.txt
-# For production, use requirements/requirements.txt
--r requirements/base.txt
