@@ -10,7 +10,7 @@ exclude: |
   )$
 
 repos:
-  # Basic file checks (only essential ones)
+  # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -19,8 +19,9 @@ repos:
       - id: check-yaml
       - id: check-json
       - id: check-merge-conflict
+      - id: detect-private-key
 
-  # Python formatting (only black, no line length limit)
+  # Python formatting
   - repo: https://github.com/psf/black
     rev: 24.4.0
     hooks:
@@ -36,7 +37,7 @@ repos:
             .*__pycache__/
           )$
 
-  # Python imports sorting (basic only)
+  # Python imports sorting
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
@@ -50,3 +51,79 @@ repos:
             .*venv/|
             .*__pycache__/
           )$
+
+  # Security - Python vulnerability scanner using safety
+  - repo: local
+    hooks:
+      - id: safety
+        name: safety
+        description: 'Check Python dependencies for known security vulnerabilities'
+        entry: safety check --full-report --ignore=12345,54321
+        language: python
+        language_version: python3
+        pass_filenames: false
+        types: [python]
+        require_serial: true
+        additional_dependencies: [safety]
+
+  # Security - Python code analysis
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [--recursive, --configfile, '.bandit']
+        exclude: |
+          (?x)^(
+            dgm/|
+            openevolve/|
+            SEAL/|
+            .*venv/|
+            .*__pycache__/|
+            tests/
+          )$
+
+  # Detect secrets in code
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0  # Using the installed version
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            dgm/|
+            openevolve/|
+            SEAL/|
+            .*venv/|
+            .*__pycache__/|
+            .*node_modules/|
+            .*\\.min\\.js$|
+            .*\\.svg$|
+            .*\\.jpg$|
+            .*\\.png$|
+            .*\\.gif$
+          )$
+        stages: [commit, push]
+
+  # Dockerfile linter
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        name: hadolint
+        description: 'Dockerfile linter'
+        entry: hadolint --ignore DL3006 --ignore DL3008 --ignore DL3013
+        language: docker_image
+        types: [dockerfile]
+
+  # TruffleHog - Find secrets in git history
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.66.0  # Using the latest stable release
+    hooks:
+      - id: trufflehog
+        name: trufflehog
+        description: 'Find secrets in git history'
+        entry: trufflehog git file://. --since-commit HEAD --no-update --entropy=False --no-verification
+        language: system
+        pass_filenames: false
+        stages: [push]
+        always_run: true
