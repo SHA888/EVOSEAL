@@ -31,17 +31,17 @@ class TestPromptConstructor:
 
         # Add a new template
         constructor.add_template(
-            name=template_name,
+            template_name,
             template=template,
             style=PromptStyle.INSTRUCTION,
-            required_fields=["test"],
+            required_fields={"test"},
             description="A test template",
         )
 
         # Verify template was added
         assert template_name in constructor.templates
         assert constructor.templates[template_name].template == template
-        assert constructor.templates[template_name].required_fields == ["test"]
+        assert "test" in constructor.templates[template_name].required_fields
 
     def test_create_prompt(self):
         """Test creating a prompt from a template."""
