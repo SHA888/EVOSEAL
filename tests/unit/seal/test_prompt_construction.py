@@ -183,7 +183,9 @@ class TestFormatPrompt:
         """Test prompt formatting with knowledge."""
         template = "Context: {knowledge}\nQuestion: {question}\nAnswer:"
         result = format_prompt(
-            template, question="What is the capital?", knowledge="Paris is the capital of France."
+            template,
+            question="What is the capital?",
+            knowledge="Paris is the capital of France.",
         )
         assert "Paris is the capital" in result
         assert "What is the capital?" in result

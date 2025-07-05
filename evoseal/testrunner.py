@@ -5,7 +5,9 @@ and parallel execution.
 """
 
 import concurrent.futures
-import subprocess
+
+# nosec B404: Required for test execution in isolated environments
+import subprocess  # nosec B404: Required for test execution in a controlled environment
 import threading
 import time
 from typing import Any, Callable, Optional
@@ -57,12 +59,13 @@ class TestRunner:
         cmd = self._build_test_command(variant_path, test_type)
         start_time = time.time()
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603: Input commands are controlled and validated, shell=False prevents shell injection
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=self.timeout,
                 check=False,
+                shell=False,  # Explicitly set to False for security
             )
             duration = time.time() - start_time
             return {

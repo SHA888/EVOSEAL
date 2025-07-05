@@ -54,7 +54,7 @@ class TestSEALExceptions(unittest.TestCase):
             error.retry_after = 60
             raise error
 
-        assert hasattr(exc_info.value, 'retry_after')
+        assert hasattr(exc_info.value, "retry_after")
         assert exc_info.value.retry_after == 60
 
         # Test TimeoutError

@@ -9,7 +9,7 @@ from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
 
 from ..exceptions import RateLimitError, RetryableError, TimeoutError
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def retry(
@@ -55,7 +55,7 @@ def retry(
 
                     if isinstance(e, RateLimitError):
                         # For rate limits, respect the Retry-After header if available
-                        retry_after = getattr(e, 'retry_after', sleep_time)
+                        retry_after = getattr(e, "retry_after", sleep_time)
                         time.sleep(float(retry_after))
                     else:
                         time.sleep(sleep_time)

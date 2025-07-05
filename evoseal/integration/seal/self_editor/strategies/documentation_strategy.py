@@ -460,10 +460,77 @@ class DocumentationStrategy(BaseEditStrategy):
         try:
             import inspect
 
-            # Get the function parameters
-            sig = inspect.signature(
-                eval(node.name, {}, {"self": None, "cls": None}) if hasattr(node, "name") else None
-            )
+            # Get the function parameters using ast instead of eval
+            if hasattr(node, "name") and hasattr(node, "args"):
+                # Create a signature from the AST node
+                parameters = []
+
+                # Handle positional-only arguments
+                for arg in node.args.posonlyargs:
+                    parameters.append(
+                        inspect.Parameter(
+                            arg.arg,
+                            inspect.Parameter.POSITIONAL_ONLY,
+                            annotation=inspect.Parameter.empty,
+                            default=inspect.Parameter.empty,
+                        )
+                    )
+
+                # Handle positional-or-keyword arguments
+                for arg in node.args.args:
+                    parameters.append(
+                        inspect.Parameter(
+                            arg.arg,
+                            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                            annotation=inspect.Parameter.empty,
+                            default=inspect.Parameter.empty,
+                        )
+                    )
+
+                # Handle vararg (e.g., *args)
+                if node.args.vararg:
+                    parameters.append(
+                        inspect.Parameter(
+                            node.args.vararg.arg,
+                            inspect.Parameter.VAR_POSITIONAL,
+                            annotation=inspect.Parameter.empty,
+                        )
+                    )
+
+                # Handle keyword-only arguments
+                for arg in node.args.kwonlyargs:
+                    # Find the default value if it exists
+                    default = inspect.Parameter.empty
+                    if node.args.kw_defaults:
+                        for kw_arg, kw_default in zip(node.args.kwonlyargs, node.args.kw_defaults):
+                            if kw_arg.arg == arg.arg and kw_default:
+                                if isinstance(kw_default, ast.Constant):
+                                    default = kw_default.value
+                                break
+
+                    parameters.append(
+                        inspect.Parameter(
+                            arg.arg,
+                            inspect.Parameter.KEYWORD_ONLY,
+                            default=default,
+                            annotation=inspect.Parameter.empty,
+                        )
+                    )
+
+                # Handle kwarg (e.g., **kwargs)
+                if node.args.kwarg:
+                    parameters.append(
+                        inspect.Parameter(
+                            node.args.kwarg.arg,
+                            inspect.Parameter.VAR_KEYWORD,
+                            annotation=inspect.Parameter.empty,
+                        )
+                    )
+
+                # Create the signature
+                sig = inspect.Signature(parameters=parameters)
+            else:
+                sig = None
 
             # Parse the docstring
             parsed = parse_docstring(docstring, self.config.docstring_style)
