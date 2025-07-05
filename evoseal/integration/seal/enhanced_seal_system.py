@@ -336,19 +336,6 @@ class EnhancedSEALSystem:
 
         context = context or {}
         start_time = time.time()
-        result = {
-            "response": "",
-            "metadata": {
-                "success": False,
-                "processing_time": 0,
-                "knowledge_retrieval_time": 0,
-                "generation_time": 0,
-                "self_editing_time": 0,
-                "cached": False,
-                "knowledge_used": [],
-                "self_edits_applied": [],
-            },
-        }
 
         try:
 
