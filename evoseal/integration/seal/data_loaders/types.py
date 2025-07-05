@@ -11,17 +11,17 @@ from pydantic import BaseModel
 class DataFormat(str, Enum):
     """Supported data formats for loading and saving."""
 
-    JSON = 'json'
-    YAML = 'yaml'
-    YML = 'yml'  # Alias for YAML
-    CSV = 'csv'
+    JSON = "json"
+    YAML = "yaml"
+    YML = "yml"  # Alias for YAML
+    CSV = "csv"
 
     @classmethod
-    def from_extension(cls, ext: str) -> 'DataFormat':
+    def from_extension(cls, ext: str) -> "DataFormat":
         """Get the format from a file extension."""
-        ext = ext.lower().lstrip('.')
-        if ext == 'yml':
-            ext = 'yaml'
+        ext = ext.lower().lstrip(".")
+        if ext == "yml":
+            ext = "yaml"
         try:
             return cls(ext)
         except ValueError as e:
@@ -29,7 +29,7 @@ class DataFormat(str, Enum):
 
 
 # Type variable for generic model type
-ModelType = TypeVar('ModelType', bound=BaseModel)
+ModelType = TypeVar("ModelType", bound=BaseModel)
 
 # Type alias for supported model types
 SupportedModel = Union[BaseModel, dict, list, str, int, float, bool, None]

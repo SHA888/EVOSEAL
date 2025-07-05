@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from .types import DataFormat, ModelType
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class DataLoader(ABC, Generic[T]):
@@ -38,13 +38,13 @@ class DataLoader(ABC, Generic[T]):
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        format = file_path.suffix.lstrip('.').lower()
+        format = file_path.suffix.lstrip(".").lower()
         try:
             format_enum = DataFormat(format)
         except ValueError:
             raise ValueError(f"Unsupported file format: {format}")
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         return cls.from_string(content, format_enum, model, **kwargs)
@@ -143,9 +143,9 @@ class CSVLoader(DataLoader[T]):
                 # Clean up row data (convert string 'true'/'false' to boolean)
                 cleaned_row = {}
                 for k, v in row.items():
-                    if v.lower() == 'true':
+                    if v.lower() == "true":
                         cleaned_row[k] = True
-                    elif v.lower() == 'false':
+                    elif v.lower() == "false":
                         cleaned_row[k] = False
                     elif v.isdigit():
                         cleaned_row[k] = int(v)
@@ -212,7 +212,7 @@ def load_data(
     if isinstance(source, (str, Path)) and Path(source).exists():
         file_path = Path(source)
         if format is None:
-            format = file_path.suffix.lstrip('.').lower()
+            format = file_path.suffix.lstrip(".").lower()
         return get_loader(format).from_file(file_path, model, **kwargs)
 
     # If source is a string and format is specified

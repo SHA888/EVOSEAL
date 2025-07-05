@@ -13,9 +13,9 @@ from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
 SEALSystem = EnhancedSEALSystem
 
 __all__ = [
-    'SEALInterface',
-    'SEALProvider',
-    'EnhancedSEALSystem',
-    'SEALSystem',  # For backward compatibility
-    'SEALConfig',
+    "SEALInterface",
+    "SEALProvider",
+    "EnhancedSEALSystem",
+    "SEALSystem",  # For backward compatibility
+    "SEALConfig",
 ]

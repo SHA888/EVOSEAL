@@ -16,7 +16,7 @@ from .cache import cached
 from .loaders import load_data
 from .types import DataFormat
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class BatchLoader:
@@ -63,7 +63,10 @@ class BatchLoader:
             # Submit all tasks
             future_to_path = {
                 executor.submit(
-                    self._load_single_file, file_path=file_path, model=model, **loader_kwargs
+                    self._load_single_file,
+                    file_path=file_path,
+                    model=model,
+                    **loader_kwargs,
                 ): file_path
                 for file_path in file_paths
             }

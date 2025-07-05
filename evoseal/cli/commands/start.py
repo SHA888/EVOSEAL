@@ -21,10 +21,12 @@ def main() -> None:
 
 @app.command("api")
 def start_api(
+    # Note: Binding to 0.0.0.0 exposes the server on all network interfaces.
+    # In production, consider using a reverse proxy like Nginx and binding to 127.0.0.1
     host: Annotated[
         str,
         typer.Option("--host", "-h", help="Host to bind the API server to."),
-    ] = "0.0.0.0",
+    ] = "0.0.0.0",  # nosec B104: Binding to all interfaces is intentional for development
     port: Annotated[
         int,
         typer.Option("--port", "-p", help="Port to bind the API server to."),

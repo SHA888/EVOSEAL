@@ -63,7 +63,7 @@ from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy im
 )
 
 # Type variable for generic typing
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ class Metrics:
                 "avg_self_editing_time": safe_avg(self.self_editing_times),
             },
             "sizes": {
-                "avg_context_size": safe_avg(self.context_sizes) if self.context_sizes else 0,
+                "avg_context_size": (safe_avg(self.context_sizes) if self.context_sizes else 0),
                 "avg_response_length": (
                     safe_avg(self.response_lengths) if self.response_lengths else 0
                 ),
@@ -169,13 +169,13 @@ class SEALConfig(BaseModel):
     enable_metrics: bool = True
     metrics_retention_days: int = 7
 
-    @field_validator('knowledge_similarity_threshold')
+    @field_validator("knowledge_similarity_threshold")
     def validate_similarity_threshold(cls, v: float) -> float:
         if not 0.0 <= v <= 1.0:
             raise ValueError("knowledge_similarity_threshold must be between 0.0 and 1.0")
         return v
 
-    @field_validator('min_confidence_for_editing')
+    @field_validator("min_confidence_for_editing")
     def validate_confidence_threshold(cls, v: float) -> float:
         if not 0.0 <= v <= 1.0:
             raise ValueError("min_confidence_for_editing must be between 0.0 and 1.0")
@@ -310,7 +310,7 @@ class EnhancedSEALSystem:
         self._background_tasks.clear()
         logger.info("EnhancedSEALSystem stopped")
 
-    async def __aenter__(self) -> 'EnhancedSEALSystem':
+    async def __aenter__(self) -> "EnhancedSEALSystem":
         """Async context manager entry."""
         await self.start()
         return self
@@ -348,8 +348,8 @@ class EnhancedSEALSystem:
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
 
-        start_time = time.time()
         context = context or {}
+        start_time = time.time()
         result = {
             "response": "",
             "metadata": {
@@ -365,8 +365,6 @@ class EnhancedSEALSystem:
         }
 
         try:
-            # Record start time for metrics
-            start_time = time.time()
 
             # Check cache if enabled
             cache_key = self._generate_cache_key(
@@ -399,7 +397,7 @@ class EnhancedSEALSystem:
                 knowledge,
                 context or {},
                 template_name=template_name,
-                **{k: v for k, v in kwargs.items() if k != 'template'},
+                **{k: v for k, v in kwargs.items() if k != "template"},
             )
 
             # Generate response
@@ -456,7 +454,10 @@ class EnhancedSEALSystem:
             self.conversation_history.add_message(
                 "assistant",
                 response,
-                {"knowledge_used": [k.get("id") for k in knowledge], "edits_applied": edits},
+                {
+                    "knowledge_used": [k.get("id") for k in knowledge],
+                    "edits_applied": edits,
+                },
             )
 
             # Cache the result if enabled and not already cached
@@ -552,7 +553,7 @@ class EnhancedSEALSystem:
                 knowledge=formatted_knowledge,
                 context=formatted_context,
                 **{
-                    k: v for k, v in kwargs.items() if k != 'template'
+                    k: v for k, v in kwargs.items() if k != "template"
                 },  # Avoid duplicate 'template' parameter
             )
 
@@ -588,7 +589,10 @@ class EnhancedSEALSystem:
 
             # Get suggested edits
             edit_suggestions = await self.self_editor.suggest_edits(
-                prompt=original_prompt, response=response, knowledge=knowledge, context=context
+                prompt=original_prompt,
+                response=response,
+                knowledge=knowledge,
+                context=context,
             )
 
             if not edit_suggestions:
@@ -637,7 +641,8 @@ class EnhancedSEALSystem:
                     try:
                         # Wait for next item with timeout
                         item = await asyncio.wait_for(
-                            self._batch_queue.get(), timeout=0.1  # Small timeout to check shutdown
+                            self._batch_queue.get(),
+                            timeout=0.1,  # Small timeout to check shutdown
                         )
                         batch.append(item)
                     except asyncio.TimeoutError:
@@ -677,7 +682,7 @@ class EnhancedSEALSystem:
         parts.extend(f"{k}={v}" for k, v in sorted(kwargs.items()))
 
         # Create a hash of the key components
-        key_str = ":".join(parts).encode('utf-8')
+        key_str = ":".join(parts).encode("utf-8")
         key_hash = hashlib.md5(key_str).hexdigest()
 
         return f"seal:{key_hash}"

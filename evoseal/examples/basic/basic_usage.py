@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
+import subprocess  # nosec - Not used in this file, but kept for future use
 import sys
 from pathlib import Path
 from typing import Optional

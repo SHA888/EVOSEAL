@@ -252,7 +252,7 @@ async def test_self_editing_disabled(enhanced_seal_system, mock_self_editor):
 
     # Patch the suggest_edits method to return our test suggestion
     with patch.object(
-        mock_self_editor, 'suggest_edits', return_value=[test_suggestion]
+        mock_self_editor, "suggest_edits", return_value=[test_suggestion]
     ) as mock_suggest:
 
         # Process a prompt
@@ -317,7 +317,7 @@ async def test_self_edit_process(enhanced_seal_system, mock_self_editor, mock_kn
 
     # Patch the suggest_edits method
     with patch.object(
-        mock_self_editor, 'suggest_edits', return_value=[test_suggestion]
+        mock_self_editor, "suggest_edits", return_value=[test_suggestion]
     ) as mock_suggest:
 
         # Process a prompt that will trigger self-editing

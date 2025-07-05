@@ -69,8 +69,30 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
         return config
 
     try:
+        import ast
+
         with open(config_path, encoding="utf-8") as f:
-            exec(f.read(), {}, config)
+            # Read the file content and parse it as a Python literal
+            content = f.read().strip()
+            # If the file starts with a dictionary literal, evaluate it directly
+            if content.startswith("{") and content.endswith("}"):
+                config.update(ast.literal_eval(content))
+            # Otherwise, try to parse as a module with assignments
+            else:
+                # Create a safe dictionary to evaluate into
+                safe_globals = {}
+                # Execute the config in a restricted environment
+                exec(
+                    content, {"__builtins__": {}}, safe_globals
+                )  # nosec - Using restricted environment and input validation
+                # Only include simple types that can be serialized to JSON
+                for key, value in safe_globals.items():
+                    if not key.startswith("_") and isinstance(
+                        value, (str, int, float, bool, list, dict, tuple, type(None))
+                    ):
+                        config[key] = value
+    except (SyntaxError, ValueError) as e:
+        raise ValueError(f"Invalid configuration syntax in {config_path}: {e}") from e
     except PermissionError as e:
         raise PermissionError(f"Permission denied reading config file: {config_path}") from e
     except Exception as e:

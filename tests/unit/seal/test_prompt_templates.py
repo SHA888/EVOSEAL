@@ -29,7 +29,7 @@ class TestPromptTemplates:
         # Check that all templates are valid
         for name, template in DEFAULT_TEMPLATES.items():
             # Check if the value is a PromptTemplate (from either module)
-            if hasattr(template, 'name') and hasattr(template, 'template'):
+            if hasattr(template, "name") and hasattr(template, "template"):
                 assert template.name == name
                 assert template.template.strip() != ""
             # Or a tuple of (template_str, description)
@@ -42,7 +42,8 @@ class TestPromptTemplates:
                 assert False, f"Unexpected template type: {type(template)} for template {name}"
 
     @pytest.mark.parametrize(
-        "style", ["base_instruction", "base_chat", "base_completion", "base_chain_of_thought"]
+        "style",
+        ["base_instruction", "base_chat", "base_completion", "base_chain_of_thought"],
     )
     def test_base_templates(self, style):
         """Test that base templates have the expected structure."""
@@ -84,7 +85,10 @@ class TestPromptIntegration:
     def sample_knowledge(self):
         """Sample knowledge for testing."""
         return [
-            {"content": "Python is a high-level programming language.", "source": "general"},
+            {
+                "content": "Python is a high-level programming language.",
+                "source": "general",
+            },
             {"content": "Python uses indentation for code blocks.", "source": "syntax"},
         ]
 
@@ -147,7 +151,7 @@ class TestPromptCaching:
         def mock_time_func():
             return current_time
 
-        monkeypatch.setattr('time.time', mock_time_func)
+        monkeypatch.setattr("time.time", mock_time_func)
         return current_time
 
     @pytest.mark.asyncio

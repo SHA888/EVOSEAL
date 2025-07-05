@@ -24,8 +24,8 @@ class TestRetry(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.mock_sleep = patch('time.sleep').start()
-        self.mock_random = patch('random.random', return_value=1.0).start()
+        self.mock_sleep = patch("time.sleep").start()
+        self.mock_random = patch("random.random", return_value=1.0).start()
         self.addCleanup(patch.stopall)
 
     def test_retry_success_first_attempt(self):
@@ -89,7 +89,7 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_backoff(self):
         """Test that exponential backoff is applied correctly."""
-        with patch('random.random', return_value=0.5):  # Fixed jitter for test
+        with patch("random.random", return_value=0.5):  # Fixed jitter for test
             mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
             decorated = retry(max_retries=3, initial_delay=0.1, backoff_factor=2, max_delay=1.0)(
                 mock_func
@@ -122,7 +122,7 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_jitter(self):
         """Test that jitter is applied to the delay."""
-        with patch('random.random', return_value=0.5):  # 50% jitter
+        with patch("random.random", return_value=0.5):  # 50% jitter
             mock_func = MagicMock(side_effect=[Exception(), "success"])
             decorated = retry(initial_delay=1.0, backoff_factor=1.0)(mock_func)
 
@@ -169,7 +169,7 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_max_delay(self):
         """Test that max_delay limits the delay between retries."""
-        with patch('random.random', return_value=0.5):  # Fixed jitter for test
+        with patch("random.random", return_value=0.5):  # Fixed jitter for test
             mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
             decorated = retry(
                 max_retries=3,
@@ -178,7 +178,7 @@ class TestRetry(unittest.TestCase):
                 max_delay=2.0,
             )(mock_func)
 
-            with patch('time.sleep') as mock_sleep:
+            with patch("time.sleep") as mock_sleep:
                 decorated()
                 # First delay: 1.0 * 1.5^0 * (0.5 + 0.5) = 1.0
                 # Second delay: min(1.0 * 1.5^1 * 1.0, 2.0) = 1.5
