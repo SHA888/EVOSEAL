@@ -8,7 +8,6 @@ lifecycle management, and performance optimizations.
 from __future__ import annotations
 
 import asyncio
-import functools
 import hashlib
 import logging
 from collections import defaultdict, deque
