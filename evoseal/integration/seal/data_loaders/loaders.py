@@ -41,8 +41,8 @@ class DataLoader(ABC, Generic[T]):
         format = file_path.suffix.lstrip(".").lower()
         try:
             format_enum = DataFormat(format)
-        except ValueError:
-            raise ValueError(f"Unsupported file format: {format}")
+        except ValueError as e:
+            raise ValueError(f"Unsupported file format: {format}") from e
 
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()

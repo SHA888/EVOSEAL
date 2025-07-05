@@ -70,27 +70,69 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
 
     try:
         import ast
+        from ast import Assign, Dict, List, Name, Num, Str, Tuple, UnaryOp, USub
+        from typing import Any
+        from typing import Dict as TDict
+
+        class ConfigExtractor(ast.NodeVisitor):
+            """AST visitor that extracts simple variable assignments from a module."""
+
+            def __init__(self) -> None:
+                self.config: TDict[str, Any] = {}
+
+            def visit_Assign(self, node: Assign) -> None:
+                """Handle variable assignments in the AST."""
+                if not isinstance(node.targets[0], Name):
+                    return  # Skip complex assignments (e.g., a.b = 1)
+
+                try:
+                    value = self._extract_value(node.value)
+                    if value is not None and isinstance(node.targets[0], Name):
+                        self.config[node.targets[0].id] = value
+                except (ValueError, TypeError, AttributeError):
+                    pass  # Skip invalid or complex values
+
+            def _extract_value(self, node: ast.AST) -> Any:
+                """Extract a value from an AST node if it's a simple literal."""
+                if isinstance(node, (Constant, Num, Str)):
+                    return (
+                        node.value
+                        if hasattr(node, 'value')
+                        else node.n if hasattr(node, 'n') else node.s
+                    )
+                elif isinstance(node, (List, Tuple)):
+                    return [self._extract_value(n) for n in node.elts]
+                elif isinstance(node, Dict):
+                    return dict(
+                        (self._extract_value(k), self._extract_value(v))
+                        for k, v in zip(node.keys, node.values)
+                    )
+                elif (
+                    isinstance(node, UnaryOp)
+                    and isinstance(node.op, USub)
+                    and isinstance(node.operand, Num)
+                ):
+                    return -node.operand.n
+                elif isinstance(node, Name) and node.id in ('True', 'False', 'None'):
+                    return {'True': True, 'False': False, 'None': None}[node.id]
+                return None
 
         with open(config_path, encoding="utf-8") as f:
-            # Read the file content and parse it as a Python literal
             content = f.read().strip()
-            # If the file starts with a dictionary literal, evaluate it directly
+
+            # If the file is a JSON-like dictionary, use literal_eval
             if content.startswith("{") and content.endswith("}"):
-                config.update(ast.literal_eval(content))
-            # Otherwise, try to parse as a module with assignments
-            else:
-                # Create a safe dictionary to evaluate into
-                safe_globals = {}
-                # Execute the config in a restricted environment
-                exec(
-                    content, {"__builtins__": {}}, safe_globals
-                )  # nosec - Using restricted environment and input validation
-                # Only include simple types that can be serialized to JSON
-                for key, value in safe_globals.items():
-                    if not key.startswith("_") and isinstance(
-                        value, (str, int, float, bool, list, dict, tuple, type(None))
-                    ):
-                        config[key] = value
+                try:
+                    config.update(ast.literal_eval(content))
+                    return config
+                except (ValueError, SyntaxError):
+                    pass  # Not a valid dictionary literal, try parsing as Python
+
+            # Parse as Python source code
+            tree = ast.parse(content, filename=str(config_path))
+            extractor = ConfigExtractor()
+            extractor.visit(tree)
+            config.update(extractor.config)
     except (SyntaxError, ValueError) as e:
         raise ValueError(f"Invalid configuration syntax in {config_path}: {e}") from e
     except PermissionError as e:

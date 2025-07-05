@@ -465,13 +465,76 @@ class DocumentationStrategy(BaseEditStrategy):
                 # Create a signature from the AST node
                 parameters = []
 
+                def _get_annotation_string(self, annotation: Optional[ast.expr]) -> Any:
+                    """Convert an AST annotation to a string or Python object.
+
+                    Args:
+                        annotation: The AST annotation node
+
+                    Returns:
+                        The annotation as a string or Python object, or inspect.Parameter.empty if no annotation
+                    """
+                    if annotation is None:
+                        return inspect.Parameter.empty
+
+                    try:
+                        # Handle simple name annotations (e.g., 'str', 'int')
+                        if isinstance(annotation, ast.Name):
+                            return annotation.id
+
+                        # Handle subscripted types (e.g., 'List[str]', 'Dict[str, int]')
+                        elif isinstance(annotation, ast.Subscript):
+                            value = self._get_annotation_string(annotation.value)
+                            slice_value = self._get_annotation_string(annotation.slice)
+                            if isinstance(annotation.slice, ast.Index):  # Python 3.8 and earlier
+                                slice_value = self._get_annotation_string(annotation.slice.value)
+                            return f"{value}[{slice_value}]"
+
+                        # Handle attribute access (e.g., 'typing.List', 'numpy.ndarray')
+                        elif isinstance(annotation, ast.Attribute):
+                            return (
+                                f"{self._get_annotation_string(annotation.value)}.{annotation.attr}"
+                            )
+
+                        # Handle string literals (forward references)
+                        elif isinstance(annotation, ast.Str):
+                            return annotation.s
+
+                        # Handle constants (Python 3.8+)
+                        elif hasattr(ast, 'Constant') and isinstance(annotation, ast.Constant):
+                            if annotation.value is None:
+                                return 'None'
+                            return str(annotation.value)
+
+                        # Handle tuples (union types, etc.)
+                        elif isinstance(annotation, (ast.Tuple, ast.List)):
+                            elements = [self._get_annotation_string(elt) for elt in annotation.elts]
+                            return ", ".join(elements)
+
+                        # Default: return the string representation
+                        return (
+                            ast.unparse(annotation) if hasattr(ast, 'unparse') else str(annotation)
+                        )
+
+                    except Exception:
+                        # Fallback to string representation if anything goes wrong
+                        return (
+                            ast.unparse(annotation) if hasattr(ast, 'unparse') else str(annotation)
+                        )
+
+                # Helper function to get parameter annotation
+                def get_annotation(arg_node):
+                    if hasattr(arg_node, 'annotation'):
+                        return self._get_annotation_string(arg_node.annotation)
+                    return inspect.Parameter.empty
+
                 # Handle positional-only arguments
                 for arg in node.args.posonlyargs:
                     parameters.append(
                         inspect.Parameter(
                             arg.arg,
                             inspect.Parameter.POSITIONAL_ONLY,
-                            annotation=inspect.Parameter.empty,
+                            annotation=get_annotation(arg),
                             default=inspect.Parameter.empty,
                         )
                     )
@@ -482,7 +545,7 @@ class DocumentationStrategy(BaseEditStrategy):
                         inspect.Parameter(
                             arg.arg,
                             inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                            annotation=inspect.Parameter.empty,
+                            annotation=get_annotation(arg),
                             default=inspect.Parameter.empty,
                         )
                     )
@@ -493,27 +556,25 @@ class DocumentationStrategy(BaseEditStrategy):
                         inspect.Parameter(
                             node.args.vararg.arg,
                             inspect.Parameter.VAR_POSITIONAL,
-                            annotation=inspect.Parameter.empty,
+                            annotation=get_annotation(node.args.vararg),
                         )
                     )
 
                 # Handle keyword-only arguments
-                for arg in node.args.kwonlyargs:
-                    # Find the default value if it exists
-                    default = inspect.Parameter.empty
-                    if node.args.kw_defaults:
-                        for kw_arg, kw_default in zip(node.args.kwonlyargs, node.args.kw_defaults):
-                            if kw_arg.arg == arg.arg and kw_default:
-                                if isinstance(kw_default, ast.Constant):
-                                    default = kw_default.value
-                                break
+                for arg, default_expr in zip(node.args.kwonlyargs, node.args.kw_defaults or []):
+                    # Get the default value if it exists
+                    default = (
+                        default_expr.value
+                        if default_expr and isinstance(default_expr, ast.Constant)
+                        else inspect.Parameter.empty
+                    )
 
                     parameters.append(
                         inspect.Parameter(
                             arg.arg,
                             inspect.Parameter.KEYWORD_ONLY,
                             default=default,
-                            annotation=inspect.Parameter.empty,
+                            annotation=get_annotation(arg),
                         )
                     )
 
@@ -523,7 +584,7 @@ class DocumentationStrategy(BaseEditStrategy):
                         inspect.Parameter(
                             node.args.kwarg.arg,
                             inspect.Parameter.VAR_KEYWORD,
-                            annotation=inspect.Parameter.empty,
+                            annotation=get_annotation(node.args.kwarg),
                         )
                     )
 

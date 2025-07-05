@@ -3,8 +3,6 @@ Tests for the Enhanced SEAL system.
 """
 
 import asyncio
-import json
-import time
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -256,9 +254,7 @@ async def test_self_editing_disabled(enhanced_seal_system, mock_self_editor):
     ) as mock_suggest:
 
         # Process a prompt
-        response = await enhanced_seal_system.process_prompt(
-            "Test prompt", context={"test": "context"}
-        )
+        await enhanced_seal_system.process_prompt("Test prompt", context={"test": "context"})
 
         # Verify suggest_edits was not called when self-editing is disabled
         mock_suggest.assert_not_called()

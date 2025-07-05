@@ -10,12 +10,10 @@ from __future__ import annotations
 import asyncio
 import functools
 import hashlib
-import json
 import logging
-import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import (
     Any,
     AsyncGenerator,
@@ -32,27 +30,16 @@ from typing import (
     cast,
 )
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
-from evoseal.integration.seal.exceptions import (
-    KnowledgeBaseError,
-    RateLimitError,
-    RetryableError,
-    SEALError,
-    SelfEditingError,
-    TemplateError,
-    TimeoutError,
-    ValidationError,
-)
+from evoseal.integration.seal.exceptions import SelfEditingError, ValidationError
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 from evoseal.integration.seal.knowledge.mock_knowledge_base import MockKnowledgeBase
 from evoseal.integration.seal.prompt import (
     PromptConstructor,
     PromptStyle,
     format_context,
-    format_examples,
     format_knowledge,
-    format_prompt,
 )
 
 # Import mock implementations
@@ -391,7 +378,6 @@ class EnhancedSEALSystem:
                 self.metrics.knowledge_retrieval_times.append(knowledge_time)
 
             # Construct the prompt
-            prompt_start = time.time()
             prompt = await self._construct_prompt(
                 prompt_text,
                 knowledge,
@@ -661,18 +647,95 @@ class EnhancedSEALSystem:
                     self.metrics.record_error(e)
                 await asyncio.sleep(1)  # Prevent tight loop on errors
 
-    async def _process_batch(self, batch: List[Any]) -> None:
-        """Process a batch of requests."""
-        # This is a placeholder implementation
-        # In a real implementation, this would process multiple requests in parallel
+    async def _process_batch(self, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Process a batch of requests with proper error handling and progress tracking.
+
+        Args:
+            batch: List of request dictionaries, each containing at least 'prompt_text' and 'context'
+
+        Returns:
+            List of processed responses with the same order as input batch
+
+        Each request in the batch should have the following structure:
+            {
+                'prompt_text': str,  # The input text to process
+                'context': Dict[str, Any],  # Context for the prompt
+                'template_name': Optional[str],  # Optional template name
+                'metadata': Dict[str, Any]  # Additional metadata for tracking
+            }
+
+        Returns responses in the format:
+            {
+                'success': bool,  # Whether processing was successful
+                'response': Optional[str],  # The processed response if successful
+                'error': Optional[str],  # Error message if processing failed
+                'metadata': Dict[str, Any]  # Any additional metadata from processing
+            }
+        """
+        if not batch:
+            return []
+
+        results = []
+
         for item in batch:
             try:
-                # Process each item in the batch
-                pass
+                # Extract request parameters with defaults
+                prompt_text = item.get('prompt_text', '').strip()
+                if not prompt_text:
+                    raise ValueError("Empty prompt_text in batch item")
+
+                context = item.get('context', {})
+                template_name = item.get('template_name')
+                metadata = item.get('metadata', {})
+
+                # Process the prompt using the main processing pipeline
+                result = await self.process_prompt(
+                    prompt_text=prompt_text,
+                    context=context,
+                    template_name=template_name,
+                    **metadata,
+                )
+
+                # Record successful processing
+                results.append(
+                    {
+                        'success': True,
+                        'response': result.get('response'),
+                        'metadata': {
+                            **result.get('metadata', {}),
+                            'processed_at': datetime.now(timezone.utc).isoformat(),
+                            'batch_size': len(batch),
+                        },
+                    }
+                )
+
             except Exception as e:
-                logger.error(f"Error processing batch item: {e}")
+                # Log the error and record metrics
+                error_msg = str(e)
+                logger.error(
+                    "Error processing batch item: %s - %s",
+                    type(e).__name__,
+                    error_msg,
+                    exc_info=logger.isEnabledFor(logging.DEBUG),
+                )
+
                 if self.metrics:
                     self.metrics.record_error(e)
+
+                results.append(
+                    {
+                        'success': False,
+                        'response': None,
+                        'error': error_msg,
+                        'metadata': {
+                            'error_type': type(e).__name__,
+                            'processed_at': datetime.now(timezone.utc).isoformat(),
+                            'batch_size': len(batch),
+                        },
+                    }
+                )
+
+        return results
 
     def _generate_cache_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
         """Generate a cache key from the given arguments."""
