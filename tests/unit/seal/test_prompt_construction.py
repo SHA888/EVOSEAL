@@ -31,17 +31,17 @@ class TestPromptConstructor:
 
         # Add a new template
         constructor.add_template(
-            name=template_name,
+            template_name,
             template=template,
             style=PromptStyle.INSTRUCTION,
-            required_fields=["test"],
+            required_fields={"test"},
             description="A test template",
         )
 
         # Verify template was added
         assert template_name in constructor.templates
         assert constructor.templates[template_name].template == template
-        assert constructor.templates[template_name].required_fields == ["test"]
+        assert "test" in constructor.templates[template_name].required_fields
 
     def test_create_prompt(self):
         """Test creating a prompt from a template."""
@@ -183,7 +183,9 @@ class TestFormatPrompt:
         """Test prompt formatting with knowledge."""
         template = "Context: {knowledge}\nQuestion: {question}\nAnswer:"
         result = format_prompt(
-            template, question="What is the capital?", knowledge="Paris is the capital of France."
+            template,
+            question="What is the capital?",
+            knowledge="Paris is the capital of France.",
         )
         assert "Paris is the capital" in result
         assert "What is the capital?" in result

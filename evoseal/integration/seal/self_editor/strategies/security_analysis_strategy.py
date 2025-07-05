@@ -190,8 +190,15 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                     custom_suggestions = check_func(content, tree, **kwargs)  # type: ignore[call-arg]
                     if custom_suggestions:
                         suggestions.extend(custom_suggestions)
-                except Exception:
-                    # Don't let one failing check break the whole analysis
+                except Exception as e:
+                    # Log the error but don't let one failing check break the whole analysis
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Custom security check {check_func.__name__} failed: {str(e)}",
+                        exc_info=True,
+                    )
                     continue
 
         except (SyntaxError, ValueError) as e:

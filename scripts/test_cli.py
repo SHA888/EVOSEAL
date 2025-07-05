@@ -10,7 +10,9 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import subprocess
+
+# nosec B404: Required for testing CLI commands in a controlled environment
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
@@ -79,8 +81,8 @@ def run_cli(
         # Print the command being run for debugging
         print(f"Running command: {' '.join(full_cmd)}")
 
-        # Run the command
-        result = subprocess.run(
+        # Run the command with controlled inputs
+        result = subprocess.run(  # nosec B603: Inputs are validated and shell=False prevents shell injection
             full_cmd,
             capture_output=True,
             text=True,
@@ -88,6 +90,7 @@ def run_cli(
             cwd=cwd or Path(__file__).parent.parent,
             env=process_env,
             check=False,
+            shell=False,  # Explicitly set to False for security
         )
 
         # Combine stdout and stderr for the output

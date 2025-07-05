@@ -29,7 +29,7 @@ class TestPromptTemplates:
         # Check that all templates are valid
         for name, template in DEFAULT_TEMPLATES.items():
             # Check if the value is a PromptTemplate (from either module)
-            if hasattr(template, 'name') and hasattr(template, 'template'):
+            if hasattr(template, "name") and hasattr(template, "template"):
                 assert template.name == name
                 assert template.template.strip() != ""
             # Or a tuple of (template_str, description)
@@ -42,7 +42,8 @@ class TestPromptTemplates:
                 assert False, f"Unexpected template type: {type(template)} for template {name}"
 
     @pytest.mark.parametrize(
-        "style", ["base_instruction", "base_chat", "base_completion", "base_chain_of_thought"]
+        "style",
+        ["base_instruction", "base_chat", "base_completion", "base_chain_of_thought"],
     )
     def test_base_templates(self, style):
         """Test that base templates have the expected structure."""
@@ -84,7 +85,10 @@ class TestPromptIntegration:
     def sample_knowledge(self):
         """Sample knowledge for testing."""
         return [
-            {"content": "Python is a high-level programming language.", "source": "general"},
+            {
+                "content": "Python is a high-level programming language.",
+                "source": "general",
+            },
             {"content": "Python uses indentation for code blocks.", "source": "syntax"},
         ]
 
@@ -147,30 +151,30 @@ class TestPromptCaching:
         def mock_time_func():
             return current_time
 
-        monkeypatch.setattr('time.time', mock_time_func)
+        monkeypatch.setattr("time.time", mock_time_func)
         return current_time
 
     @pytest.mark.asyncio
     async def test_template_caching(self):
         """Test that templates are properly cached."""
-        import time
-
+        from evoseal.integration.seal.enhanced_seal_system import EnhancedSEALSystem, SEALConfig
         from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
         from evoseal.integration.seal.prompt.constructor import PromptTemplate
-        from evoseal.integration.seal.seal_system import SEALSystem
 
         # Create a mock knowledge base
         mock_kb = MagicMock(spec=KnowledgeBase)
         mock_kb.search = AsyncMock(return_value=[])
 
-        # Create SEAL system with template caching enabled
-        config = SEALSystem.Config(
-            enable_caching=True,
-            enable_template_caching=True,
+        # Create SEAL system with caching enabled
+        config = SEALConfig(
+            enable_caching=True,  # This enables all caching, including templates
             cache_ttl_seconds=60,
             max_cache_size=100,
         )
-        system = SEALSystem(knowledge_base=mock_kb, config=config)
+        system = EnhancedSEALSystem(
+            config=config,
+            knowledge_base=mock_kb,
+        )
 
         # Create a test template
         test_template = PromptTemplate(
@@ -188,19 +192,18 @@ class TestPromptCaching:
         system._template_cache["test_template"] = test_template
 
         # Get the template - should be in cache
-        template1 = system._get_cached_template("test_template")
+        template1 = await system._get_cached_template("test_template")
         assert template1 is not None
         assert template1.name == "test_template"
 
         # Get it again - should be the same object from cache
-        template2 = system._get_cached_template("test_template")
+        template2 = await system._get_cached_template("test_template")
         assert template2 is template1
 
-        # Clear the cache
-        system._get_cached_template.cache_clear()
+        # Clear the cache and get a fresh template
         system._template_cache.clear()
 
-        # Add a new template with same name but different content
+        # Create a new template with the same name but different content
         new_template = PromptTemplate(
             name="test_template",
             template="New template: {user_input}",
@@ -209,12 +212,15 @@ class TestPromptCaching:
             required_fields={"user_input"},
         )
 
-        # Replace the template in the constructor and cache
+        # Replace the template in the constructor
         system.prompt_constructor.templates["test_template"] = new_template
-        system._template_cache["test_template"] = new_template
+
+        # Clear the cache again to ensure we get the new template
+        system._template_cache.clear()
 
         # This should get the new template
-        template3 = system._get_cached_template("test_template")
+        template3 = await system._get_cached_template("test_template")
         assert template3 is not None
-        assert template3 is not template1
+        assert template3.name == "test_template"
+        assert "New template" in template3.template
         assert template3.template == "New template: {user_input}"

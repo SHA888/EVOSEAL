@@ -7,7 +7,8 @@ with support for versioning, diffs, merges, and querying by Git references (bran
 
 import json
 import os
-import subprocess
+import shutil
+import subprocess  # nosec - Required for git operations, with proper input validation
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -29,15 +30,51 @@ class GitStorage:
         check: bool = True,
         **kwargs: Any,
     ) -> subprocess.CompletedProcess:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=self.repo_path,
-            capture_output=capture_output,
-            text=True,
-            check=check,
-            **kwargs,
-        )
-        return result
+        """Run a git command with security best practices.
+
+        Args:
+            args: Git command arguments (e.g., ["commit", "-m", "message"])
+            capture_output: Whether to capture stdout/stderr
+            check: Whether to raise CalledProcessError on non-zero exit code
+            **kwargs: Additional arguments to subprocess.run()
+
+        Returns:
+            subprocess.CompletedProcess
+
+        Raises:
+            GitStorageError: If command fails and check=True
+            ValueError: If args contain suspicious patterns
+        """
+        # Validate git command arguments
+        for arg in args:
+            if not isinstance(arg, str):
+                raise ValueError(f"Git command arguments must be strings, got {type(arg)}")
+            if ";" in arg or "`" in arg or "&&" in arg:
+                raise ValueError(f"Potentially dangerous characters in git argument: {arg}")
+
+        # Use shutil.which to safely find the git executable
+        git_path = shutil.which("git")
+        if not git_path:
+            raise GitStorageError("Git executable not found in PATH")
+
+        try:
+            # Ensure args are strings and don't contain command separators
+            safe_args = [str(arg) for arg in args]
+
+            result = subprocess.run(  # nosec - Inputs are validated and shell=False
+                [git_path] + safe_args,  # Use list concatenation for safety
+                cwd=str(self.repo_path.absolute()),
+                capture_output=capture_output,
+                text=True,
+                check=check,
+                shell=False,  # Prevent shell injection
+                **{k: v for k, v in kwargs.items() if k != "shell"},  # Force shell=False
+            )
+            return result
+        except subprocess.CalledProcessError as e:
+            raise GitStorageError(f"Git command failed: {e.stderr or e}") from e
+        except FileNotFoundError as e:
+            raise GitStorageError("Git executable not found") from e
 
     def save_model(
         self, model: Any, rel_path: str, message: str, branch: Optional[str] = None

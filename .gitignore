@@ -362,7 +362,6 @@ secrets.*
 .safety-policy.yml
 
 # Project specific - Detect Secrets
-.secrets.baseline
 
 # Project specific - TruffleHog
 .trufflehog/
