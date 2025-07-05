@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sunday at midnight
 
+# Skip CodeQL for dependabot PRs to prevent duplicate runs
+env:
+  SKIP_CODEGEN: true
+
 jobs:
   analyze:
     name: Analyze
@@ -16,6 +20,9 @@ jobs:
       actions: read
       contents: read
       security-events: write
+
+    # Skip analysis for dependabot PRs
+    if: (github.actor != 'dependabot[bot]')
 
     steps:
     - name: Checkout repository
@@ -28,8 +35,11 @@ jobs:
       with:
         languages: python
         queries: security-extended,security-and-quality
+        config-file: .github/codeql/codeql-config.yml
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:python"
+        upload: true
+        output: codeql-results.sarif

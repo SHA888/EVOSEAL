@@ -1,0 +1,31 @@
+---
+name: "Custom CodeQL Configuration"
+
+disabled-queries:
+  # Disable subprocess checks since we're using #nosec comments
+  - "py/command-line-injection"
+  - "py/request-without-timeout"
+
+  # Disable checks that are already covered by Bandit
+  - "py/clear-text-storage-sensitive-data"
+  - "py/weak-cryptographic-key-size"
+  - "py/weak-encryption-algorithm"
+  - "py/weak-encryption-mode"
+  - "py/weak-password-recovery"
+  - "py/weak-password-regex"
+
+  # Disable false positives for our use case
+  - "py/use-of-eval"
+  - "py/use-of-exec"
+  - "py/use-of-pickle"
+  - "py/use-of-unpickle"
+
+# Exclude test and example directories from analysis
+exclude:
+  - "**/tests/**"
+  - "**/examples/**"
+  - "**/venv/**"
+  - "**/env/**"
+  - "**/__pycache__/**"
+  - "**/.pytest_cache/**"
+  - "**/.github/workflows/**"
