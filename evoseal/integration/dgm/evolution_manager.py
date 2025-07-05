@@ -8,6 +8,7 @@ without modifying the original DGM codebase.
 # but the code guarantees a strict dict[str, str] type. This is a known and safe false positive.
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -196,6 +197,8 @@ class EvolutionManager:
             try:
                 metrics = self.get_fitness_metrics(run_id)
                 fitness_history.append(metrics)
-            except Exception:
-                continue
+            except Exception as e:
+                # Log the error but continue with other runs
+                logging.warning(f"Error getting fitness metrics for run {run_id}: {str(e)}")
+                continue  # nosec B112: Continue is intentional - we want to process other runs even if one fails
         return fitness_history

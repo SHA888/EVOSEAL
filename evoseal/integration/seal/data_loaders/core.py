@@ -15,7 +15,7 @@ from .cache import DataCache, cached, default_cache
 from .loaders import CSVLoader, DataLoader, JSONLoader, YAMLLoader, get_loader, load_data
 from .types import DataFormat, ModelType
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class DataLoaders:

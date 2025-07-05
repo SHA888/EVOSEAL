@@ -419,8 +419,13 @@ class KnowledgeBase:
                 try:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                     f.close()
-                except Exception:
-                    pass  # Ignore errors when closing the file
+                except (OSError, IOError) as close_error:
+                    # Debug log instead of silent pass
+                    import logging
+
+                    logging.getLogger(__name__).debug(
+                        f"Error closing file: {close_error}", exc_info=True
+                    )
 
     def _save_to_disk(self) -> None:
         """Internal method to save to the default storage path if configured."""

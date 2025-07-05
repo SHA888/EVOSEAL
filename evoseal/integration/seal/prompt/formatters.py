@@ -9,7 +9,9 @@ from typing import Any, Dict, List, Optional, Union
 
 
 def format_knowledge(
-    knowledge: Union[str, List[Dict[str, Any]], None], max_items: int = 5, max_length: int = 1000
+    knowledge: Union[str, List[Dict[str, Any]], None],
+    max_items: int = 5,
+    max_length: int = 1000,
 ) -> str:
     """Format knowledge for inclusion in a prompt.
 

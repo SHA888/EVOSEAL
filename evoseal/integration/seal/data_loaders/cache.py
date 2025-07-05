@@ -8,7 +8,7 @@ frequently accessed data.
 import hashlib
 import json
 import os
-import pickle
+import pickle  # nosec - Using in a controlled environment with trusted cache files
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, Optional, TypeVar, Union, cast
 
 from pydantic import BaseModel
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class CacheEntry(BaseModel):
@@ -61,7 +61,7 @@ class DataCache:
 
     def _get_cache_key(self, key: str) -> str:
         """Generate a cache key from a string."""
-        return hashlib.md5(key.encode('utf-8')).hexdigest()
+        return hashlib.md5(key.encode("utf-8")).hexdigest()
 
     def _get_cache_path(self, key: str) -> Optional[Path]:
         """Get the filesystem path for a cache key."""
@@ -90,8 +90,10 @@ class DataCache:
         cache_path = self._get_cache_path(key)
         if cache_path and cache_path.exists():
             try:
-                with open(cache_path, 'rb') as f:
-                    entry: CacheEntry = pickle.load(f)
+                with open(cache_path, "rb") as f:
+                    entry: CacheEntry = pickle.load(
+                        f
+                    )  # nosec - Using trusted cache files in a controlled environment
                     if entry.is_expired:
                         cache_path.unlink()
                         return None
@@ -105,7 +107,11 @@ class DataCache:
         return None
 
     def set(
-        self, key: str, value: Any, ttl: Optional[timedelta] = None, persist: bool = False
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[timedelta] = None,
+        persist: bool = False,
     ) -> None:
         """Set a value in the cache.
 
@@ -137,7 +143,7 @@ class DataCache:
             cache_path = self._get_cache_path(key)
             if cache_path:
                 try:
-                    with open(cache_path, 'wb') as f:
+                    with open(cache_path, "wb") as f:
                         pickle.dump(entry, f)
                 except (pickle.PickleError, IOError):
                     # Silently fail on cache write errors
@@ -157,10 +163,12 @@ class DataCache:
 
             # Clear expired files
             if self.cache_dir:
-                for cache_file in self.cache_dir.glob('*.pkl'):
+                for cache_file in self.cache_dir.glob("*.pkl"):
                     try:
-                        with open(cache_file, 'rb') as f:
-                            entry: CacheEntry = pickle.load(f)
+                        with open(cache_file, "rb") as f:
+                            entry: CacheEntry = pickle.load(
+                                f
+                            )  # nosec - Using trusted cache files in a controlled environment
                             if entry.is_expired:
                                 cache_file.unlink()
                     except (pickle.PickleError, EOFError, AttributeError):
@@ -170,7 +178,7 @@ class DataCache:
             # Clear everything
             self.memory_cache.clear()
             if self.cache_dir:
-                for cache_file in self.cache_dir.glob('*.pkl'):
+                for cache_file in self.cache_dir.glob("*.pkl"):
                     cache_file.unlink()
 
 

@@ -135,7 +135,10 @@ class PromptConstructor:
         return template.template.format(**kwargs)
 
     def format_with_style(
-        self, content: str, style: Optional[Union[str, PromptStyle]] = None, **kwargs: Any
+        self,
+        content: str,
+        style: Optional[Union[str, PromptStyle]] = None,
+        **kwargs: Any,
     ) -> str:
         """Format content with a specific style.
 
@@ -152,7 +155,7 @@ class PromptConstructor:
         if style_enum == PromptStyle.INSTRUCTION:
             return f"Instruction: {content}\n\nResponse:"
         elif style_enum == PromptStyle.CHAT:
-            role = kwargs.get('role', 'user')
+            role = kwargs.get("role", "user")
             return f"{role.capitalize()}: {content}"
         elif style_enum == PromptStyle.COMPLETION:
             return content
@@ -192,7 +195,7 @@ class PromptConstructor:
             required_fields = set()
 
         # Extract placeholders from template
-        placeholders = set(re.findall(r'\{([^}]+)\}', template))
+        placeholders = set(re.findall(r"\{([^}]+)\}", template))
 
         # Add any placeholders that are required by the template
         required_fields.update(placeholders)
@@ -230,9 +233,9 @@ class PromptConstructor:
         """
         return {
             name: {
-                'style': template.style.value,
-                'required_fields': template.required_fields,
-                'description': template.description,
+                "style": template.style.value,
+                "required_fields": template.required_fields,
+                "description": template.description,
             }
             for name, template in self.templates.items()
         }

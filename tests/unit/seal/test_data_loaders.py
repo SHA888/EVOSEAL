@@ -52,17 +52,17 @@ class TestDataLoaders(unittest.TestCase):
 
         # Write test data to files
         self.json_file.write_text(
-            '''
+            """
         [
             {"id": 1, "name": "Item 1"},
             {"id": 2, "name": "Item 2", "active": false},
             {"id": 3, "name": "Item 3"}
         ]
-        '''
+        """
         )
 
         self.yaml_file.write_text(
-            '''
+            """
         - id: 1
           name: Item 1
         - id: 2
@@ -70,15 +70,15 @@ class TestDataLoaders(unittest.TestCase):
           active: false
         - id: 3
           name: Item 3
-        '''
+        """
         )
 
         self.csv_file.write_text(
-            '''id,name,active
+            """id,name,active
 1,Item 1,true
 2,Item 2,false
 3,Item 3,true
-'''
+"""
         )
 
     def tearDown(self):
