@@ -157,8 +157,6 @@ class TestPromptCaching:
     @pytest.mark.asyncio
     async def test_template_caching(self):
         """Test that templates are properly cached."""
-        import time
-
         from evoseal.integration.seal.enhanced_seal_system import EnhancedSEALSystem, SEALConfig
         from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
         from evoseal.integration.seal.prompt.constructor import PromptTemplate
