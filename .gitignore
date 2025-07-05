@@ -136,7 +136,7 @@ secrets.*
 .safety-policy.yml
 
 # Detect Secrets
-.secrets.baseline
+# .secrets.baseline  # Track this file in version control
 
 # TruffleHog
 .trufflehog/
