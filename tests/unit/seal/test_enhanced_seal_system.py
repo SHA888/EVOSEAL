@@ -13,7 +13,6 @@ from pydantic import ValidationError
 from evoseal.integration.seal.enhanced_seal_system import (
     ConversationHistory,
     EnhancedSEALSystem,
-    Metrics,
     SEALConfig,
 )
 from evoseal.integration.seal.knowledge.mock_knowledge_base import MockKnowledgeBase
