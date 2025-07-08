@@ -465,7 +465,6 @@ class DocumentationStrategy(BaseEditStrategy):
                 # Create a signature from the AST node
                 parameters = []
 
-
                 # Helper function to get parameter annotation
                 def get_annotation(arg_node):
                     if hasattr(arg_node, 'annotation'):
