@@ -13,7 +13,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+
+# Type variable for the GitInterface class
+TGitInterface = TypeVar('TGitInterface', bound='GitInterface')
 
 logger = logging.getLogger(__name__)
 
