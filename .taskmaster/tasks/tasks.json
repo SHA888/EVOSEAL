@@ -525,7 +525,7 @@
               3
             ],
             "details": "Implement functionality for file-specific Git operations including staging files, unstaging files, checking file status (modified, new, deleted), and handling file conflicts. Create methods to get file diff information and history. Ensure proper handling of binary files and large files.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 5,
@@ -837,7 +837,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-07-10T23:21:20.606Z",
+      "updated": "2025-07-10T23:39:52.518Z",
       "description": "Tasks for master context"
     }
   }
