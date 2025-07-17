@@ -92,7 +92,7 @@
         "dependencies": [
           1
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -169,7 +169,7 @@
         "dependencies": [
           2
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -305,7 +305,7 @@
         "dependencies": [
           3
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -536,7 +536,7 @@
               3
             ],
             "details": "Implement methods to extract repository structure including branches, tags, and commit history. Create data structures to represent repository elements and relationships. Implement functionality to navigate repository history and structure. Include methods to visualize repository structure for UI components.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 6,
