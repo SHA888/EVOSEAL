@@ -1423,6 +1423,404 @@ class CmdGit(GitInterface):
                 raise
             raise GitError(f"Failed to get repository structure: {e}") from e
 
+    def get_file_history(
+        self,
+        file_path: Union[str, Path],
+        limit: int = 10,
+        ref: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get the commit history for a specific file.
+
+        Args:
+            file_path: Path to the file (relative to repo root)
+            limit: Maximum number of commits to return (default: 10)
+            ref: Git reference (commit hash, branch, or tag) to start from
+
+        Returns:
+            List of dictionaries containing commit information
+
+        Raises:
+            GitError: If there's an error getting the file history
+            FileNotFoundError: If the file doesn't exist
+        """
+        try:
+            self._check_initialized()
+            file_path = Path(file_path)
+            
+            # Check if file exists in the specified ref or working directory
+            if not (self.repo_path / file_path).exists():
+                if ref is None or not self._file_exists_in_ref(file_path, ref):
+                    raise FileNotFoundError(f"File not found: {file_path}")
+
+            # Build git log command
+            cmd = [
+                "log",
+                f"-n {limit}",
+                "--pretty=format:%H|%an|%ae|%ad|%s",
+                "--date=iso",
+                "--follow",  # Follow file renames
+                "--name-status",
+                str(file_path)
+            ]
+            
+            if ref:
+                cmd.insert(1, ref)
+
+            success, stdout, stderr = self._run_git_command(cmd)
+            
+            if not success:
+                raise GitError(f"Failed to get file history: {stderr}")
+
+            # Parse the log output
+            commits = []
+            current_commit = None
+            
+            for line in stdout.splitlines():
+                if '|' in line:
+                    if current_commit:
+                        commits.append(current_commit)
+                    hash_, author, email, date, subject = line.split('|', 4)
+                    current_commit = {
+                        'hash': hash_,
+                        'author': author,
+                        'email': email,
+                        'date': date,
+                        'subject': subject,
+                        'changes': []
+                    }
+                elif line and current_commit and '\t' in line:
+                    status, path = line.split('\t', 1)
+                    current_commit['changes'].append({
+                        'status': status[0],  # M, A, D, R, etc.
+                        'path': path
+                    })
+            
+            if current_commit:
+                commits.append(current_commit)
+            
+            return commits
+
+        except Exception as e:
+            logger.error(f"Error getting file history for {file_path}: {e}")
+            if isinstance(e, (FileNotFoundError, GitError)):
+                raise
+            raise GitError(f"Failed to get file history: {e}") from e
+
+    def compare_branches(
+        self,
+        branch1: str,
+        branch2: str,
+        path: Optional[Union[str, Path]] = None,
+        include_unchanged: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Compare repository structures between two branches.
+
+        Args:
+            branch1: First branch name
+            branch2: Second branch name
+            path: Limit comparison to a specific subdirectory
+            include_unchanged: Whether to include unchanged files in the result
+
+        Returns:
+            Dictionary containing comparison results
+        """
+        try:
+            self._check_initialized()
+            
+            # Get structures for both branches
+            struct1 = self.get_repository_structure(ref=branch1, path=path, recursive=True)
+            struct2 = self.get_repository_structure(ref=branch2, path=path, recursive=True)
+            
+            # Flatten structures for easier comparison
+            flat1 = self._flatten_structure(struct1)
+            flat2 = self._flatten_structure(struct2)
+            
+            # Find differences
+            result = {
+                'branch1': branch1,
+                'branch2': branch2,
+                'added': [],
+                'removed': [],
+                'modified': [],
+                'unchanged': []
+            }
+            
+            all_paths = set(flat1.keys()).union(set(flat2.keys()))
+            
+            for path in sorted(all_paths):
+                in1 = path in flat1
+                in2 = path in flat2
+                
+                if in1 and not in2:
+                    result['removed'].append(flat1[path])
+                elif in2 and not in1:
+                    result['added'].append(flat2[path])
+                else:
+                    item1 = flat1[path]
+                    item2 = flat2[path]
+                    
+                    # Compare file metadata
+                    modified = False
+                    for key in ['size', 'sha', 'modified']:
+                        if key in item1 and key in item2 and item1[key] != item2[key]:
+                            modified = True
+                            break
+                    
+                    if modified:
+                        result['modified'].append({
+                            'path': path,
+                            'branch1': item1,
+                            'branch2': item2
+                        })
+                    elif include_unchanged:
+                        result['unchanged'].append(item1)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error comparing branches {branch1} and {branch2}: {e}")
+            raise GitError(f"Failed to compare branches: {e}") from e
+
+    def find_file_references(
+        self,
+        file_path: Union[str, Path],
+        ref: Optional[str] = None,
+        file_types: Optional[List[str]] = None,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Find references to a file in the repository.
+        
+        Args:
+            file_path: Path to the file to find references for
+            ref: Git reference to search in (default: current branch)
+            file_types: Limit search to specific file types (extensions)
+            
+        Returns:
+            Dictionary mapping reference types to lists of references
+        """
+        try:
+            self._check_initialized()
+            file_path = Path(file_path)
+            
+            if not file_path.is_absolute():
+                file_path = self.repo_path / file_path
+            
+            # Get the relative path for searching
+            rel_path = file_path.relative_to(self.repo_path)
+            
+            # Find imports and references
+            result = {
+                'imports': self._find_imports(rel_path, ref, file_types),
+                'referenced_by': self._find_referenced_by(rel_path, ref, file_types)
+            }
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error finding references for {file_path}: {e}")
+            raise GitError(f"Failed to find file references: {e}") from e
+
+    def generate_structure_diagram(
+        self,
+        ref: Optional[str] = None,
+        path: Optional[Union[str, Path]] = None,
+        max_depth: Optional[int] = 3,
+        include_hidden: bool = False,
+    ) -> str:
+        """
+        Generate an ASCII tree diagram of the repository structure.
+        
+        Args:
+            ref: Git reference to generate diagram for
+            path: Subdirectory path to generate diagram for
+            max_depth: Maximum depth to traverse
+            include_hidden: Whether to include hidden files/directories
+            
+        Returns:
+            ASCII string representing the repository structure
+        """
+        try:
+            structure = self.get_repository_structure(
+                ref=ref,
+                path=path,
+                recursive=True,
+                include_hidden=include_hidden,
+                max_depth=max_depth
+            )
+            
+            if not structure or 'contents' not in structure:
+                return "Empty repository or path not found"
+                
+            lines = []
+            self._format_structure(structure['contents'], lines)
+            return '\n'.join(lines)
+            
+        except Exception as e:
+            logger.error(f"Error generating structure diagram: {e}")
+            raise GitError(f"Failed to generate structure diagram: {e}") from e
+
+    def _file_exists_in_ref(self, file_path: Union[str, Path], ref: str) -> bool:
+        """Check if a file exists in a specific git reference."""
+        try:
+            cmd = ["ls-tree", "--name-only", ref, str(file_path)]
+            success, stdout, _ = self._run_git_command(cmd)
+            return success and bool(stdout.strip())
+        except Exception:
+            return False
+
+    def _flatten_structure(
+        self,
+        structure: Dict[str, Any],
+        parent_path: str = '',
+        result: Optional[Dict[str, Dict[str, Any]]] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Flatten a nested directory structure into a dictionary of paths to file info."""
+        if result is None:
+            result = {}
+            
+        if 'contents' in structure:
+            for name, item in structure['contents'].items():
+                item_path = f"{parent_path}/{name}" if parent_path else name
+                if item.get('type') == 'file':
+                    result[item_path] = item
+                elif item.get('type') == 'directory' and 'contents' in item:
+                    self._flatten_structure(item, item_path, result)
+        
+        return result
+
+    def _find_imports(
+        self,
+        file_path: Union[str, Path],
+        ref: Optional[str],
+        file_types: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Find imports in a file."""
+        try:
+            content = self.get_file_content(file_path, ref=ref)
+            if not content:
+                return []
+                
+            # Simple regex to find import statements (Python, JavaScript, etc.)
+            import_patterns = [
+                # Python: import x, from x import y
+                r'^\s*(?:from\s+([\w.]+)\s+)?import\s+([\w*.,{}\s]+)(?:\s+as\s+\w+)?\s*(?:#.*)?$',
+                # JavaScript/TypeScript: import x from 'y'
+                r'^\s*import\s+(?:[\w*{} ,\n]+\s+from\s+)?["']([^"']+)["']\s*;?\s*(?:/\*.*\*/)?\s*$',
+                # C/C++: #include "x.h" or #include <x.h>
+                r'^\s*#\s*include\s+[<"]([^>"]+)[>"]\s*$',
+            ]
+            
+            imports = []
+            for line in content.splitlines():
+                for pattern in import_patterns:
+                    match = re.search(pattern, line, re.MULTILINE)
+                    if match:
+                        module = match.group(1) or match.group(2) if match.groups() > 1 else match.group(1)
+                        if module:
+                            imports.append({
+                                'line': line.strip(),
+                                'module': module.strip(),
+                                'file': str(file_path)
+                            })
+                            break
+            
+            return imports
+            
+        except Exception as e:
+            logger.warning(f"Error finding imports in {file_path}: {e}")
+            return []
+
+    def _find_referenced_by(
+        self,
+        file_path: Union[str, Path],
+        ref: Optional[str],
+        file_types: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Find files that reference the given file."""
+        try:
+            # Get the base filename without extension for searching
+            file_name = Path(file_path).name
+            base_name = file_name.split('.')[0]
+            
+            # Build git grep command to find references
+            cmd = ["grep", "-l", "-I", "--perl-regexp", f"\\b{re.escape(base_name)}\\b"]
+            
+            # Add file type filters if specified
+            if file_types:
+                cmd.extend(["--", f"*.{' *.'.join(ft.lstrip('.') for ft in file_types)}'])
+            
+            success, stdout, _ = self._run_git_command(cmd, ref=ref)
+            
+            if not success or not stdout.strip():
+                return []
+            
+            # Parse results
+            references = []
+            for ref_file in stdout.splitlines():
+                if ref_file and ref_file != str(file_path):
+                    references.append({
+                        'file': ref_file,
+                        'matches': [{'line': line} for line in self._get_matching_lines(ref_file, base_name, ref)]
+                    })
+            
+            return references
+            
+        except Exception as e:
+            logger.warning(f"Error finding references to {file_path}: {e}")
+            return []
+
+    def _get_matching_lines(
+        self,
+        file_path: str,
+        pattern: str,
+        ref: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        """Get matching lines containing the pattern in a file."""
+        try:
+            content = self.get_file_content(file_path, ref=ref)
+            if not content:
+                return []
+                
+            lines = []
+            for i, line in enumerate(content.splitlines(), 1):
+                if re.search(rf'\b{re.escape(pattern)}\b', line):
+                    lines.append({
+                        'line_number': i,
+                        'content': line.strip()
+                    })
+            return lines
+            
+        except Exception:
+            return []
+
+    def _format_structure(
+        self,
+        contents: Dict[str, Any],
+        lines: List[str],
+        prefix: str = ''
+    ) -> None:
+        """Recursively format directory structure into ASCII tree."""
+        if not contents:
+            return
+            
+        items = sorted(contents.items(), key=lambda x: (x[1].get('type') != 'directory', x[0]))
+        
+        for i, (name, item) in enumerate(items):
+            is_last = i == len(items) - 1
+            
+            if item.get('type') == 'directory':
+                lines.append(f"{prefix}{'└── ' if is_last else '├── '}{name}/")
+                new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
+                if 'contents' in item:
+                    self._format_structure(item['contents'], lines, new_prefix)
+            else:
+                # File with size
+                size = item.get('size', 0)
+                size_str = f" ({size} bytes)" if size else ""
+                lines.append(f"{prefix}{'└── ' if is_last else '├── '}{name}{size_str}")
+
     def _check_initialized(self) -> None:
         """Check if the repository is initialized, raise an exception if not."""
         if not self.repo_path or not self.is_initialized():
