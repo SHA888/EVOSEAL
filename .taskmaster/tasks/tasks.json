@@ -592,7 +592,7 @@
               1
             ],
             "details": "Create a MetricsTracker class that records execution time, memory usage, code coverage, and other relevant metrics during test execution. Include methods for starting/stopping metric collection and retrieving collected data in a structured format.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 4,
@@ -602,7 +602,7 @@
               3
             ],
             "details": "Create functions to transform raw metrics into meaningful performance indicators. Implement statistical calculations like averages, percentiles, and standard deviations. Include normalization techniques to make metrics comparable across different test runs and environments.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 5,
