@@ -564,7 +564,7 @@
         "dependencies": [
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -572,7 +572,7 @@
             "description": "Create the TestRunner class that handles the execution of tests against the codebase",
             "dependencies": [],
             "details": "Implement a TestRunner class that can execute tests against the codebase. Include methods for test discovery, execution, and result collection. The TestRunner should be able to run tests in isolation and handle test failures gracefully.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 2,
