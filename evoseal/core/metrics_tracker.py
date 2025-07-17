@@ -8,7 +8,7 @@ import statistics
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict
 
 import numpy as np
 from rich.console import Console
@@ -18,6 +18,12 @@ from rich.table import Table
 TestResult = Dict[str, Any]
 TestResults = List[TestResult]
 MetricComparison = Dict[str, Dict[str, Union[float, str]]]
+
+class TrendAnalysis(TypedDict):
+    slope: float
+    intercept: float
+    pct_change: float
+    trend: str
 
 # Console for rich output
 console = Console()
@@ -366,6 +372,149 @@ class MetricsTracker:
         with open(self.storage_path, 'w') as f:
             json.dump(metrics_data, f, indent=2)
     
+    def get_percentiles(
+        self,
+        test_type: Optional[str] = None,
+        percentiles: List[float] = [90, 95, 99],
+        limit: Optional[int] = None
+    ) -> Dict[str, Dict[float, float]]:
+        """Calculate percentile values for metrics.
+        
+        Args:
+            test_type: Type of test to filter by
+            percentiles: List of percentiles to calculate (0-100)
+            limit: Maximum number of recent test runs to include
+            
+        Returns:
+            Dictionary mapping metrics to their percentile values
+        """
+        metrics = self._filter_metrics_by_type(test_type)
+        
+        if limit:
+            metrics = metrics[-limit:]
+        
+        if not metrics:
+            return {}
+        
+        # Extract numeric metrics
+        numeric_fields = [
+            'duration_sec', 'cpu_percent', 
+            'memory_mb', 'io_read_mb', 'io_write_mb'
+        ]
+        
+        # Calculate percentiles for each metric
+        percentiles_dict = {}
+        for field in numeric_fields:
+            values = [getattr(m, field) for m in metrics]
+            if not values:
+                continue
+                
+            percentiles_dict[field] = {
+                p: float(np.percentile(values, p))
+                for p in percentiles
+            }
+        
+        return percentiles_dict
+
+    def normalize_metrics(
+        self,
+        metrics: TestMetrics,
+        baseline: Optional[TestMetrics] = None
+    ) -> Dict[str, float]:
+        """Normalize metrics against a baseline.
+        
+        Args:
+            metrics: Metrics to normalize
+            baseline: Baseline metrics to normalize against. 
+                     If None, uses the first available metrics as baseline.
+                     
+        Returns:
+            Dictionary of normalized metrics
+        """
+        if baseline is None:
+            baseline_metrics = self.get_metrics_history(test_type=metrics.test_type)
+            baseline = baseline_metrics[0] if baseline_metrics else None
+        
+        if not baseline:
+            return {}
+        
+        normalized = {}
+        
+        # Normalize numeric metrics
+        numeric_fields = [
+            'duration_sec', 'cpu_percent', 
+            'memory_mb', 'io_read_mb', 'io_write_mb'
+        ]
+        
+        for field in numeric_fields:
+            base_val = getattr(baseline, field, 0)
+            if base_val == 0:
+                normalized[field] = 0.0
+            else:
+                normalized[field] = getattr(metrics, field, 0) / base_val
+        
+        # Success rate is already normalized (0-100)
+        normalized['success_rate'] = metrics.success_rate / 100.0
+        
+        return normalized
+
+    def detect_trends(
+        self,
+        test_type: Optional[str] = None,
+        window_size: int = 5,
+        threshold: float = 0.1
+    ) -> Dict[str, TrendAnalysis]:
+        """Detect trends in metrics over time.
+        
+        Args:
+            test_type: Type of test to analyze
+            window_size: Number of recent runs to consider
+            threshold: Minimum change to consider significant (0-1)
+            
+        Returns:
+            Dictionary of detected trends
+        """
+        metrics = self._filter_metrics_by_type(test_type)
+        
+        if len(metrics) < 2:
+            return {}
+        
+        # Take the most recent runs
+        metrics = metrics[-window_size:]
+        
+        # Calculate trends for each metric
+        trends = {}
+        numeric_fields = [
+            'success_rate', 'duration_sec', 'cpu_percent', 
+            'memory_mb', 'io_read_mb', 'io_write_mb'
+        ]
+        
+        for field in numeric_fields:
+            values = [getattr(m, field, 0) for m in metrics]
+            if not values:
+                continue
+                
+            # Simple linear regression for trend detection
+            x = np.arange(len(values))
+            slope, intercept = np.polyfit(x, values, 1)
+            
+            # Calculate percentage change over the window
+            if values[0] != 0:
+                pct_change = (values[-1] - values[0]) / abs(values[0])
+            else:
+                pct_change = 0.0
+                
+            trends[field] = {
+                'slope': float(slope),
+                'intercept': float(intercept),
+                'pct_change': float(pct_change),
+                'trend': 'increasing' if abs(slope) > threshold and slope > 0 
+                        else 'decreasing' if abs(slope) > threshold and slope < 0
+                        else 'stable'
+            }
+        
+        return trends
+
     def _load_metrics(self) -> None:
         """Load metrics history from disk."""
         if not self.storage_path or not self.storage_path.exists():
