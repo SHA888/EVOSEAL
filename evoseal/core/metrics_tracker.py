@@ -8,7 +8,7 @@ import statistics
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict
+from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict, Literal
 
 import numpy as np
 from rich.console import Console
@@ -24,6 +24,27 @@ class TrendAnalysis(TypedDict):
     intercept: float
     pct_change: float
     trend: str
+
+class ComparisonResult(TypedDict):
+    baseline: float
+    current: float
+    difference: float
+    change_pct: float
+    direction: str
+    significant: Optional[bool]
+    effect_size: Optional[float]
+    status: Optional[Literal['improvement', 'regression', 'neutral']]
+    threshold_exceeded: Optional[bool]
+
+# Default thresholds for different metrics
+DEFAULT_THRESHOLDS = {
+    'success_rate': {'regression': -1.0, 'improvement': 1.0},  # 1% change
+    'duration_sec': {'regression': 0.1, 'improvement': -0.1},  # 10% change
+    'memory_mb': {'regression': 0.1, 'improvement': -0.1},     # 10% change
+    'cpu_percent': {'regression': 5.0, 'improvement': -5.0},   # 5% change
+    'io_read_mb': {'regression': 0.1, 'improvement': -0.1},    # 10% change
+    'io_write_mb': {'regression': 0.1, 'improvement': -0.1}    # 10% change
+}
 
 # Console for rich output
 console = Console()
@@ -80,16 +101,32 @@ class TestMetrics:
 
 
 class MetricsTracker:
-    """Tracks and compares test metrics across multiple test runs."""
+    """Tracks and compares test metrics across multiple test runs.
     
-    def __init__(self, storage_path: Optional[Union[str, Path]] = None):
+    Attributes:
+        storage_path: Path to the metrics storage file
+        metrics_history: List of all recorded test metrics
+        thresholds: Dictionary of thresholds for different metrics
+        significance_level: Alpha level for statistical tests (default: 0.05)
+    """
+    
+    def __init__(
+        self, 
+        storage_path: Optional[Union[str, Path]] = None,
+        thresholds: Optional[Dict[str, Dict[str, float]]] = None,
+        significance_level: float = 0.05
+    ):
         """Initialize the MetricsTracker.
         
         Args:
             storage_path: Path to store metrics history. If None, metrics are only kept in memory.
+            thresholds: Dictionary of thresholds for different metrics. If None, uses DEFAULT_THRESHOLDS.
+            significance_level: Alpha level for statistical tests (default: 0.05).
         """
         self.storage_path = Path(storage_path) if storage_path else None
         self.metrics_history: List[TestMetrics] = []
+        self.thresholds = thresholds or DEFAULT_THRESHOLDS
+        self.significance_level = significance_level
         
         # Load existing metrics if storage path exists
         if self.storage_path and self.storage_path.exists():
@@ -140,8 +177,8 @@ class MetricsTracker:
         baseline_id: Union[int, str], 
         comparison_id: Union[int, str],
         test_type: Optional[str] = None
-    ) -> MetricComparison:
-        """Compare metrics between two test runs.
+    ) -> Dict[str, ComparisonResult]:
+        """Compare metrics between two test runs with statistical significance.
         
         Args:
             baseline_id: Index or timestamp of baseline metrics
@@ -149,7 +186,7 @@ class MetricsTracker:
             test_type: Type of test to compare
             
         Returns:
-            Dictionary containing comparison results
+            Dictionary containing comparison results with statistical significance
         """
         baseline = self._get_metrics_by_id(baseline_id, test_type)
         comparison = self._get_metrics_by_id(comparison_id, test_type)
@@ -158,6 +195,50 @@ class MetricsTracker:
             return {}
         
         return self._calculate_metrics_comparison(baseline, comparison)
+        
+    def find_regressions(
+        self, 
+        baseline_id: Union[int, str], 
+        comparison_id: Union[int, str],
+        test_type: Optional[str] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Find metrics that have regressed between two test runs.
+        
+        Args:
+            baseline_id: Index or timestamp of baseline metrics
+            comparison_id: Index or timestamp of comparison metrics
+            test_type: Type of test to compare
+            
+        Returns:
+            Dictionary of regressed metrics and their details
+        """
+        comparison = self.compare_metrics(baseline_id, comparison_id, test_type)
+        return {
+            k: v for k, v in comparison.items() 
+            if v.get('status') == 'regression' and v.get('threshold_exceeded', False)
+        }
+        
+    def find_improvements(
+        self, 
+        baseline_id: Union[int, str], 
+        comparison_id: Union[int, str],
+        test_type: Optional[str] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Find metrics that have improved between two test runs.
+        
+        Args:
+            baseline_id: Index or timestamp of baseline metrics
+            comparison_id: Index or timestamp of comparison metrics
+            test_type: Type of test to compare
+            
+        Returns:
+            Dictionary of improved metrics and their details
+        """
+        comparison = self.compare_metrics(baseline_id, comparison_id, test_type)
+        return {
+            k: v for k, v in comparison.items() 
+            if v.get('status') == 'improvement' and v.get('threshold_exceeded', False)
+        }
     
     def get_summary_statistics(
         self, 
@@ -205,14 +286,16 @@ class MetricsTracker:
         self, 
         baseline_id: Union[int, str], 
         comparison_id: Union[int, str],
-        test_type: Optional[str] = None
+        test_type: Optional[str] = None,
+        show_statistics: bool = True
     ) -> None:
-        """Display a formatted table comparing two test runs.
+        """Display a formatted table comparing two test runs with statistical insights.
         
         Args:
             baseline_id: Index or timestamp of baseline metrics
             comparison_id: Index or timestamp of comparison metrics
             test_type: Type of test to compare
+            show_statistics: Whether to show statistical significance information
         """
         comparison = self.compare_metrics(baseline_id, comparison_id, test_type)
         
@@ -220,18 +303,40 @@ class MetricsTracker:
             console.print("[yellow]No comparison data available.[/yellow]")
             return
         
-        table = Table(title=f"Test Metrics Comparison: {test_type or 'All Tests'}")
-        table.add_column("Metric", style="cyan")
+        # Create main comparison table
+        table = Table(
+            title=f"Test Metrics Comparison: {test_type or 'All Tests'}",
+            show_header=True,
+            header_style="bold magenta",
+            box=None
+        )
+        
+        # Add columns
+        table.add_column("Metric", style="cyan", no_wrap=True)
         table.add_column("Baseline", justify="right")
-        table.add_column("Comparison", justify="right")
+        table.add_column("Current", justify="right")
         table.add_column("Difference", justify="right")
         table.add_column("Change", justify="right")
+        if show_statistics:
+            table.add_column("Significance", justify="center")
+            table.add_column("Effect Size", justify="right")
+        
+        # Track regressions and improvements
+        regressions = []
+        improvements = []
         
         for metric, data in comparison.items():
+            if metric in ['tests_total', 'tests_passed']:
+                continue  # Skip test counts for now
+                
             baseline = data.get('baseline', 0)
             current = data.get('current', 0)
             diff = data.get('difference', 0)
             change_pct = data.get('change_pct', 0)
+            significant = data.get('significant', None)
+            effect_size = data.get('effect_size', None)
+            threshold_exceeded = data.get('threshold_exceeded', False)
+            status = data.get('status', 'neutral')
             
             # Format values based on metric type
             if metric in ['success_rate', 'cpu_percent']:
@@ -239,34 +344,78 @@ class MetricsTracker:
                 current_str = f"{current:.1f}%"
                 diff_str = f"{diff:+.1f}%"
                 change_str = f"{change_pct:+.1f}%"
+                effect_str = f"{effect_size:+.2f}" if effect_size is not None else "N/A"
             elif metric == 'duration_sec':
                 baseline_str = f"{baseline:.2f}s"
                 current_str = f"{current:.2f}s"
                 diff_str = f"{diff:+.2f}s"
                 change_str = f"{change_pct:+.1f}%"
+                effect_str = f"{effect_size:+.2f}" if effect_size is not None else "N/A"
             else:  # Memory and I/O metrics
                 baseline_str = f"{baseline:.2f} MB"
                 current_str = f"{current:.2f} MB"
                 diff_str = f"{diff:+.2f} MB"
                 change_str = f"{change_pct:+.1f}%"
+                effect_str = f"{effect_size:+.2f}" if effect_size is not None else "N/A"
             
-            # Determine color based on whether change is good or bad
+            # Determine colors and symbols
             if metric in ['success_rate']:
                 color = "green" if diff >= 0 else "red"
+                symbol = "▲" if diff >= 0 else "▼"
             elif metric in ['duration_sec', 'memory_mb', 'io_read_mb', 'io_write_mb']:
                 color = "green" if diff <= 0 else "red"
+                symbol = "▼" if diff <= 0 else "▲"
             else:
                 color = "white"
+                symbol = ""
             
-            table.add_row(
-                metric.replace('_', ' ').title(),
+            # Add indicator for significant changes
+            significance_str = ""
+            if significant is not None:
+                if significant:
+                    significance_str = "✓" if status == 'improvement' else "✗" if status == 'regression' else "•"
+                else:
+                    significance_str = "•"
+            
+            # Add row to table
+            row = [
+                f"{metric.replace('_', ' ').title()}",
                 baseline_str,
                 current_str,
                 diff_str,
-                f"[{color}]{change_str}[/{color}]"
-            )
+                f"[{color}]{symbol} {change_str}{'!' if threshold_exceeded else ''}[/{color}]"
+            ]
+            
+            if show_statistics:
+                sig_style = "green" if status == 'improvement' else "red" if status == 'regression' else "white"
+                row.extend([
+                    f"[{sig_style}]{significance_str}[/{sig_style}]",
+                    effect_str
+                ])
+            
+            table.add_row(*row)
+            
+            # Track regressions and improvements
+            if threshold_exceeded:
+                if status == 'regression':
+                    regressions.append(metric)
+                elif status == 'improvement':
+                    improvements.append(metric)
         
+        # Print the table
         console.print(table)
+        
+        # Print summary
+        if regressions or improvements:
+            console.print("\n[bold]Summary:[/bold]")
+            if regressions:
+                console.print(f"[red]⚠️  Regressions: {', '.join(regressions)}[/red]")
+            if improvements:
+                console.print(f"[green]✅ Improvements: {', '.join(improvements)}[/green]")
+        
+        # Print legend
+        if show_statistics:
+            console.print("\n[dim]Legend: ✓ = significant improvement, ✗ = significant regression, • = not significant[/dim]")
     
     def _filter_metrics_by_type(self, test_type: Optional[str] = None) -> List[TestMetrics]:
         """Filter metrics by test type."""
@@ -302,13 +451,33 @@ class MetricsTracker:
         
         return None
     
-    @staticmethod
     def _calculate_metrics_comparison(
+        self,
         baseline: TestMetrics, 
         comparison: TestMetrics
-    ) -> MetricComparison:
-        """Calculate comparison metrics between two test runs."""
-        comparison_data: MetricComparison = {}
+    ) -> Dict[str, ComparisonResult]:
+        """Calculate comparison metrics between two test runs with statistical significance.
+        
+        Args:
+            baseline: Baseline metrics to compare against
+            comparison: Current metrics to compare
+            
+        Returns:
+            Dictionary containing comparison results with statistical significance
+        """
+        comparison_data: Dict[str, ComparisonResult] = {}
+        
+        # Get recent metrics for statistical testing
+        recent_metrics = self._filter_metrics_by_type(baseline.test_type)
+        recent_values: Dict[str, List[float]] = {
+            'success_rate': [], 'duration_sec': [], 'cpu_percent': [],
+            'memory_mb': [], 'io_read_mb': [], 'io_write_mb': []
+        }
+        
+        # Collect recent values for each metric
+        for metric in recent_metrics[-10:]:  # Use last 10 runs for statistics
+            for field in recent_values:
+                recent_values[field].append(getattr(metric, field, 0))
         
         # Numeric fields to compare
         numeric_fields = [
@@ -324,12 +493,54 @@ class MetricsTracker:
             diff = current_val - baseline_val
             change_pct = (diff / baseline_val * 100) if baseline_val != 0 else 0.0
             
+            # Check if the change exceeds thresholds
+            threshold = self.thresholds.get(field, {})
+            threshold_exceeded = False
+            status = 'neutral'
+            
+            if diff > 0 and 'regression' in threshold and diff > threshold['regression'] * abs(baseline_val):
+                threshold_exceeded = True
+                status = 'regression' if field != 'success_rate' else 'improvement'
+            elif diff < 0 and 'improvement' in threshold and abs(diff) > threshold['improvement'] * abs(baseline_val):
+                threshold_exceeded = True
+                status = 'improvement' if field != 'success_rate' else 'regression'
+            
+            # Calculate effect size (Cohen's d)
+            effect_size = None
+            significant = None
+            
+            if len(recent_values[field]) >= 2:
+                from scipy import stats
+                try:
+                    # Perform t-test for statistical significance
+                    t_stat, p_value = stats.ttest_ind(
+                        recent_values[field], 
+                        [current_val],
+                        equal_var=False  # Welch's t-test (doesn't assume equal variance)
+                    )
+                    significant = p_value < self.significance_level
+                    
+                    # Calculate effect size (Cohen's d)
+                    pooled_std = np.sqrt(
+                        (np.var(recent_values[field], ddof=1) * (len(recent_values[field]) - 1) + 0) /
+                        (len(recent_values[field]) + 1 - 2)
+                    )
+                    if pooled_std != 0:
+                        effect_size = (current_val - np.mean(recent_values[field])) / pooled_std
+                except (ValueError, RuntimeWarning):
+                    # Handle cases where t-test can't be performed
+                    pass
+            
             comparison_data[field] = {
                 'baseline': baseline_val,
                 'current': current_val,
                 'difference': diff,
                 'change_pct': change_pct,
-                'direction': 'increase' if diff >= 0 else 'decrease'
+                'direction': 'increase' if diff >= 0 else 'decrease',
+                'significant': significant,
+                'effect_size': effect_size,
+                'status': status,
+                'threshold_exceeded': threshold_exceeded
             }
         
         # Add test count changes

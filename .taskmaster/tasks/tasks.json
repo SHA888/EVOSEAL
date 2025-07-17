@@ -612,7 +612,7 @@
               4
             ],
             "details": "Develop algorithms to compare metrics between different test runs to identify improvements or regressions. Include threshold-based comparison, trend analysis, and statistical significance testing. Create visualization helpers to represent comparison results clearly.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 6,
