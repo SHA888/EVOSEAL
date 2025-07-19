@@ -77,7 +77,18 @@ class EVOSEALCommand:
 
 # Import all command modules to register them with Typer
 # This must be done after the base class is defined
-from . import config, dgm, export, init, openevolve, seal, start, status, stop  # noqa: E402
+from . import (  # noqa: E402
+    config,
+    dgm,
+    export,
+    init,
+    openevolve,
+    pipeline,
+    seal,
+    start,
+    status,
+    stop,
+)
 
 # List of all command modules for easy access
 COMMAND_MODULES = [
@@ -86,6 +97,7 @@ COMMAND_MODULES = [
     openevolve,
     export,
     init,
+    pipeline,
     seal,
     start,
     status,

@@ -113,20 +113,59 @@ def system_status(
     ] = "text",
 ) -> None:
     """Show overall system status."""
-    # TODO: Implement actual system status check
+    import os
+    from pathlib import Path
+
+    import psutil
+
+    # Check for pipeline state
+    pipeline_state_file = ".evoseal/pipeline_state.json"
+    pipeline_status = "not_initialized"
+    pipeline_info = {}
+
+    if os.path.exists(pipeline_state_file):
+        try:
+            with open(pipeline_state_file, 'r') as f:
+                pipeline_info = json.load(f)
+                pipeline_status = pipeline_info.get("status", "unknown")
+        except (json.JSONDecodeError, FileNotFoundError):
+            pipeline_status = "error"
+
+    # Get system resources
+    try:
+        cpu_percent = psutil.cpu_percent(interval=1) / 100.0
+        memory = psutil.virtual_memory()
+        memory_percent = memory.percent / 100.0
+        disk = psutil.disk_usage('.')
+        disk_percent = disk.used / disk.total
+    except:
+        cpu_percent = 0.0
+        memory_percent = 0.0
+        disk_percent = 0.0
+
+    # Component status based on actual checks
+    components = [
+        {"name": "Evolution Pipeline", "status": pipeline_status},
+        {"name": "API Server", "status": "stopped"},  # TODO: Check actual API status
+        {"name": "SEAL Worker", "status": "idle"},  # TODO: Check actual worker status
+        {"name": "Evolve Worker", "status": "idle"},  # TODO: Check actual worker status
+        {"name": "DGM Worker", "status": "idle"},  # TODO: Check actual worker status
+    ]
+
     status_info: dict[str, Any] = {
         "version": "0.1.0",
-        "status": "operational",
-        "components": [
-            {"name": "API Server", "status": "stopped"},
-            {"name": "SEAL Worker", "status": "running"},
-            {"name": "Evolve Worker", "status": "idle"},
-            {"name": "DGM Worker", "status": "stopped"},
-        ],
+        "status": "operational" if pipeline_status != "failed" else "degraded",
+        "pipeline": {
+            "status": pipeline_status,
+            "current_iteration": pipeline_info.get("current_iteration", 0),
+            "total_iterations": pipeline_info.get("total_iterations", 0),
+            "current_stage": pipeline_info.get("current_stage"),
+        },
+        "components": components,
         "resources": {
-            "cpu": 0.25,
-            "memory": 0.45,
-            "disk": 0.33,
+            "cpu": round(cpu_percent, 3),
+            "memory": round(memory_percent, 3),
+            "disk": round(disk_percent, 3),
         },
     }
 
@@ -135,9 +174,27 @@ def system_status(
     else:
         typer.echo(f"EVOSEAL v{status_info['version']}")
         typer.echo(f"Status: {status_info['status'].upper()}")
+
+        # Pipeline status
+        pipeline = status_info.get("pipeline", {})
+        if pipeline:
+            typer.echo("\nPipeline:")
+            typer.echo(f"  Status: {pipeline.get('status', 'unknown').upper()}")
+            if pipeline.get('current_iteration') is not None:
+                typer.echo(
+                    f"  Progress: {pipeline.get('current_iteration', 0)}/{pipeline.get('total_iterations', 0)} iterations"
+                )
+            if pipeline.get('current_stage'):
+                typer.echo(f"  Current Stage: {pipeline.get('current_stage')}")
+
         typer.echo("\nComponents:")
         for component in status_info["components"]:
-            typer.echo(f"  {component['name']}: {component['status'].upper()}")
+            status_color = (
+                "🟢"
+                if component['status'] in ['running', 'operational']
+                else "🔴" if component['status'] in ['failed', 'error'] else "🟡"
+            )
+            typer.echo(f"  {status_color} {component['name']}: {component['status'].upper()}")
 
         typer.echo("\nResource Usage:")
         resources = status_info["resources"]
