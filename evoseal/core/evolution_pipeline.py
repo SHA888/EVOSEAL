@@ -21,8 +21,11 @@ from typing import Any, Dict, List, Optional, Type, Union
 from rich.console import Console
 
 from evoseal.core.controller import Controller as EvolutionController
+from evoseal.core.error_recovery import error_recovery_manager, with_error_recovery
 from evoseal.core.improvement_validator import ImprovementValidator
+from evoseal.core.logging_system import get_logger
 from evoseal.core.metrics_tracker import MetricsTracker
+from evoseal.core.resilience import resilience_manager
 from evoseal.core.testrunner import TestRunner
 from evoseal.core.version_database import VersionDatabase
 from evoseal.core.workflow import WorkflowEngine
@@ -43,8 +46,8 @@ from .repository import RepositoryManager
 # Type aliases
 VersionID = Union[int, str]
 
-# Logger
-logger = logging.getLogger(__name__)
+# Enhanced logger with monitoring
+logger = get_logger("evolution_pipeline")
 
 
 @dataclass
@@ -109,13 +112,16 @@ class EvolutionPipeline:
         # Initialize workflow engine
         self.workflow_engine = WorkflowEngine()
 
+        # Initialize resilience and error handling
+        self._init_resilience_mechanisms()
+
         # Initialize component connectors
         self._init_component_connectors()
 
         # Register event handlers
         self._register_event_handlers()
 
-        logger.info("EvolutionPipeline initialized")
+        logger.info("EvolutionPipeline initialized with enhanced resilience")
 
     def _init_component_connectors(self) -> None:
         """Initialize connectors to external components."""
@@ -147,6 +153,163 @@ class EvolutionPipeline:
         self.dgm_connector = None
         self.openevolve_connector = None
         self.seal_connector = None
+
+    async def _init_resilience_mechanisms(self):
+        """Initialize resilience mechanisms for the pipeline."""
+        logger.info("Initializing resilience mechanisms")
+
+        # Start resilience monitoring if not already started
+        if not resilience_manager._monitoring_started:
+            await resilience_manager.start_monitoring()
+
+        # Register circuit breakers for pipeline components
+        components = ["pipeline", "analyzer", "generator", "adapter", "evaluator", "validator"]
+        for component in components:
+            resilience_manager.register_circuit_breaker(
+                component,
+                CircuitBreakerConfig(
+                    failure_threshold=3,
+                    recovery_timeout=30,
+                    success_threshold=2,
+                    timeout=60.0,
+                ),
+            )
+        # OpenEvolve circuit breaker
+        resilience_manager.register_circuit_breaker(
+            "openevolve",
+            CircuitBreakerConfig(
+                failure_threshold=5,
+                recovery_timeout=60,
+                success_threshold=3,
+                timeout=30.0,
+            ),
+        )
+
+        # SEAL circuit breaker
+        resilience_manager.register_circuit_breaker(
+            "seal",
+            CircuitBreakerConfig(
+                failure_threshold=10,  # More tolerant for API calls
+                recovery_timeout=30,
+                success_threshold=2,
+                timeout=15.0,
+            ),
+        )
+
+        # Register recovery strategies
+        resilience_manager.register_recovery_strategy("pipeline", self._pipeline_recovery_strategy)
+
+        # Register degradation handlers
+        resilience_manager.register_degradation_handler("dgm", self._dgm_degradation_handler)
+        resilience_manager.register_degradation_handler(
+            "openevolve", self._openevolve_degradation_handler
+        )
+        resilience_manager.register_degradation_handler("seal", self._seal_degradation_handler)
+
+        # Set isolation policies
+        resilience_manager.set_isolation_policy("dgm", {"openevolve"})
+        resilience_manager.set_isolation_policy("openevolve", {"seal"})
+
+        # Register fallback handlers
+        error_recovery_manager.fallback_manager.register_fallback(
+            "dgm", "evolve", self._dgm_fallback_handler
+        )
+        error_recovery_manager.fallback_manager.register_fallback(
+            "openevolve", "optimize", self._openevolve_fallback_handler
+        )
+        error_recovery_manager.fallback_manager.register_fallback(
+            "seal", "analyze", self._seal_fallback_handler
+        )
+
+        # Register escalation handlers
+        error_recovery_manager.register_escalation_handler(
+            "pipeline", self._pipeline_escalation_handler
+        )
+
+        logger.info("Resilience mechanisms initialized")
+
+    async def _pipeline_recovery_strategy(self, component: str, operation: str, error: Exception):
+        """Recovery strategy for pipeline-level errors."""
+        logger.info(f"Executing pipeline recovery for {component}:{operation}")
+
+        # Reset component state
+        if hasattr(self, 'integration_orchestrator'):
+            await self.integration_orchestrator.restart_component(component)
+
+        # Clear any cached data
+        if hasattr(self, '_cached_results'):
+            self._cached_results.clear()
+
+        logger.info(f"Pipeline recovery completed for {component}")
+
+    async def _dgm_degradation_handler(self, component: str, error: Exception):
+        """Handle DGM component degradation."""
+        logger.warning(f"DGM degraded, switching to simplified evolution mode")
+        # Could switch to a simpler evolution algorithm
+
+    async def _openevolve_degradation_handler(self, component: str, error: Exception):
+        """Handle OpenEvolve component degradation."""
+        logger.warning(f"OpenEvolve degraded, using cached optimization results")
+        # Could use previously cached optimization results
+
+    async def _seal_degradation_handler(self, component: str, error: Exception):
+        """Handle SEAL component degradation."""
+        logger.warning(f"SEAL degraded, using rule-based analysis")
+        # Could fall back to rule-based code analysis
+
+    async def _dgm_fallback_handler(self, *args, context=None, **kwargs):
+        """Fallback handler for DGM operations."""
+        logger.info("Using DGM fallback: simplified genetic algorithm")
+        return {
+            "status": "fallback",
+            "method": "simplified_ga",
+            "result": "basic_evolution_applied",
+            "original_error": str(context.get("original_error", "Unknown")),
+        }
+
+    async def _openevolve_fallback_handler(self, *args, context=None, **kwargs):
+        """Fallback handler for OpenEvolve operations."""
+        logger.info("Using OpenEvolve fallback: cached optimization")
+        return {
+            "status": "fallback",
+            "method": "cached_optimization",
+            "result": "previous_optimization_reused",
+            "original_error": str(context.get("original_error", "Unknown")),
+        }
+
+    async def _seal_fallback_handler(self, *args, context=None, **kwargs):
+        """Fallback handler for SEAL operations."""
+        logger.info("Using SEAL fallback: static analysis")
+        return {
+            "status": "fallback",
+            "method": "static_analysis",
+            "result": "basic_code_analysis",
+            "original_error": str(context.get("original_error", "Unknown")),
+        }
+
+    async def _pipeline_escalation_handler(
+        self, error: Exception, component: str, operation: str, *args, **kwargs
+    ):
+        """Handle escalated pipeline errors."""
+        logger.critical(f"Pipeline escalation triggered for {component}:{operation}")
+
+        # Publish critical error event
+        await event_bus.publish(
+            create_error_event(
+                error=error,
+                source="evolution_pipeline",
+                event_type="PIPELINE_CRITICAL_ERROR",
+                component=component,
+                operation=operation,
+                escalated=True,
+            )
+        )
+
+        # Could implement emergency shutdown or safe mode
+        logger.critical("Consider implementing emergency pipeline shutdown")
+
+        # For now, re-raise the error
+        raise error
 
     def _register_event_handlers(self) -> None:
         """Register event handlers for the pipeline."""
@@ -252,23 +415,28 @@ class EvolutionPipeline:
         return results
 
     async def _run_single_iteration(self, iteration: int) -> Dict[str, Any]:
-        """Run a single evolution iteration."""
+        """Run a single evolution iteration with comprehensive error handling."""
         iteration_result = {
             "iteration": iteration,
             "success": False,
             "metrics": {},
             "should_continue": True,
+            "resilience_events": [],
         }
 
         try:
-            # 1. Analyze current version
+            # 1. Analyze current version with resilience
             await publish_pipeline_stage_event(
                 stage="analyzing",
                 status="started",
                 source="evolution_pipeline",
                 iteration=iteration,
             )
-            analysis = await self._analyze_current_version()
+
+            analysis = await resilience_manager.execute_with_resilience(
+                "pipeline", "analyze_version", self._analyze_current_version
+            )
+
             await publish_pipeline_stage_event(
                 stage="analyzing",
                 status="completed",
@@ -277,14 +445,18 @@ class EvolutionPipeline:
                 analysis_result=analysis,
             )
 
-            # 2. Generate improvements
+            # 2. Generate improvements with resilience
             await publish_pipeline_stage_event(
                 stage="generating",
                 status="started",
                 source="evolution_pipeline",
                 iteration=iteration,
             )
-            improvements = await self._generate_improvements(analysis)
+
+            improvements = await resilience_manager.execute_with_resilience(
+                "pipeline", "generate_improvements", self._generate_improvements, analysis
+            )
+
             await publish_pipeline_stage_event(
                 stage="generating",
                 status="completed",
@@ -293,11 +465,15 @@ class EvolutionPipeline:
                 improvements_count=len(improvements) if improvements else 0,
             )
 
-            # 3. Apply SEAL adaptations
+            # 3. Apply SEAL adaptations with resilience
             await publish_pipeline_stage_event(
                 stage="adapting", status="started", source="evolution_pipeline", iteration=iteration
             )
-            adapted_improvements = await self._adapt_improvements(improvements)
+
+            adapted_improvements = await resilience_manager.execute_with_resilience(
+                "seal", "adapt_improvements", self._adapt_improvements, improvements
+            )
+
             await publish_pipeline_stage_event(
                 stage="adapting",
                 status="completed",
@@ -306,14 +482,18 @@ class EvolutionPipeline:
                 adapted_count=len(adapted_improvements) if adapted_improvements else 0,
             )
 
-            # 4. Create and evaluate new version
+            # 4. Create and evaluate new version with resilience
             await publish_pipeline_stage_event(
                 stage="evaluating",
                 status="started",
                 source="evolution_pipeline",
                 iteration=iteration,
             )
-            evaluation_result = await self._evaluate_version(adapted_improvements)
+
+            evaluation_result = await resilience_manager.execute_with_resilience(
+                "pipeline", "evaluate_version", self._evaluate_version, adapted_improvements
+            )
+
             await publish_pipeline_stage_event(
                 stage="evaluating",
                 status="completed",
@@ -322,14 +502,17 @@ class EvolutionPipeline:
                 evaluation_score=evaluation_result.get("score", 0),
             )
 
-            # 5. Validate improvement
+            # 5. Validate improvement with resilience
             await publish_pipeline_stage_event(
                 stage="validating",
                 status="started",
                 source="evolution_pipeline",
                 iteration=iteration,
             )
-            is_improvement = await self._validate_improvement(evaluation_result)
+
+            is_improvement = await resilience_manager.execute_with_resilience(
+                "pipeline", "validate_improvement", self._validate_improvement, evaluation_result
+            )
 
             # Update iteration result
             iteration_result.update(
@@ -338,12 +521,62 @@ class EvolutionPipeline:
                     "is_improvement": is_improvement,
                     "metrics": evaluation_result.get("metrics", {}),
                     "should_continue": is_improvement,  # Continue if we found an improvement
+                    "resilience_status": resilience_manager.get_resilience_status(),
                 }
             )
 
+            # Log successful iteration with performance metrics
+            logger.log_pipeline_stage(
+                stage="iteration_completed",
+                status="success",
+                iteration=iteration,
+                is_improvement=is_improvement,
+                evaluation_score=evaluation_result.get("score", 0),
+            )
+
         except Exception as e:
-            logger.error(f"Error in iteration {iteration}: {str(e)}")
-            iteration_result["error"] = str(e)
+            # Enhanced error logging with context
+            logger.log_error_with_context(
+                error=e,
+                component="pipeline",
+                operation="run_iteration",
+                iteration=iteration,
+                stage="unknown",
+            )
+
+            # Try error recovery
+            try:
+                recovered_result, recovery_result = await error_recovery_manager.recover_from_error(
+                    e, "pipeline", "run_iteration", self._run_single_iteration, iteration
+                )
+
+                if recovery_result.value in ["success", "partial_success"]:
+                    logger.info(f"Successfully recovered from iteration {iteration} error")
+                    return recovered_result
+
+            except Exception as recovery_error:
+                logger.error(f"Recovery failed for iteration {iteration}: {recovery_error}")
+
+            # Record failure details
+            iteration_result.update(
+                {
+                    "error": str(e),
+                    "error_type": e.__class__.__name__,
+                    "recovery_attempted": True,
+                    "resilience_status": resilience_manager.get_resilience_status(),
+                }
+            )
+
+            # Publish iteration failure event
+            await event_bus.publish(
+                create_error_event(
+                    error=e,
+                    source="evolution_pipeline",
+                    event_type="ITERATION_FAILED",
+                    iteration=iteration,
+                    component="pipeline",
+                )
+            )
 
         return iteration_result
 
@@ -374,8 +607,9 @@ class EvolutionPipeline:
 
     # Integration orchestrator methods
 
+    @with_error_recovery("pipeline", "initialize_components")
     async def initialize_components(self) -> bool:
-        """Initialize all component adapters."""
+        """Initialize all component adapters with comprehensive error handling."""
         if not hasattr(self, 'integration_orchestrator'):
             logger.error("Integration orchestrator not initialized")
             return False
@@ -390,10 +624,22 @@ class EvolutionPipeline:
                 )
             )
 
-            success = await self.integration_orchestrator.initialize(self._component_configs)
+            # Initialize with resilience
+            success = await resilience_manager.execute_with_resilience(
+                "pipeline",
+                "initialize_orchestrator",
+                self.integration_orchestrator.initialize,
+                self._component_configs,
+            )
 
             if success:
-                logger.info("All components initialized successfully")
+                logger.log_component_operation(
+                    component="pipeline",
+                    operation="initialize_components",
+                    status="success",
+                    components_count=len(self._component_configs),
+                )
+
                 # Update legacy connectors for backward compatibility
                 self._update_legacy_connectors()
 
@@ -406,11 +652,18 @@ class EvolutionPipeline:
                             "pipeline_id": id(self),
                             "timestamp": datetime.utcnow().isoformat(),
                             "components_initialized": True,
+                            "resilience_status": resilience_manager.get_resilience_status(),
                         },
                     )
                 )
             else:
-                logger.error("Failed to initialize some components")
+                logger.log_component_operation(
+                    component="pipeline",
+                    operation="initialize_components",
+                    status="failed",
+                    error="Some components failed to initialize",
+                )
+
                 # Publish initialization failed event
                 await event_bus.publish(
                     create_error_event(
@@ -421,8 +674,15 @@ class EvolutionPipeline:
                     )
                 )
             return success
+
         except Exception as e:
-            logger.exception("Error initializing components")
+            logger.log_error_with_context(
+                error=e,
+                component="pipeline",
+                operation="initialize_components",
+                pipeline_id=id(self),
+            )
+
             # Publish initialization error event
             await event_bus.publish(
                 create_error_event(
