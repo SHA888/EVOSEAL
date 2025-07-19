@@ -5,8 +5,11 @@ creation, restoration, listing, and metadata management for version control
 and experiment tracking integration.
 """
 
+import gzip
+import hashlib
 import json
 import os
+import pickle  # nosec B403 - Used for internal system state serialization only
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -54,12 +57,18 @@ class CheckpointManager:
 
         logger.info(f"CheckpointManager initialized with directory: {self.checkpoint_dir}")
 
-    def create_checkpoint(self, version_id: str, version: Union[Dict[str, Any], Experiment]) -> str:
-        """Create a checkpoint for a version.
+    def create_checkpoint(
+        self,
+        version_id: str,
+        version: Union[Dict[str, Any], Experiment],
+        capture_system_state: bool = True,
+    ) -> str:
+        """Create a comprehensive checkpoint for a version.
 
         Args:
             version_id: Unique identifier for the version
             version: Version data (dict or Experiment object)
+            capture_system_state: Whether to capture complete system state
 
         Returns:
             Path to the created checkpoint
@@ -74,11 +83,17 @@ class CheckpointManager:
                 changes = version_data.get('artifacts', {})
                 parent_id = version_data.get('parent_id')
                 timestamp = version_data.get('created_at', datetime.now(timezone.utc).isoformat())
+                config = version_data.get('config', {})
+                metrics = version_data.get('metrics', [])
+                result = version_data.get('result', {})
             elif isinstance(version, dict):
                 version_data = version
                 changes = version.get('changes', {})
                 parent_id = version.get('parent_id')
                 timestamp = version.get('timestamp', datetime.now(timezone.utc).isoformat())
+                config = version.get('config', {})
+                metrics = version.get('metrics', [])
+                result = version.get('result', {})
             else:
                 raise CheckpointError(f"Expected Experiment or dict, got {type(version)}")
 
@@ -86,34 +101,91 @@ class CheckpointManager:
             checkpoint_path = self.checkpoint_dir / f"checkpoint_{version_id}"
             checkpoint_path.mkdir(parents=True, exist_ok=True)
 
+            # Capture complete system state
+            system_state = {}
+            if capture_system_state:
+                system_state = self._capture_system_state(version_data, config, metrics, result)
+
+                # Save system state with compression if enabled
+                state_file = checkpoint_path / 'system_state.pkl'
+                if self.compression_enabled:
+                    with gzip.open(f"{state_file}.gz", 'wb') as f:
+                        pickle.dump(system_state, f)
+                    state_file = f"{state_file}.gz"
+                else:
+                    with open(state_file, 'wb') as f:
+                        pickle.dump(system_state, f)
+
             # Save version data files
             if changes:
                 for file_path, content in changes.items():
                     if isinstance(content, str):
                         full_path = checkpoint_path / file_path
                         full_path.parent.mkdir(parents=True, exist_ok=True)
-                        with open(full_path, 'w', encoding='utf-8') as f:
-                            f.write(content)
+
+                        # Write with optional compression
+                        if self.compression_enabled and full_path.suffix in [
+                            '.json',
+                            '.txt',
+                            '.py',
+                            '.md',
+                        ]:
+                            with gzip.open(f"{full_path}.gz", 'wt', encoding='utf-8') as f:
+                                f.write(content)
+                        else:
+                            with open(full_path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+
                     elif isinstance(content, dict) and 'file_path' in content:
                         # Handle artifact references
                         src_path = Path(content['file_path'])
                         if src_path.exists():
                             dst_path = checkpoint_path / file_path
                             dst_path.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(src_path, dst_path)
 
-            # Save metadata
+                            # Copy with optional compression for text files
+                            if self.compression_enabled and src_path.suffix in [
+                                '.json',
+                                '.txt',
+                                '.py',
+                                '.md',
+                            ]:
+                                with (
+                                    open(src_path, 'rb') as src,
+                                    gzip.open(f"{dst_path}.gz", 'wb') as dst,
+                                ):
+                                    dst.write(src.read())
+                            else:
+                                shutil.copy2(src_path, dst_path)
+
+            # Calculate checkpoint size first
+            checkpoint_size = self._calculate_checkpoint_size(checkpoint_path)
+
+            # Save comprehensive metadata (without integrity hash first)
             metadata = {
                 'version_id': version_id,
                 'parent_id': parent_id,
                 'timestamp': timestamp if isinstance(timestamp, str) else timestamp.isoformat(),
                 'checkpoint_time': datetime.now(timezone.utc).isoformat(),
                 'version_data': version_data,
+                'system_state_captured': capture_system_state,
+                'compression_enabled': self.compression_enabled,
                 'file_count': len(changes) if changes else 0,
-                'checkpoint_size': self._calculate_checkpoint_size(checkpoint_path),
+                'checkpoint_size': checkpoint_size,
+                'config_snapshot': config,
+                'metrics_count': len(metrics) if metrics else 0,
+                'has_results': bool(result),
             }
 
             metadata_path = checkpoint_path / 'metadata.json'
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, indent=2, default=str)
+
+            # Calculate integrity hash after all files are saved
+            integrity_hash = self._calculate_integrity_hash(checkpoint_path)
+
+            # Update metadata with integrity hash
+            metadata['integrity_hash'] = integrity_hash
             with open(metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2, default=str)
 
@@ -124,7 +196,12 @@ class CheckpointManager:
             if self.auto_cleanup:
                 self._cleanup_old_checkpoints()
 
-            logger.info(f"Created checkpoint for version {version_id} at {checkpoint_path}")
+            logger.info(
+                f"Created comprehensive checkpoint for version {version_id} at {checkpoint_path}"
+            )
+            logger.info(
+                f"Checkpoint size: {checkpoint_size / (1024*1024):.2f} MB, Integrity: {integrity_hash[:8]}..."
+            )
             return str(checkpoint_path)
 
         except Exception as e:
@@ -132,21 +209,25 @@ class CheckpointManager:
                 f"Failed to create checkpoint for version {version_id}: {e}"
             ) from e
 
-    def restore_checkpoint(self, version_id: str, target_dir: Union[str, Path]) -> bool:
-        """Restore a checkpoint to the target directory.
+    def restore_checkpoint(
+        self, version_id: str, target_dir: Union[str, Path], verify_integrity: bool = True
+    ) -> Dict[str, Any]:
+        """Restore a checkpoint to the target directory with integrity verification.
 
         Args:
             version_id: ID of the version to restore
             target_dir: Directory to restore the checkpoint to
+            verify_integrity: Whether to verify checkpoint integrity before restoration
 
         Returns:
-            True if restoration was successful
+            Dictionary with restoration results and system state
 
         Raises:
             CheckpointError: If restoration fails
         """
         try:
             target_dir = Path(target_dir)
+            target_dir.mkdir(parents=True, exist_ok=True)
 
             # Find checkpoint path
             if version_id not in self.checkpoints:
@@ -157,12 +238,24 @@ class CheckpointManager:
 
             checkpoint_path = Path(self.checkpoints[version_id])
 
-            # Verify checkpoint exists and has metadata
+            # Load and verify metadata
             metadata_path = checkpoint_path / 'metadata.json'
             if not metadata_path.exists():
                 raise CheckpointError(f"Checkpoint metadata not found for version {version_id}")
 
-            # Clear target directory (except .git and other protected directories)
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            # Verify integrity if requested
+            if verify_integrity:
+                logger.info(f"Verifying integrity of checkpoint {version_id}...")
+                if not self.verify_checkpoint_integrity(version_id):
+                    raise CheckpointError(
+                        f"Integrity verification failed for checkpoint {version_id}"
+                    )
+                logger.info("Integrity verification passed")
+
+            # Clear target directory (except protected directories)
             protected_dirs = {'.git', '.evoseal', '__pycache__', '.pytest_cache', 'node_modules'}
             if target_dir.exists():
                 for item in target_dir.iterdir():
@@ -173,22 +266,82 @@ class CheckpointManager:
                     else:
                         item.unlink()
 
-            # Copy checkpoint files to target directory
+            # Restore files with decompression support
+            restored_files = 0
+            compression_enabled = metadata.get('compression_enabled', False)
+
             for item in checkpoint_path.iterdir():
-                if item.name == 'metadata.json':
-                    continue  # Don't copy metadata file
+                if item.name in ['metadata.json', 'system_state.pkl', 'system_state.pkl.gz']:
+                    continue  # Skip metadata and system state files
 
                 dst_path = target_dir / item.name
+
                 if item.is_dir():
                     shutil.copytree(item, dst_path, dirs_exist_ok=True)
+                    restored_files += len(list(item.rglob('*')))
                 else:
                     dst_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(item, dst_path)
 
-            logger.info(f"Restored checkpoint {version_id} to {target_dir}")
-            return True
+                    # Handle compressed files
+                    if item.suffix == '.gz' and compression_enabled:
+                        # Decompress file
+                        original_name = item.stem
+                        decompressed_path = target_dir / original_name
+                        decompressed_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        try:
+                            with gzip.open(item, 'rb') as src:
+                                with open(decompressed_path, 'wb') as dst:
+                                    dst.write(src.read())
+                            restored_files += 1
+                        except Exception as e:
+                            logger.warning(f"Failed to decompress {item}: {e}")
+                            # Fallback to copying compressed file
+                            shutil.copy2(item, dst_path)
+                            restored_files += 1
+                    else:
+                        shutil.copy2(item, dst_path)
+                        restored_files += 1
+
+            # Restore system state if available
+            system_state = None
+            state_file = checkpoint_path / 'system_state.pkl'
+            state_file_gz = checkpoint_path / 'system_state.pkl.gz'
+
+            if state_file_gz.exists():
+                try:
+                    with gzip.open(state_file_gz, 'rb') as f:
+                        system_state = pickle.load(f)  # nosec B301 - Internal checkpoint data only
+                    logger.info("Restored compressed system state")
+                except Exception as e:
+                    logger.warning(f"Failed to restore compressed system state: {e}")
+            elif state_file.exists():
+                try:
+                    with open(state_file, 'rb') as f:
+                        system_state = pickle.load(f)  # nosec B301 - Internal checkpoint data only
+                    logger.info("Restored system state")
+                except Exception as e:
+                    logger.warning(f"Failed to restore system state: {e}")
+
+            restoration_result = {
+                'success': True,
+                'version_id': version_id,
+                'target_directory': str(target_dir),
+                'restored_files': restored_files,
+                'system_state': system_state,
+                'metadata': metadata,
+                'integrity_verified': verify_integrity,
+                'restoration_time': datetime.now(timezone.utc).isoformat(),
+            }
+
+            logger.info(f"Successfully restored checkpoint {version_id} to {target_dir}")
+            logger.info(
+                f"Restored {restored_files} files, System state: {'Yes' if system_state else 'No'}"
+            )
+            return restoration_result
 
         except Exception as e:
+            logger.error(f"Failed to restore checkpoint {version_id}: {e}")
             raise CheckpointError(f"Failed to restore checkpoint {version_id}: {e}") from e
 
     def list_checkpoints(self) -> List[Dict[str, Any]]:
@@ -371,3 +524,189 @@ class CheckpointManager:
             'auto_cleanup_enabled': self.auto_cleanup,
             'max_checkpoints': self.max_checkpoints,
         }
+
+    def _capture_system_state(
+        self,
+        version_data: Dict[str, Any],
+        config: Dict[str, Any],
+        metrics: List[Dict[str, Any]],
+        result: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Capture complete system state including model parameters and configuration.
+
+        Args:
+            version_data: Version data dictionary
+            config: Configuration dictionary
+            metrics: List of metrics
+            result: Result dictionary
+
+        Returns:
+            Complete system state dictionary
+        """
+        import platform
+        import sys
+
+        import psutil
+
+        try:
+            # Capture system environment
+            system_info = {
+                'python_version': sys.version,
+                'platform': platform.platform(),
+                'architecture': platform.architecture(),
+                'processor': platform.processor(),
+                'memory_total': psutil.virtual_memory().total,
+                'memory_available': psutil.virtual_memory().available,
+                'cpu_count': psutil.cpu_count(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as e:
+            logger.warning(f"Failed to capture system info: {e}")
+            system_info = {'error': str(e)}
+
+        # Capture model parameters if available
+        model_state = {}
+        if config:
+            # Extract model-related parameters
+            model_params = {
+                'learning_rate': config.get('learning_rate'),
+                'batch_size': config.get('batch_size'),
+                'epochs': config.get('epochs'),
+                'model_architecture': config.get('model_architecture'),
+                'optimizer': config.get('optimizer'),
+                'loss_function': config.get('loss_function'),
+                'hyperparameters': config.get('hyperparameters', {}),
+            }
+            # Remove None values
+            model_state = {k: v for k, v in model_params.items() if v is not None}
+
+        # Capture evolution state if available
+        evolution_state = {}
+        if result:
+            evolution_state = {
+                'best_fitness': result.get('best_fitness'),
+                'generations_completed': result.get('generations_completed', 0),
+                'total_evaluations': result.get('total_evaluations', 0),
+                'convergence_iteration': result.get('convergence_iteration'),
+                'execution_time': result.get('execution_time'),
+                'memory_peak': result.get('memory_peak'),
+                'cpu_usage': result.get('cpu_usage'),
+            }
+
+        # Capture metrics summary
+        metrics_summary = {}
+        if metrics:
+            metrics_summary = {
+                'total_metrics': len(metrics),
+                'metric_types': list(set(m.get('metric_type', 'unknown') for m in metrics)),
+                'latest_values': {
+                    m.get('name'): m.get('value') for m in metrics[-10:] if m.get('name')
+                },
+                'timestamp_range': (
+                    {
+                        'earliest': min(
+                            m.get('timestamp', '') for m in metrics if m.get('timestamp')
+                        ),
+                        'latest': max(
+                            m.get('timestamp', '') for m in metrics if m.get('timestamp')
+                        ),
+                    }
+                    if metrics
+                    else None
+                ),
+            }
+
+        return {
+            'system_info': system_info,
+            'model_state': model_state,
+            'evolution_state': evolution_state,
+            'metrics_summary': metrics_summary,
+            'version_metadata': {
+                'version_id': version_data.get('id'),
+                'name': version_data.get('name'),
+                'description': version_data.get('description'),
+                'tags': version_data.get('tags', []),
+                'status': version_data.get('status'),
+                'experiment_type': version_data.get('type'),
+            },
+            'capture_timestamp': datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _calculate_integrity_hash(self, checkpoint_path: Path) -> str:
+        """Calculate SHA-256 hash of all files in checkpoint for integrity verification.
+
+        Args:
+            checkpoint_path: Path to checkpoint directory
+
+        Returns:
+            SHA-256 hash string
+        """
+        hasher = hashlib.sha256()
+
+        try:
+            # Sort files for consistent hashing
+            files = sorted(checkpoint_path.rglob('*'))
+
+            for file_path in files:
+                if file_path.is_file():
+                    # Skip metadata.json to avoid circular dependency
+                    if file_path.name == 'metadata.json':
+                        continue
+
+                    # Include file path in hash for structure integrity
+                    relative_path = file_path.relative_to(checkpoint_path)
+                    hasher.update(str(relative_path).encode('utf-8'))
+
+                    # Include file content
+                    try:
+                        if file_path.suffix == '.gz':
+                            with gzip.open(file_path, 'rb') as f:
+                                hasher.update(f.read())
+                        else:
+                            with open(file_path, 'rb') as f:
+                                hasher.update(f.read())
+                    except Exception as e:
+                        logger.warning(f"Failed to hash file {file_path}: {e}")
+                        hasher.update(f"ERROR:{e}".encode('utf-8'))
+
+        except Exception as e:
+            logger.error(f"Failed to calculate integrity hash: {e}")
+            hasher.update(f"HASH_ERROR:{e}".encode('utf-8'))
+
+        return hasher.hexdigest()
+
+    def verify_checkpoint_integrity(self, version_id: str) -> bool:
+        """Verify the integrity of a checkpoint.
+
+        Args:
+            version_id: ID of the version to verify
+
+        Returns:
+            True if integrity check passes
+        """
+        try:
+            metadata = self.get_checkpoint_metadata(version_id)
+            if not metadata:
+                logger.error(f"No metadata found for checkpoint {version_id}")
+                return False
+
+            stored_hash = metadata.get('integrity_hash')
+            if not stored_hash:
+                logger.warning(f"No integrity hash stored for checkpoint {version_id}")
+                return True  # No hash to verify against
+
+            checkpoint_path = Path(self.get_checkpoint_path(version_id))
+            current_hash = self._calculate_integrity_hash(checkpoint_path)
+
+            if current_hash == stored_hash:
+                logger.info(f"Integrity verification passed for checkpoint {version_id}")
+                return True
+            else:
+                logger.error(f"Integrity verification failed for checkpoint {version_id}")
+                logger.error(f"Expected: {stored_hash}")
+                logger.error(f"Actual: {current_hash}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error during integrity verification: {e}")
+            return False
