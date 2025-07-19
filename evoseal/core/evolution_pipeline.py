@@ -26,6 +26,7 @@ from evoseal.core.improvement_validator import ImprovementValidator
 from evoseal.core.logging_system import get_logger
 from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.resilience import resilience_manager
+from evoseal.core.safety_integration import SafetyIntegration
 from evoseal.core.testrunner import TestRunner
 from evoseal.core.version_database import VersionDatabase
 from evoseal.core.workflow import WorkflowEngine
@@ -108,6 +109,12 @@ class EvolutionPipeline:
         self.metrics_tracker = MetricsTracker(self.config.metrics_config)
         self.test_runner = TestRunner(self.config.test_config)
         self.validator = ImprovementValidator(self.config.validation_config, self.metrics_tracker)
+
+        # Initialize safety integration
+        safety_config = getattr(self.config, 'safety_config', {})
+        self.safety_integration = SafetyIntegration(
+            safety_config, self.metrics_tracker, getattr(self, 'version_manager', None)
+        )
 
         # Initialize workflow engine
         self.workflow_engine = WorkflowEngine()
@@ -408,6 +415,202 @@ class EvolutionPipeline:
                 Event(
                     EventType.ERROR_OCCURRED,
                     {"error": str(e), "timestamp": datetime.utcnow().isoformat()},
+                )
+            )
+            raise
+
+        return results
+
+    async def run_evolution_cycle_with_safety(
+        self,
+        iterations: int = 1,
+        enable_checkpoints: bool = True,
+        enable_auto_rollback: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Run a complete evolution cycle with comprehensive safety mechanisms.
+
+        This method integrates checkpoint management, regression detection,
+        and automatic rollback capabilities to ensure safe evolution.
+
+        Args:
+            iterations: Number of evolution iterations to run
+            enable_checkpoints: Whether to create checkpoints before each iteration
+            enable_auto_rollback: Whether to automatically rollback on critical issues
+
+        Returns:
+            List of results from each iteration with safety information
+        """
+        results = []
+        current_version_id = None
+
+        try:
+            # Get current version as baseline
+            current_version_id = self._get_current_version_id()
+
+            # Publish safety-aware evolution started event
+            await event_bus.publish(
+                Event(
+                    event_type=EventType.EVOLUTION_STARTED,
+                    source="evolution_pipeline",
+                    data={
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "total_iterations": iterations,
+                        "pipeline_id": id(self),
+                        "safety_enabled": True,
+                        "checkpoints_enabled": enable_checkpoints,
+                        "auto_rollback_enabled": enable_auto_rollback,
+                        "baseline_version": current_version_id,
+                    },
+                )
+            )
+
+            logger.info(f"Starting safety-aware evolution cycle with {iterations} iterations")
+
+            for i in range(iterations):
+                iteration_num = i + 1
+
+                # Publish iteration started event
+                await event_bus.publish(
+                    create_progress_event(
+                        current=i,
+                        total=iterations,
+                        stage="safe_evolution_iteration",
+                        source="evolution_pipeline",
+                        message=f"Starting safe iteration {iteration_num} of {iterations}",
+                        event_type=EventType.ITERATION_STARTED,
+                        iteration=iteration_num,
+                    )
+                )
+
+                try:
+                    # Run single iteration to get new version
+                    iteration_result = await self._run_single_iteration(iteration_num)
+
+                    # Extract version information
+                    new_version_id = iteration_result.get('version_id', f"iter_{iteration_num}")
+                    new_version_data = iteration_result.get('version_data', {})
+                    test_results = iteration_result.get('test_results', [])
+
+                    # Execute safe evolution step with safety mechanisms
+                    safety_result = self.safety_integration.execute_safe_evolution_step(
+                        current_version_id or "baseline",
+                        new_version_data,
+                        new_version_id,
+                        test_results,
+                    )
+
+                    # Combine iteration result with safety information
+                    combined_result = {
+                        **iteration_result,
+                        "safety_result": safety_result,
+                        "version_accepted": safety_result.get('version_accepted', False),
+                        "rollback_performed": safety_result.get('rollback_performed', False),
+                        "safety_score": safety_result.get('safety_validation', {}).get(
+                            'safety_score', 0.0
+                        ),
+                    }
+
+                    results.append(combined_result)
+
+                    # Update current version if accepted
+                    if safety_result.get('version_accepted', False):
+                        current_version_id = new_version_id
+                        logger.info(f"Version {new_version_id} accepted and set as current")
+                    elif safety_result.get('rollback_performed', False):
+                        logger.warning(f"Rolled back from version {new_version_id}")
+                        # Keep current_version_id unchanged after rollback
+
+                    # Publish iteration completed event
+                    await event_bus.publish(
+                        create_progress_event(
+                            current=i + 1,
+                            total=iterations,
+                            stage="safe_evolution_iteration",
+                            source="evolution_pipeline",
+                            message=f"Completed safe iteration {iteration_num} of {iterations}",
+                            event_type=EventType.ITERATION_COMPLETED,
+                            iteration=iteration_num,
+                            result=combined_result,
+                        )
+                    )
+
+                    # Check if we should continue based on safety results
+                    if not iteration_result.get("should_continue", True):
+                        logger.info("Evolution cycle stopping due to iteration result")
+                        break
+
+                    # Stop if critical safety issues detected
+                    safety_validation = safety_result.get('safety_validation', {})
+                    if safety_validation.get(
+                        'rollback_recommended', False
+                    ) and not safety_result.get('rollback_performed', False):
+                        logger.warning("Evolution cycle stopping due to unresolved safety issues")
+                        break
+
+                except Exception as iteration_error:
+                    # Publish iteration failed event
+                    await event_bus.publish(
+                        create_error_event(
+                            error=iteration_error,
+                            source="evolution_pipeline",
+                            event_type=EventType.ITERATION_FAILED,
+                            iteration=iteration_num,
+                            total_iterations=iterations,
+                        )
+                    )
+
+                    # Add error information to results
+                    error_result = {
+                        "iteration": iteration_num,
+                        "success": False,
+                        "error": str(iteration_error),
+                        "safety_result": {"success": False, "error": str(iteration_error)},
+                        "version_accepted": False,
+                        "rollback_performed": False,
+                        "safety_score": 0.0,
+                    }
+                    results.append(error_result)
+
+                    logger.error(f"Error in safe iteration {iteration_num}: {iteration_error}")
+                    # Continue with next iteration unless it's a critical error
+                    continue
+
+            # Get final safety status
+            safety_status = self.safety_integration.get_safety_status()
+
+            # Publish evolution completed event
+            await event_bus.publish(
+                Event(
+                    EventType.EVOLUTION_COMPLETED,
+                    {
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "iterations_completed": len(results),
+                        "successful_iterations": sum(1 for r in results if r.get("success", False)),
+                        "accepted_versions": sum(
+                            1 for r in results if r.get("version_accepted", False)
+                        ),
+                        "rollbacks_performed": sum(
+                            1 for r in results if r.get("rollback_performed", False)
+                        ),
+                        "final_version": current_version_id,
+                        "safety_status": safety_status,
+                    },
+                )
+            )
+
+            logger.info(f"Safety-aware evolution cycle completed: {len(results)} iterations")
+
+        except Exception as e:
+            logger.exception("Error during safety-aware evolution cycle")
+            await event_bus.publish(
+                Event(
+                    EventType.ERROR_OCCURRED,
+                    {
+                        "error": str(e),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "safety_enabled": True,
+                        "current_version": current_version_id,
+                    },
                 )
             )
             raise
@@ -862,6 +1065,32 @@ class EvolutionPipeline:
                 ComponentType.OPENEVOLVE
             )
             self.seal_connector = self.integration_orchestrator.get_component(ComponentType.SEAL)
+
+    def _get_current_version_id(self) -> str:
+        """Get the current version ID for safety operations.
+
+        Returns:
+            Current version ID or 'baseline' if none exists
+        """
+        try:
+            # Try to get version from version database
+            if hasattr(self, 'version_db') and self.version_db:
+                latest_version = self.version_db.get_latest_version()
+                if latest_version:
+                    return str(latest_version.get('id', 'baseline'))
+
+            # Try to get from version manager if available
+            if hasattr(self, 'version_manager') and self.version_manager:
+                current_version = getattr(self.version_manager, 'current_version', None)
+                if current_version:
+                    return str(current_version)
+
+            # Fallback to baseline
+            return 'baseline'
+
+        except Exception as e:
+            logger.warning(f"Error getting current version ID: {e}")
+            return 'baseline'
 
     # Event Handlers
     def _on_workflow_started(self, event: Event) -> None:
