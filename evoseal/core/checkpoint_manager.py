@@ -710,3 +710,317 @@ class CheckpointManager:
         except Exception as e:
             logger.error(f"Error during integrity verification: {e}")
             return False
+
+    def restore_checkpoint_with_validation(
+        self, version_id: str, target_dir: Union[str, Path], backup_current: bool = True
+    ) -> Dict[str, Any]:
+        """Restore checkpoint with comprehensive validation and optional backup.
+
+        Args:
+            version_id: ID of the version to restore
+            target_dir: Directory to restore the checkpoint to
+            backup_current: Whether to backup current state before restoration
+
+        Returns:
+            Dictionary with restoration results and validation status
+
+        Raises:
+            CheckpointError: If restoration fails
+        """
+        try:
+            target_dir = Path(target_dir)
+            restoration_start = datetime.now(timezone.utc)
+
+            logger.info(
+                f"Starting validated restoration of checkpoint {version_id} to {target_dir}"
+            )
+
+            # Pre-restoration validation
+            validation_results = self.validate_checkpoint_for_restoration(version_id)
+            if not validation_results['valid']:
+                raise CheckpointError(
+                    f"Checkpoint validation failed: {validation_results['errors']}"
+                )
+
+            # Backup current state if requested
+            backup_path = None
+            if backup_current and target_dir.exists():
+                backup_path = self._create_restoration_backup(target_dir)
+                logger.info(f"Created backup of current state at {backup_path}")
+
+            # Perform restoration
+            try:
+                restoration_result = self.restore_checkpoint(
+                    version_id, target_dir, verify_integrity=True
+                )
+
+                # Post-restoration validation
+                post_validation = self._validate_restored_state(target_dir, version_id)
+
+                result = {
+                    'success': True,
+                    'version_id': version_id,
+                    'target_directory': str(target_dir),
+                    'restoration_time': (
+                        datetime.now(timezone.utc) - restoration_start
+                    ).total_seconds(),
+                    'backup_created': backup_path is not None,
+                    'backup_path': str(backup_path) if backup_path else None,
+                    'pre_validation': validation_results,
+                    'post_validation': post_validation,
+                    'restoration_details': restoration_result,
+                }
+
+                logger.info(f"Successfully completed validated restoration of {version_id}")
+                return result
+
+            except Exception as e:
+                # Restoration failed - restore backup if available
+                if backup_path and backup_path.exists():
+                    logger.warning(f"Restoration failed, attempting to restore backup: {e}")
+                    self._restore_from_backup(backup_path, target_dir)
+                    logger.info("Successfully restored from backup")
+                raise
+
+        except Exception as e:
+            logger.error(f"Validated restoration failed for {version_id}: {e}")
+            raise CheckpointError(f"Validated restoration failed: {e}") from e
+
+    def validate_checkpoint_for_restoration(self, version_id: str) -> Dict[str, Any]:
+        """Validate that a checkpoint is ready for restoration.
+
+        Args:
+            version_id: ID of the version to validate
+
+        Returns:
+            Dictionary with validation results
+        """
+        validation_errors = []
+        validation_warnings = []
+
+        try:
+            # Check if checkpoint exists
+            checkpoint_path = self.get_checkpoint_path(version_id)
+            if not checkpoint_path:
+                validation_errors.append(f"Checkpoint {version_id} not found")
+                return {
+                    'valid': False,
+                    'errors': validation_errors,
+                    'warnings': validation_warnings,
+                }
+
+            checkpoint_path = Path(checkpoint_path)
+
+            # Check metadata exists
+            metadata_path = checkpoint_path / 'metadata.json'
+            if not metadata_path.exists():
+                validation_errors.append("Checkpoint metadata missing")
+            else:
+                # Validate metadata content
+                try:
+                    with open(metadata_path, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+
+                    required_fields = ['version_id', 'timestamp', 'file_count']
+                    for field in required_fields:
+                        if field not in metadata:
+                            validation_warnings.append(f"Missing metadata field: {field}")
+
+                except Exception as e:
+                    validation_errors.append(f"Invalid metadata format: {e}")
+
+            # Check integrity if hash is available
+            if not validation_errors:
+                try:
+                    integrity_valid = self.verify_checkpoint_integrity(version_id)
+                    if not integrity_valid:
+                        validation_errors.append("Checkpoint integrity verification failed")
+                except Exception as e:
+                    validation_warnings.append(f"Could not verify integrity: {e}")
+
+            # Check disk space
+            checkpoint_size = self.get_checkpoint_size(version_id)
+            if checkpoint_size:
+                available_space = shutil.disk_usage(checkpoint_path.parent).free
+                if checkpoint_size > available_space:
+                    validation_errors.append(f"Insufficient disk space for restoration")
+                elif checkpoint_size > available_space * 0.9:  # 90% threshold
+                    validation_warnings.append("Low disk space for restoration")
+
+            return {
+                'valid': len(validation_errors) == 0,
+                'errors': validation_errors,
+                'warnings': validation_warnings,
+                'checkpoint_size': checkpoint_size,
+                'validation_time': datetime.now(timezone.utc).isoformat(),
+            }
+
+        except Exception as e:
+            validation_errors.append(f"Validation error: {e}")
+            return {'valid': False, 'errors': validation_errors, 'warnings': validation_warnings}
+
+    def _create_restoration_backup(self, target_dir: Path) -> Path:
+        """Create a backup of the current state before restoration.
+
+        Args:
+            target_dir: Directory to backup
+
+        Returns:
+            Path to the backup directory
+        """
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+        backup_dir = self.checkpoint_dir / 'restoration_backups'
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        backup_path = backup_dir / f"backup_{target_dir.name}_{timestamp}"
+
+        # Copy current state to backup
+        shutil.copytree(target_dir, backup_path, dirs_exist_ok=True)
+
+        # Create backup metadata
+        backup_metadata = {
+            'original_path': str(target_dir),
+            'backup_time': datetime.now(timezone.utc).isoformat(),
+            'backup_size': self._calculate_checkpoint_size(backup_path),
+        }
+
+        with open(backup_path / 'backup_metadata.json', 'w', encoding='utf-8') as f:
+            json.dump(backup_metadata, f, indent=2)
+
+        return backup_path
+
+    def _restore_from_backup(self, backup_path: Path, target_dir: Path) -> None:
+        """Restore from a backup directory.
+
+        Args:
+            backup_path: Path to backup directory
+            target_dir: Target directory to restore to
+        """
+        # Clear target directory
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+
+        # Copy backup to target
+        shutil.copytree(backup_path, target_dir, dirs_exist_ok=True)
+
+        # Remove backup metadata from restored directory
+        backup_metadata_path = target_dir / 'backup_metadata.json'
+        if backup_metadata_path.exists():
+            backup_metadata_path.unlink()
+
+    def _validate_restored_state(self, target_dir: Path, version_id: str) -> Dict[str, Any]:
+        """Validate the state after restoration.
+
+        Args:
+            target_dir: Directory that was restored to
+            version_id: Version ID that was restored
+
+        Returns:
+            Dictionary with validation results
+        """
+        validation_results = {
+            'directory_exists': target_dir.exists(),
+            'files_present': [],
+            'validation_time': datetime.now(timezone.utc).isoformat(),
+        }
+
+        if target_dir.exists():
+            # Count restored files
+            restored_files = list(target_dir.rglob('*'))
+            validation_results['file_count'] = len([f for f in restored_files if f.is_file()])
+            validation_results['directory_count'] = len([f for f in restored_files if f.is_dir()])
+
+            # Check for key files
+            key_files = ['main.py', 'config.json', 'README.md']
+            for key_file in key_files:
+                file_path = target_dir / key_file
+                validation_results['files_present'].append(
+                    {
+                        'file': key_file,
+                        'exists': file_path.exists(),
+                        'size': file_path.stat().st_size if file_path.exists() else 0,
+                    }
+                )
+
+        return validation_results
+
+    def list_restoration_backups(self) -> List[Dict[str, Any]]:
+        """List available restoration backups.
+
+        Returns:
+            List of backup information dictionaries
+        """
+        backup_dir = self.checkpoint_dir / 'restoration_backups'
+        backups = []
+
+        if backup_dir.exists():
+            for backup_path in backup_dir.iterdir():
+                if backup_path.is_dir():
+                    metadata_path = backup_path / 'backup_metadata.json'
+                    if metadata_path.exists():
+                        try:
+                            with open(metadata_path, 'r', encoding='utf-8') as f:
+                                metadata = json.load(f)
+
+                            backup_info = {
+                                'backup_name': backup_path.name,
+                                'backup_path': str(backup_path),
+                                'original_path': metadata.get('original_path'),
+                                'backup_time': metadata.get('backup_time'),
+                                'backup_size': metadata.get('backup_size', 0),
+                                'age_hours': (
+                                    datetime.now(timezone.utc)
+                                    - datetime.fromisoformat(
+                                        metadata.get('backup_time', '').replace('Z', '+00:00')
+                                    )
+                                ).total_seconds()
+                                / 3600,
+                            }
+                            backups.append(backup_info)
+                        except Exception as e:
+                            logger.warning(f"Could not read backup metadata for {backup_path}: {e}")
+
+        return sorted(backups, key=lambda x: x.get('backup_time', ''), reverse=True)
+
+    def cleanup_restoration_backups(self, keep_count: int = 5, max_age_days: int = 30) -> int:
+        """Clean up old restoration backups.
+
+        Args:
+            keep_count: Number of recent backups to keep
+            max_age_days: Maximum age of backups to keep in days
+
+        Returns:
+            Number of backups deleted
+        """
+        backups = self.list_restoration_backups()
+        deleted_count = 0
+
+        # Sort by backup time (newest first)
+        backups_by_time = sorted(backups, key=lambda x: x.get('backup_time', ''), reverse=True)
+
+        for i, backup in enumerate(backups_by_time):
+            should_delete = False
+
+            # Delete if beyond keep count
+            if i >= keep_count:
+                should_delete = True
+                logger.info(f"Deleting backup {backup['backup_name']} (beyond keep count)")
+
+            # Delete if too old
+            elif backup.get('age_hours', 0) > max_age_days * 24:
+                should_delete = True
+                logger.info(
+                    f"Deleting backup {backup['backup_name']} (too old: {backup.get('age_hours', 0):.1f} hours)"
+                )
+
+            if should_delete:
+                try:
+                    backup_path = Path(backup['backup_path'])
+                    if backup_path.exists():
+                        shutil.rmtree(backup_path)
+                        deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to delete backup {backup['backup_name']}: {e}")
+
+        logger.info(f"Cleaned up {deleted_count} restoration backups")
+        return deleted_count

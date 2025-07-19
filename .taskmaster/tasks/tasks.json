@@ -779,7 +779,7 @@
               2
             ],
             "details": "Develop restoration procedures that can reliably return the system to a previous state. Include validation of checkpoint integrity before restoration, handling of partial restoration failures, and logging of restoration events.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 4,
