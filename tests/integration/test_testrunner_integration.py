@@ -104,7 +104,7 @@ def test_discover_tests(test_environment):
 
 
 def test_run_unit_tests(test_environment):
-    ""Test running unit tests with the TestRunner."""
+    """Test running unit tests with the TestRunner."""
     config = TestConfig(
         test_dir=test_environment["test_dir"],
         timeout=10,
@@ -135,7 +135,7 @@ def test_run_unit_tests(test_environment):
 
 
 def test_run_performance_tests(test_environment):
-    ""Test running performance tests with timeout."""
+    """Test running performance tests with timeout."""
     config = TestConfig(
         test_dir=test_environment["test_dir"],
         timeout=1,  # Short timeout to catch the slow test
@@ -159,7 +159,7 @@ def test_run_performance_tests(test_environment):
 
 
 def test_parallel_test_execution(test_environment):
-    ""Test running tests in parallel."""
+    """Test running tests in parallel."""
     config = TestConfig(
         test_dir=test_environment["test_dir"],
         timeout=10,
@@ -187,7 +187,7 @@ def test_parallel_test_execution(test_environment):
 
 
 def test_test_runner_with_nonexistent_test_dir():
-    ""Test that TestRunner handles non-existent test directories gracefully."""
+    """Test that TestRunner handles non-existent test directories gracefully."""
     config = TestConfig(test_dir="/nonexistent/path")
     runner = TestRunner(config)
     

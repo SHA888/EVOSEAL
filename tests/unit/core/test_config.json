@@ -1,0 +1,13 @@
+{
+  "test_runner": {
+    "timeout": 60,
+    "max_retries": 3
+  },
+  "evaluator": {
+    "metrics": ["accuracy", "performance", "readability"]
+  },
+  "repository": {
+    "default_branch": "main",
+    "remote": "origin"
+  }
+}

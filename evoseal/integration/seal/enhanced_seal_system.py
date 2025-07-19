@@ -14,22 +14,10 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import (
-    Any,
-    AsyncGenerator,
-    Awaitable,
-    Callable,
-    Deque,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
+    Optional, Dict, List, Any, Union, Deque, Callable, Awaitable, AsyncGenerator, Tuple, Set, Type, TypeVar, cast
 )
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from evoseal.integration.seal.exceptions import SelfEditingError, ValidationError
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
@@ -156,12 +144,14 @@ class SEALConfig(BaseModel):
     metrics_retention_days: int = 7
 
     @field_validator("knowledge_similarity_threshold")
+    @classmethod
     def validate_similarity_threshold(cls, v: float) -> float:
         if not 0.0 <= v <= 1.0:
             raise ValueError("knowledge_similarity_threshold must be between 0.0 and 1.0")
         return v
 
     @field_validator("min_confidence_for_editing")
+    @classmethod
     def validate_confidence_threshold(cls, v: float) -> float:
         if not 0.0 <= v <= 1.0:
             raise ValueError("min_confidence_for_editing must be between 0.0 and 1.0")

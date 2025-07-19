@@ -16,13 +16,14 @@ import json
 import os
 from pathlib import Path
 import shutil
+from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union
 
 from .repository import RepositoryManager
 
 from rich.console import Console
 
-from evoseal.core.controller import EvolutionController
+from evoseal.core.controller import Controller as EvolutionController
 from evoseal.core.events import Event, EventBus, EventType
 from evoseal.core.improvement_validator import ImprovementValidator
 from evoseal.core.metrics_tracker import MetricsTracker
