@@ -669,7 +669,7 @@
               1
             ],
             "details": "Create the WorkflowCoordinator class responsible for managing transitions between pipeline stages, handling stage dependencies, and ensuring proper execution order. Implement mechanisms for workflow pausing, resuming, and state persistence between runs.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 3,
@@ -680,7 +680,7 @@
               2
             ],
             "details": "Implement CLI commands for pipeline initialization, execution control (start, pause, resume, stop), configuration management, and status monitoring. Include progress visualization, logging controls, and interactive debugging options.",
-            "status": "pending"
+            "status": "in-progress"
           },
           {
             "id": 4,
