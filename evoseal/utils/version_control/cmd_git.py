@@ -6,6 +6,7 @@ This module provides an implementation of GitInterface using the git command-lin
 
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
@@ -1706,8 +1707,8 @@ class CmdGit(GitInterface):
             import_patterns = [
                 # Python: import x, from x import y
                 r'^\s*(?:from\s+([\w.]+)\s+)?import\s+([\w*.,{}\s]+)(?:\s+as\s+\w+)?\s*(?:#.*)?$',
-                # JavaScript/TypeScript: import x from 'y'
-                r'^\s*import\s+(?:[\w*{} ,\n]+\s+from\s+)?["']([^"']+)["']\s*;?\s*(?:/\*.*\*/)?\s*$',
+                # JavaScript/TypeScript: import x from 'y' or import { x } from 'y'
+                r'^\s*import\s+(?:[\w*{},\s]+\s+from\s+)?["\']([^"\']+)["\']\s*;?\s*(?:/\*.*\*/)?\s*$',
                 # C/C++: #include "x.h" or #include <x.h>
                 r'^\s*#\s*include\s+[<"]([^>"]+)[>"]\s*$',
             ]
@@ -1749,7 +1750,8 @@ class CmdGit(GitInterface):
             
             # Add file type filters if specified
             if file_types:
-                cmd.extend(["--", f"*.{' *.'.join(ft.lstrip('.') for ft in file_types)}'])
+                patterns = ' '.join(f'*.{ft.lstrip(".")}' for ft in file_types)
+                cmd.extend(["--"] + patterns.split())
             
             success, stdout, _ = self._run_git_command(cmd, ref=ref)
             

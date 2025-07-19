@@ -140,7 +140,7 @@ def temp_environment(
 
 
 @contextmanager
-temp_dir() -> Generator[Path, None, None]:
+def temp_dir() -> Generator[Path, None, None]:
     """Context manager for creating a temporary directory.
     
     The directory and its contents will be automatically removed when the context exits.
@@ -153,7 +153,7 @@ temp_dir() -> Generator[Path, None, None]:
 
 
 @contextmanager
-temp_file(content: str = "", suffix: str = None) -> Generator[Path, None, None]:
+def temp_file(content: str = "", suffix: str = None) -> Generator[Path, None, None]:
     """Context manager for creating a temporary file.
     
     The file will be automatically removed when the context exits.
@@ -177,7 +177,7 @@ temp_file(content: str = "", suffix: str = None) -> Generator[Path, None, None]:
 
 
 @contextmanager
-temp_env_vars(env_vars: Dict[str, str]) -> Generator[None, None, None]:
+def temp_env_vars(env_vars: Dict[str, str]) -> Generator[None, None, None]:
     """Context manager for temporarily setting environment variables.
     
     The original environment variables will be restored when the context exits.

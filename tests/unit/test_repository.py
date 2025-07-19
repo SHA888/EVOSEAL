@@ -1,6 +1,4 @@
-""
-Tests for the repository management module.
-"""
+"""Tests for the repository management module."""
 
 import os
 import shutil

@@ -1,0 +1,39 @@
+{
+  "repository": {
+    "url": "https://github.com/example/test-repo.git",
+    "branch": "main",
+    "commit_message": "[Auto] Apply evolutionary improvements"
+  },
+  "evolution": {
+    "max_generations": 10,
+    "population_size": 5,
+    "mutation_rate": 0.1,
+    "crossover_rate": 0.8,
+    "elitism": 1,
+    "max_stagnation": 5
+  },
+  "evaluation": {
+    "test_command": "pytest",
+    "coverage_command": "coverage run -m pytest",
+    "timeout_seconds": 300,
+    "max_memory_mb": 2048
+  },
+  "llm": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "max_tokens": 2048,
+    "top_p": 1.0,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "workflow.log",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "paths": {
+    "output_dir": "output",
+    "cache_dir": ".cache",
+    "temp_dir": ".temp"
+  }
+}

@@ -1,6 +1,4 @@
-""
-Tests for the test environment utilities.
-"""
+"""Tests for the test environment utilities."""
 
 import os
 import tempfile
