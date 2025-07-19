@@ -691,7 +691,7 @@
               2
             ],
             "details": "Develop integration adapters for each core component (DGM, OpenEvolve, SEAL), ensuring proper data transformation between components, configuration mapping, and execution control. Implement component lifecycle management and resource allocation strategies.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 5,
@@ -702,7 +702,7 @@
               2
             ],
             "details": "Design and implement an event bus for the pipeline that supports synchronous and asynchronous events, event filtering, and subscription mechanisms. Define standard event types for pipeline stages, errors, metrics, and component communication. Include logging integration.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 6,

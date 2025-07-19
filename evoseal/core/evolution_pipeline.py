@@ -21,13 +21,23 @@ from typing import Any, Dict, List, Optional, Type, Union
 from rich.console import Console
 
 from evoseal.core.controller import Controller as EvolutionController
-from evoseal.core.events import Event, EventBus, EventType
 from evoseal.core.improvement_validator import ImprovementValidator
 from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.testrunner import TestRunner
 from evoseal.core.version_database import VersionDatabase
 from evoseal.core.workflow import WorkflowEngine
 
+from .events import (
+    Event,
+    EventBus,
+    EventType,
+    create_error_event,
+    create_progress_event,
+    create_state_change_event,
+    event_bus,
+    publish_component_lifecycle_event,
+    publish_pipeline_stage_event,
+)
 from .repository import RepositoryManager
 
 # Type aliases
@@ -157,13 +167,62 @@ class EvolutionPipeline:
         results = []
 
         try:
-            self.event_bus.publish(
-                Event(EventType.EVOLUTION_STARTED, {"timestamp": datetime.utcnow().isoformat()})
+            # Publish evolution started event
+            await event_bus.publish(
+                Event(
+                    event_type=EventType.EVOLUTION_STARTED,
+                    source="evolution_pipeline",
+                    data={
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "total_iterations": iterations,
+                        "pipeline_id": id(self),
+                    },
+                )
             )
 
             for i in range(iterations):
-                iteration_result = await self._run_single_iteration(i + 1)
-                results.append(iteration_result)
+                # Publish iteration started event
+                await event_bus.publish(
+                    create_progress_event(
+                        current=i,
+                        total=iterations,
+                        stage="evolution_iteration",
+                        source="evolution_pipeline",
+                        message=f"Starting iteration {i + 1} of {iterations}",
+                        event_type=EventType.ITERATION_STARTED,
+                        iteration=i + 1,
+                    )
+                )
+
+                try:
+                    iteration_result = await self._run_single_iteration(i + 1)
+                    results.append(iteration_result)
+
+                    # Publish iteration completed event
+                    await event_bus.publish(
+                        create_progress_event(
+                            current=i + 1,
+                            total=iterations,
+                            stage="evolution_iteration",
+                            source="evolution_pipeline",
+                            message=f"Completed iteration {i + 1} of {iterations}",
+                            event_type=EventType.ITERATION_COMPLETED,
+                            iteration=i + 1,
+                            result=iteration_result,
+                        )
+                    )
+                except Exception as iteration_error:
+                    # Publish iteration failed event
+                    await event_bus.publish(
+                        create_error_event(
+                            error=iteration_error,
+                            source="evolution_pipeline",
+                            event_type=EventType.ITERATION_FAILED,
+                            iteration=i + 1,
+                            total_iterations=iterations,
+                        )
+                    )
+                    raise
 
                 # Check if we should continue evolving
                 if not iteration_result["should_continue"]:
@@ -203,18 +262,73 @@ class EvolutionPipeline:
 
         try:
             # 1. Analyze current version
+            await publish_pipeline_stage_event(
+                stage="analyzing",
+                status="started",
+                source="evolution_pipeline",
+                iteration=iteration,
+            )
             analysis = await self._analyze_current_version()
+            await publish_pipeline_stage_event(
+                stage="analyzing",
+                status="completed",
+                source="evolution_pipeline",
+                iteration=iteration,
+                analysis_result=analysis,
+            )
 
             # 2. Generate improvements
+            await publish_pipeline_stage_event(
+                stage="generating",
+                status="started",
+                source="evolution_pipeline",
+                iteration=iteration,
+            )
             improvements = await self._generate_improvements(analysis)
+            await publish_pipeline_stage_event(
+                stage="generating",
+                status="completed",
+                source="evolution_pipeline",
+                iteration=iteration,
+                improvements_count=len(improvements) if improvements else 0,
+            )
 
             # 3. Apply SEAL adaptations
+            await publish_pipeline_stage_event(
+                stage="adapting", status="started", source="evolution_pipeline", iteration=iteration
+            )
             adapted_improvements = await self._adapt_improvements(improvements)
+            await publish_pipeline_stage_event(
+                stage="adapting",
+                status="completed",
+                source="evolution_pipeline",
+                iteration=iteration,
+                adapted_count=len(adapted_improvements) if adapted_improvements else 0,
+            )
 
             # 4. Create and evaluate new version
+            await publish_pipeline_stage_event(
+                stage="evaluating",
+                status="started",
+                source="evolution_pipeline",
+                iteration=iteration,
+            )
             evaluation_result = await self._evaluate_version(adapted_improvements)
+            await publish_pipeline_stage_event(
+                stage="evaluating",
+                status="completed",
+                source="evolution_pipeline",
+                iteration=iteration,
+                evaluation_score=evaluation_result.get("score", 0),
+            )
 
             # 5. Validate improvement
+            await publish_pipeline_stage_event(
+                stage="validating",
+                status="started",
+                source="evolution_pipeline",
+                iteration=iteration,
+            )
             is_improvement = await self._validate_improvement(evaluation_result)
 
             # Update iteration result
@@ -267,16 +381,58 @@ class EvolutionPipeline:
             return False
 
         try:
+            # Publish component initialization started event
+            await event_bus.publish(
+                Event(
+                    event_type=EventType.COMPONENT_INITIALIZING,
+                    source="evolution_pipeline",
+                    data={"pipeline_id": id(self), "timestamp": datetime.utcnow().isoformat()},
+                )
+            )
+
             success = await self.integration_orchestrator.initialize(self._component_configs)
+
             if success:
                 logger.info("All components initialized successfully")
                 # Update legacy connectors for backward compatibility
                 self._update_legacy_connectors()
+
+                # Publish successful initialization event
+                await event_bus.publish(
+                    Event(
+                        event_type=EventType.COMPONENT_READY,
+                        source="evolution_pipeline",
+                        data={
+                            "pipeline_id": id(self),
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "components_initialized": True,
+                        },
+                    )
+                )
             else:
                 logger.error("Failed to initialize some components")
+                # Publish initialization failed event
+                await event_bus.publish(
+                    create_error_event(
+                        error="Failed to initialize some components",
+                        source="evolution_pipeline",
+                        event_type=EventType.COMPONENT_FAILED,
+                        pipeline_id=id(self),
+                    )
+                )
             return success
         except Exception as e:
             logger.exception("Error initializing components")
+            # Publish initialization error event
+            await event_bus.publish(
+                create_error_event(
+                    error=e,
+                    source="evolution_pipeline",
+                    event_type=EventType.COMPONENT_FAILED,
+                    pipeline_id=id(self),
+                    operation="initialize",
+                )
+            )
             return False
 
     async def start_components(self) -> bool:
@@ -286,9 +442,55 @@ class EvolutionPipeline:
             return False
 
         try:
-            return await self.integration_orchestrator.start()
+            # Publish components starting event
+            await event_bus.publish(
+                Event(
+                    event_type=EventType.COMPONENT_STARTING,
+                    source="evolution_pipeline",
+                    data={"pipeline_id": id(self), "timestamp": datetime.utcnow().isoformat()},
+                )
+            )
+
+            success = await self.integration_orchestrator.start()
+
+            if success:
+                # Publish components started event
+                await event_bus.publish(
+                    Event(
+                        event_type=EventType.COMPONENT_STARTED,
+                        source="evolution_pipeline",
+                        data={
+                            "pipeline_id": id(self),
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "all_components_started": True,
+                        },
+                    )
+                )
+            else:
+                # Publish start failed event
+                await event_bus.publish(
+                    create_error_event(
+                        error="Failed to start some components",
+                        source="evolution_pipeline",
+                        event_type=EventType.COMPONENT_FAILED,
+                        pipeline_id=id(self),
+                        operation="start",
+                    )
+                )
+
+            return success
         except Exception as e:
             logger.exception("Error starting components")
+            # Publish start error event
+            await event_bus.publish(
+                create_error_event(
+                    error=e,
+                    source="evolution_pipeline",
+                    event_type=EventType.COMPONENT_FAILED,
+                    pipeline_id=id(self),
+                    operation="start",
+                )
+            )
             return False
 
     async def stop_components(self) -> bool:
@@ -297,9 +499,55 @@ class EvolutionPipeline:
             return True
 
         try:
-            return await self.integration_orchestrator.stop()
+            # Publish components stopping event
+            await event_bus.publish(
+                Event(
+                    event_type=EventType.COMPONENT_STOPPING,
+                    source="evolution_pipeline",
+                    data={"pipeline_id": id(self), "timestamp": datetime.utcnow().isoformat()},
+                )
+            )
+
+            success = await self.integration_orchestrator.stop()
+
+            if success:
+                # Publish components stopped event
+                await event_bus.publish(
+                    Event(
+                        event_type=EventType.COMPONENT_STOPPED,
+                        source="evolution_pipeline",
+                        data={
+                            "pipeline_id": id(self),
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "all_components_stopped": True,
+                        },
+                    )
+                )
+            else:
+                # Publish stop failed event
+                await event_bus.publish(
+                    create_error_event(
+                        error="Failed to stop some components",
+                        source="evolution_pipeline",
+                        event_type=EventType.COMPONENT_FAILED,
+                        pipeline_id=id(self),
+                        operation="stop",
+                    )
+                )
+
+            return success
         except Exception as e:
             logger.exception("Error stopping components")
+            # Publish stop error event
+            await event_bus.publish(
+                create_error_event(
+                    error=e,
+                    source="evolution_pipeline",
+                    event_type=EventType.COMPONENT_FAILED,
+                    pipeline_id=id(self),
+                    operation="stop",
+                )
+            )
             return False
 
     def get_component_status(self) -> Dict[str, Any]:
