@@ -5,9 +5,25 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-# Import other models at the top level
-from .code_archive import CodeArchive, CodeLanguage, CodeVisibility
+"""Data models for EVOSEAL.
+
+This package contains all the data models and schemas used throughout
+the EVOSEAL system.
+"""
+
+from .code_archive import CodeArchive, CodeLanguage, CodeVisibility, create_code_archive
 from .evaluation import EvaluationResult, TestCaseResult
+from .experiment import (
+    Experiment,
+    ExperimentArtifact,
+    ExperimentConfig,
+    ExperimentMetric,
+    ExperimentResult,
+    ExperimentStatus,
+    ExperimentType,
+    MetricType,
+    create_experiment,
+)
 from .system_config import SystemConfig
 
 
@@ -31,11 +47,26 @@ class Program(BaseModel):
 
 
 __all__ = [
+    # Core
     "Program",
+    # Code Archive
     "CodeArchive",
     "CodeLanguage",
     "CodeVisibility",
+    "create_code_archive",
+    # Evaluation
     "EvaluationResult",
     "TestCaseResult",
+    # Experiment
+    "Experiment",
+    "ExperimentConfig",
+    "ExperimentResult",
+    "ExperimentStatus",
+    "ExperimentType",
+    "ExperimentMetric",
+    "ExperimentArtifact",
+    "MetricType",
+    "create_experiment",
+    # System Config
     "SystemConfig",
 ]
