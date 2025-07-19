@@ -651,7 +651,7 @@
           7,
           8
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -750,7 +750,7 @@
         "dependencies": [
           9
         ],
-        "status": "pending",
+        "status": "in-progres",
         "subtasks": [
           {
             "id": 1,
@@ -758,7 +758,7 @@
             "description": "Define the interface and core functionality for the CheckpointManager component that will handle saving and retrieving system states.",
             "dependencies": [],
             "details": "Create a comprehensive interface for CheckpointManager that includes methods for creating, listing, and loading checkpoints. Define checkpoint metadata structure, storage requirements, and versioning approach. Consider both memory and disk-based checkpoint strategies.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 2,
