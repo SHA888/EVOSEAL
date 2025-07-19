@@ -680,7 +680,7 @@
               2
             ],
             "details": "Implement CLI commands for pipeline initialization, execution control (start, pause, resume, stop), configuration management, and status monitoring. Include progress visualization, logging controls, and interactive debugging options.",
-            "status": "in-progress"
+            "status": "done"
           },
           {
             "id": 4,

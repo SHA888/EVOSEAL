@@ -1,0 +1,30 @@
+{
+  "iterations": 5,
+  "auto_checkpoint": true,
+  "checkpoint_interval": 5,
+  "auto_rollback": true,
+  "regression_threshold": 0.05,
+  "components": {
+    "dgm": {
+      "enabled": true,
+      "timeout": 300
+    },
+    "openevolve": {
+      "enabled": true,
+      "timeout": 600
+    },
+    "seal": {
+      "enabled": true,
+      "timeout": 300
+    }
+  },
+  "logging": {
+    "level": "DEBUG",
+    "file": ".evoseal/pipeline.log",
+    "console": true
+  },
+  "monitoring": {
+    "progress_update_interval": 1.0,
+    "metrics_collection": true
+  }
+}

@@ -12,7 +12,18 @@ from pathlib import Path
 import typer
 
 # Import commands first to avoid circular imports
-from evoseal.cli.commands import config, dgm, export, init, openevolve, seal, start, status, stop
+from evoseal.cli.commands import (
+    config,
+    dgm,
+    export,
+    init,
+    openevolve,
+    pipeline,
+    seal,
+    start,
+    status,
+    stop,
+)
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
@@ -41,6 +52,7 @@ app = typer.Typer(
 # Add subcommands
 app.add_typer(init.app, name="init", help="Initialize a new EVOSEAL project")
 app.add_typer(config.app, name="config", help="Manage configuration")
+app.add_typer(pipeline.app, name="pipeline", help="Pipeline control and monitoring")
 app.add_typer(seal.app, name="seal", help="SEAL model operations")
 app.add_typer(openevolve.app, name="openevolve", help="OpenEvolve processes")
 app.add_typer(dgm.app, name="dgm", help="DGM code improvement workflows")
