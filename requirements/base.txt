@@ -4,6 +4,7 @@ PyYAML==6.0.2
 pydantic==2.11.7
 pydantic-core==2.35.2  # Must match pydantic's requirement
 typing-extensions>=4.2.0  # Required by PyTorch, Transformers, and KnowledgeBase
+gitpython>=3.1.44  # For git repository management
 
 # Data Processing & Scientific Computing
 numpy>=1.20.0,<2.0.0  # Required by PyTorch and Transformers
