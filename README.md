@@ -161,6 +161,40 @@ evoseal openevolve --help
 evoseal dgm --help
 ```
 
+#### Pipeline Control
+
+Control and monitor the evolution pipeline with comprehensive commands:
+
+```bash
+# Initialize a pipeline for a repository
+evoseal pipeline init https://github.com/user/repo.git
+
+# Start the evolution pipeline
+evoseal pipeline start
+
+# Monitor pipeline status
+evoseal pipeline status
+
+# Pause/resume pipeline execution
+evoseal pipeline pause
+evoseal pipeline resume
+
+# Stop the pipeline
+evoseal pipeline stop
+
+# View pipeline configuration
+evoseal pipeline config --show
+
+# Set configuration parameters
+evoseal pipeline config --set "logging.level=DEBUG"
+
+# View pipeline logs
+evoseal pipeline logs --lines 100
+
+# Debug pipeline state
+evoseal pipeline debug --inspect
+```
+
 #### Process Control
 
 Start, stop, and monitor EVOSEAL processes:
@@ -320,6 +354,30 @@ EVOSEAL uses a structured requirements system to manage dependencies across diff
    ```bash
    pip install -r requirements/requirements.txt
    ```
+
+### CLI Dependencies
+
+For enhanced CLI functionality with rich formatting and pipeline control, install additional CLI dependencies:
+
+```bash
+# Install CLI-specific dependencies
+pip install -r requirements-cli.txt
+```
+
+The CLI dependencies include:
+- `typer` - Modern CLI framework
+- `rich` - Beautiful terminal formatting
+- `psutil` - System resource monitoring
+- `structlog` - Structured logging
+- `pyyaml` - YAML configuration support
+
+### Virtual Environment Recommendation
+
+**Important**: EVOSEAL uses `.venv` as the standard virtual environment directory name. This is:
+- ✅ **Recommended**: `.venv` (hidden directory, widely adopted convention)
+- ❌ **Avoid**: `venv` (visible directory, less conventional)
+
+The `.gitignore` file is configured to ignore both, but please use `.venv` for consistency with the project documentation.
 
 ## Configuration
 
