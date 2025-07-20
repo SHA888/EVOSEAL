@@ -572,66 +572,7 @@ The three core technologies of EVOSEAL are tightly integrated through well-defin
 - **Distributed Evolution**: Enable parallel evolution across multiple compute nodes for faster convergence
 - **Human Feedback Integration**: Create interfaces for incorporating human developer feedback into the evolution process
 
----
 
-## Installation and Setup
-
-### Prerequisites
-
-- Python 3.9+
-- Git
-- Access to OpenAI API and/or Claude API
-
-### Installation Steps
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/EVOSEAL.git
-   cd EVOSEAL
-   ```
-
-2. Install core dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Install component-specific dependencies:
-   ```bash
-   pip install -r SEAL/requirements.txt
-   pip install -r openevolve/requirements.txt
-   ```
-
-4. Configure API keys:
-
-   Create a `.env` file in the project root with the following content:
-   ```
-   OPENAI_API_KEY=your_openai_api_key
-   ANTHROPIC_API_KEY=your_anthropic_api_key
-   ```
-
-### Configuration
-
-EVOSEAL can be configured through YAML files that control each component's behavior:
-
-- `configs/evoseal.yaml`: Main configuration file
-- `configs/dgm.yaml`: DGM-specific settings
-- `configs/openevolve.yaml`: OpenEvolve parameters
-- `configs/seal.yaml`: SEAL model configuration
-
-#### SystemConfig Model (YAML Support)
-
-EVOSEAL provides a `SystemConfig` model for loading and validating configuration from YAML files. This model supports:
-- Loading config via `SystemConfig.from_yaml('path/to/config.yaml')`
-- Dot-notation access to nested keys: `config.get('dgm.max_iterations')`
-- Validation of required sections (`dgm`, `openevolve`, `seal`, `integration`)
-
-**Example usage:**
-```python
-from evoseal.models.system_config import SystemConfig
-config = SystemConfig.from_yaml('configs/evoseal.yaml')
-config.validate()  # Raises if required sections are missing
-max_iters = config.get('dgm.max_iterations', 100)
-```
 
 See [CONFIGURATION.md](CONFIGURATION.md) for details on the required YAML structure.
 
@@ -802,66 +743,7 @@ When using specific components of EVOSEAL, please also cite the respective origi
 }
 ```
 
-## 🛡️ Rollback Safety
 
-### **⚠️ CATASTROPHIC DELETION PREVENTION**
-
-**EVOSEAL includes comprehensive rollback safety mechanisms that completely prevent accidental codebase deletion:**
-
-🎉 **YOUR CODEBASE IS FULLY PROTECTED** 🎉
-
-✅ **Zero Risk of Deletion**: Multiple safety layers prevent rollback to dangerous directories
-✅ **Automatic Safe Fallback**: Creates isolated rollback directories when needed
-✅ **Comprehensive Testing**: 16/16 safety tests passed with full verification
-✅ **Production Ready**: Defense-in-depth architecture with extensive logging
-
-### **Key Safety Features**
-
-- 🚫 **Never allows rollback to current working directory**
-- 🚫 **Never allows rollback to parent directories**
-- 🚫 **Never allows rollback to system directories** (`/`, `/home`, `/usr`, etc.)
-- ✅ **Automatic safe fallback directory** (`.evoseal/rollback_target`)
-- ✅ **Multiple validation layers** with comprehensive error handling
-- ✅ **Complete audit logging** of all safety decisions
-
-### **Safety Verification**
-
-Verify the rollback safety mechanisms are working:
-
-```bash
-# Run comprehensive safety tests
-python -m pytest tests/safety/test_rollback_safety_critical.py -v
-# Result: 16/16 tests passed ✅
-
-# Run standalone safety verification
-python tests/safety/verify_rollback_safety.py
-# Result: 🛡️ ROLLBACK SAFETY VERIFICATION: PASSED ✅
-```
-
-### **How It Works**
-
-1. **Primary Safety**: `_get_working_directory()` detects dangerous directories and uses safe fallback
-2. **Secondary Safety**: `_validate_rollback_target()` validates the final target directory
-3. **Tertiary Safety**: CheckpointManager integration with integrity checks
-4. **Comprehensive Logging**: All safety decisions are logged for audit and debugging
-
-**Example: Automatic Safe Fallback**
-
-```python
-# Even if misconfigured to dangerous location:
-version_manager.working_dir = "/home/user"  # Dangerous!
-
-# RollbackManager automatically detects this and:
-# → Creates: /path/to/project/.evoseal/rollback_target
-# → Logs: "Using safe rollback directory..."
-# → Rollback succeeds safely without deleting codebase
-result = rollback_manager.rollback_to_version('v1.0')
-# result = True (success with complete safety)
-```
-
-**🚀 The rollback system is now completely safe and will never delete your codebase!**
-
----
 
 ## License
 
