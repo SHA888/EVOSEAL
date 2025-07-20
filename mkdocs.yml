@@ -51,16 +51,6 @@ plugins:
   - git-revision-date-localized:
       enable_creation_date: true
       type: timeago
-  - mkdocstrings:
-      default_handler: python
-      handlers:
-        python:
-          options:
-            docstring_style: google
-            show_root_heading: true
-            show_source: true
-            members_order: source
-            separate_signature: true
 
 nav:
   - Home: index.md
