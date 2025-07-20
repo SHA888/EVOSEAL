@@ -596,25 +596,36 @@ class CheckpointManager:
         # Capture metrics summary
         metrics_summary = {}
         if metrics:
-            metrics_summary = {
-                'total_metrics': len(metrics),
-                'metric_types': list(set(m.get('metric_type', 'unknown') for m in metrics)),
-                'latest_values': {
-                    m.get('name'): m.get('value') for m in metrics[-10:] if m.get('name')
-                },
-                'timestamp_range': (
-                    {
-                        'earliest': min(
-                            m.get('timestamp', '') for m in metrics if m.get('timestamp')
-                        ),
-                        'latest': max(
-                            m.get('timestamp', '') for m in metrics if m.get('timestamp')
-                        ),
-                    }
-                    if metrics
-                    else None
-                ),
-            }
+            # Ensure metrics is a list of dictionaries
+            if isinstance(metrics, list) and all(isinstance(m, dict) for m in metrics):
+                metrics_summary = {
+                    'total_metrics': len(metrics),
+                    'metric_types': list(set(m.get('metric_type', 'unknown') for m in metrics)),
+                    'latest_values': {
+                        m.get('name'): m.get('value') for m in metrics[-10:] if m.get('name')
+                    },
+                    'timestamp_range': (
+                        {
+                            'earliest': min(
+                                m.get('timestamp', '') for m in metrics if m.get('timestamp')
+                            ),
+                            'latest': max(
+                                m.get('timestamp', '') for m in metrics if m.get('timestamp')
+                            ),
+                        }
+                        if metrics
+                        else None
+                    ),
+                }
+            else:
+                # Handle case where metrics is not in expected format
+                metrics_summary = {
+                    'total_metrics': 0,
+                    'metric_types': [],
+                    'latest_values': {},
+                    'timestamp_range': None,
+                    'warning': f'Metrics not in expected format: {type(metrics)}'
+                }
 
         return {
             'system_info': system_info,

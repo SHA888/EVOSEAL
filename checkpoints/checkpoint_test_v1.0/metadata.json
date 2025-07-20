@@ -1,26 +1,35 @@
 {
   "version_id": "test_v1.0",
   "parent_id": null,
-  "timestamp": "2025-07-20T00:50:24.623904+00:00",
-  "checkpoint_time": "2025-07-20T00:50:24.671576+00:00",
+  "timestamp": "2025-07-20T01:29:42.200614+00:00",
+  "checkpoint_time": "2025-07-20T01:29:42.224488+00:00",
   "version_data": {
-    "version": "1.0",
-    "description": "Test version 1 with enhanced rollback features",
-    "files": [
-      "/tmp/tmpj6fezia8/test_files_v1/config.json",
-      "/tmp/tmpj6fezia8/test_files_v1/main_v1.py"
+    "version_id": "test_v1.0",
+    "code": "def hello(): return 'world'",
+    "metrics": {
+      "accuracy": 0.95
+    },
+    "test_results": [
+      {
+        "test_type": "unit_tests",
+        "test_suite": "unit",
+        "success_rate": 0.95,
+        "tests_run": 100,
+        "tests_passed": 95,
+        "tests_failed": 5,
+        "version": "test_v1.0",
+        "timestamp": "2024-01-01T12:00:00Z"
+      }
     ],
-    "metadata": {
-      "test_version": 1,
-      "rollback_test": true
-    }
+    "safety_checkpoint": true,
+    "checkpoint_timestamp": "2025-07-20T01:29:42.200595+00:00"
   },
   "system_state_captured": true,
   "compression_enabled": false,
   "file_count": 0,
-  "checkpoint_size": 595,
+  "checkpoint_size": 1673,
   "config_snapshot": {},
-  "metrics_count": 0,
+  "metrics_count": 1,
   "has_results": false,
-  "integrity_hash": "22d710e35284ceed2014d7107f12f82e072943e68bdba0fe1b9210b5afdf531c"
+  "integrity_hash": "0a02c07e4d16ac0f4aa1e5e72d8904486d7cb679c3a5433267061a8fbe5f36f6"
 }

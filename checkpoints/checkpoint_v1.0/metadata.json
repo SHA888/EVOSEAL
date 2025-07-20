@@ -2,7 +2,7 @@
   "version_id": "v1.0",
   "parent_id": null,
   "timestamp": "2024-01-01T12:00:00Z",
-  "checkpoint_time": "2025-07-19T22:54:10.902175+00:00",
+  "checkpoint_time": "2025-07-20T01:24:17.310892+00:00",
   "version_data": {
     "version_id": "v1.0",
     "timestamp": "2024-01-01T12:00:00Z",
@@ -22,6 +22,16 @@
       "f1_score": 0.95
     }
   },
+  "system_state_captured": true,
+  "compression_enabled": false,
   "file_count": 0,
-  "checkpoint_size": 613
+  "checkpoint_size": 1662,
+  "config_snapshot": {
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "epochs": 100
+  },
+  "metrics_count": 4,
+  "has_results": false,
+  "integrity_hash": "e9ba1ba01eb13e355396fc36f71cb3839d33e78a238ccaedda3e116d2fc0ac94"
 }
