@@ -789,7 +789,7 @@
               1
             ],
             "details": "Create an interface for RollbackManager that includes methods for initiating rollbacks, tracking rollback history, and managing rollback policies. Define integration points with CheckpointManager and establish rollback triggers and authorization mechanisms.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 5,

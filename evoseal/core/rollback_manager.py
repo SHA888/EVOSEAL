@@ -80,8 +80,11 @@ class RollbackManager:
             if not checkpoint_path:
                 raise RollbackError(f"No checkpoint found for version {version_id}")
 
-            # Get working directory
+            # Get working directory with safety checks
             working_dir = self._get_working_directory()
+
+            # CRITICAL SAFETY: Validate rollback target directory
+            self._validate_rollback_target(working_dir)
 
             # Restore checkpoint to working directory
             success = self.checkpoint_manager.restore_checkpoint(version_id, working_dir)
@@ -95,6 +98,7 @@ class RollbackManager:
                 'reason': reason,
                 'success': True,
                 'working_directory': str(working_dir),
+                'safety_validated': True,
             }
             self.rollback_history.append(rollback_event)
             self._save_rollback_history()
@@ -115,6 +119,56 @@ class RollbackManager:
             self._save_rollback_history()
 
             raise RollbackError(f"Rollback to version {version_id} failed: {e}") from e
+
+    def _validate_rollback_target(self, target_dir: Path) -> None:
+        """Validate that the rollback target directory is safe.
+
+        Args:
+            target_dir: Target directory for rollback
+
+        Raises:
+            RollbackError: If target directory is unsafe
+        """
+        target_resolved = target_dir.resolve()
+        current_dir = Path.cwd().resolve()
+
+        # EXCEPTION: Allow safe fallback directory created by EVOSEAL
+        safe_fallback_dir = (current_dir / '.evoseal' / 'rollback_target').resolve()
+        if target_resolved == safe_fallback_dir:
+            logger.info(f"Using safe EVOSEAL fallback directory: {target_resolved}")
+            return
+
+        # CRITICAL SAFETY: Never allow rollback to current working directory
+        if target_resolved == current_dir:
+            raise RollbackError(
+                f"SAFETY ERROR: Cannot rollback to current working directory {current_dir}. "
+                "This would delete the entire codebase! Configure a proper working directory."
+            )
+
+        # CRITICAL SAFETY: Never allow rollback to parent directories of current directory
+        try:
+            current_dir.relative_to(target_resolved)
+            raise RollbackError(
+                f"SAFETY ERROR: Cannot rollback to parent directory {target_resolved} "
+                f"of current directory {current_dir}. This could delete the codebase!"
+            )
+        except ValueError:
+            # target_dir is not a parent of current_dir, which is good
+            pass
+
+        # CRITICAL SAFETY: Warn about potentially dangerous directories
+        dangerous_patterns = ['/', '/home', '/usr', '/var', '/etc', '/opt']
+        target_str = str(target_resolved)
+
+        for pattern in dangerous_patterns:
+            if target_str == pattern or target_str.startswith(pattern + '/'):
+                if len(target_str.split('/')) <= 3:  # Very shallow paths are dangerous
+                    raise RollbackError(
+                        f"SAFETY ERROR: Rollback target {target_resolved} appears to be "
+                        f"a system directory. This is extremely dangerous!"
+                    )
+
+        logger.info(f"Rollback target validation passed: {target_resolved}")
 
     def auto_rollback_on_failure(
         self,
@@ -324,14 +378,66 @@ class RollbackManager:
     def _get_working_directory(self) -> Path:
         """Get the working directory for rollback operations.
 
+        CRITICAL SAFETY: Never rollback to dangerous directories
+        to prevent accidental deletion of the entire codebase.
+
         Returns:
-            Path to the working directory
+            Path to a safe rollback target directory
         """
         if self.version_manager and hasattr(self.version_manager, 'working_dir'):
-            return Path(self.version_manager.working_dir)
+            working_dir = Path(self.version_manager.working_dir).resolve()
+            current_dir = Path.cwd().resolve()
 
-        # Fallback to current directory
-        return Path.cwd()
+            # Check if the working directory is safe
+            is_safe = True
+
+            # CRITICAL SAFETY: Never use current directory
+            if working_dir == current_dir:
+                is_safe = False
+                logger.warning(
+                    f"Version manager working directory is current directory: {working_dir}"
+                )
+
+            # CRITICAL SAFETY: Never use parent directories of current directory
+            try:
+                current_dir.relative_to(working_dir)
+                is_safe = False
+                logger.warning(
+                    f"Version manager working directory is parent of current directory: {working_dir}"
+                )
+            except ValueError:
+                # working_dir is not a parent of current_dir, which is good
+                pass
+
+            # CRITICAL SAFETY: Check for dangerous system directories
+            dangerous_patterns = ['/', '/home', '/usr', '/var', '/etc', '/opt']
+            working_dir_str = str(working_dir)
+            for pattern in dangerous_patterns:
+                if working_dir_str == pattern or (
+                    working_dir_str.startswith(pattern + '/')
+                    and len(working_dir_str.split('/')) <= 3
+                ):
+                    is_safe = False
+                    logger.warning(
+                        f"Version manager working directory appears to be a system directory: {working_dir}"
+                    )
+                    break
+
+            # If the working directory is safe, use it
+            if is_safe:
+                return working_dir
+
+        # CRITICAL SAFETY: Create a safe rollback target directory
+        # Never use current working directory to prevent codebase deletion
+        safe_rollback_dir = Path.cwd() / '.evoseal' / 'rollback_target'
+        safe_rollback_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.warning(
+            f"Using safe rollback directory: {safe_rollback_dir}. "
+            "Configure version_manager.working_dir for production use."
+        )
+
+        return safe_rollback_dir
 
     def _load_rollback_history(self) -> None:
         """Load rollback history from file."""

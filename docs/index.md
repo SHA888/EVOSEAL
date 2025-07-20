@@ -16,10 +16,16 @@ EVOSEAL is an advanced AI system that integrates three key components to create 
 
 ## Documentation
 
+### Core Documentation
 - [User Guide](user/manual.md)
 - [Developer Guide](guides/development.md)
 - [Architecture](architecture/overview.md)
 - [API Reference](api/index.md)
+
+### 🛡️ Safety & Security
+- [**Rollback Safety**](rollback_safety.md) - **Critical safety features preventing codebase deletion**
+- [Safety & Validation](safety_validation.md) - Comprehensive safety mechanisms
+- [Error Handling & Resilience](error_handling_resilience.md) - Robust error management
 
 ## Getting Help
 
