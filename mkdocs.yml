@@ -1,7 +1,9 @@
-site_name: EVOSEAL
-site_url: https://github.com/SHA888/EVOSEAL
+site_name: EVOSEAL Documentation
+site_description: Evolutionary Self-Improving AI Agent - Comprehensive Documentation
+site_url: https://sha888.github.io/EVOSEAL/  # GitHub Pages URL
 repo_url: https://github.com/SHA888/EVOSEAL
 repo_name: SHA888/EVOSEAL
+edit_uri: edit/main/docs/
 
 theme:
   name: material
@@ -44,7 +46,11 @@ markdown_extensions:
       permalink: true
 
 plugins:
-  - search
+  - search:
+      lang: en
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -53,19 +59,51 @@ plugins:
             docstring_style: google
             show_root_heading: true
             show_source: true
+            members_order: source
+            separate_signature: true
 
 nav:
   - Home: index.md
   - User Guide:
       - Getting Started: user/manual.md
       - Examples: examples/quickstart.md
-  - Developer Guide:
+  - User Guides:
+      - Configuration: guides/CONFIGURATION.md
+      - Setup: guides/SETUP.md
+      - Deployment: guides/DEPLOYMENT.md
+      - Testing: guides/TESTING.md
+      - Troubleshooting: guides/TROUBLESHOOTING.md
       - Development: guides/development.md
+  - Safety & Security:
+      - Safety Overview: safety/index.md
+      - Rollback Safety: safety/rollback_safety.md
+      - Enhanced Rollback Logic: safety/enhanced_rollback_logic.md
+      - Rollback Manager Interface: safety/rollback_manager_interface.md
+      - Regression Detection: safety/regression_detector_interface.md
+      - Statistical Regression Detection: safety/statistical_regression_detection.md
+      - Safety Validation: safety/safety_validation.md
+      - Pipeline Safety Integration: safety/evolution_pipeline_safety_integration.md
+  - Core Systems:
+      - Core Overview: core/index.md
+      - Event System: core/event_system.md
+      - Error Handling: core/error_handling.md
+      - Error Handling & Resilience: core/error_handling_resilience.md
+      - Workflow Orchestration: core/workflow_orchestration.md
+      - Version Control & Experiment Tracking: core/version_control_experiment_tracking.md
+      - Agentic System: core/agentic_system.md
+      - Prompt Template System: core/prompt_template_system.md
+      - Knowledge Base: core/knowledge_base.md
   - Architecture:
       - Overview: architecture/overview.md
   - API Reference:
-      - API: api/index.md
-  - Configuration: CONFIGURATION.md
+      - API Overview: api/index.md
+      - API Reference: api/reference.md
+  - Project Information:
+      - Maintainers: project/MAINTAINERS.md
+      - Contributors: project/CONTRIBUTORS.md
+      - Roadmap: project/ROADMAP.md
+      - Security Policy: project/SECURITY.md
+      - GitHub Pages Setup: project/GITHUB_PAGES_SETUP.md
   - About:
       - GitHub: https://github.com/SHA888/EVOSEAL
 
