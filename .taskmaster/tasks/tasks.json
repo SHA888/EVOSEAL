@@ -808,7 +808,7 @@
             "description": "Define the interface and core functionality for the RegressionDetector component that will identify performance or safety regressions.",
             "dependencies": [],
             "details": "Create an interface for RegressionDetector that includes methods for comparing system performance across versions, establishing baselines, and triggering alerts. Define metrics to monitor, threshold configurations, and integration with testing frameworks.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 7,
@@ -818,7 +818,7 @@
               6
             ],
             "details": "Implement regression detection algorithms that can compare performance metrics, safety indicators, and behavioral patterns between versions. Include statistical analysis tools, anomaly detection, and configurable sensitivity levels. Design for both automated and human-in-the-loop evaluation.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 8,
@@ -837,7 +837,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T23:24:41.351Z",
-      "updated": "2025-07-19T21:56:53.528Z",
+      "updated": "2025-07-20T01:17:30.008Z",
       "description": "Tasks for master context"
     }
   }

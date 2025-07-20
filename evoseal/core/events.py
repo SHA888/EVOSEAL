@@ -86,7 +86,7 @@ class EventType(Enum):
     CONFIG_UPDATED = "config_updated"
     STATE_CHANGED = "state_changed"
     CHECKPOINT_CREATED = "checkpoint_created"
-    
+
     # Rollback events
     ROLLBACK_INITIATED = "rollback_initiated"
     ROLLBACK_COMPLETED = "rollback_completed"
@@ -95,7 +95,12 @@ class EventType(Enum):
     ROLLBACK_VERIFICATION_FAILED = "rollback_verification_failed"
     CASCADING_ROLLBACK_STARTED = "cascading_rollback_started"
     CASCADING_ROLLBACK_COMPLETED = "cascading_rollback_completed"
-    
+
+    # Regression detection events
+    BASELINE_ESTABLISHED = "baseline_established"
+    REGRESSION_DETECTED = "regression_detected"
+    REGRESSION_ALERT = "regression_alert"
+
     PROGRESS_UPDATE = "progress_update"
 
     # Additional component events
