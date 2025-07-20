@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .checkpoint_manager import CheckpointError, CheckpointManager
+from .events import EventType, publish
 from .logging_system import get_logger
 
 logger = get_logger(__name__)
@@ -91,6 +92,13 @@ class RollbackManager:
             if not success:
                 raise RollbackError(f"Failed to restore checkpoint for version {version_id}")
 
+            # Post-rollback verification
+            verification_result = self._verify_rollback_success(version_id, working_dir)
+            if not verification_result['success']:
+                logger.error(f"Post-rollback verification failed: {verification_result['error']}")
+                # Don't raise exception here - rollback succeeded but verification failed
+                # This is logged for monitoring but doesn't fail the rollback
+
             # Record rollback event
             rollback_event = {
                 'timestamp': datetime.now(timezone.utc).isoformat(),
@@ -99,9 +107,23 @@ class RollbackManager:
                 'success': True,
                 'working_directory': str(working_dir),
                 'safety_validated': True,
+                'verification_result': verification_result,
             }
             self.rollback_history.append(rollback_event)
             self._save_rollback_history()
+
+            # Publish rollback success event
+            try:
+                publish(
+                    EventType.ROLLBACK_COMPLETED,
+                    source="rollback_manager",
+                    version_id=version_id,
+                    reason=reason,
+                    working_directory=str(working_dir),
+                    verification_passed=verification_result['success']
+                )
+            except Exception as e:
+                logger.warning(f"Failed to publish rollback event: {e}")
 
             logger.info(f"Successfully rolled back to version {version_id} (reason: {reason})")
             return True
@@ -117,6 +139,17 @@ class RollbackManager:
             }
             self.rollback_history.append(rollback_event)
             self._save_rollback_history()
+
+            # Attempt failure recovery if enabled
+            if self.config.get('enable_rollback_failure_recovery', True):
+                logger.info(f"Attempting rollback failure recovery for version {version_id}")
+                recovery_result = self.handle_rollback_failure(version_id, str(e))
+                
+                if recovery_result['success']:
+                    logger.info(f"Rollback failure recovery successful: {recovery_result['recovery_strategy']}")
+                    return True  # Recovery succeeded, don't raise exception
+                else:
+                    logger.error(f"Rollback failure recovery failed: {recovery_result.get('error', 'Unknown error')}")
 
             raise RollbackError(f"Rollback to version {version_id} failed: {e}") from e
 
@@ -219,6 +252,19 @@ class RollbackManager:
             if not parent_id:
                 logger.error(f"No parent version found for version {version_id}")
                 return False
+
+            # Publish rollback initiated event
+            try:
+                publish(
+                    EventType.ROLLBACK_INITIATED,
+                    source="rollback_manager",
+                    version_id=parent_id,
+                    from_version=version_id,
+                    reason=f"auto_rollback: {', '.join(rollback_reasons)}",
+                    rollback_reasons=rollback_reasons
+                )
+            except Exception as e:
+                logger.warning(f"Failed to publish rollback initiated event: {e}")
 
             # Perform rollback
             reason = f"auto_rollback: {', '.join(rollback_reasons)}"
@@ -438,6 +484,290 @@ class RollbackManager:
         )
 
         return safe_rollback_dir
+
+    def _verify_rollback_success(self, version_id: str, working_dir: Path) -> Dict[str, Any]:
+        """Verify that rollback was successful.
+        
+        Args:
+            version_id: ID of the version that was rolled back to
+            working_dir: Directory where rollback was performed
+            
+        Returns:
+            Dictionary with verification results
+        """
+        try:
+            # Basic verification: check if working directory exists and has content
+            if not working_dir.exists():
+                return {
+                    'success': False,
+                    'error': f'Working directory does not exist: {working_dir}'
+                }
+            
+            # Check if directory has any files
+            files = list(working_dir.iterdir())
+            if not files:
+                return {
+                    'success': False,
+                    'error': f'Working directory is empty: {working_dir}'
+                }
+            
+            # Verify checkpoint integrity if possible
+            try:
+                checkpoint_path = self.checkpoint_manager.get_checkpoint_path(version_id)
+                if checkpoint_path and hasattr(self.checkpoint_manager, 'verify_checkpoint_integrity'):
+                    integrity_check = self.checkpoint_manager.verify_checkpoint_integrity(version_id)
+                    if not integrity_check:
+                        logger.warning(f"Checkpoint integrity verification failed for {version_id}")
+                        # Don't fail verification for this - it's a warning
+            except Exception as e:
+                logger.warning(f"Could not verify checkpoint integrity: {e}")
+            
+            # Publish verification success event
+            try:
+                publish(
+                    EventType.ROLLBACK_VERIFICATION_PASSED,
+                    source="rollback_manager",
+                    version_id=version_id,
+                    working_directory=str(working_dir),
+                    file_count=len(files)
+                )
+            except Exception as e:
+                logger.warning(f"Failed to publish verification event: {e}")
+            
+            return {
+                'success': True,
+                'file_count': len(files),
+                'working_directory': str(working_dir)
+            }
+            
+        except Exception as e:
+            # Publish verification failure event
+            try:
+                publish(
+                    EventType.ROLLBACK_VERIFICATION_FAILED,
+                    source="rollback_manager",
+                    version_id=version_id,
+                    working_directory=str(working_dir),
+                    error=str(e)
+                )
+            except Exception as pub_e:
+                logger.warning(f"Failed to publish verification failure event: {pub_e}")
+            
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def cascading_rollback(self, failed_version_id: str, max_attempts: int = 3) -> Dict[str, Any]:
+        """Perform cascading rollback when multiple rollbacks are needed.
+        
+        Args:
+            failed_version_id: ID of the version that failed
+            max_attempts: Maximum number of rollback attempts
+            
+        Returns:
+            Dictionary with cascading rollback results
+        """
+        try:
+            # Publish cascading rollback started event
+            publish(
+                EventType.CASCADING_ROLLBACK_STARTED,
+                source="rollback_manager",
+                failed_version_id=failed_version_id,
+                max_attempts=max_attempts
+            )
+            
+            current_version = failed_version_id
+            rollback_chain = []
+            
+            for attempt in range(max_attempts):
+                logger.info(f"Cascading rollback attempt {attempt + 1}/{max_attempts} for version {current_version}")
+                
+                # Find parent version
+                parent_version = self._find_parent_version(current_version)
+                if not parent_version:
+                    logger.error(f"No parent version found for {current_version} - cascading rollback stopped")
+                    break
+                
+                try:
+                    # Attempt rollback
+                    success = self.rollback_to_version(
+                        parent_version, 
+                        f"cascading_rollback_attempt_{attempt + 1}_from_{failed_version_id}"
+                    )
+                    
+                    rollback_chain.append({
+                        'from_version': current_version,
+                        'to_version': parent_version,
+                        'attempt': attempt + 1,
+                        'success': success
+                    })
+                    
+                    if success:
+                        logger.info(f"Cascading rollback successful at attempt {attempt + 1}: {parent_version}")
+                        
+                        # Publish cascading rollback completed event
+                        publish(
+                            EventType.CASCADING_ROLLBACK_COMPLETED,
+                            source="rollback_manager",
+                            failed_version_id=failed_version_id,
+                            successful_version_id=parent_version,
+                            attempts=attempt + 1,
+                            rollback_chain=rollback_chain
+                        )
+                        
+                        return {
+                            'success': True,
+                            'final_version': parent_version,
+                            'attempts': attempt + 1,
+                            'rollback_chain': rollback_chain
+                        }
+                    else:
+                        logger.warning(f"Rollback to {parent_version} failed, trying next parent")
+                        current_version = parent_version
+                        
+                except Exception as e:
+                    logger.error(f"Exception during cascading rollback attempt {attempt + 1}: {e}")
+                    rollback_chain.append({
+                        'from_version': current_version,
+                        'to_version': parent_version,
+                        'attempt': attempt + 1,
+                        'success': False,
+                        'error': str(e)
+                    })
+                    current_version = parent_version
+            
+            # All attempts failed
+            logger.error(f"Cascading rollback failed after {max_attempts} attempts")
+            return {
+                'success': False,
+                'attempts': max_attempts,
+                'rollback_chain': rollback_chain,
+                'error': 'All cascading rollback attempts failed'
+            }
+            
+        except Exception as e:
+            logger.error(f"Cascading rollback failed with exception: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'rollback_chain': rollback_chain if 'rollback_chain' in locals() else []
+            }
+
+    def handle_rollback_failure(self, version_id: str, error: str, attempt_count: int = 1) -> Dict[str, Any]:
+        """Handle rollback failures with recovery strategies.
+        
+        Args:
+            version_id: ID of the version that failed to rollback
+            error: Error message from the failed rollback
+            attempt_count: Number of attempts made
+            
+        Returns:
+            Dictionary with failure handling results
+        """
+        try:
+            logger.error(f"Handling rollback failure for version {version_id}: {error}")
+            
+            # Publish rollback failure event
+            publish(
+                EventType.ROLLBACK_FAILED,
+                source="rollback_manager",
+                version_id=version_id,
+                error=error,
+                attempt_count=attempt_count
+            )
+            
+            recovery_actions = []
+            
+            # Strategy 1: Try cascading rollback if not already attempted
+            if attempt_count == 1 and self.config.get('enable_cascading_rollback', True):
+                logger.info("Attempting cascading rollback as recovery strategy")
+                cascading_result = self.cascading_rollback(version_id)
+                recovery_actions.append({
+                    'strategy': 'cascading_rollback',
+                    'result': cascading_result
+                })
+                
+                if cascading_result['success']:
+                    return {
+                        'success': True,
+                        'recovery_strategy': 'cascading_rollback',
+                        'final_version': cascading_result['final_version'],
+                        'recovery_actions': recovery_actions
+                    }
+            
+            # Strategy 2: Try to find a known good version
+            known_good_versions = self._find_known_good_versions()
+            if known_good_versions:
+                logger.info(f"Attempting rollback to known good version: {known_good_versions[0]}")
+                try:
+                    success = self.rollback_to_version(
+                        known_good_versions[0], 
+                        f"recovery_rollback_from_failed_{version_id}"
+                    )
+                    recovery_actions.append({
+                        'strategy': 'known_good_version',
+                        'target_version': known_good_versions[0],
+                        'success': success
+                    })
+                    
+                    if success:
+                        return {
+                            'success': True,
+                            'recovery_strategy': 'known_good_version',
+                            'final_version': known_good_versions[0],
+                            'recovery_actions': recovery_actions
+                        }
+                except Exception as e:
+                    logger.error(f"Recovery rollback to known good version failed: {e}")
+                    recovery_actions[-1]['error'] = str(e)
+            
+            # All recovery strategies failed
+            logger.error(f"All recovery strategies failed for rollback of version {version_id}")
+            return {
+                'success': False,
+                'error': 'All recovery strategies failed',
+                'recovery_actions': recovery_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"Exception in rollback failure handling: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def _find_known_good_versions(self) -> List[str]:
+        """Find versions that are known to be good based on rollback history.
+        
+        Returns:
+            List of version IDs that have successful rollback history
+        """
+        try:
+            # Get successful rollbacks from history
+            successful_rollbacks = [
+                event for event in self.rollback_history 
+                if event.get('success', False) and 'version_id' in event
+            ]
+            
+            # Count successful rollbacks per version
+            version_success_count = {}
+            for event in successful_rollbacks:
+                version_id = event['version_id']
+                version_success_count[version_id] = version_success_count.get(version_id, 0) + 1
+            
+            # Sort by success count (most successful first)
+            known_good = sorted(
+                version_success_count.items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )
+            
+            return [version_id for version_id, _ in known_good[:5]]  # Return top 5
+            
+        except Exception as e:
+            logger.error(f"Error finding known good versions: {e}")
+            return []
 
     def _load_rollback_history(self) -> None:
         """Load rollback history from file."""

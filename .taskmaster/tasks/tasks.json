@@ -800,7 +800,7 @@
               4
             ],
             "details": "Implement rollback procedures that coordinate with CheckpointManager to restore previous states. Include pre-rollback validation, post-rollback verification, notification systems, and comprehensive logging. Design for handling cascading rollbacks and rollback failures.",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 6,

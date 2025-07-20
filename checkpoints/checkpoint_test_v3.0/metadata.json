@@ -1,0 +1,26 @@
+{
+  "version_id": "test_v3.0",
+  "parent_id": null,
+  "timestamp": "2025-07-20T00:50:24.716517+00:00",
+  "checkpoint_time": "2025-07-20T00:50:24.742101+00:00",
+  "version_data": {
+    "version": "3.0",
+    "description": "Test version 3 with enhanced rollback features",
+    "files": [
+      "/tmp/tmpj6fezia8/test_files_v3/config.json",
+      "/tmp/tmpj6fezia8/test_files_v3/main_v3.py"
+    ],
+    "metadata": {
+      "test_version": 3,
+      "rollback_test": true
+    }
+  },
+  "system_state_captured": true,
+  "compression_enabled": false,
+  "file_count": 0,
+  "checkpoint_size": 595,
+  "config_snapshot": {},
+  "metrics_count": 0,
+  "has_results": false,
+  "integrity_hash": "33a69c0da4def6dbd1fa6d42e77a62575e3d8a26f5f20c5033bec3e1e9d840cf"
+}
