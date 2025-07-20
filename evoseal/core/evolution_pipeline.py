@@ -106,9 +106,20 @@ class EvolutionPipeline:
 
         # Initialize core components
         self.version_db = VersionDatabase()
-        self.metrics_tracker = MetricsTracker(self.config.metrics_config)
+        
+        # Initialize MetricsTracker with proper parameters
+        metrics_config = self.config.metrics_config
+        storage_path = metrics_config.get('storage_path') if isinstance(metrics_config, dict) else None
+        thresholds = metrics_config.get('thresholds') if isinstance(metrics_config, dict) else None
+        self.metrics_tracker = MetricsTracker(storage_path, thresholds)
+        
         self.test_runner = TestRunner(self.config.test_config)
-        self.validator = ImprovementValidator(self.config.validation_config, self.metrics_tracker)
+        
+        # Initialize ImprovementValidator with proper parameters
+        validation_config = self.config.validation_config
+        min_improvement_score = validation_config.get('min_improvement_score', 70.0) if isinstance(validation_config, dict) else 70.0
+        confidence_level = validation_config.get('confidence_level', 0.95) if isinstance(validation_config, dict) else 0.95
+        self.validator = ImprovementValidator(self.metrics_tracker, None, min_improvement_score, confidence_level)
 
         # Initialize safety integration
         safety_config = getattr(self.config, 'safety_config', {})
@@ -1170,6 +1181,9 @@ class WorkflowStage(Enum):
         except ValueError:
             return False
 
+
+
+class WorkflowCoordinator:
     """Coordinates the execution of evolution workflows.
 
     This class provides a higher-level interface for running evolution workflows
