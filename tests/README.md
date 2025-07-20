@@ -33,7 +33,7 @@
 ## Mocking & Fixtures
 
 - Use `unittest.mock.patch` to isolate tests from external APIs and side effects.
-- Patch all major dependencies (e.g., Docker, Anthropic, OpenEvolve, SEAL providers) at the top of test files.
+- Patch all major dependencies (e.g., Docker, Anthropic, OpenEvolve, SEAL (Self-Adapting Language Models) providers) at the top of test files.
 - Use pytest fixtures for temporary directories, sample data, and resource setup/teardown.
 - Always mock file I/O and OS operations when testing error paths or edge cases.
 

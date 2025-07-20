@@ -24,7 +24,7 @@
   },
   "seal": {
     "enabled": true,
-    "module_path": "/var/lib/evoseal/SEAL",
+    "module_path": "/var/lib/evoseal/SEAL (Self-Adapting Language Models)",
     "few_shot_enabled": true,
     "knowledge_base_path": "/var/lib/evoseal/knowledge",
     "max_context_length": 4096,

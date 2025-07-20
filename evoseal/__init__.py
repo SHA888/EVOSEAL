@@ -1,8 +1,8 @@
 """
-EVOSEAL - An advanced AI system integrating DGM, OpenEvolve, and SEAL.
+EVOSEAL - An advanced AI system integrating DGM, OpenEvolve, and SEAL (Self-Adapting Language Models).
 
 This package provides a comprehensive framework for evolutionary AI development,
-combining Darwin Godel Machine, OpenEvolve, and SEAL.
+combining Darwin Godel Machine, OpenEvolve, and SEAL (Self-Adapting Language Models).
 """
 
 from __future__ import annotations

@@ -1,13 +1,13 @@
 # EVOSEAL Component Integration System
 
-This module provides a comprehensive integration system for orchestrating external components (DGM, OpenEvolve, SEAL) within the EVOSEAL evolution pipeline.
+This module provides a comprehensive integration system for orchestrating external components (DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) within the EVOSEAL evolution pipeline.
 
 ## Overview
 
 The integration system consists of several key components:
 
 - **Base Adapter**: Abstract base class for all component adapters
-- **Component Adapters**: Specific implementations for DGM, OpenEvolve, and SEAL
+- **Component Adapters**: Specific implementations for DGM, OpenEvolve, and SEAL (Self-Adapting Language Models)
 - **Integration Orchestrator**: Central coordinator for all components
 - **Evolution Pipeline Integration**: Seamless integration with the main pipeline
 
@@ -19,10 +19,10 @@ The integration system consists of several key components:
 ├─────────────────────────────────────────────────────────────┤
 │                Integration Orchestrator                     │
 ├─────────────────┬─────────────────┬─────────────────────────┤
-│   DGM Adapter   │ OpenEvolve      │     SEAL Adapter        │
+│   DGM Adapter   │ OpenEvolve      │     SEAL (Self-Adapting Language Models) Adapter        │
 │                 │ Adapter         │                         │
 ├─────────────────┼─────────────────┼─────────────────────────┤
-│   DGM Module    │ OpenEvolve      │     SEAL Interface      │
+│   DGM Module    │ OpenEvolve      │     SEAL (Self-Adapting Language Models) Interface      │
 │                 │ Module          │                         │
 └─────────────────┴─────────────────┴─────────────────────────┘
 ```
@@ -75,18 +75,18 @@ openevolve_config = {
 }
 ```
 
-### SEAL Adapter
+### SEAL (Self-Adapting Language Models) Adapter
 
-The SEAL adapter provides integration with Self-Adapting Language Models:
+The SEAL (Self-Adapting Language Models) adapter provides integration with Self-Adapting Language Models:
 
 **Supported Operations:**
-- `submit_prompt`: Submit a prompt to SEAL
+- `submit_prompt`: Submit a prompt to SEAL (Self-Adapting Language Models)
 - `batch_submit`: Submit multiple prompts
-- `analyze_code`: Analyze code using SEAL
-- `generate_code`: Generate code using SEAL
-- `improve_code`: Improve existing code using SEAL
-- `explain_code`: Get code explanations from SEAL
-- `review_code`: Get code reviews from SEAL
+- `analyze_code`: Analyze code using SEAL (Self-Adapting Language Models)
+- `generate_code`: Generate code using SEAL (Self-Adapting Language Models)
+- `improve_code`: Improve existing code using SEAL (Self-Adapting Language Models)
+- `explain_code`: Get code explanations from SEAL (Self-Adapting Language Models)
+- `review_code`: Get code reviews from SEAL (Self-Adapting Language Models)
 - `optimize_prompt`: Optimize prompt for better results
 
 **Configuration:**
@@ -119,7 +119,7 @@ await orchestrator.start()
 
 # Execute component operations
 result = await orchestrator.execute_component_operation(
-    ComponentType.SEAL,
+    ComponentType.SEAL (Self-Adapting Language Models),
     "analyze_code",
     "def hello(): return 'world'"
 )
@@ -162,12 +162,12 @@ await pipeline.stop_components()
 # Define multiple operations
 operations = [
     {
-        "component_type": ComponentType.SEAL,
+        "component_type": ComponentType.SEAL (Self-Adapting Language Models),
         "operation": "analyze_code",
         "data": "code_sample_1"
     },
     {
-        "component_type": ComponentType.SEAL,
+        "component_type": ComponentType.SEAL (Self-Adapting Language Models),
         "operation": "analyze_code",
         "data": "code_sample_2"
     }
@@ -264,7 +264,7 @@ class CustomAdapter(BaseComponentAdapter):
 
 ### Adding Custom Providers
 
-For SEAL, you can add custom providers:
+For SEAL (Self-Adapting Language Models), you can add custom providers:
 
 ```python
 class CustomSEALProvider:
@@ -276,7 +276,7 @@ class CustomSEALProvider:
         # Your custom parsing logic
         pass
 
-# Use with SEAL adapter
+# Use with SEAL (Self-Adapting Language Models) adapter
 seal_config = {
     "provider_type": "custom",
     "provider_class": CustomSEALProvider,

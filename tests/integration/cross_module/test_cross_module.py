@@ -47,7 +47,7 @@ class MockController(Controller):
         self._loop = asyncio.new_event_loop()
 
     def set_seal_interface(self, seal_interface):
-        """Set the SEAL interface for testing."""
+        """Set the SEAL (Self-Adapting Language Models) interface for testing."""
         self.seal_interface = seal_interface
 
     def initialize(self, config: dict[str, Any]) -> None:
@@ -57,7 +57,7 @@ class MockController(Controller):
     async def _run_generation_async(self):
         """Run a single generation asynchronously."""
         if self.seal_interface:
-            # Simulate calling the SEAL interface
+            # Simulate calling the SEAL (Self-Adapting Language Models) interface
             response = await self.seal_interface.submit("test prompt")
             return response
         return None
@@ -70,7 +70,10 @@ class MockController(Controller):
         else:
             # Otherwise, create a new event loop
             response = asyncio.run(self._run_generation_async())
-        return response or {"success": False, "message": "No SEAL interface configured"}
+        return response or {
+            "success": False,
+            "message": "No SEAL (Self-Adapting Language Models) interface configured",
+        }
 
 
 # Mock test runner and evaluator for the controller
@@ -99,7 +102,7 @@ class MockEvaluator:
 @pytest.fixture
 def mock_components():
     """Create mock instances of all components for testing."""
-    # Create mock SEAL interface
+    # Create mock SEAL (Self-Adapting Language Models) interface
     mock_seal = AsyncMock(spec=SEALInterface)
     mock_seal.submit.return_value = {
         "success": True,
@@ -140,7 +143,7 @@ async def test_cross_module_workflow(mock_components):
     # Run a test generation
     result = await mock_controller._run_generation_async()
 
-    # Verify the SEAL interface was called
+    # Verify the SEAL (Self-Adapting Language Models) interface was called
     mock_seal.submit.assert_called_once()
     assert "test prompt" in mock_seal.submit.call_args[0][0]
 
@@ -160,7 +163,7 @@ async def test_error_handling_across_modules(mock_components):
     config = {"population_size": 10, "max_generations": 100}
     mock_controller.initialize(config)
 
-    # Simulate an error in the SEAL interface
+    # Simulate an error in the SEAL (Self-Adapting Language Models) interface
     mock_seal.submit.side_effect = Exception("Test error")
 
     # Verify the error is properly handled

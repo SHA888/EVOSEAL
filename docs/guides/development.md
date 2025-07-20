@@ -83,7 +83,7 @@ docker-compose -f docker-compose.dev.yml exec evoseal bash
 ```
 evoseal/
 ├── core/                    # Core framework components
-├── integration/            # Integration modules (DGM, OpenEvolve, SEAL)
+├── integration/            # Integration modules (DGM, OpenEvolve, SEAL (Self-Adapting Language Models))
 ├── agents/                # Agent implementations
 ├── providers/             # AI/ML model providers
 ├── models/                # Data models and schemas
@@ -514,7 +514,7 @@ pre-commit install
 ```
 evoseal/
 ├── core/               # Core framework components
-├── integration/        # Integration modules (DGM, OpenEvolve, SEAL)
+├── integration/        # Integration modules (DGM, OpenEvolve, SEAL (Self-Adapting Language Models))
 ├── models/            # Data models
 ├── providers/         # AI/ML model providers
 ├── storage/           # Data persistence

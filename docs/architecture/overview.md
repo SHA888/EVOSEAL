@@ -31,7 +31,7 @@ graph TD
     A[User Interface] -->|Task Input| B[EVOSEAL Core]
     B -->|Orchestrate| C[DGM Engine]
     B -->|Coordinate| D[OpenEvolve]
-    B -->|Manage| E[SEAL Framework]
+    B -->|Manage| E[SEAL (Self-Adapting Language Models) Framework]
     C -->|Evolve Code| D
     D -->|Optimize| E
     E -->|Self-Improve| C
@@ -99,7 +99,7 @@ The central orchestrator that manages the evolution process, coordinates between
 
 ### 4. SEAL (Self-Adapting Language Models)
 
-**Purpose**: Framework for training language models to generate self-edits
+**Purpose**: Self-Adapting Language Models - Framework for training language models to generate self-edits
 
 **Key Features:**
 - Few-shot learning capabilities
@@ -131,10 +131,10 @@ The central orchestrator that manages the evolution process, coordinates between
 - Safety mechanisms activate
 
 ### 2. Evolution Cycle
-- **Generation**: DGM generates candidate solutions using SEAL
+- **Generation**: DGM generates candidate solutions using SEAL (Self-Adapting Language Models)
 - **Evaluation**: OpenEvolve assesses solutions with multiple metrics
 - **Selection**: MAP-Elites process maintains quality and diversity
-- **Optimization**: SEAL applies self-improvement techniques
+- **Optimization**: SEAL (Self-Adapting Language Models) applies self-improvement techniques
 - **Validation**: Safety checks and regression detection
 - **Persistence**: Version control and checkpointing
 

@@ -1,4 +1,4 @@
-"""Tests for the SEAL prompt templates and construction."""
+"""Tests for the SEAL (Self-Adapting Language Models) prompt templates and construction."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

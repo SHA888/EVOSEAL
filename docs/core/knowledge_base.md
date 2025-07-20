@@ -8,7 +8,7 @@ The KnowledgeBase component provides structured storage and retrieval of knowled
 - **Efficient Retrieval**: Search by content, tags, and metadata
 - **Versioning**: Automatic version tracking for entries
 - **Persistence**: Save and load knowledge to/from disk
-- **Integration**: Seamless integration with SEAL interface
+- **Integration**: Seamless integration with SEAL (Self-Adapting Language Models) interface
 
 ## Usage
 
@@ -36,9 +36,9 @@ for result in results:
     print(f"- {result.content}")
 ```
 
-### Integration with SEAL
+### Integration with SEAL (Self-Adapting Language Models)
 
-The `SEALKnowledge` class provides a higher-level interface for integrating the KnowledgeBase with SEAL:
+The `SEALKnowledge` class provides a higher-level interface for integrating the KnowledgeBase with SEAL (Self-Adapting Language Models):
 
 ```python
 from evoseal.integration.seal.seal_knowledge import SEALKnowledge, KnowledgeBase

@@ -64,8 +64,13 @@ class OpenEvolveConfig(BaseModel):
 class SEALConfig(BaseModel):
     """Configuration for the SEAL component."""
 
-    enabled: bool = Field(True, description="Whether SEAL is enabled")
-    module_path: str = Field("SEAL", description="Path to the SEAL module (relative or absolute)")
+    enabled: bool = Field(
+        True, description="Whether SEAL (Self-Adapting Language Models) is enabled"
+    )
+    module_path: str = Field(
+        "SEAL (Self-Adapting Language Models)",
+        description="Path to the SEAL (Self-Adapting Language Models) module (relative or absolute)",
+    )
     few_shot_enabled: bool = Field(True, description="Enable few-shot learning")
     knowledge_base_path: str = Field("data/knowledge", description="Path to knowledge base")
     max_context_length: int = Field(4096, description="Maximum context length for the model")

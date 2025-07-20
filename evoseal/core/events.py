@@ -853,7 +853,7 @@ def create_component_event(
 
     Args:
         event_type: Type of the event
-        component_type: Type of component (DGM, OpenEvolve, SEAL)
+        component_type: Type of component (DGM, OpenEvolve, SEAL (Self-Adapting Language Models))
         component_id: Unique identifier for the component
         operation: Operation being performed
         source: Source of the event

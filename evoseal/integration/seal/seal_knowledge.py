@@ -1,7 +1,7 @@
 """
-SEAL Knowledge Integration
+SEAL (Self-Adapting Language Models) Knowledge Integration
 --------------------------
-Integrates the KnowledgeBase with the SEAL interface to provide
+Integrates the KnowledgeBase with the SEAL (Self-Adapting Language Models) interface to provide
 knowledge-enhanced language model interactions.
 """
 
@@ -14,10 +14,10 @@ from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase, Kno
 
 class SEALKnowledge:
     """
-    Integrates KnowledgeBase with SEAL to provide knowledge-enhanced interactions.
+    Integrates KnowledgeBase with SEAL (Self-Adapting Language Models) to provide knowledge-enhanced interactions.
 
     This class provides methods to:
-    1. Store and retrieve knowledge relevant to SEAL operations
+    1. Store and retrieve knowledge relevant to SEAL (Self-Adapting Language Models) operations
     2. Enhance prompts with relevant knowledge
     3. Learn from successful interactions
     """

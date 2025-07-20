@@ -2,8 +2,8 @@
 SEALInterface for EVOSEAL
 -------------------------
 Abstraction layer for communication with SEAL (Self-Adapting Language Models).
-Supports multiple SEAL providers, async operation, rate limiting, and retry logic.
-References: /SEAL folder, https://github.com/SHA888/SEAL
+Supports multiple SEAL (Self-Adapting Language Models) providers, async operation, rate limiting, and retry logic.
+References: /SEAL (Self-Adapting Language Models) folder, https://github.com/SHA888/SEAL (Self-Adapting Language Models)
 """
 
 import asyncio

@@ -6,7 +6,7 @@ This document provides a high-level overview of the EVOSEAL development phases, 
 ## Phase Structure
 
 ### Phase 1: MVP Core Foundation
-**Focus**: Establishing the minimal viable product with core integration between DGM, OpenEvolve, and SEAL.
+**Focus**: Establishing the minimal viable product with core integration between DGM, OpenEvolve, and SEAL (Self-Adapting Language Models).
 **Timeline**: 8 weeks
 **Key Outcomes**:
 - Functional integration between all three components

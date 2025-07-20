@@ -4,9 +4,9 @@ EVOSEAL is an advanced AI system that integrates three key components to create 
 
 ## Key Features
 
-- **DGM (Dynamic Genetic Model)**: Implements a Darwinian approach to code improvement
+- **DGM (Darwin Godel Machine)**: Implements a Darwinian approach to code improvement
 - **OpenEvolve**: Evolutionary framework for program optimization
-- **SEAL**: Framework for training language models to generate self-edits
+- **SEAL (Self-Adapting Language Models)**: Framework for training language models to generate self-edits
 
 ## Quick Start
 

@@ -1,5 +1,5 @@
 """
-Integration tests for SEAL core functionality.
+Integration tests for SEAL (Self-Adapting Language Models) core functionality.
 
 Tests the core SEAL components including initialization, program evaluation,
 and interaction with the evolutionary process.
@@ -39,7 +39,7 @@ EXPECTED_METRICS_KEYS = {"accuracy", "latency"}
 
 @pytest.fixture
 def mock_seal_provider():
-    """Create a mock SEAL provider for testing."""
+    """Create a mock SEAL (Self-Adapting Language Models) provider for testing."""
     mock = MagicMock(spec=SEALProvider)
     mock.submit_prompt = AsyncMock(return_value="dummy response")
     mock.parse_response = AsyncMock(
@@ -68,7 +68,7 @@ async def test_seal_interface_initialization(seal_interface):
 
 @pytest.mark.asyncio
 async def test_seal_interface_submit(seal_interface, mock_seal_provider):
-    """Test program submission through SEAL interface."""
+    """Test program submission through SEAL (Self-Adapting Language Models) interface."""
     test_prompt = "Test prompt"
 
     result = await seal_interface.submit(test_prompt)
@@ -118,4 +118,4 @@ async def test_seal_interface_rate_limiting(seal_interface, mock_seal_provider):
     assert mock_seal_provider.submit_prompt.call_count == NUM_TEST_REQUESTS
 
 
-# Add more test cases for error conditions, edge cases, and specific SEAL features
+# Add more test cases for error conditions, edge cases, and specific SEAL (Self-Adapting Language Models) features

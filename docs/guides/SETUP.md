@@ -52,7 +52,7 @@ evo-seal/
 ├── docs/                    # Documentation
 ├── evoseal/                 # Main package
 │   ├── core/                # Core functionality
-│   ├── integration/         # Integration with DGM, OpenEvolve, SEAL
+│   ├── integration/         # Integration with DGM, OpenEvolve, SEAL (Self-Adapting Language Models)
 │   └── utils/               # Utility functions
 ├── logs/                    # Log files
 ├── notebooks/               # Jupyter notebooks
