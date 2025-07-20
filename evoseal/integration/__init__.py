@@ -1,7 +1,7 @@
 """EVOSEAL Integration Module
 
 This module provides integration adapters and orchestration for external components
-(DGM, OpenEvolve, SEAL) within the EVOSEAL evolution pipeline.
+(DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) within the EVOSEAL evolution pipeline.
 """
 
 from .base_adapter import (
@@ -49,7 +49,7 @@ except ImportError as e:
     create_seal_adapter = None
     import warnings
 
-    warnings.warn(f"SEAL adapter not available: {e}", ImportWarning)
+    warnings.warn(f"SEAL (Self-Adapting Language Models) adapter not available: {e}", ImportWarning)
 from .orchestrator import IntegrationOrchestrator, create_integration_orchestrator
 
 __all__ = [

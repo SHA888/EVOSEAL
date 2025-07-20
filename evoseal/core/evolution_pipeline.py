@@ -61,7 +61,7 @@ class EvolutionConfig:
     # OpenEvolve Configuration
     openevolve_config: Dict[str, Any] = field(default_factory=dict)
 
-    # SEAL Configuration
+    # SEAL (Self-Adapting Language Models) Configuration
     seal_config: Dict[str, Any] = field(default_factory=dict)
 
     # Testing Configuration
@@ -106,20 +106,32 @@ class EvolutionPipeline:
 
         # Initialize core components
         self.version_db = VersionDatabase()
-        
+
         # Initialize MetricsTracker with proper parameters
         metrics_config = self.config.metrics_config
-        storage_path = metrics_config.get('storage_path') if isinstance(metrics_config, dict) else None
+        storage_path = (
+            metrics_config.get('storage_path') if isinstance(metrics_config, dict) else None
+        )
         thresholds = metrics_config.get('thresholds') if isinstance(metrics_config, dict) else None
         self.metrics_tracker = MetricsTracker(storage_path, thresholds)
-        
+
         self.test_runner = TestRunner(self.config.test_config)
-        
+
         # Initialize ImprovementValidator with proper parameters
         validation_config = self.config.validation_config
-        min_improvement_score = validation_config.get('min_improvement_score', 70.0) if isinstance(validation_config, dict) else 70.0
-        confidence_level = validation_config.get('confidence_level', 0.95) if isinstance(validation_config, dict) else 0.95
-        self.validator = ImprovementValidator(self.metrics_tracker, None, min_improvement_score, confidence_level)
+        min_improvement_score = (
+            validation_config.get('min_improvement_score', 70.0)
+            if isinstance(validation_config, dict)
+            else 70.0
+        )
+        confidence_level = (
+            validation_config.get('confidence_level', 0.95)
+            if isinstance(validation_config, dict)
+            else 0.95
+        )
+        self.validator = ImprovementValidator(
+            self.metrics_tracker, None, min_improvement_score, confidence_level
+        )
 
         # Initialize safety integration
         safety_config = getattr(self.config, 'safety_config', {})
@@ -160,7 +172,7 @@ class EvolutionPipeline:
         if hasattr(self.config, 'openevolve_config') and self.config.openevolve_config:
             component_configs[ComponentType.OPENEVOLVE] = self.config.openevolve_config
 
-        # SEAL configuration
+        # SEAL (Self-Adapting Language Models) configuration
         if hasattr(self.config, 'seal_config') and self.config.seal_config:
             component_configs[ComponentType.SEAL] = self.config.seal_config
 
@@ -203,7 +215,7 @@ class EvolutionPipeline:
             ),
         )
 
-        # SEAL circuit breaker
+        # SEAL (Self-Adapting Language Models) circuit breaker
         resilience_manager.register_circuit_breaker(
             "seal",
             CircuitBreakerConfig(
@@ -272,7 +284,7 @@ class EvolutionPipeline:
 
     async def _seal_degradation_handler(self, component: str, error: Exception):
         """Handle SEAL component degradation."""
-        logger.warning(f"SEAL degraded, using rule-based analysis")
+        logger.warning(f"SEAL (Self-Adapting Language Models) degraded, using rule-based analysis")
         # Could fall back to rule-based code analysis
 
     async def _dgm_fallback_handler(self, *args, context=None, **kwargs):
@@ -296,8 +308,8 @@ class EvolutionPipeline:
         }
 
     async def _seal_fallback_handler(self, *args, context=None, **kwargs):
-        """Fallback handler for SEAL operations."""
-        logger.info("Using SEAL fallback: static analysis")
+        """Fallback handler for SEAL (Self-Adapting Language Models) operations."""
+        logger.info("Using SEAL (Self-Adapting Language Models) fallback: static analysis")
         return {
             "status": "fallback",
             "method": "static_analysis",
@@ -679,7 +691,7 @@ class EvolutionPipeline:
                 improvements_count=len(improvements) if improvements else 0,
             )
 
-            # 3. Apply SEAL adaptations with resilience
+            # 3. Apply SEAL (Self-Adapting Language Models) adaptations with resilience
             await publish_pipeline_stage_event(
                 stage="adapting", status="started", source="evolution_pipeline", iteration=iteration
             )
@@ -805,8 +817,8 @@ class EvolutionPipeline:
         return []
 
     async def _adapt_improvements(self, improvements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Adapt improvements using SEAL."""
-        # TODO: Implement SEAL adaptation logic
+        """Adapt improvements using SEAL (Self-Adapting Language Models)."""
+        # TODO: Implement SEAL (Self-Adapting Language Models) adaptation logic
         return improvements
 
     async def _evaluate_version(self, improvements: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1180,7 +1192,6 @@ class WorkflowStage(Enum):
             return from_idx <= to_idx <= from_idx + 1
         except ValueError:
             return False
-
 
 
 class WorkflowCoordinator:

@@ -690,7 +690,7 @@ async def run_pipeline_async(state: Dict[str, Any], debug: bool = False, interac
                 "Initializing",
                 "Analyzing Code",
                 "Generating Improvements",
-                "Adapting with SEAL",
+                "Adapting with SEAL (Self-Adapting Language Models)",
                 "Testing Changes",
                 "Validating Results",
                 "Finalizing",

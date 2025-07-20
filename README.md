@@ -35,7 +35,7 @@ Get started with EVOSEAL in minutes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Continual-Intelligence/SEAL
+git clone https://github.com/Continual-Intelligence/SEAL (Self-Adapting Language Models)
 cd EVOSEAL
 
 # Set up virtual environment
@@ -79,7 +79,7 @@ evoseal/
 ├── integration/            # Integration modules
 │   ├── dgm/                # Darwin Godel Machine
 │   ├── openevolve/         # OpenEvolve framework
-│   └── seal/               # SEAL interface
+│   └── seal/               # SEAL (Self-Adapting Language Models) interface
 │
 ├── agents/                # Agent implementations
 │   ├── __init__.py
@@ -150,10 +150,10 @@ evoseal config unset seal.model
 
 #### Component Management
 
-Manage SEAL, OpenEvolve, and DGM components:
+Manage SEAL (Self-Adapting Language Models), OpenEvolve, and DGM components:
 
 ```bash
-# SEAL model operations
+# SEAL (Self-Adapting Language Models) model operations
 evoseal seal --help
 
 # OpenEvolve processes
@@ -285,7 +285,7 @@ For detailed documentation, please visit [https://sha888.github.io/EVOSEAL/](htt
 ### Key Components
 
 - **Core**: Contains the main evolutionary algorithms and orchestration logic
-- **Integration**: Modules for integrating with external systems (DGM, OpenEvolve, SEAL)
+- **Integration**: Modules for integrating with external systems (DGM, OpenEvolve, SEAL (Self-Adapting Language Models))
 - **Agents**: Implements different agent behaviors and workflows
 - **Providers**: Interfaces to various AI/ML model providers
 - **Models**: Data structures and schemas used throughout the system
@@ -321,7 +321,7 @@ Project Link: [https://github.com/SHA888/EVOSEAL](https://github.com/SHA888/EVOS
 - [Anthropic](https://www.anthropic.com/)
 - [MkDocs](https://www.mkdocs.org/)
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
-- [SEAL (Self-Adapting Language Models)](https://github.com/SHA888/SEAL)
+- [SEAL (Self-Adapting Language Models)](https://github.com/SHA888/SEAL (Self-Adapting Language Models))
 
 ## Installation
 
@@ -423,12 +423,12 @@ DGM is implemented through a collection of Python modules that work together to 
   - Interfaces with Git repositories for version control
   - Manages code edits and improvement processes
   - Runs regression tests to verify improvements
-  - Handles communication with SEAL models
+  - Handles communication with SEAL (Self-Adapting Language Models) models
 
 - `llm_withtools.py`: Provides sophisticated SEAL integration:
   - Supports both Claude and OpenAI models
   - Implements tool-calling capabilities for code manipulation
-  - Handles message history conversion between different SEAL formats
+  - Handles message history conversion between different SEAL (Self-Adapting Language Models) formats
   - Manages backoff and retry mechanisms for API stability
 
 #### OpenEvolve Implementation Details
@@ -437,14 +437,14 @@ OpenEvolve provides a robust framework for program evolution with several key co
 
 - `controller.py`: The central orchestration module containing the `OpenEvolve` class that:
   - Manages the entire evolution process from initialization to completion
-  - Coordinates between the prompt sampler, SEAL ensemble, evaluator, and program database
+  - Coordinates between the prompt sampler, SEAL (Self-Adapting Language Models) ensemble, evaluator, and program database
   - Implements checkpoint saving and loading mechanisms
   - Tracks the best program across evolution steps
 
 - `evaluator.py`: Handles program evaluation through:
   - Integration with external evaluation scripts
   - Collection and normalization of performance metrics
-  - Support for SEAL-based evaluation when needed
+  - Support for SEAL (Self-Adapting Language Models)-based evaluation when needed
 
 - `database.py`: Sophisticated program version management system for:
   - Storing and retrieving program variants
@@ -452,9 +452,9 @@ OpenEvolve provides a robust framework for program evolution with several key co
   - Implementing selection strategies (MAP-Elites process)
   - Maintaining diversity in the solution space
 
-#### SEAL Implementation Details
+#### SEAL (Self-Adapting Language Models) Implementation Details
 
-SEAL provides the theoretical foundation and implementation for self-adapting language models:
+SEAL (Self-Adapting Language Models) provides the theoretical foundation and implementation for self-adapting language models:
 
 - `few-shot/`: Contains implementations for adapting models to new tasks with minimal examples:
   - Training procedures for meta-learning capabilities
@@ -470,11 +470,11 @@ SEAL provides the theoretical foundation and implementation for self-adapting la
 
 #### Evolve Task Solution
 
-In this phase, EVOSEAL leverages SEAL to generate and refine code variants. These variants are then evaluated and the best one is selected using OpenEvolve's evolutionary mechanisms.
+In this phase, EVOSEAL leverages SEAL (Self-Adapting Language Models) to generate and refine code variants. These variants are then evaluated and the best one is selected using OpenEvolve's evolutionary mechanisms.
 
 ```mermaid
 graph LR
-    A[Start] --> B[Generate code variants with SEAL]
+    A[Start] --> B[Generate code variants with SEAL (Self-Adapting Language Models)]
     B --> C[Evaluate variants with OpenEvolve]
     C --> D[Select best variant]
     D --> E[End]
@@ -482,7 +482,7 @@ graph LR
 
 The evolution process involves:
 
-1. **Variant Generation**: Using SEAL's self-adapting capabilities to generate diverse code solutions
+1. **Variant Generation**: Using SEAL (Self-Adapting Language Models)'s self-adapting capabilities to generate diverse code solutions
 2. **Evaluation**: Assessing each variant based on multiple metrics including correctness, efficiency, and readability
 3. **Selection**: Applying OpenEvolve's MAP-Elites process to maintain both quality and diversity
 4. **Refinement**: Iterative improvement of promising solutions
@@ -512,12 +512,12 @@ The self-improvement process includes:
 
 The three core technologies of EVOSEAL are tightly integrated through well-defined interfaces and data flows:
 
-### SEAL Integration
+### SEAL (Self-Adapting Language Models) Integration
 
-- **Code Generation Interface**: SEAL's self-adapting capabilities are exposed through a structured API that allows OpenEvolve to request code variants
-- **Knowledge Incorporation Pipeline**: New knowledge is continuously fed into SEAL models during the evolution process
-- **Few-shot Learning Activation**: Task-specific examples are used to prime SEAL for generating contextually relevant code
-- **Model Selection**: Different SEAL model configurations are selected based on task complexity and domain
+- **Code Generation Interface**: SEAL (Self-Adapting Language Models)'s self-adapting capabilities are exposed through a structured API that allows OpenEvolve to request code variants
+- **Knowledge Incorporation Pipeline**: New knowledge is continuously fed into SEAL (Self-Adapting Language Models) models during the evolution process
+- **Few-shot Learning Activation**: Task-specific examples are used to prime SEAL (Self-Adapting Language Models) for generating contextually relevant code
+- **Model Selection**: Different SEAL (Self-Adapting Language Models) model configurations are selected based on task complexity and domain
 
 ### OpenEvolve Integration
 
@@ -537,7 +537,7 @@ The three core technologies of EVOSEAL are tightly integrated through well-defin
 
 ### Self-Refinement
 
-- **Self-Editing Capabilities**: SEAL models can identify and correct their own errors, leading to progressively higher quality code
+- **Self-Editing Capabilities**: SEAL (Self-Adapting Language Models) models can identify and correct their own errors, leading to progressively higher quality code
 - **Knowledge Integration**: New information is continuously incorporated into the system's knowledge base
 - **Contextual Adaptation**: Models automatically adjust their output style and approach based on task requirements
 - **Error Reduction**: Analysis of previous generation errors informs improvements in subsequent generations
@@ -560,7 +560,7 @@ The three core technologies of EVOSEAL are tightly integrated through well-defin
 
 ### Current Development
 
-- **Automated Pipeline Integration**: Streamlining the connections between SEAL, OpenEvolve, and DGM components
+- **Automated Pipeline Integration**: Streamlining the connections between SEAL (Self-Adapting Language Models), OpenEvolve, and DGM components
 - **Performance Benchmarking**: Establishing baseline metrics across a variety of programming tasks
 - **Documentation Expansion**: Developing comprehensive API references and integration guides
 
@@ -604,11 +604,11 @@ python -m openevolve.openevolve-run ./program.py ./evaluation.py \
                                --iterations 50 --output ./output
 ```
 
-#### SEAL Experiments
+#### SEAL (Self-Adapting Language Models) Experiments
 
 ```bash
-# Run SEAL few-shot learning experiment
-cd SEAL/few-shot
+# Run SEAL (Self-Adapting Language Models) few-shot learning experiment
+cd SEAL (Self-Adapting Language Models)/few-shot
 python run_experiment.py --config configs/default.yaml
 ```
 
@@ -753,6 +753,6 @@ This project incorporates components from multiple sources with different licens
 
 - **DGM**: Copyright (2025) Jenny Zhang and Shengran Hu - Apache License 2.0
 - **OpenEvolve**: Copyright (c) 2025 Asankhaya Sharma - Apache License 2.0
-- **SEAL**: Copyright (c) 2025 Adam Zweiger - MIT License
+- **SEAL (Self-Adapting Language Models)**: Copyright (c) 2025 Adam Zweiger - MIT License
 
 See the [LICENSE](./LICENSE) file for the complete text of the Apache License 2.0 and the [NOTICE](./NOTICE) file for detailed attribution information.

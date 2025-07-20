@@ -33,7 +33,7 @@ from evoseal.providers.seal_providers import SEALProvider
 
 # Define SEALProvider protocol for type checking
 class SEALProviderProtocol:
-    """Protocol for SEAL providers."""
+    """Protocol for SEAL (Self-Adapting Language Models) providers."""
 
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str: ...
     async def parse_response(self, response: str) -> dict[str, Any]: ...
@@ -73,7 +73,7 @@ def temp_project_dir(tmp_path: Path) -> Generator[Path, None, None]:
 
 @pytest.fixture
 def mock_seal_provider():
-    """Create a mock SEAL provider with realistic responses."""
+    """Create a mock SEAL (Self-Adapting Language Models) provider with realistic responses."""
     # Create a mock that will be awaitable
     mock = AsyncMock()
 

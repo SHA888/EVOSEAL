@@ -2,7 +2,7 @@
 Integration Orchestrator for EVOSEAL
 
 This module provides the main orchestrator that manages the integration of all
-components (DGM, OpenEvolve, SEAL) and coordinates their interactions within
+components (DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) and coordinates their interactions within
 the EVOSEAL evolution pipeline.
 """
 
@@ -55,7 +55,7 @@ class IntegrationOrchestrator:
     Main orchestrator for component integration in EVOSEAL.
 
     Manages the lifecycle, configuration, and coordination of all components
-    (DGM, OpenEvolve, SEAL) within the evolution pipeline.
+    (DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) within the evolution pipeline.
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -101,13 +101,15 @@ class IntegrationOrchestrator:
                     "OpenEvolve configuration provided but OpenEvolve adapter not available"
                 )
 
-            # Initialize SEAL if configured and available
+            # Initialize SEAL (Self-Adapting Language Models) if configured and available
             if ComponentType.SEAL in component_configs and _SEAL_AVAILABLE:
                 seal_config = component_configs[ComponentType.SEAL]
                 seal_adapter = create_seal_adapter(**seal_config)
                 self.component_manager.register_component(seal_adapter)
             elif ComponentType.SEAL in component_configs and not _SEAL_AVAILABLE:
-                self.logger.warning("SEAL configuration provided but SEAL adapter not available")
+                self.logger.warning(
+                    "SEAL (Self-Adapting Language Models) configuration provided but SEAL (Self-Adapting Language Models) adapter not available"
+                )
 
             # Initialize all registered components
             results = await self.component_manager.initialize_all()
@@ -217,7 +219,7 @@ class IntegrationOrchestrator:
         Execute a complete evolution workflow coordinating all components.
 
         This is a high-level method that orchestrates the interaction between
-        DGM, OpenEvolve, and SEAL to perform a complete evolution cycle.
+        DGM, OpenEvolve, and SEAL (Self-Adapting Language Models) to perform a complete evolution cycle.
 
         Args:
             workflow_config: Configuration for the evolution workflow
@@ -285,9 +287,11 @@ class IntegrationOrchestrator:
                     workflow_results["error"] = f"OpenEvolve stage failed: {oe_result.error}"
                     return workflow_results
 
-            # Stage 3: SEAL - Code analysis and improvement
+            # Stage 3: SEAL (Self-Adapting Language Models) - Code analysis and improvement
             if self.get_component(ComponentType.SEAL):
-                self.logger.info("Executing SEAL stage - code analysis and improvement")
+                self.logger.info(
+                    "Executing SEAL (Self-Adapting Language Models) stage - code analysis and improvement"
+                )
 
                 seal_result = await self.execute_component_operation(
                     ComponentType.SEAL,
@@ -307,7 +311,9 @@ class IntegrationOrchestrator:
                 )
 
                 if not seal_result.success:
-                    workflow_results["error"] = f"SEAL stage failed: {seal_result.error}"
+                    workflow_results["error"] = (
+                        f"SEAL (Self-Adapting Language Models) stage failed: {seal_result.error}"
+                    )
                     return workflow_results
 
             # Stage 4: Integration - Combine results and update archive

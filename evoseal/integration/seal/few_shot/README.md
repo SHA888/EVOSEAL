@@ -1,6 +1,6 @@
 # Few-Shot Learning for EVOSEAL
 
-This module provides a flexible interface for few-shot learning capabilities in the EVOSEAL project. It's designed to work with various language models and adapters without requiring modifications to the base SEAL submodule.
+This module provides a flexible interface for few-shot learning capabilities in the EVOSEAL project. It's designed to work with various language models and adapters without requiring modifications to the base SEAL (Self-Adapting Language Models) submodule.
 
 ## Features
 

@@ -147,7 +147,10 @@ def system_status(
     components = [
         {"name": "Evolution Pipeline", "status": pipeline_status},
         {"name": "API Server", "status": "stopped"},  # TODO: Check actual API status
-        {"name": "SEAL Worker", "status": "idle"},  # TODO: Check actual worker status
+        {
+            "name": "SEAL (Self-Adapting Language Models) Worker",
+            "status": "idle",
+        },  # TODO: Check actual worker status
         {"name": "Evolve Worker", "status": "idle"},  # TODO: Check actual worker status
         {"name": "DGM Worker", "status": "idle"},  # TODO: Check actual worker status
     ]

@@ -1,6 +1,6 @@
 # isort: skip_file
 """
-Integration test: Simulate full DGM evolutionary run with mocked SEAL/LLM responses and agentic system orchestration.
+Integration test: Simulate full DGM evolutionary run with mocked SEAL (Self-Adapting Language Models)/LLM responses and agentic system orchestration.
 Covers initialization, mutation/crossover, fitness evaluation, and generation increment.
 """
 
@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Patch all major DGM/SEAL/LLM/Agentic and openevolve external dependencies
+# Patch all major DGM/SEAL (Self-Adapting Language Models)/LLM/Agentic and openevolve external dependencies
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 sys.modules["docker.models"] = MagicMock()

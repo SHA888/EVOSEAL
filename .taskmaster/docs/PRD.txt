@@ -1,15 +1,15 @@
 <context>
 # Overview
-EVOSEAL is an advanced AI agent designed to solve complex programming tasks through code evolution while continuously improving its own architecture. It represents a significant advancement in autonomous AI systems for code generation and optimization by combining three key technologies (SEAL, OpenEvolve, and DGM) into an integrated, self-improving system.
+EVOSEAL is an advanced AI agent designed to solve complex programming tasks through code evolution while continuously improving its own architecture. It represents a significant advancement in autonomous AI systems for code generation and optimization by combining three key technologies (SEAL (Self-Adapting Language Models), OpenEvolve, and DGM) into an integrated, self-improving system.
 
 The system addresses the challenge of creating AI systems that can not only solve programming problems but also autonomously enhance their own capabilities over time. This self-improvement cycle is particularly valuable for researchers, AI developers, and organizations working on complex coding projects that require continuous refinement and adaptation.
 
 # Core Features
 
 ## Integrated Evolutionary Framework
-- **What it does**: Combines three sophisticated components (DGM, OpenEvolve, SEAL) into a unified evolutionary system
+- **What it does**: Combines three sophisticated components (DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) into a unified evolutionary system
 - **Why it's important**: Enables a complete evolutionary pipeline from code generation to validation and self-improvement
-- **How it works**: Orchestrates information flow between DGM's evolutionary backbone, OpenEvolve's program optimization, and SEAL's self-adaptation techniques
+- **How it works**: Orchestrates information flow between DGM's evolutionary backbone, OpenEvolve's program optimization, and SEAL (Self-Adapting Language Models)'s self-adaptation techniques
 
 ## Darwinian Code Evolution
 - **What it does**: Progressively enhances code quality through multiple generations using language models
@@ -24,7 +24,7 @@ The system addresses the challenge of creating AI systems that can not only solv
 ## Self-Adaptation Capabilities
 - **What it does**: Enables the system to adapt to new tasks with minimal examples and incorporate new knowledge
 - **Why it's important**: Reduces the need for extensive training data and allows continuous improvement
-- **How it works**: SEAL provides techniques for few-shot learning and self-editing
+- **How it works**: SEAL (Self-Adapting Language Models) provides techniques for few-shot learning and self-editing
 
 ## Continuous Self-Improvement Cycle
 - **What it does**: Allows the system to generate and validate variants of its own pipeline
@@ -248,14 +248,14 @@ The system addresses the challenge of creating AI systems that can not only solv
 
 ## MVP Phase
 1. **Core Integration Framework**
-   - Establish communication interfaces between DGM, OpenEvolve, and SEAL
+   - Establish communication interfaces between DGM, OpenEvolve, and SEAL (Self-Adapting Language Models)
    - Create shared data structures
    - Implement basic workflow orchestration
 
 2. **Basic Evolution Pipeline**
    - Setup DGM outer loop for code generation
    - Integrate OpenEvolve's MAP-Elites process
-   - Connect SEAL's few-shot learning capabilities
+   - Connect SEAL (Self-Adapting Language Models)'s few-shot learning capabilities
 
 3. **Basic Self-Improvement**
    - Implement simple architecture variation
@@ -324,7 +324,7 @@ The system addresses the challenge of creating AI systems that can not only solv
 2. **Evolutionary Core**
    - DGM evolution mechanisms
    - OpenEvolve selection algorithms
-   - SEAL adaptation capabilities
+   - SEAL (Self-Adapting Language Models) adaptation capabilities
    - Basic workflow orchestration
 
 3. **Evaluation and Validation**

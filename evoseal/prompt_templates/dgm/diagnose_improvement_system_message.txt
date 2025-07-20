@@ -3,19 +3,19 @@
 # version: 1
 # description: System message for diagnosing improvements in DGM agent
 # ---
-Here is the relevant code for the SEAL Coding agent with the model patch applied.
+Here is the relevant code for the SEAL (Self-Adapting Language Models) Coding agent with the model patch applied.
 
-# SEAL Coding Agent Code
-The current code of SEAL coding agent.
------ SEAL Coding Agent Code Start -----
+# SEAL (Self-Adapting Language Models) Coding Agent Code
+The current code of SEAL (Self-Adapting Language Models) coding agent.
+----- SEAL (Self-Adapting Language Models) Coding Agent Code Start -----
 {code}
------ SEAL Coding Agent Code End -----
+----- SEAL (Self-Adapting Language Models) Coding Agent Code End -----
 
-# SEAL Coding Agent Code Patch
-The edits of SEAL coding agent from the previous improvement.
------ SEAL Coding Agent Code Patch Start -----
+# SEAL (Self-Adapting Language Models) Coding Agent Code Patch
+The edits of SEAL (Self-Adapting Language Models) coding agent from the previous improvement.
+----- SEAL (Self-Adapting Language Models) Coding Agent Code Patch Start -----
 {model_patch_text}
------ SEAL Coding Agent Code Patch End -----
+----- SEAL (Self-Adapting Language Models) Coding Agent Code Patch End -----
 
 # Test Patch
 SWE-bench's official private tests to detect whether the issue is solved.

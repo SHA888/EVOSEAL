@@ -51,11 +51,11 @@
 		},
 		{
 			"taskId": 6,
-			"taskTitle": "Implement SEAL Basic Components",
+			"taskTitle": "Implement SEAL (Self-Adapting Language Models) Basic Components",
 			"complexityScore": 6,
 			"recommendedSubtasks": 5,
-			"expansionPrompt": "Expand SEAL implementation into subtasks for FewShotLearner, KnowledgeBase, SelfEditor, knowledge/example loading, and integration with LLM.",
-			"reasoning": "SEAL involves implementing learning and self-editing logic, but the algorithms are relatively contained. The main complexity comes from integrating with LLMs and managing examples/knowledge."
+			"expansionPrompt": "Expand SEAL (Self-Adapting Language Models) implementation into subtasks for FewShotLearner, KnowledgeBase, SelfEditor, knowledge/example loading, and integration with LLM.",
+			"reasoning": "SEAL (Self-Adapting Language Models) involves implementing learning and self-editing logic, but the algorithms are relatively contained. The main complexity comes from integrating with LLMs and managing examples/knowledge."
 		},
 		{
 			"taskId": 7,
@@ -78,7 +78,7 @@
 			"taskTitle": "Implement Basic Evolution Pipeline",
 			"complexityScore": 9,
 			"recommendedSubtasks": 8,
-			"expansionPrompt": "Break down the evolution pipeline into subtasks for EvolutionPipeline class, WorkflowCoordinator, CLI, component integration (DGM, OpenEvolve, SEAL, version control, testing), event handling, end-to-end workflow, and error handling.",
+			"expansionPrompt": "Break down the evolution pipeline into subtasks for EvolutionPipeline class, WorkflowCoordinator, CLI, component integration (DGM, OpenEvolve, SEAL (Self-Adapting Language Models), version control, testing), event handling, end-to-end workflow, and error handling.",
 			"reasoning": "This is a high-complexity integration task, requiring coordination of all major components, workflow orchestration, and robust error/event handling. It is the backbone of the system and must ensure seamless operation across modules."
 		},
 		{

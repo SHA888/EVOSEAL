@@ -49,7 +49,7 @@ EVOSEAL follows a modular structure:
 ```
 evoseal/
 ├── core/               # Core framework components
-├── integration/        # Integration modules (DGM, OpenEvolve, SEAL)
+├── integration/        # Integration modules (DGM, OpenEvolve, SEAL (Self-Adapting Language Models))
 ├── models/            # Data models
 ├── providers/         # AI/ML model providers
 ├── storage/           # Data persistence

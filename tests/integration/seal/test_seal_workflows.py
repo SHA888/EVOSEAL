@@ -43,7 +43,7 @@ from evoseal.models import Program
 
 # Create a mock provider class that implements the required interface
 class MockSEALProvider:
-    """Mock SEAL provider for testing."""
+    """Mock SEAL (Self-Adapting Language Models) provider for testing."""
 
     def __init__(self):
         self.submit_prompt = AsyncMock(return_value="dummy response")
@@ -58,7 +58,7 @@ class MockSEALProvider:
 
 # Mock the workflow components
 class SEALWorkflow:
-    """Mock SEAL workflow for testing."""
+    """Mock SEAL (Self-Adapting Language Models) workflow for testing."""
 
     def __init__(self, config, seal_provider, initial_program):
         self.config = config
@@ -92,7 +92,7 @@ def temp_workdir():
 
 @pytest.fixture
 def mock_seal_provider():
-    """Create a mock SEAL provider with realistic responses."""
+    """Create a mock SEAL (Self-Adapting Language Models) provider with realistic responses."""
     # Create a mock that properly implements the async interface
     mock = MockSEALProvider()
     return mock
@@ -112,7 +112,7 @@ def workflow_config(temp_workdir):
 
 @pytest.mark.asyncio
 async def test_seal_workflow_execution(workflow_config, mock_seal_provider):
-    """Test execution of a complete SEAL workflow."""
+    """Test execution of a complete SEAL (Self-Adapting Language Models) workflow."""
     # Create a simple test program
     initial_program = """
     def process_data(data):
@@ -142,7 +142,7 @@ async def test_seal_workflow_execution(workflow_config, mock_seal_provider):
     assert "final_metrics" in result
     assert isinstance(result["final_metrics"], dict)
 
-    # Verify SEAL provider was called the expected number of times
+    # Verify SEAL (Self-Adapting Language Models) provider was called the expected number of times
     assert mock_seal_provider.submit_prompt.await_count == workflow_config["max_iterations"]
     assert mock_seal_provider.parse_response.await_count == workflow_config["max_iterations"]
 

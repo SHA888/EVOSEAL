@@ -3,7 +3,7 @@ exclude: |
   (?x)^(
     dgm/|            # DGM submodule
     openevolve/|     # OpenEvolve submodule
-    SEAL/|           # SEAL submodule
+    SEAL (Self-Adapting Language Models)/|           # SEAL (Self-Adapting Language Models) submodule
     .*\.git/.*|      # Git internals
     .*venv/.*|       # Virtual environments
     .*__pycache__/.* # Python cache
@@ -32,7 +32,7 @@ repos:
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL/|
+            SEAL (Self-Adapting Language Models)/|
             .*venv/|
             .*__pycache__/
           )$
@@ -47,7 +47,7 @@ repos:
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL/|
+            SEAL (Self-Adapting Language Models)/|
             .*venv/|
             .*__pycache__/
           )$
@@ -76,7 +76,7 @@ repos:
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL/|
+            SEAL (Self-Adapting Language Models)/|
             .*venv/|
             .*__pycache__/|
             tests/
@@ -92,7 +92,7 @@ repos:
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL/|
+            SEAL (Self-Adapting Language Models)/|
             .*venv/|
             .*__pycache__/|
             .*node_modules/|

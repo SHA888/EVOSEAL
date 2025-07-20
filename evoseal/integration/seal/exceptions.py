@@ -1,5 +1,5 @@
 """
-SEAL System Exceptions
+SEAL (Self-Adapting Language Models) System Exceptions
 
 This module defines custom exceptions for the SEAL system.
 """

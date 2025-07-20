@@ -138,7 +138,7 @@ from evoseal.cli.commands import (  # noqa: E402
 # Add subcommands to the main app
 app.add_typer(init.app, name="init", help="Initialize a new EVOSEAL project")
 app.add_typer(config.app, name="config", help="Manage configuration")
-app.add_typer(seal.app, name="seal", help="SEAL model operations")
+app.add_typer(seal.app, name="seal", help="SEAL (Self-Adapting Language Models) model operations")
 app.add_typer(openevolve.app, name="openevolve", help="OpenEvolve processes")
 app.add_typer(dgm.app, name="dgm", help="DGM code improvement workflows")
 app.add_typer(start.app, name="start", help="Start background processes")

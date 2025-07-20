@@ -2,7 +2,7 @@
 Base Component Adapter for EVOSEAL Integration
 
 This module provides the base interface and common functionality for integrating
-external components (DGM, OpenEvolve, SEAL) into the EVOSEAL pipeline.
+external components (DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) into the EVOSEAL pipeline.
 """
 
 from __future__ import annotations

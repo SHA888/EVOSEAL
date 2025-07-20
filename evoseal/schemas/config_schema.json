@@ -17,7 +17,7 @@
     },
     "seal": {
       "type": "object",
-      "description": "SEAL model configuration",
+      "description": "SEAL (Self-Adapting Language Models) model configuration",
       "additionalProperties": true
     },
     "integration": {

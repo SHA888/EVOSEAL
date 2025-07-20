@@ -124,15 +124,19 @@ async def test_component_operations(orchestrator):
         result = await orchestrator.execute_component_operation(ComponentType.DGM, "get_generation")
         logger.info(f"DGM Generation: {result.data if result.success else result.error}")
 
-    # Test SEAL operations
+    # Test SEAL (Self-Adapting Language Models) operations
     if orchestrator.get_component(ComponentType.SEAL):
-        logger.info("Testing SEAL operations...")
+        logger.info("Testing SEAL (Self-Adapting Language Models) operations...")
 
         # Submit a test prompt
         result = await orchestrator.execute_component_operation(
-            ComponentType.SEAL, "submit_prompt", "Hello, SEAL! Please analyze this simple greeting."
+            ComponentType.SEAL,
+            "submit_prompt",
+            "Hello, SEAL (Self-Adapting Language Models)! Please analyze this simple greeting.",
         )
-        logger.info(f"SEAL Response: {result.data if result.success else result.error}")
+        logger.info(
+            f"SEAL (Self-Adapting Language Models) Response: {result.data if result.success else result.error}"
+        )
 
         # Analyze some sample code
         sample_code = """
@@ -144,7 +148,9 @@ def fibonacci(n):
         result = await orchestrator.execute_component_operation(
             ComponentType.SEAL, "analyze_code", sample_code
         )
-        logger.info(f"SEAL Code Analysis: {result.data if result.success else result.error}")
+        logger.info(
+            f"SEAL (Self-Adapting Language Models) Code Analysis: {result.data if result.success else result.error}"
+        )
 
     # Test OpenEvolve operations (if available)
     if orchestrator.get_component(ComponentType.OPENEVOLVE):

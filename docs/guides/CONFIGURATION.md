@@ -27,7 +27,7 @@ EVOSEAL/
 │   ├── integration/     # Integration modules
 │   │   ├── dgm/         # Darwin Godel Machine
 │   │   ├── openevolve/  # OpenEvolve framework
-│   │   └── seal/        # SEAL interface
+│   │   └── seal/        # SEAL (Self-Adapting Language Models) interface
 │   │
 │   ├── models/         # Data models and schemas
 │   ├── providers/       # AI/ML model providers
@@ -135,7 +135,7 @@ Environment-specific settings are loaded from JSON or YAML files in the `config/
 {
   "seal": {
     "enabled": true,
-    "module_path": "SEAL",
+    "module_path": "SEAL (Self-Adapting Language Models)",
     "few_shot_enabled": true,
     "knowledge_base_path": "data/knowledge",
     "max_context_length": 4096,

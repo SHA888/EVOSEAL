@@ -20,7 +20,7 @@ TEMPLATE_FILES: dict[str, str] = {
     ".evoseal/config.yaml": """# EVOSEAL Configuration
 # This file contains configuration for all EVOSEAL components
 
-# SEAL Configuration
+# SEAL (Self-Adapting Language Models) Configuration
 seal:
   model: "gpt-4"  # Default model
   temperature: 0.7

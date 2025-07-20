@@ -1,5 +1,5 @@
 """
-SEAL Component Adapter for EVOSEAL Integration
+SEAL (Self-Adapting Language Models) Component Adapter for EVOSEAL Integration
 
 This module provides the adapter for integrating SEAL (Self-Adapting Language Models)
 into the EVOSEAL pipeline with proper lifecycle management, rate limiting, and provider abstraction.
@@ -25,35 +25,37 @@ logger = logging.getLogger(__name__)
 
 
 class DefaultSEALProvider:
-    """Default SEAL provider implementation."""
+    """Default SEAL (Self-Adapting Language Models) provider implementation."""
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logger = logging.getLogger(f"{__name__}.DefaultSEALProvider")
 
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str:
-        """Submit a prompt to SEAL and return the response."""
+        """Submit a prompt to SEAL (Self-Adapting Language Models) and return the response."""
         # This is a placeholder implementation
-        # In a real implementation, this would connect to actual SEAL services
-        self.logger.info(f"Submitting prompt to SEAL: {prompt[:100]}...")
+        # In a real implementation, this would connect to actual SEAL (Self-Adapting Language Models) services
+        self.logger.info(
+            f"Submitting prompt to SEAL (Self-Adapting Language Models): {prompt[:100]}..."
+        )
 
         # Simulate processing time
         await asyncio.sleep(0.1)
 
         # Return a mock response
-        return f"SEAL response to: {prompt[:50]}..."
+        return f"SEAL (Self-Adapting Language Models) response to: {prompt[:50]}..."
 
     async def parse_response(self, response: str) -> Any:
-        """Parse the SEAL response."""
+        """Parse the SEAL (Self-Adapting Language Models) response."""
         # Simple parsing - in reality this would be more sophisticated
         return {"response": response, "timestamp": time.time(), "parsed": True}
 
 
 class SEALAdapter(BaseComponentAdapter):
     """
-    Adapter for integrating SEAL into the EVOSEAL pipeline.
+    Adapter for integrating SEAL (Self-Adapting Language Models) into the EVOSEAL pipeline.
 
-    Provides high-level interface for SEAL operations including
+    Provides high-level interface for SEAL (Self-Adapting Language Models) operations including
     prompt submission, response parsing, rate limiting, and retry logic.
     """
 
@@ -69,7 +71,7 @@ class SEALAdapter(BaseComponentAdapter):
         self._retry_delay: float = 1.0
 
     async def _initialize_impl(self) -> bool:
-        """Initialize the SEAL interface and provider."""
+        """Initialize the SEAL (Self-Adapting Language Models) interface and provider."""
         try:
             # Extract configuration
             seal_config = self.config.config
@@ -91,7 +93,7 @@ class SEALAdapter(BaseComponentAdapter):
                 else:
                     raise ValueError(f"Unknown provider type: {provider_type}")
 
-            # Initialize SEAL interface
+            # Initialize SEAL (Self-Adapting Language Models) interface
             self.seal_interface = SEALInterface(
                 provider=self.provider,
                 rate_limit_per_sec=self._rate_limit,
@@ -99,71 +101,76 @@ class SEALAdapter(BaseComponentAdapter):
                 retry_delay=self._retry_delay,
             )
 
-            self.logger.info(f"SEAL initialized with provider: {provider_type}")
+            self.logger.info(
+                f"SEAL (Self-Adapting Language Models) initialized with provider: {provider_type}"
+            )
             return True
 
         except Exception as e:
-            self.logger.exception("Failed to initialize SEAL")
+            self.logger.exception("Failed to initialize SEAL (Self-Adapting Language Models)")
             self.status.error = str(e)
             return False
 
     async def _start_impl(self) -> bool:
-        """Start SEAL operations."""
+        """Start SEAL (Self-Adapting Language Models) operations."""
         if not self.seal_interface:
             return False
 
         try:
-            # Test basic SEAL functionality
+            # Test basic SEAL (Self-Adapting Language Models) functionality
             test_response = await self.seal_interface.submit("test prompt")
             if test_response:
-                self.logger.info("SEAL started successfully")
+                self.logger.info("SEAL (Self-Adapting Language Models) started successfully")
                 return True
             else:
-                self.logger.error("SEAL start test failed")
+                self.logger.error("SEAL (Self-Adapting Language Models) start test failed")
                 return False
 
         except Exception as e:
-            self.logger.exception("Failed to start SEAL")
+            self.logger.exception("Failed to start SEAL (Self-Adapting Language Models)")
             self.status.error = str(e)
             return False
 
     async def _stop_impl(self) -> bool:
-        """Stop SEAL operations."""
+        """Stop SEAL (Self-Adapting Language Models) operations."""
         try:
-            # SEAL is stateless, so stopping is just a state change
-            self.logger.info("SEAL operations stopped")
+            # SEAL (Self-Adapting Language Models) is stateless, so stopping is just a state change
+            self.logger.info("SEAL (Self-Adapting Language Models) operations stopped")
             return True
 
         except Exception as e:
-            self.logger.exception("Error stopping SEAL")
+            self.logger.exception("Error stopping SEAL (Self-Adapting Language Models)")
             return False
 
     async def _pause_impl(self) -> bool:
-        """Pause SEAL operations."""
-        self.logger.info("SEAL operations paused")
+        """Pause SEAL (Self-Adapting Language Models) operations."""
+        self.logger.info("SEAL (Self-Adapting Language Models) operations paused")
         return True
 
     async def _resume_impl(self) -> bool:
-        """Resume SEAL operations."""
-        self.logger.info("SEAL operations resumed")
+        """Resume SEAL (Self-Adapting Language Models) operations."""
+        self.logger.info("SEAL (Self-Adapting Language Models) operations resumed")
         return True
 
     async def execute(self, operation: str, data: Any = None, **kwargs) -> ComponentResult:
         """
-        Execute a SEAL-specific operation.
+        Execute a SEAL (Self-Adapting Language Models)-specific operation.
 
         Supported operations:
-        - submit_prompt: Submit a prompt to SEAL
+        - submit_prompt: Submit a prompt to SEAL (Self-Adapting Language Models)
         - batch_submit: Submit multiple prompts
-        - analyze_code: Analyze code using SEAL
-        - generate_code: Generate code using SEAL
-        - improve_code: Improve existing code using SEAL
-        - explain_code: Get code explanations from SEAL
-        - review_code: Get code reviews from SEAL
+        - analyze_code: Analyze code using SEAL (Self-Adapting Language Models)
+        - generate_code: Generate code using SEAL (Self-Adapting Language Models)
+        - improve_code: Improve existing code using SEAL (Self-Adapting Language Models)
+        - explain_code: Get code explanations from SEAL (Self-Adapting Language Models)
+        - review_code: Get code reviews from SEAL (Self-Adapting Language Models)
         - optimize_prompt: Optimize prompt for better results
         """
         if not self.seal_interface:
-            return ComponentResult(success=False, error="SEAL interface not initialized")
+            return ComponentResult(
+                success=False,
+                error="SEAL (Self-Adapting Language Models) interface not initialized",
+            )
 
         start_time = asyncio.get_event_loop().time()
 
@@ -203,12 +210,14 @@ class SEALAdapter(BaseComponentAdapter):
 
         except Exception as e:
             execution_time = asyncio.get_event_loop().time() - start_time
-            self.logger.exception(f"Error executing SEAL operation: {operation}")
+            self.logger.exception(
+                f"Error executing SEAL (Self-Adapting Language Models) operation: {operation}"
+            )
 
             return ComponentResult(success=False, error=str(e), execution_time=execution_time)
 
     async def get_metrics(self) -> Dict[str, Any]:
-        """Get SEAL-specific metrics."""
+        """Get SEAL (Self-Adapting Language Models)-specific metrics."""
         try:
             metrics = {
                 "rate_limit_per_sec": self._rate_limit,
@@ -233,7 +242,7 @@ class SEALAdapter(BaseComponentAdapter):
     # Private methods for specific operations
 
     async def _submit_prompt(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Submit a single prompt to SEAL."""
+        """Submit a single prompt to SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             prompt = data
         elif isinstance(data, dict):
@@ -249,7 +258,7 @@ class SEALAdapter(BaseComponentAdapter):
         return {"prompt": prompt, "response": response, "success": True}
 
     async def _batch_submit(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Submit multiple prompts to SEAL."""
+        """Submit multiple prompts to SEAL (Self-Adapting Language Models)."""
         if not isinstance(data, list):
             raise ValueError("Batch submit requires a list of prompts")
 
@@ -269,7 +278,7 @@ class SEALAdapter(BaseComponentAdapter):
         }
 
     async def _analyze_code(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Analyze code using SEAL."""
+        """Analyze code using SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
         elif isinstance(data, dict):
@@ -302,7 +311,7 @@ class SEALAdapter(BaseComponentAdapter):
         return {"code": code, "analysis_type": analysis_type, "analysis": response, "success": True}
 
     async def _generate_code(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Generate code using SEAL."""
+        """Generate code using SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             specification = data
         elif isinstance(data, dict):
@@ -340,7 +349,7 @@ class SEALAdapter(BaseComponentAdapter):
         }
 
     async def _improve_code(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Improve existing code using SEAL."""
+        """Improve existing code using SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
         elif isinstance(data, dict):
@@ -376,7 +385,7 @@ class SEALAdapter(BaseComponentAdapter):
         }
 
     async def _explain_code(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Get code explanations from SEAL."""
+        """Get code explanations from SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
         elif isinstance(data, dict):
@@ -413,7 +422,7 @@ class SEALAdapter(BaseComponentAdapter):
         }
 
     async def _review_code(self, data: Any, **kwargs) -> Dict[str, Any]:
-        """Get code reviews from SEAL."""
+        """Get code reviews from SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
         elif isinstance(data, dict):
@@ -490,10 +499,10 @@ def create_seal_adapter(
     **kwargs,
 ) -> SEALAdapter:
     """
-    Factory function to create a SEAL adapter with standard configuration.
+    Factory function to create a SEAL (Self-Adapting Language Models) adapter with standard configuration.
 
     Args:
-        provider_type: Type of SEAL provider to use
+        provider_type: Type of SEAL (Self-Adapting Language Models) provider to use
         provider_config: Configuration for the provider
         rate_limit_per_sec: Rate limit for API calls
         max_retries: Maximum number of retries

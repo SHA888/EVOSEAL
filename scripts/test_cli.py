@@ -285,7 +285,7 @@ class TestComponentCommands:
     """Test suite for component commands."""
 
     def test_seal_command_help(self) -> None:
-        """Test that the SEAL command has help text."""
+        """Test that the SEAL (Self-Adapting Language Models) command has help text."""
         exit_code, output = run_cli(["seal", "--help"])
         assert exit_code == 0, f"Command failed with output: {output}"
         assert (

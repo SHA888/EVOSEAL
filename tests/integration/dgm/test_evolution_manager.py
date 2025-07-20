@@ -7,7 +7,7 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
-# Patch all major DGM/SEAL/LLM/Agentic and openevolve external dependencies
+# Patch all major DGM/SEAL (Self-Adapting Language Models)/LLM/Agentic and openevolve external dependencies
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 sys.modules["docker.models"] = MagicMock()

@@ -22,7 +22,7 @@
   },
   "seal": {
     "enabled": true,
-    "module_path": "SEAL",
+    "module_path": "SEAL (Self-Adapting Language Models)",
     "few_shot_enabled": false,
     "knowledge_base_path": "data/knowledge/test",
     "max_context_length": 1024,

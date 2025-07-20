@@ -1,6 +1,6 @@
 """
-Concrete SEAL provider stub for EVOSEAL.
-Replace with real SEAL backend integration as needed.
+Concrete SEAL (Self-Adapting Language Models) provider stub for EVOSEAL.
+Replace with real SEAL (Self-Adapting Language Models) backend integration as needed.
 """
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ from typing import Any
 
 
 class SEALProvider(ABC):
-    """Abstract base class for SEAL providers."""
+    """Abstract base class for SEAL (Self-Adapting Language Models) providers."""
 
     @abstractmethod
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str:
-        """Submit a prompt to the SEAL provider.
+        """Submit a prompt to the SEAL (Self-Adapting Language Models) provider.
 
         Args:
             prompt: The prompt to submit
@@ -28,7 +28,7 @@ class SEALProvider(ABC):
 
     @abstractmethod
     async def parse_response(self, response: str) -> dict[str, Any]:
-        """Parse the response from the SEAL provider.
+        """Parse the response from the SEAL (Self-Adapting Language Models) provider.
 
         Args:
             response: The raw response from the provider
@@ -41,7 +41,7 @@ class SEALProvider(ABC):
 
 class DummySEALProvider(SEALProvider):
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str:
-        """Submit a prompt to the dummy SEAL provider.
+        """Submit a prompt to the dummy SEAL (Self-Adapting Language Models) provider.
 
         Args:
             prompt: The prompt to submit
@@ -51,10 +51,10 @@ class DummySEALProvider(SEALProvider):
             A dummy response containing the original prompt
         """
         await asyncio.sleep(0.1)
-        return f"[SEAL-Dummy-Response] {prompt}"
+        return f"[SEAL (Self-Adapting Language Models)-Dummy-Response] {prompt}"
 
     async def parse_response(self, response: str) -> dict[str, Any]:
-        """Parse the response from the dummy SEAL provider.
+        """Parse the response from the dummy SEAL (Self-Adapting Language Models) provider.
 
         Args:
             response: The raw response from the provider
