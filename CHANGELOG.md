@@ -5,7 +5,52 @@ All notable changes to the EVOSEAL project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] - 2025-07-20 - Continuous Development Intelligence
+
+### Added
+- **Continuous Evolution Deployment**: Production-ready continuous evolution manager (`ContinuousEvolutionManager`)
+- **Cloud Deployment Configuration**: Docker Compose configuration for AWS/GCP/Azure deployment (`docker-compose.continuous.yml`)
+- **Health Monitoring & Observability**: Real-time system resource monitoring with psutil integration
+- **Production Safety Controls**: Emergency controls, automatic rollback, and manual intervention capabilities
+- **Comprehensive Deployment Guide**: Complete production deployment documentation (`CONTINUOUS_DEPLOYMENT.md`)
+- **Evolution Statistics Tracking**: Tracks cycles completed, improvements made, rollbacks performed
+- **Resource Monitoring**: CPU, memory, disk usage monitoring with automatic alerts
+- **Configurable Evolution Cycles**: Hourly evolution cycles with customizable intervals and daily limits
+- **Emergency Procedures**: Emergency pause, manual rollback, and checkpoint inspection capabilities
+- **Production Docker Configuration**: Complete Docker Compose with resource limits, health checks, and persistent volumes
+
+### Enhanced
+- **Safety Mechanisms**: Enhanced safety for continuous operation with consecutive failure handling
+- **Event System**: Enhanced event handling for continuous operation monitoring
+- **Configuration Management**: Advanced configuration with JSON support and environment variables
+- **Documentation**: Comprehensive deployment and operation guides for production use
+- **Monitoring**: Real-time evolution cycle monitoring with emoji indicators for easy tracking
+
+### Changed
+- **Version**: Updated from 0.1.0 to 0.1.1 in `evoseal/__init__.py` and `pyproject.toml`
+- **Release Organization**: Organized release artifacts into proper version directories (`releases/v0.1.0/`, `releases/v0.1.1/`)
+- **Deployment Focus**: Shifted from on-demand tool to continuously running AI system
+
+### Technical Details
+- **New Files**:
+  - `examples/continuous_evolution_deployment.py` (383 lines) - Production deployment script
+  - `docker-compose.continuous.yml` (95 lines) - Docker Compose configuration
+  - `CONTINUOUS_DEPLOYMENT.md` (334 lines) - Comprehensive deployment guide
+  - `releases/v0.1.0/RELEASE_NOTES.md` and `releases/v0.1.0/RELEASE_CHECKLIST.md`
+  - `releases/v0.1.1/RELEASE_NOTES.md` - Current release documentation
+
+### Production Features
+- **Cloud Platform Support**: AWS (~$60/month), GCP (~$50/month), DigitalOcean (~$40/month), Azure (~$55/month)
+- **Resource Requirements**: Minimum 4 CPU, 8GB RAM, 50GB disk; Recommended 8 CPU, 16GB RAM, 100GB disk
+- **Security**: API key management, container isolation, network security, access control
+- **Monitoring**: Structured logging, event tracking, metrics collection, performance analytics
+
+### Revolutionary Impact
+- **First Production System**: First production-ready system for continuous autonomous code evolution
+- **24/7 Operation**: Truly autonomous operation without human intervention
+- **Self-Improving**: Gets better at improving code over time
+- **Cost Effective**: ~$50/month for continuous AI pair programming
+- **Measurable Results**: Real improvements with statistical tracking
 
 ## [0.1.0] - 2025-07-20
 ### 🎉 **First Major Release - Production Ready**
@@ -132,3 +177,17 @@ EVOSEAL v0.1.0 represents a **paradigm shift toward autonomous, self-improving A
 - Basic project structure
 - Core dependencies
 - License and contribution guidelines
+
+## [Unreleased]
+
+### Planned for v0.1.2
+- Enhanced monitoring with web dashboard for evolution monitoring
+- Multi-repository support for evolving multiple repositories simultaneously
+- Performance analytics with advanced analytics and reporting
+- Notification system with Slack/email notifications for evolution events
+
+### Planned for v0.2.0
+- Distributed evolution across multiple nodes
+- Collaborative evolution with multiple EVOSEAL instances working together
+- Advanced AI integration with support for additional AI model providers
+- Enterprise features including role-based access, audit logs, and compliance
