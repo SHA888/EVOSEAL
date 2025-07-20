@@ -63,8 +63,8 @@ This guide provides solutions to common issues you might encounter while using o
 **Solution**:
 1. Set the API key as an environment variable:
    ```bash
-   export OPENAI_API_KEY='your-api-key'
-   export ANTHROPIC_API_KEY='your-api-key'
+   export OPENAI_API_KEY='your-api-key'  # pragma: allowlist secret
+   export ANTHROPIC_API_KEY='your-api-key'  # pragma: allowlist secret
    ```
 
 2. Or use a `.env` file in your project root:

@@ -80,26 +80,26 @@ config = EvolutionConfig(
         "min_improvement_score": 70.0,
         "confidence_level": 0.95
     },
-    
+
     # Safety integration configuration
     safety_config={
         "auto_checkpoint": True,
         "auto_rollback": True,
         "safety_checks_enabled": True,
-        
+
         "checkpoints": {
             "checkpoint_dir": "checkpoints/",
             "max_checkpoints": 50,
             "auto_cleanup": True,
             "compression_enabled": True
         },
-        
+
         "rollback": {
             "enable_rollback_failure_recovery": True,
             "max_rollback_attempts": 3,
             "rollback_timeout": 30
         },
-        
+
         "regression": {
             "regression_threshold": 0.1,
             "enable_statistical_analysis": True,
@@ -126,18 +126,18 @@ safety_config = {
     "auto_checkpoint": True,
     "auto_rollback": True,
     "safety_checks_enabled": True,
-    
+
     "checkpoints": {
         "checkpoint_dir": "checkpoints/",
         "max_checkpoints": 50,
         "auto_cleanup": True
     },
-    
+
     "rollback": {
         "enable_rollback_failure_recovery": True,
         "max_rollback_attempts": 3
     },
-    
+
     "regression": {
         "regression_threshold": 0.1,
         "enable_statistical_analysis": True,
@@ -167,22 +167,22 @@ async def run_safe_evolution():
             "safety_checks_enabled": True
         }
     )
-    
+
     # Create pipeline
     pipeline = EvolutionPipeline(config)
-    
+
     # Run safety-aware evolution cycle
     results = await pipeline.run_evolution_cycle_with_safety(
         iterations=5,
         enable_checkpoints=True,
         enable_auto_rollback=True
     )
-    
+
     # Analyze results
     successful_iterations = sum(1 for r in results if r.get("success", False))
     accepted_versions = sum(1 for r in results if r.get("version_accepted", False))
     rollbacks_performed = sum(1 for r in results if r.get("rollback_performed", False))
-    
+
     print(f"Successful iterations: {successful_iterations}/{len(results)}")
     print(f"Accepted versions: {accepted_versions}")
     print(f"Rollbacks performed: {rollbacks_performed}")
