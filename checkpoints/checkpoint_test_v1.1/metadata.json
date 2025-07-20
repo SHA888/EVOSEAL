@@ -1,13 +1,14 @@
 {
   "version_id": "test_v1.1",
   "parent_id": null,
-  "timestamp": "2025-07-20T01:29:42.236619+00:00",
-  "checkpoint_time": "2025-07-20T01:29:42.250891+00:00",
+  "timestamp": "2025-07-20T04:01:22.118148+00:00",
+  "checkpoint_time": "2025-07-20T04:01:22.144599+00:00",
   "version_data": {
     "version_id": "test_v1.1",
     "code": "def hello(): return 'world!'",
     "metrics": {
-      "accuracy": 0.93
+      "accuracy": 0.93,
+      "performance": 1.4
     },
     "test_results": [
       {
@@ -22,14 +23,14 @@
       }
     ],
     "safety_checkpoint": true,
-    "checkpoint_timestamp": "2025-07-20T01:29:42.236606+00:00"
+    "checkpoint_timestamp": "2025-07-20T04:01:22.118113+00:00"
   },
   "system_state_captured": true,
   "compression_enabled": false,
   "file_count": 0,
-  "checkpoint_size": 1674,
+  "checkpoint_size": 1648,
   "config_snapshot": {},
-  "metrics_count": 1,
+  "metrics_count": 2,
   "has_results": false,
-  "integrity_hash": "6be6249ff267e2364079925381257fa637443068add681ac3f22ca6a7b2e4055"
+  "integrity_hash": "2404fccd3134143fa8b9488d1a6b58eb612ac5a9131e668adbcc6fe728286feb"
 }
