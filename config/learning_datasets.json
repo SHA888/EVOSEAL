@@ -1,0 +1,53 @@
+{
+  "datasets": [
+    {
+      "name": "algorithm_implementations",
+      "path": "data/learning/algorithms",
+      "description": "High-quality implementations of common algorithms",
+      "url": "https://github.com/TheAlgorithms/Python",
+      "extraction": {
+        "method": "git",
+        "patterns": ["**/*.py", "**/*.md"],
+        "exclude": ["**/test_*", "**/.*"]
+      },
+      "refresh_interval_hours": 168
+    },
+    {
+      "name": "design_patterns",
+      "path": "data/learning/patterns",
+      "description": "Software design pattern implementations",
+      "url": "https://github.com/faif/python-patterns",
+      "extraction": {
+        "method": "git",
+        "patterns": ["**/*.py", "**/*.md"],
+        "exclude": ["**/test_*", "**/.*"]
+      },
+      "refresh_interval_hours": 168
+    },
+    {
+      "name": "ml_best_practices",
+      "path": "data/learning/ml_practices",
+      "description": "Machine learning best practices and examples",
+      "url": "https://github.com/microsoft/ML-For-Beginners",
+      "extraction": {
+        "method": "git",
+        "patterns": ["**/*.py", "**/*.md", "**/*.ipynb"],
+        "exclude": ["**/test_*", "**/.*", "**/data/*"]
+      },
+      "refresh_interval_hours": 168
+    }
+  ],
+  "custom_directories": [
+    {
+      "name": "company_codebase",
+      "path": "data/learning/company_code",
+      "description": "Internal company code standards and examples",
+      "refresh_interval_hours": 24
+    }
+  ],
+  "integration": {
+    "auto_refresh": true,
+    "notification": true,
+    "metrics_collection": true
+  }
+}

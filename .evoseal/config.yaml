@@ -2,3 +2,5 @@ seal:
   model: gpt-4
 nonexistent:
   key: value
+evolve:
+  population_size: 50

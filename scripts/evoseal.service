@@ -6,11 +6,15 @@ After=network.target
 Type=simple
 User=kade
 WorkingDirectory=/home/kade/EVOSEAL
-ExecStart=/home/kade/EVOSEAL/scripts/auto_evolve_and_push.sh 10 ./tasks/default_task.json
+# Use environment file for configuration
+EnvironmentFile=/home/kade/EVOSEAL/.evoseal.env
+# Use the auto evolve script with parameters
+ExecStart=/bin/bash -c './scripts/auto_evolve_and_push.sh 10 ./tasks/default_task.json'
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
+Environment="PYTHONUNBUFFERED=1"
 
 [Install]
 WantedBy=multi-user.target
