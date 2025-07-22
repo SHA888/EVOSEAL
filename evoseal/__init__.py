@@ -49,7 +49,6 @@ __all__ = [
 ]
 
 # Type variable for generic types
-T_co = TypeVar("T_co", covariant=True)  # For covariant types
 T_contra = TypeVar("T_contra", contravariant=True)  # For contravariant types
 
 # Configuration dictionary to store settings
