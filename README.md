@@ -250,6 +250,21 @@ evoseal status
 evoseal export results results.json
 ```
 
+### Continuous Operation
+
+EVOSEAL can run continuously as a background service, ideal for long-term evolution and self-improvement tasks:
+
+```bash
+# Run continuously in foreground (for monitoring)
+./scripts/run_continuous.sh
+
+# Install and run as a system service
+./scripts/install_service.sh
+sudo systemctl start evoseal.service
+```
+
+For detailed instructions on continuous operation, see [Continuous Operation Guide](docs/continuous_operation.md).
+
 ### Advanced Usage
 
 #### Custom Configuration Files
