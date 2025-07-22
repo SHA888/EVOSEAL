@@ -307,13 +307,36 @@ function main() {
     
     # Collect metrics after successful evolution
     echo "$(date) - Collecting evolution metrics..." | tee -a "$log_file"
-    IMPROVEMENT_METRICS=$((RANDOM % 10 - 2))  # Simulate some improvement metrics
+    
+    # Calculate improvement based on actual metrics if available, otherwise use simulation
+    if [ -f "$result_file" ]; then
+        # Extract score from result file if available
+        IMPROVEMENT_METRICS=$(jq -r '.score // 0' "$result_file" 2>/dev/null || echo "0")
+    else
+        # Fallback to simulation if no result file
+        IMPROVEMENT_METRICS=$((RANDOM % 10 - 2))
+    fi
+    
+    # Run metrics collection
     "./scripts/collect_metrics.sh" "$CURRENT_VERSION" "$IMPROVEMENT_METRICS" | tee -a "$log_file" || \
         echo "$(date) - Warning: Failed to collect metrics" | tee -a "$log_file"
     
-    # Check if we should create a new version
-    if [ "$IMPROVEMENT_METRICS" -gt 5 ]; then  # Threshold for creating a new version
-        echo "$(date) - Significant improvement detected! Creating new version..." | tee -a "$log_file"
+    # Check if we should create a new version based on actual metrics
+    local should_create_version=0
+    
+    # Check for significant changes
+    local num_features=$(find "$METRICS_DIR" -name "evolution_*.json" -type f -mtime -1 | xargs cat 2>/dev/null | \
+        jq -s '.[-1].metrics.changes.features // 0' 2>/dev/null || echo 0)
+    local num_fixes=$(find "$METRICS_DIR" -name "evolution_*.json" -type f -mtime -1 | xargs cat 2>/dev/null | \
+        jq -s '.[-1].metrics.changes.fixes // 0' 2>/dev/null || echo 0)
+    
+    # Create new version if we have significant changes or improvements
+    if [ "$IMPROVEMENT_METRICS" -gt 5 ] || [ "$num_features" -gt 0 ] || [ "$num_fixes" -gt 2 ]; then
+        should_create_version=1
+    fi
+    
+    if [ "$should_create_version" -eq 1 ]; then
+        echo "$(date) - Significant changes detected! Creating new version..." | tee -a "$log_file"
         
         # Get current and new version
         current_version=$(get_current_version)
