@@ -259,22 +259,61 @@ git push origin "$VERSION"
 
 print_success "Changes and tag pushed to origin ✓"
 
-# Generate release notes
-print_status "Generating release notes..."
-cat > "release_notes_$VERSION_NUMBER.md" << EOF
-# EVOSEAL $VERSION Release Notes
+# Generate release notes using evolution metrics
+print_status "Generating release notes from evolution metrics..."
 
-## 🎉 First Major Release - Production Ready
+# Ensure Python dependencies are installed
+if ! python3 -c "import yaml" &>/dev/null; then
+    print_status "Installing required Python packages..."
+    pip install pyyaml
+fi
 
-EVOSEAL $VERSION represents a **paradigm shift toward autonomous, self-improving AI systems**. This release provides a complete, production-ready framework that successfully integrates three cutting-edge AI technologies (SEAL, DGM, OpenEvolve) into a unified system capable of autonomous code evolution with comprehensive safety mechanisms.
+# Create releases directory if it doesn't exist
+RELEASE_DIR="releases/$VERSION"
+mkdir -p "$RELEASE_DIR"
 
-## 🏆 Key Highlights
+# Generate release notes and changelog
+echo "Generating release artifacts for $VERSION..."
+python3 scripts/generate_evolution_notes.py "$VERSION" --output-dir "releases"
 
-- ✅ **Complete Architecture**: All three core components fully integrated
-- ✅ **Production Safety**: Comprehensive rollback protection and regression detection
-- ✅ **Ready for Deployment**: CLI, documentation, testing, and deployment ready
-- ✅ **Research Impact**: Significant contributions to AGI and autonomous AI research
-- ✅ **Quality Assurance**: Extensive testing and validation completed
+# Generate comprehensive checklist
+cat > "$RELEASE_DIR/RELEASE_CHECKLIST.md" <<EOL
+# EVOSEAL $VERSION Release Checklist
+
+## Pre-Release Checks
+- [ ] All tests are passing
+- [ ] Documentation is up to date
+- [ ] Version numbers updated in all relevant files
+- [ ] Changelog is updated with all changes
+- [ ] Dependencies are up to date
+- [ ] Security audit completed
+
+## Release Process
+- [ ] Create release branch
+- [ ] Run build process
+- [ ] Run all tests
+- [ ] Generate release notes
+- [ ] Create git tag
+- [ ] Push changes and tag to repository
+- [ ] Create GitHub release
+- [ ] Update documentation
+- [ ] Announce release
+
+## Post-Release
+- [ ] Merge release branch to main
+- [ ] Update development version
+- [ ] Verify deployment
+- [ ] Monitor for issues
+
+## Rollback Plan
+- [ ] Identify rollback trigger conditions
+- [ ] Document rollback steps
+- [ ] Test rollback procedure
+
+*Last updated: $(date "+%Y-%m-%d %H:%M:%S")*
+EOL
+
+print_success "Release artifacts generated in $RELEASE_DIR/ ✓"
 
 ## 🚀 What's New
 
