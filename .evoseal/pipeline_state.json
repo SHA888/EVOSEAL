@@ -1,18 +1,18 @@
 {
   "status": "running",
-  "repository": "https://github.com/example/repo.git",
-  "current_iteration": 1,
-  "total_iterations": 5,
-  "start_time": 1752955262.6432343,
+  "repository": ".",
+  "current_iteration": 6,
+  "total_iterations": 10,
+  "start_time": 1753165537.0905764,
   "pause_time": null,
-  "current_stage": "Generating Improvements",
+  "current_stage": "Validating Results",
   "progress": {
     "stages_completed": 0,
     "total_stages": 7,
     "current_stage_progress": 0.0
   },
   "config": {
-    "iterations": 5,
+    "iterations": 10,
     "auto_checkpoint": true,
     "checkpoint_interval": 5,
     "auto_rollback": true,
@@ -32,7 +32,7 @@
       }
     },
     "logging": {
-      "level": "INFO",
+      "level": "DEBUG",
       "file": ".evoseal/pipeline.log",
       "console": true
     },

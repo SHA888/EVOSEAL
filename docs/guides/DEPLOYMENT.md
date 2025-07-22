@@ -23,6 +23,54 @@ This guide provides instructions for deploying EVOSEAL in various environments.
 - (Optional) Docker and Docker Compose
 - (Optional) Kubernetes cluster (for production)
 
+## Systemd Service Setup
+
+EVOSEAL can be run as a systemd service for continuous operation. Here's how to set it up:
+
+### 1. Create Environment File
+
+Copy the template environment file and customize it if needed:
+
+```bash
+cp .evoseal.env.template .evoseal.env
+# Edit .evoseal.env to customize settings
+```
+
+### 2. Install the Service
+
+Copy the service file to the systemd directory and enable it:
+
+```bash
+# Copy service file
+sudo cp scripts/evoseal.service /etc/systemd/system/
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable and start the service
+sudo systemctl enable --now evoseal.service
+```
+
+### 3. Verify Service Status
+
+Check if the service is running:
+
+```bash
+sudo systemctl status evoseal.service
+```
+
+### 4. View Logs
+
+To view the logs:
+
+```bash
+# Follow logs in real-time
+sudo journalctl -u evoseal.service -f
+
+# View full logs
+sudo journalctl -u evoseal.service --no-pager
+```
+
 ## Local Development
 
 ### 1. Clone the Repository
