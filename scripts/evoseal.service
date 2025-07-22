@@ -1,0 +1,16 @@
+[Unit]
+Description=EVOSEAL Continuous Runner
+After=network.target
+
+[Service]
+Type=simple
+User=kade
+WorkingDirectory=/home/kade/EVOSEAL
+ExecStart=/home/kade/EVOSEAL/scripts/run_continuous.sh 10 ./tasks/default_task.json
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

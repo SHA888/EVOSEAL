@@ -1,0 +1,26 @@
+{
+  "name": "Default Continuous Task",
+  "description": "A default task for EVOSEAL to continuously improve its architecture",
+  "type": "self_improvement",
+  "parameters": {
+    "max_iterations": 10,
+    "evaluation_metrics": [
+      "code_quality",
+      "performance",
+      "adaptability"
+    ],
+    "target_components": [
+      "core",
+      "integration",
+      "agents"
+    ]
+  },
+  "constraints": {
+    "safety_boundaries": true,
+    "rollback_enabled": true,
+    "max_resources": {
+      "memory_gb": 8,
+      "cpu_percent": 80
+    }
+  }
+}
