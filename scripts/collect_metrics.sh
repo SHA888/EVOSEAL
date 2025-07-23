@@ -91,8 +91,12 @@ cat > "$METRICS_FILE" <<EOL
 }
 EOL
 
-# Also create a human-readable markdown file
-MARKDOWN_FILE="$METRICS_DIR/release_notes_${VERSION}.md"
+# Create versioned release directory
+RELEASE_DIR="$SCRIPT_DIR/../releases/$VERSION"
+mkdir -p "$RELEASE_DIR"
+
+# Save release notes in the versioned directory
+MARKDOWN_FILE="$RELEASE_DIR/RELEASE_NOTES.md"
 cat > "$MARKDOWN_FILE" <<EOL
 # EVOSEAL $VERSION
 Released on $(date -u '+%Y-%m-%d %H:%M:%S UTC')

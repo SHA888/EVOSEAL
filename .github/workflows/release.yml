@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI/API
+  push:
+    tags:
+      - 'v*'  # Trigger when version tags are pushed
+  release:
+    types: [published]  # Trigger when a release is published
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install build twine pyyaml
+
+      - name: Verify release checklist
+        run: |
+          # Check if RELEASE_CHECKLIST.md exists and is complete
+          if [ -f "RELEASE_CHECKLIST.md" ]; then
+            # Count unchecked items
+            UNCHECKED_ITEMS=$(grep -c '\- \[ \]' RELEASE_CHECKLIST.md || true)
+            if [ "$UNCHECKED_ITEMS" -gt 0 ]; then
+              echo "Error: There are $UNCHECKED_ITEMS unchecked items in the release checklist"
+              exit 1
+            fi
+          else
+            echo "Error: RELEASE_CHECKLIST.md not found in the root directory"
+            exit 1
+          fi
+
+      - name: Build package
+        run: |
+          python -m build
+          ls -la dist/
+
+      - name: Publish to PyPI
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: 'Release ${{ github.ref_name }}'
+          body_path: releases/RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            dist/*
+            releases/CHANGELOG_EXCERPT.md
+
+      - name: Update documentation
+        run: |
+          # Add steps to update documentation here
+          echo "Documentation update steps would go here"
+
+      - name: Notify team
+        if: always()
+        run: |
+          # Add notification steps (e.g., Slack, email)
+          echo "Release ${{ github.ref_name }} has been published!"
