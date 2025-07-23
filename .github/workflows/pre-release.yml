@@ -97,10 +97,8 @@ jobs:
               title: `Release Candidate: ${{ steps.version.outputs.version }}`,
               head: 'release/v${{ steps.version.outputs.version }}',
               base: 'main',
-              body: `This is an automated release candidate. Please review the changes before proceeding with the release.
-
-**Release Notes Preview:**
-${{ steps.create_release.outputs.upload_url }}`,
+              body: 'This is an automated release candidate. Please review the changes before proceeding with the release.\n\n**Release Notes Preview:**\n' + 
+                '${{ steps.create_release.outputs.upload_url }}',
               draft: false
             });
             console.log(`Created PR #${pr.number}: ${pr.title}`);
