@@ -1,12 +1,13 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main, 'release/*']
+    types: [completed]
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sunday at midnight
+  workflow_dispatch:  # Allow manual triggering
 
 # Skip CodeQL for dependabot PRs to prevent duplicate runs
 env:
@@ -16,13 +17,26 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    
+    # Only run if the CI workflow was successful
+    if: >
+      github.event_name == 'workflow_dispatch' || 
+      github.event_name == 'schedule' ||
+      (github.event.workflow_run.conclusion == 'success' && 
+       (github.event.workflow_run.head_branch == 'main' || 
+        startsWith(github.event.workflow_run.head_branch, 'release/')))
+    
+    # Skip analysis for dependabot PRs
+    if: (github.actor != 'dependabot[bot]')
+    
     permissions:
       actions: read
       contents: read
       security-events: write
-
-    # Skip analysis for dependabot PRs
-    if: (github.actor != 'dependabot[bot]')
+      id-token: write  # For OIDC token
+    
+    # Use the same environment as the CI workflow
+    environment: production
 
     steps:
     - name: Checkout repository

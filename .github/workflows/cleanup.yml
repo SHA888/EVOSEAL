@@ -5,9 +5,29 @@ on:
     # Run daily at 3 AM UTC
     - cron: '0 3 * * *'
   workflow_dispatch:  # Allow manual triggering
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main, 'release/*']
+    types: [completed]
 
 jobs:
   cleanup:
+    # Only run if the CI workflow was successful or on schedule/workflow_dispatch
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event.workflow_run.conclusion == 'success' && 
+       (github.event.workflow_run.head_branch == 'main' || 
+        startsWith(github.event.workflow_run.head_branch, 'release/')))
+    
+    # Use the production environment
+    environment: production
+    
+    # Required permissions
+    permissions:
+      contents: read
+      actions: read
+      packages: write  # For cleaning up old packages
     runs-on: ubuntu-latest
     
     steps:
