@@ -1,17 +1,40 @@
 name: Release
 
 on:
+  workflow_run:
+    workflows: ["Pre-Release (RC)"]
+    branches: [main, 'release/*']
+    types: [completed]
   workflow_dispatch:  # Manual trigger from GitHub UI/API
   push:
     tags:
       - 'v*'  # Trigger when version tags are pushed
-  release:
-    types: [published]  # Trigger when a release is published
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency: 
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
+    # Only run if the pre-release workflow was successful
+    if: >
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.workflow_run.conclusion == 'success' && 
+       (github.event.workflow_run.head_branch == 'main' || 
+        startsWith(github.event.workflow_run.head_branch, 'release/')))
+    
+    # Use the production environment
+    environment: production
+    
+    # Required permissions
+    permissions:
+      contents: write
+      id-token: write
+      actions: read
+      checks: write
+      statuses: write
+      packages: write
+      deployments: write
     runs-on: ubuntu-latest
     
     steps:

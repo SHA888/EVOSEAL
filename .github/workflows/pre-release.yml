@@ -1,26 +1,43 @@
 name: Pre-Release (RC)
 
 on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main, 'release/*']
+    types: [completed]
   workflow_dispatch:  # Manual trigger from GitHub UI/API
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - 'release/*'  # Trigger on PRs to release branches
-  push:
-    branches:
-      - 'release/*'  # Direct pushes to release branches
-      - 'main'       # Also trigger on main branch for version bumps
 
 # Set the required permissions for the workflow
 permissions:
   contents: write  # for creating releases and tags
   pull-requests: write  # for creating PRs
   issues: write  # for creating issues on failure
+  id-token: write  # for OIDC token
 
-concurrency: pre-release-${{ github.ref }}
+concurrency: 
+  group: pre-release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  rc:
+  pre-release:
+    # Only run if the CI workflow was successful
+    if: >
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.workflow_run.conclusion == 'success' && 
+       (github.event.workflow_run.head_branch == 'main' || 
+        startsWith(github.event.workflow_run.head_branch, 'release/')))
+    
+    # Use the same environment as the CI workflow
+    environment: production
+    
+    # Required for OIDC token
+    permissions:
+      contents: write
+      id-token: write
+      actions: read
+      checks: write
+      statuses: write
+      pull-requests: write
     runs-on: ubuntu-latest
     
     steps:
