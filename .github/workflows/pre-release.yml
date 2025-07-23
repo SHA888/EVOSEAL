@@ -49,12 +49,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify release notes file exists
+        id: verify_release_notes
+        run: |
+          RELEASE_NOTES_PATH="releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md"
+          if [ ! -f "$RELEASE_NOTES_PATH" ]; then
+            echo "Release notes file not found at $RELEASE_NOTES_PATH"
+            ls -R releases/
+            exit 1
+          fi
+          echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> $GITHUB_ENV
+
       - name: Create Release Candidate
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}-rc.$(date +%Y%m%d%H%M%S)
           name: 'Release Candidate ${{ steps.version.outputs.version }}'
-          body_path: releases/RELEASE_NOTES.md
+          body_path: releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md
           draft: true
           prerelease: true
         env:
@@ -65,7 +76,7 @@ jobs:
         with:
           name: release-artifacts
           path: |
-            releases/
+            releases/${{ steps.version.outputs.version }}/
             dist/*
 
       - name: Create Release PR
