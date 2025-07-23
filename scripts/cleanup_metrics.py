@@ -96,14 +96,51 @@ def cleanup_old_files():
             file.unlink()
             print(f"Removed old file: {file.name}")
 
+def cleanup_release_directories():
+    """Clean up old release directories, keeping only the last N versions."""
+    KEEP_LAST_VERSIONS = 5  # Number of most recent versions to keep
+    
+    # Get all version directories and sort them by version
+    version_dirs = []
+    for d in RELEASES_DIR.iterdir():
+        if not d.is_dir():
+            continue
+            
+        # Handle both vX.Y.Z and X.Y.Z formats
+        version_str = d.name[1:] if d.name.startswith('v') else d.name
+        try:
+            version = tuple(map(int, version_str.split('.')))
+            version_dirs.append((version, d))
+        except (ValueError, AttributeError):
+            continue
+    
+    # Sort by version (newest first)
+    version_dirs.sort(reverse=True, key=lambda x: x[0])
+    
+    # Keep only the last N versions
+    for version, dir_path in version_dirs[KEEP_LAST_VERSIONS:]:
+        # Archive the directory
+        archive_path = ARCHIVE_DIR / f"release_{'.'.join(map(str, version))}"
+        if archive_path.exists():
+            shutil.rmtree(str(archive_path))
+        shutil.move(str(dir_path), str(archive_path))
+        print(f"Archived old release: {dir_path.name} -> {archive_path}")
+        
+        # Remove any corresponding release notes in the root
+        release_note = RELEASES_DIR / f"release_notes_{'.'.join(map(str, version))}.md"
+        if release_note.exists():
+            release_note.unlink()
+            print(f"Removed old release note: {release_note.name}")
+
 
 def main():
-    print("Starting EVOSEAL metrics cleanup...")
+    print("Starting EVOSEAL cleanup...")
     
     # Run cleanup tasks
     cleanup_metrics()
     cleanup_release_notes()
     cleanup_old_files()
+    cleanup_release_directories()
     
     print("Cleanup complete!")
 
