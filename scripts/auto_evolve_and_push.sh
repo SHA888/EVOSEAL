@@ -133,13 +133,29 @@ function commit_and_push() {
   # Create releases directory if it doesn't exist
   mkdir -p "$RELEASES_DIR"
   
-  # Generate release notes
-  local release_notes="$RELEASES_DIR/release_notes_${new_version}.md"
+  # Create versioned release directory
+  local version_dir="$RELEASES_DIR/$new_version"
+  mkdir -p "$version_dir"
+  
+  # Generate release notes in the versioned directory
+  local release_notes="$version_dir/RELEASE_NOTES.md"
   echo "# EVOSEAL v$new_version" > "$release_notes"
   echo "Released on $timestamp" >> "$release_notes"
   echo "" >> "$release_notes"
   echo "## Changes" >> "$release_notes"
   git log --pretty=format:"- %s" "v${CURRENT_VERSION}..HEAD" >> "$release_notes" 2>/dev/null || echo "- Initial release" >> "$release_notes"
+  
+  # Also generate a changelog
+  local changelog="$version_dir/CHANGELOG.md"
+  echo "# Changelog for EVOSEAL v$new_version" > "$changelog"
+  echo "" >> "$changelog"
+  echo "## [v$new_version] - $(date +'%Y-%m-%d')" >> "$changelog"
+  echo "" >> "$changelog"
+  echo "### Added" >> "$changelog"
+  echo "- Initial release" >> "$changelog"
+  echo "" >> "$changelog"
+  echo "### Changed" >> "$changelog"
+  echo "- Initial release" >> "$changelog"
   
   # Stage all changes
   git add .
