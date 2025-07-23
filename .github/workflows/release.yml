@@ -35,15 +35,15 @@ jobs:
       - name: Verify release checklist
         run: |
           # Check if RELEASE_CHECKLIST.md exists and is complete
-          if [ -f "releases/RELEASE_CHECKLIST.md" ]; then
+          if [ -f "RELEASE_CHECKLIST.md" ]; then
             # Count unchecked items
-            UNCHECKED_ITEMS=$(grep -c '\- \[ \]' releases/RELEASE_CHECKLIST.md || true)
+            UNCHECKED_ITEMS=$(grep -c '\- \[ \]' RELEASE_CHECKLIST.md || true)
             if [ "$UNCHECKED_ITEMS" -gt 0 ]; then
               echo "Error: There are $UNCHECKED_ITEMS unchecked items in the release checklist"
               exit 1
             fi
           else
-            echo "Error: RELEASE_CHECKLIST.md not found"
+            echo "Error: RELEASE_CHECKLIST.md not found in the root directory"
             exit 1
           fi
 
