@@ -3,7 +3,7 @@
   "repository": ".",
   "current_iteration": 10,
   "total_iterations": 10,
-  "start_time": 1753166945.0909722,
+  "start_time": 1753240296.888503,
   "pause_time": null,
   "current_stage": "Finalizing",
   "progress": {
@@ -14,8 +14,10 @@
   "config": {
     "iterations": 10,
     "auto_checkpoint": true,
-    "checkpoint_interval": 5,
+    "checkpoint_interval": 1,
     "auto_rollback": true,
+    "min_evolution_interval": 3600,
+    "version_bump_interval": 3,
     "regression_threshold": 0.05,
     "components": {
       "dgm": {
@@ -37,11 +39,17 @@
       "console": true
     },
     "monitoring": {
-      "progress_update_interval": 1.0,
+      "progress_update_interval": 60.0,
       "metrics_collection": true
+    },
+    "version_control": {
+      "enabled": true,
+      "require_manual_approval": true,
+      "min_changes_for_version_bump": 5,
+      "max_versions_per_day": 1
     }
   },
   "debug_mode": false,
   "interactive_mode": false,
-  "completion_time": 1753167015.231926
+  "completion_time": 1753240367.0332203
 }
