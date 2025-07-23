@@ -1,0 +1,75 @@
+[run]
+source = evoseal
+branch = True
+omit =
+    */tests/*
+    */__init__.py
+    */version.py
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+    
+    # Don't complain about missing debug-only code:
+    def __repr__
+    if self\.debug
+    
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Don't complain if non-runnable code isn't run:
+    if 0:
+    if __name__ == .__main__.:
+    
+    # Don't complain about abstract methods
+    @(abc\.)?abstractmethod
+    
+    # Don't complain about type checking blocks
+    if TYPE_CHECKING:
+
+ignore_errors = True
+
+discover = true
+
+data_file = .coverage
+
+[html]
+directory = htmlcov
+
+title = EVOSEAL Test Coverage
+
+[report:coverage]
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+    
+    # Don't complain about abstract methods
+    @(abc\.)?abstractmethod
+    
+    # Don't complain about type checking blocks
+    if TYPE_CHECKING:
+
+[report:coverage:paths]
+source =
+    evoseal/
+    */site-packages/
+
+[report:coverage:report]
+exclude_also =
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    pass
+    
+[report:coverage:html]
+directory = htmlcov
+
+title = EVOSEAL Test Coverage
+
+[report:coverage:xml]
+output = coverage.xml
