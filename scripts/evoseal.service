@@ -1,20 +1,57 @@
 [Unit]
-Description=EVOSEAL Continuous Runner
+Description=EVOSEAL Evolution Service
 After=network.target
+Requires=network.target
 
 [Service]
 Type=simple
 User=kade
 WorkingDirectory=/home/kade/EVOSEAL
-# Use environment file for configuration
+
+# Environment configuration
 EnvironmentFile=/home/kade/EVOSEAL/.evoseal.env
-# Use the auto evolve script with parameters
-ExecStart=/bin/bash -c './scripts/auto_evolve_and_push.sh 10 ./tasks/default_task.json'
-Restart=always
-RestartSec=10
+Environment="PYTHONUNBUFFERED=1"
+Environment="LOG_LEVEL=INFO"
+Environment="MAX_RETRIES=3"
+Environment="RETRY_DELAY=60"
+Environment="ITERATIONS=1"
+
+# Configure logging
 StandardOutput=journal
 StandardError=journal
-Environment="PYTHONUNBUFFERED=1"
+SyslogIdentifier=evoseal
+
+# Core dumps (for debugging if needed)
+LimitCORE=infinity
+
+# Security options
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+MemoryDenyWriteExecute=true
+LockPersonality=true
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=65535
+
+# Main execution command
+ExecStart=/bin/bash -c './scripts/run_evolution_cycle.sh'
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+StartLimitInterval=300s
+StartLimitBurst=5
 
 [Install]
 WantedBy=multi-user.target
