@@ -67,7 +67,10 @@ class SelectionAlgorithm:
             # Remove elites from pool for further selection
             pop = [ind for ind in pop if ind not in elites]
         while len(selected) < num_selected and pop:
-            tournament = random.sample(pop, min(tournament_size, len(pop)))  # Not security-sensitive
+            # Using secrets for sampling to ensure secure random selection
+            tournament = [pop[i] for i in sorted(
+                secrets.SystemRandom().sample(range(len(pop)), min(tournament_size, len(pop)))
+            )]
             winner = max(tournament, key=lambda x: x.get(fitness_key, 0))
             selected.append(winner)
             pop.remove(winner)
@@ -97,13 +100,18 @@ class SelectionAlgorithm:
         fitnesses = [max(0.0, x.get(fitness_key, 0)) for x in pop]
         total_fitness = sum(fitnesses)
         if total_fitness == 0 and pop:
-            selected.extend(random.sample(pop, min(num_selected - len(selected), len(pop))))
+            # Using secrets for secure random sampling
+            sample_size = min(num_selected - len(selected), len(pop))
+            selected.extend([pop[i] for i in sorted(
+                secrets.SystemRandom().sample(range(len(pop)), sample_size)
+            )])
             # If still not enough, fill with randoms from selected
             while len(selected) < num_selected:
                 selected.append(secrets.SystemRandom().choice(selected))
             return list(selected[:num_selected])
         for _ in range(num_selected - len(selected)):
-            pick = random.uniform(0, total_fitness)  # Not security-sensitive
+            # Using secrets for secure random number generation
+            pick = secrets.SystemRandom().uniform(0, total_fitness)
             current = 0
             for ind, fit in zip(pop, fitnesses):
                 current += fit

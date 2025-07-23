@@ -1,7 +1,7 @@
 """Unit tests for the retry utility."""
 
 import asyncio
-import random
+import secrets
 import time
 import unittest
 from unittest.mock import MagicMock, patch
@@ -25,7 +25,11 @@ class TestRetry(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.mock_sleep = patch("time.sleep").start()
+        # Mock the random number generator used in retry decorator
         self.mock_random = patch("random.random", return_value=1.0).start()
+        # Also mock the SystemRandom used in the actual retry implementation
+        self.mock_system_random = patch("secrets.SystemRandom").start()
+        self.mock_system_random.return_value.random.return_value = 1.0
         self.addCleanup(patch.stopall)
 
     def test_retry_success_first_attempt(self):
@@ -89,21 +93,23 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_backoff(self):
         """Test that exponential backoff is applied correctly."""
-        with patch("random.random", return_value=0.5):  # Fixed jitter for test
-            mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
-            decorated = retry(max_retries=3, initial_delay=0.1, backoff_factor=2, max_delay=1.0)(
-                mock_func
-            )
+        # Mock the SystemRandom to return 0.5 for consistent test results
+        self.mock_system_random.return_value.random.return_value = 0.5
+        
+        mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
+        decorated = retry(max_retries=3, initial_delay=0.1, backoff_factor=2, max_delay=1.0)(
+            mock_func
+        )
 
-            result = decorated()
+        result = decorated()
 
-            self.assertEqual(result, "success")
-            # Expected sleep times with jitter: delay * (0.5 + 0.5) = delay * 1.0
-            # First delay: min(0.1 * 2^0, 1.0) * 1.0 = 0.1
-            # Second delay: min(0.1 * 2^1, 1.0) * 1.0 = 0.2
-            expected_sleeps = [0.1, 0.2]
-            actual_sleeps = [call[0][0] for call in self.mock_sleep.call_args_list]
-            self.assertEqual(actual_sleeps, expected_sleeps)
+        self.assertEqual(result, "success")
+        # Expected sleep times with jitter: delay * (0.5 + 0.5) = delay * 1.0
+        # First delay: min(0.1 * 2^0, 1.0) * 1.0 = 0.1 * 1.0 = 0.1
+        # Second delay: min(0.1 * 2^1, 1.0) * 1.0 = 0.2 * 1.0 = 0.2
+        expected_sleeps = [0.1, 0.2]
+        actual_sleeps = [round(call[0][0], 10) for call in self.mock_sleep.call_args_list]
+        self.assertEqual(actual_sleeps, expected_sleeps)
 
     async def test_async_retry(self):
         """Test that the retry decorator works with async functions."""
@@ -122,14 +128,16 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_jitter(self):
         """Test that jitter is applied to the delay."""
-        with patch("random.random", return_value=0.5):  # 50% jitter
-            mock_func = MagicMock(side_effect=[Exception(), "success"])
-            decorated = retry(initial_delay=1.0, backoff_factor=1.0)(mock_func)
+        # Mock the SystemRandom to return 0.5 for consistent test results
+        self.mock_system_random.return_value.random.return_value = 0.5
+        
+        mock_func = MagicMock(side_effect=[Exception(), "success"])
+        decorated = retry(initial_delay=1.0, backoff_factor=1.0)(mock_func)
 
-            decorated()
+        decorated()
 
-            # Should be initial_delay * (0.5 + 0.5) = 1.0 * 1.0 = 1.0
-            self.mock_sleep.assert_called_once_with(1.0)
+        # Should be initial_delay * (0.5 + 0.5) = 1.0 * 1.0 = 1.0
+        self.mock_sleep.assert_called_once_with(1.0)
 
     def test_retry_with_custom_exceptions(self):
         """Test that custom exceptions work with the retry decorator."""
@@ -169,22 +177,24 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_max_delay(self):
         """Test that max_delay limits the delay between retries."""
-        with patch("random.random", return_value=0.5):  # Fixed jitter for test
-            mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
-            decorated = retry(
-                max_retries=3,
-                initial_delay=1.0,
-                backoff_factor=1.5,  # Reduced factor for more predictable results
-                max_delay=2.0,
-            )(mock_func)
+        # Mock the SystemRandom to return 0.5 for consistent test results
+        self.mock_system_random.return_value.random.return_value = 0.5
+        
+        mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
+        decorated = retry(
+            max_retries=3,
+            initial_delay=1.0,
+            backoff_factor=1.5,  # Reduced factor for more predictable results
+            max_delay=2.0,
+        )(mock_func)
 
-            with patch("time.sleep") as mock_sleep:
-                decorated()
-                # First delay: 1.0 * 1.5^0 * (0.5 + 0.5) = 1.0
-                # Second delay: min(1.0 * 1.5^1 * 1.0, 2.0) = 1.5
-                expected_calls = [1.0, 1.5]
-                actual_calls = [call[0][0] for call in mock_sleep.call_args_list]
-                self.assertEqual(actual_calls, expected_calls)
+        with patch("time.sleep") as mock_sleep:
+            decorated()
+            # First delay: min(1.0 * 1.5^0, 2.0) * (0.5 + 0.5) = 1.0 * 1.0 = 1.0
+            # Second delay: min(1.0 * 1.5^1, 2.0) * 1.0 = 1.5 * 1.0 = 1.5
+            expected_calls = [1.0, 1.5]
+            actual_calls = [round(call[0][0], 10) for call in mock_sleep.call_args_list]
+            self.assertEqual(actual_calls, expected_calls)
 
     def test_retry_with_zero_retries(self):
         """Test that zero retries means no retries are attempted."""

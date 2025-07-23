@@ -151,12 +151,22 @@ class FewShotLearner:
         try:
             # Initialize tokenizer
             try:
+                # Specific commit hashes for reproducibility
+                model_revisions = {
+                    "gpt2": "e7da7f221d5bf496a481636cfa843665c140542f",  # GPT-2 base
+                    "gpt2-medium": "e7da7f221d5bf496a481636cfa843665c140542f",
+                    "gpt2-large": "e7da7f221d5bf496a481636cfa843665c140542f",
+                    "gpt2-xl": "e7da7f221d5bf496a481636cfa843665c140542f",
+                }
+                
+                revision = model_revisions.get(self.base_model_name, "main")
+                
                 self.tokenizer = AutoTokenizer.from_pretrained(
                     self.base_model_name,
-                    revision="main",  # Pin to a specific commit hash for production
+                    revision=revision,  # Use specific commit hash for known models
                     cache_dir=self.cache_dir,
                     padding_side="left",
-                    trust_remote_code=False  # Only enable if absolutely necessary
+                    trust_remote_code=False  # Disabled for security
                 )
 
                 if not self.tokenizer.pad_token:
@@ -168,13 +178,16 @@ class FewShotLearner:
 
             # Initialize model
             try:
+                # Use the same revision as the tokenizer
+                revision = model_revisions.get(self.base_model_name, "main")
+                
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.base_model_name,
-                    revision="main",  # Pin to a specific commit hash for production
+                    revision=revision,  # Use specific commit hash for known models
                     torch_dtype=(torch.bfloat16 if torch.cuda.is_available() else torch.float32),
                     device_map="auto" if torch.cuda.is_available() else None,
                     cache_dir=self.cache_dir,
-                    trust_remote_code=False,  # Only enable if absolutely necessary
+                    trust_remote_code=False,  # Disabled for security
                 )
             except ImportError as e:
                 logger.error(f"Missing required dependencies: {str(e)}")
@@ -395,10 +408,15 @@ class FewShotLearner:
             return self.examples[:k]
 
         if strategy == "random":
-            # Return k random examples
-            import random
-
-            return random.sample(self.examples, k)
+            # Return k random examples using cryptographically secure random number generator
+            import secrets
+            secure_random = secrets.SystemRandom()
+            
+            # Create a copy of the examples list to avoid modifying the original
+            examples_copy = self.examples.copy()
+            
+            # Use secure random sample
+            return secure_random.sample(examples_copy, k)
 
         if strategy == "similarity":
             # Import required libraries only when needed
