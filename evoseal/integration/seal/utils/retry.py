@@ -2,10 +2,10 @@
 Retry utilities for SEAL system operations.
 """
 
-import random
+import secrets
 import time
 from functools import wraps
-from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar, Union, Tuple, Optional
 
 from ..exceptions import RateLimitError, RetryableError, TimeoutError
 
@@ -51,7 +51,8 @@ def retry(
 
                     # Apply jitter to avoid thundering herd
                     sleep_time = min(delay * (backoff_factor**attempt), max_delay)
-                    sleep_time *= 0.5 + random.random()  # Add jitter
+                    # Use cryptographically secure random for jitter
+                    sleep_time *= 0.5 + (secrets.SystemRandom().random())
 
                     if isinstance(e, RateLimitError):
                         # For rate limits, respect the Retry-After header if available

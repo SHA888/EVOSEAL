@@ -5,8 +5,11 @@ This example demonstrates the key features of the EVOSEAL logging system,
 including structured logging, context tracking, and performance monitoring.
 """
 
-import random
+import secrets
 import time
+import logging
+import pathlib
+import random
 from pathlib import Path
 
 from evoseal.utils.logging import LoggingMixin, log_execution_time, setup_logging, with_request_id
@@ -28,8 +31,8 @@ class DataProcessor(LoggingMixin):
         """Process data and log performance metrics."""
         self.logger.info("Starting data processing", extra={"data_size": len(data)})
 
-        # Simulate processing time
-        processing_time = random.uniform(0.1, 0.5)
+        # Simulate processing time (not security-sensitive)
+        processing_time = 0.1 + (secrets.SystemRandom().random() * 0.4)
         time.sleep(processing_time)
 
         # Log performance metric
@@ -42,7 +45,7 @@ class DataProcessor(LoggingMixin):
 
         # Simulate occasional errors (20% chance)
         error_probability = 0.2
-        if random.random() < error_probability:
+        if secrets.SystemRandom().random() < error_probability:
             try:
                 raise ValueError("Random error occurred during processing")
             except ValueError:
