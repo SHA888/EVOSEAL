@@ -1,11 +1,8 @@
 """Unit tests for the RepositoryManager class."""
-
-import os
-import shutil
-import tempfile
-import unittest
+import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
+from typing import Tuple
 
 from git import Repo, GitCommandError
 
@@ -17,50 +14,134 @@ from evoseal.core.repository import (
     ConflictError
 )
 
-class TestRepositoryManager(unittest.TestCase):
+class TestRepositoryManager:
     """Test cases for RepositoryManager."""
 
-    def setUp(self):
-        """Set up test environment."""
-        self.test_dir = Path(tempfile.mkdtemp(prefix="evoseal_test_"))
-        self.manager = RepositoryManager(self.test_dir)
-        
-        # Create a test repository
-        self.repo_url = "https://github.com/example/test-repo.git"
-        self.repo_name = "test-repo"
-        self.repo_path = self.test_dir / "repositories" / self.repo_name
-        
-        # Mock repository for testing
-        self.mock_repo = MagicMock(spec=Repo)
-        self.mock_repo.working_dir = str(self.repo_path)
-        self.mock_repo.remotes = [MagicMock()]
-        self.mock_repo.remotes[0].urls = [self.repo_url]
-        self.mock_repo.is_dirty.return_value = False
-        self.mock_repo.untracked_files = []
-        self.mock_repo.head.is_detached = False
-        self.mock_repo.active_branch.name = "main"
-        self.mock_repo.head.commit.hexsha = "abc123"
-
-    def tearDown(self):
-        """Clean up test environment."""
-        if self.test_dir.exists():
-            shutil.rmtree(self.test_dir)
-
-    @patch('git.Repo.clone_from')
-    def test_clone_repository(self, mock_clone):
+    def test_clone_repository(
+        self, 
+        repository_manager: RepositoryManager, 
+        test_repo: Tuple[Path, 'git.Repo', str],
+        monkeypatch
+    ):
         """Test cloning a repository."""
-        # Test successful clone
-        mock_clone.return_value = self.mock_repo
-        result = self.manager.clone_repository(self.repo_url)
-        self.assertEqual(result, self.repo_path)
-        mock_clone.assert_called_once_with(self.repo_url, self.repo_path)
+        repo_path, repo, _ = test_repo
+        test_repo_url = f"file://{repo_path}"
         
-        # Test with custom name
-        custom_name = "custom-repo"
-        custom_path = self.test_dir / "repositories" / custom_name
-        result = self.manager.clone_repository(self.repo_url, custom_name)
-        self.assertEqual(result, custom_path)
-
+        # Test cloning
+        clone_path = repository_manager.clone_repository(test_repo_url, "test_repo")
+        
+        # Verify the repository was cloned to the correct location
+        assert clone_path.exists()
+        assert (clone_path / ".git").exists()
+        assert clone_path == repository_manager.work_dir / "repositories" / "test_repo"
+        
+        # Verify the repository contains the expected files
+        assert (clone_path / "sample.py").exists()
+        assert (clone_path / "test_sample.py").exists()
+        
+        # Verify the repository is in the manager's cache
+        assert "test_repo" in repository_manager._repositories
+        
+    def test_get_repository(
+        self, 
+        repository_manager: RepositoryManager, 
+        test_repo: Tuple[Path, 'git.Repo', str]
+    ):
+        """Test getting a repository instance."""
+        repo_path, repo, _ = test_repo
+        repo_name = "test_repo"
+        
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
+        
+        # Test getting the repository
+        repo_instance = repository_manager.get_repository(repo_name)
+        assert repo_instance is not None
+        assert isinstance(repo_instance, Repo)
+        assert str(repo_instance.working_dir) == str(
+            repository_manager.work_dir / "repositories" / repo_name
+        )
+        
+    def test_get_nonexistent_repository(self, repository_manager: RepositoryManager):
+        """Test getting a repository that doesn't exist."""
+        with pytest.raises(RepositoryNotFoundError):
+            repository_manager.get_repository("nonexistent_repo")
+    
+    def test_remove_repository(
+        self,
+        repository_manager: RepositoryManager,
+        test_repo: Tuple[Path, 'git.Repo', str],
+        monkeypatch
+    ):
+        """Test removing a repository."""
+        repo_path, repo, _ = test_repo
+        repo_name = "test_repo"
+        
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
+        
+        # Mock shutil.rmtree to prevent actual deletion
+        mock_rmtree = MagicMock()
+        monkeypatch.setattr("shutil.rmtree", mock_rmtree)
+        
+        # Test removing the repository
+        repository_manager.remove_repository(repo_name)
+        
+        # Verify the repository was removed from the manager
+        assert repo_name not in repository_manager._repositories
+        
+        # Verify rmtree was called with the correct path
+        expected_path = repository_manager.work_dir / "repositories" / repo_name
+        mock_rmtree.assert_called_once_with(str(expected_path))
+        
+        # Test removing a non-existent repository
+        with pytest.raises(RepositoryNotFoundError):
+            repository_manager.remove_repository("nonexistent_repo")
+    
+    def test_get_repository_info(
+        self,
+        repository_manager: RepositoryManager,
+        test_repo: Tuple[Path, 'git.Repo', str]
+    ):
+        """Test getting repository information."""
+        repo_path, repo, head_commit = test_repo
+        repo_name = "test_repo"
+        
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
+        
+        # Test getting repository info
+        info = repository_manager.get_repository_info(repo_name)
+        
+        # Verify the returned information
+        assert info["name"] == repo_name
+        assert info["path"] == str(repository_manager.work_dir / "repositories" / repo_name)
+        assert info["branch"] == "main"
+        assert info["commit"] == head_commit
+        assert info["dirty"] is False
+    
+    def test_get_repositories(
+        self,
+        repository_manager: RepositoryManager,
+        test_repo: Tuple[Path, 'git.Repo', str]
+    ):
+        """Test getting all repositories."""
+        repo_path, repo, _ = test_repo
+        
+        # Add test repositories
+        repository_manager.clone_repository(f"file://{repo_path}", "repo1")
+        repository_manager.clone_repository(f"file://{repo_path}", "repo2")
+        
+        # Test getting all repositories
+        repos = repository_manager.get_repositories()
+        
+        # Verify the returned repositories
+        assert len(repos) == 2
+        assert "repo1" in repos
+        assert "repo2" in repos
+        assert isinstance(repos["repo1"], dict)
+        assert isinstance(repos["repo2"], dict)
+    
     @patch('git.Repo')
     def test_checkout_branch(self, mock_repo):
         """Test checking out a branch."""

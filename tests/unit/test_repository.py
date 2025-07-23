@@ -1,50 +1,44 @@
 """Tests for the repository management module."""
-
-import os
-import shutil
-import tempfile
-import unittest
+import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from typing import Tuple
 
-from evoseal.core.repository import RepositoryManager
+from evoseal.core.repository import RepositoryManager, RepositoryError
 
 
-class TestRepositoryManager(unittest.TestCase):
+class TestRepositoryManager:
     """Test cases for RepositoryManager class."""
     
-    def setUp(self):
-        """Set up test environment."""
-        self.test_dir = tempfile.mkdtemp()
-        self.work_dir = Path(self.test_dir) / "work"
-        self.repo_manager = RepositoryManager(self.work_dir)
-        
-        # Create a test git repository
-        self.test_repo_path = self.work_dir / "test_repo"
-        self.test_repo_path.mkdir(parents=True)
-        
-        # Initialize a git repository for testing
-        os.system(f"git -C {self.test_repo_path} init")
-        
-        # Create a test file and commit it
-        test_file = self.test_repo_path / "test.txt"
-        test_file.write_text("Test content")
-        os.system(f"git -C {self.test_repo_path} add .")
-        os.system(f"git -C {self.test_repo_path} commit -m 'Initial commit'")
-        
-        # Store the repository URL for clone tests
-        self.test_repo_url = f"file://{self.test_repo_path}"
-    
-    def tearDown(self):
-        """Clean up test environment."""
-        if os.path.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
-    
-    def test_clone_repository(self):
+    def test_clone_repository(self, repository_manager: RepositoryManager, test_repo: Tuple[Path, 'git.Repo', str]):
         """Test cloning a repository."""
-        repo_path = self.repo_manager.clone_repository(self.test_repo_url, "test_clone")
-        self.assertTrue(repo_path.exists())
-        self.assertTrue((repo_path / ".git").exists())
+        repo_path, _, _ = test_repo
+        test_repo_url = f"file://{repo_path}"
+        
+        # Test cloning
+        clone_path = repository_manager.clone_repository(test_repo_url, "test_clone")
+        assert clone_path.exists()
+        assert (clone_path / ".git").exists()
+        
+        # Verify the repository was cloned to the correct location
+        expected_path = repository_manager.work_dir / "repositories" / "test_clone"
+        assert clone_path == expected_path
+        
+        # Verify the repository contains the expected files
+        assert (clone_path / "sample.py").exists()
+        assert (clone_path / "test_sample.py").exists()
+        
+    def test_clone_repository_already_exists(self, repository_manager: RepositoryManager, test_repo: Tuple[Path, 'git.Repo', str]):
+        """Test cloning to an existing repository."""
+        repo_path, _, _ = test_repo
+        test_repo_url = f"file://{repo_path}"
+        
+        # First clone should succeed
+        repository_manager.clone_repository(test_repo_url, "test_clone")
+        
+        # Second clone with the same name should raise an error
+        with pytest.raises(RepositoryError, match="Repository 'test_clone' already exists"):
+            repository_manager.clone_repository(test_repo_url, "test_clone")
     
     def test_get_repository(self):
         """Test getting a repository instance."""
