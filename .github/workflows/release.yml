@@ -67,11 +67,16 @@ jobs:
           body_path: releases/RELEASE_NOTES.md
           draft: false
           prerelease: false
-          files: |
-            dist/*
-            releases/CHANGELOG_EXCERPT.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            dist/*
+            releases/CHANGELOG_EXCERPT.md
 
       - name: Update documentation
         run: |
