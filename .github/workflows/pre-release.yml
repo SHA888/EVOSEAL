@@ -11,6 +11,12 @@ on:
       - 'release/*'  # Direct pushes to release branches
       - 'main'       # Also trigger on main branch for version bumps
 
+# Set the required permissions for the workflow
+permissions:
+  contents: write  # for creating releases and tags
+  pull-requests: write  # for creating PRs
+  issues: write  # for creating issues on failure
+
 concurrency: pre-release-${{ github.ref }}
 
 jobs:
@@ -61,15 +67,16 @@ jobs:
           echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> $GITHUB_ENV
 
       - name: Create Release Candidate
-        uses: softprops/action-gh-release@v1
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.version.outputs.version }}-rc.$(date +%Y%m%d%H%M%S)
-          name: 'Release Candidate ${{ steps.version.outputs.version }}'
+          release_name: 'Release Candidate ${{ steps.version.outputs.version }}'
           body_path: releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md
           draft: true
           prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
@@ -83,8 +90,12 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: prepare release candidate $(poetry version -s)'
-          title: 'Release Candidate: $(poetry version -s)'
-          body: 'This is an automated release candidate. Please review the changes before proceeding with the release.'
-          branch: release/$(poetry version -s)
+          commit-message: 'chore: prepare release candidate ${{ steps.version.outputs.version }}'
+          title: 'Release Candidate: ${{ steps.version.outputs.version }}'
+          body: |
+            This is an automated release candidate. Please review the changes before proceeding with the release.
+            
+            **Release Notes Preview:**
+            ${{ steps.create_release.outputs.upload_url }}
+          branch: release/v${{ steps.version.outputs.version }}
           base: main
