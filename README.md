@@ -7,7 +7,14 @@
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Rollback Safety](https://img.shields.io/badge/rollback%20safety-🛡️%20PROTECTED-brightgreen.svg)](#rollback-safety)
 
-**Date**: June 17, 2025, 05:43 AM (UTC+8)
+**Latest Version**: 0.2.8 (July 23, 2025)
+
+**Release Highlights**:
+- Integrated automated release workflow with GitHub Actions
+- Enhanced version management and semantic versioning
+- Improved release notes generation
+- Added comprehensive release checklist
+- Streamlined pre-release and release process
 
 EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution while continuously improving its own architecture. It integrates three key technologies:
 
