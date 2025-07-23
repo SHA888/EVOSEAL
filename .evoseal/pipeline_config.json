@@ -1,5 +1,5 @@
 {
-  "iterations": 3,
+  "iterations": 10,
   "auto_checkpoint": true,
   "checkpoint_interval": 1,
   "auto_rollback": true,
