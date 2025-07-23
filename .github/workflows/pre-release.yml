@@ -86,21 +86,15 @@ jobs:
             releases/${{ steps.version.outputs.version }}/
             dist/*
 
-      - name: Create Pull Request
+      - name: Create Pull Request (Manual Step)
         if: github.event_name != 'pull_request'  # Skip if already in a PR
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Release Candidate: ${{ steps.version.outputs.version }}`,
-              head: 'release/v${{ steps.version.outputs.version }}',
-              base: 'main',
-              body: 'This is an automated release candidate. Please review the changes before proceeding with the release.\n\n**Release Notes Preview:**\n' + 
-                '${{ steps.create_release.outputs.upload_url }}',
-              draft: false
-            });
-            console.log(`Created PR #${pr.number}: ${pr.title}`);
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "##[warning] Manual Pull Request Required"
+          echo "Please create a pull request from 'release/v${{ steps.version.outputs.version }}' to 'main' with the following details:"
+          echo "Title: Release Candidate: ${{ steps.version.outputs.version }}"
+          echo "Body: This is a release candidate. Please review the changes before proceeding with the release."
+          echo "\n**Release Notes Preview:**"
+          echo "${{ steps.create_release.outputs.upload_url }}"
+          echo "\nYou can create the PR using this link:"
+          echo "https://github.com/${{ github.repository }}/compare/main...release/v${{ steps.version.outputs.version }}?expand=1&title=Release+Candidate%3A+${{ steps.version.outputs.version }}"
+          echo "\nAfter creating the PR, please add the 'release' label and request reviews as needed."
