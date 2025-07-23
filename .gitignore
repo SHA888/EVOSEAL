@@ -48,6 +48,13 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+
+# Metrics and release files
+/metrics/evolution_*.json
+!/metrics/evolution_v*.json  # Keep versioned files
+/metrics/release_notes_*.md
+!/releases/*/RELEASE_NOTES.md  # Keep versioned release notes
+/archived_metrics/
 .hypothesis/
 .pytest_cache/
 cover/

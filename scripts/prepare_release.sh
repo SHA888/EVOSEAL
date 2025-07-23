@@ -203,9 +203,15 @@ EOF
 
 print_success "Release files generated in $VERSION_DIR ✓"
 
-# Move the release notes to the version directory
-if [ -f "release_notes_$VERSION_NUMBER.md" ]; then
-    mv "release_notes_$VERSION_NUMBER.md" "$VERSION_DIR/"
+# Handle release notes - they should already be in the version directory as RELEASE_NOTES.md
+if [ -f "$VERSION_DIR/RELEASE_NOTES.md" ]; then
+    print_success "Release notes found in $VERSION_DIR/RELEASE_NOTES.md"
+elif [ -f "release_notes_$VERSION_NUMBER.md" ]; then
+    # Fallback: if old format exists, move it to the correct location
+    mv "release_notes_$VERSION_NUMBER.md" "$VERSION_DIR/RELEASE_NOTES.md"
+    print_success "Moved release notes to $VERSION_DIR/RELEASE_NOTES.md"
+else
+    print_warning "No release notes found. Consider creating $VERSION_DIR/RELEASE_NOTES.md"
 fi
 
 # Build the package

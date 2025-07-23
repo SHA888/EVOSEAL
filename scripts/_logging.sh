@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Logging utility for EVOSEAL
+# Combines features from both versions with enhanced functionality
 
 # Define colors
 RED='\033[0;31m'
@@ -47,7 +48,7 @@ log() {
     local color=$2
     local message=$3
     local timestamp=$(get_timestamp)
-
+    
     local level_num=$(get_log_level_num "$level")
     if [ $level_num -ge $LOG_LEVEL_NUM ]; then
         echo -e "${color}[${level}] ${timestamp} - ${message}${NC}"
@@ -56,23 +57,23 @@ log() {
 
 # Log levels
 log_debug() {
-    log "DEBUG" "$BLUE" "$1"
+    log "DEBUG" "$BLUE" "$@"
 }
 
 log_info() {
-    log "INFO" "$GREEN" "$1"
+    log "INFO" "$GREEN" "$@"
 }
 
 log_warn() {
-    log "WARN" "$YELLOW" "$1"
+    log "WARN" "$YELLOW" "$@"
 }
 
 log_error() {
-    log "ERROR" "$RED" "$1"
+    log "ERROR" "$RED" "$@"
 }
 
 log_fatal() {
-    log "FATAL" "$RED" "$1"
+    log "FATAL" "$RED" "$@"
     exit 1
 }
 
@@ -87,33 +88,68 @@ execute_with_retry() {
 
     while [ $attempt -le $max_retries ]; do
         log_info "Attempt $attempt of $max_retries: $cmd"
-
+        
         # Execute the command and capture the exit code
-        eval "$cmd"
-        exit_code=$?
-
-        # Check if command was successful
-        if [ $exit_code -eq 0 ]; then
+        if output=$($cmd 2>&1); then
             log_info "Command succeeded on attempt $attempt"
+            echo "$output"
             return 0
+        else
+            exit_code=$?
+            log_warn "Command failed with exit code $exit_code on attempt $attempt"
+            log_warn "Command output: $output"
         fi
-
-        # Log the error
-        log_warn "Command failed with exit code $exit_code on attempt $attempt"
-
+        
         # Increment attempt counter
         attempt=$((attempt + 1))
-
+        
         # If we have retries left, wait before retrying
         if [ $attempt -le $max_retries ]; then
             log_info "Retrying in $retry_delay seconds..."
             sleep $retry_delay
         fi
     done
-
+    
     # If we get here, all retries failed
     log_error "Command failed after $max_retries attempts"
     return $exit_code
+}
+
+# Function to execute a command with logging and error handling
+# Usage: run_command "command" ["error_message"]
+run_command() {
+    local cmd="$1"
+    local error_msg="${2:-Command failed: $cmd}"
+    
+    log_info "Executing: $cmd"
+    
+    # Execute the command and capture output
+    if output=$($cmd 2>&1); then
+        log_info "Command succeeded"
+        echo "$output"
+        return 0
+    else
+        log_error "$error_msg"
+        log_error "Command output: $output"
+        return 1
+    fi
+}
+
+# Function to retry a command
+# Alias to execute_with_retry for backward compatibility
+# Usage: retry_command max_attempts delay "command" ["error_message"]
+retry_command() {
+    local max_attempts=$1
+    local delay=$2
+    local cmd="$3"
+    local error_msg="${4:-Command failed after $max_attempts attempts}"
+    
+    if execute_with_retry "$cmd" "$max_attempts" "$delay"; then
+        return 0
+    else
+        log_error "$error_msg"
+        return 1
+    fi
 }
 
 # Set default log level from environment variable if set
