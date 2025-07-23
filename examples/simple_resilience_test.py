@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-import random
+import secrets
 import time
 from datetime import datetime
 
@@ -40,8 +40,9 @@ class MockComponent:
         """Mock operation that may fail."""
         self.call_count += 1
 
-        # Simulate random failures
-        if random.random() < self.failure_rate:
+        # Simulate random failures using cryptographically secure random number generator
+        secure_random = secrets.SystemRandom()
+        if secure_random.random() < self.failure_rate:
             self.failure_count += 1
             error_types = [
                 ConnectionError("Network connection failed"),

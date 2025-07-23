@@ -13,7 +13,7 @@ capabilities including:
 import asyncio
 import json
 import math
-import random
+import secrets
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
@@ -47,13 +47,14 @@ class AdvancedMockMetricsTracker:
             base_memory = 120 + (i * 2)  # Gradual memory increase
             base_error_rate = 0.15 - (i * 0.005)  # Error rate improvement
 
-            # Add realistic noise
+            # Add realistic noise using cryptographically secure random number generator
+            secure_random = secrets.SystemRandom()
             noise_factor = 0.02
-            success_rate = base_success_rate + random.uniform(-noise_factor, noise_factor)
-            accuracy = base_accuracy + random.uniform(-noise_factor, noise_factor)
-            duration = base_duration + random.uniform(-noise_factor * 10, noise_factor * 10)
-            memory = base_memory + random.uniform(-noise_factor * 50, noise_factor * 50)
-            error_rate = base_error_rate + random.uniform(-noise_factor, noise_factor)
+            success_rate = base_success_rate + secure_random.uniform(-noise_factor, noise_factor)
+            accuracy = base_accuracy + secure_random.uniform(-noise_factor, noise_factor)
+            duration = base_duration + secure_random.uniform(-noise_factor * 10, noise_factor * 10)
+            memory = base_memory + secure_random.uniform(-noise_factor * 50, noise_factor * 50)
+            error_rate = base_error_rate + secure_random.uniform(-noise_factor, noise_factor)
 
             # Introduce specific anomalies
             if i == 8:  # Anomaly at version 8
@@ -66,12 +67,6 @@ class AdvancedMockMetricsTracker:
                 accuracy *= 0.92  # Slight accuracy drop
 
             # Ensure values stay within realistic bounds
-            success_rate = max(0.0, min(1.0, success_rate))
-            accuracy = max(0.0, min(1.0, accuracy))
-            error_rate = max(0.0, min(1.0, error_rate))
-            duration = max(0.1, duration)
-            memory = max(50, memory)
-
             data[version_id] = {
                 'success_rate': success_rate,
                 'accuracy': accuracy,

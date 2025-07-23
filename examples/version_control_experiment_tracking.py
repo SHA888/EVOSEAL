@@ -12,7 +12,7 @@ This example shows how to:
 
 import asyncio
 import json
-import random
+import secrets
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -60,9 +60,12 @@ class MockEvolutionPipeline:
         print(f"📊 Started experiment: {experiment.name} (ID: {experiment.id[:8]}...)")
 
         try:
+            # Initialize secure random number generator
+            secure_random = secrets.SystemRandom()
+            
             # Simulate evolution iterations
             best_fitness = 0.0
-            population_fitness = [random.uniform(0.1, 0.5) for _ in range(self.population_size)]
+            population_fitness = [secure_random.uniform(0.1, 0.5) for _ in range(self.population_size)]
 
             for iteration in range(1, self.max_iterations + 1):
                 print(f"  🔄 Iteration {iteration}/{self.max_iterations}")
@@ -76,8 +79,8 @@ class MockEvolutionPipeline:
                 # Generate new population with mutations
                 new_fitness = []
                 for i, fitness in enumerate(population_fitness):
-                    # Simulate mutation and selection
-                    mutation_strength = random.uniform(-0.1, 0.2)
+                    # Simulate mutation and selection using secure random
+                    mutation_strength = secure_random.uniform(-0.1, 0.2)
                     new_fitness_val = max(0.0, fitness + mutation_strength)
                     new_fitness.append(new_fitness_val)
 
