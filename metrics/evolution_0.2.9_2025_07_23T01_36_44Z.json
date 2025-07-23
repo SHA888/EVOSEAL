@@ -1,0 +1,34 @@
+{
+  "version": "0.2.9",
+  "timestamp": "2025-07-23T01:36:44Z",
+  "commit": "4e2edfe",
+  "branch": "release/v0.2.8",
+  "metrics": {
+    "iterations": 1,
+    "improvements": 1,
+    "regressions": 0,
+    "code_size": {
+      "added": 14,
+      "deleted": 22,
+      "files_changed": 2
+    },
+    "test_coverage": 0.0,
+    "changes": {
+      "features": 0,
+      "fixes": 2,
+      "performance": 0
+    }
+  },
+  "performance": {
+    "timestamp": "2025-07-23T01:36:44Z",
+    "memory_usage_mb": 3152,
+    "cpu_usage_percent": 7
+  },
+  "changes": {
+    "features": [],
+    "fixes": [ - fix: update release checklist path in workflow  - fix: correct YAML syntax in github-script action ],
+    "performance_improvements": [],
+    "documentation_updates": []
+  },
+  "files_changed": [".github/workflows/pre-release.yml",".github/workflows/release.yml"]
+}
