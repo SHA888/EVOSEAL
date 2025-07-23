@@ -1,8 +1,10 @@
 {
-  "iterations": 10,
+  "iterations": 3,
   "auto_checkpoint": true,
-  "checkpoint_interval": 5,
+  "checkpoint_interval": 1,
   "auto_rollback": true,
+  "min_evolution_interval": 3600,
+  "version_bump_interval": 3,
   "regression_threshold": 0.05,
   "components": {
     "dgm": {
@@ -24,7 +26,13 @@
     "console": true
   },
   "monitoring": {
-    "progress_update_interval": 1.0,
+    "progress_update_interval": 60.0,
     "metrics_collection": true
+  },
+  "version_control": {
+    "enabled": true,
+    "require_manual_approval": true,
+    "min_changes_for_version_bump": 5,
+    "max_versions_per_day": 1
   }
 }
