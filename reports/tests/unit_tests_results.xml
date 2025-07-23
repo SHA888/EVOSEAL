@@ -1,0 +1,884 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="19" skipped="0" tests="236" time="5.829" timestamp="2025-07-23T03:16:47.783013+00:00" hostname="deepreasoner"><testcase classname="tests.unit.agentic_system.test_agentic_system" name="test_real_agent_integration" time="0.001" /><testcase classname="tests.unit.agentic_system.test_agentic_system" name="test_create_and_destroy_agent" time="0.001" /><testcase classname="tests.unit.agentic_system.test_agentic_system" name="test_send_message_and_assign_task" time="0.000" /><testcase classname="tests.unit.agentic_system.test_agentic_system" name="test_monitor_performance_and_status" time="0.000" /><testcase classname="tests.unit.core.test_workflow_coordinator.TestWorkflowCoordinator" name="test_initial_state" time="0.007" /><testcase classname="tests.unit.core.test_workflow_coordinator.TestWorkflowCoordinator" name="test_pause_resume_workflow" time="0.070" /><testcase classname="tests.unit.core.test_workflow_coordinator.TestWorkflowCoordinator" name="test_run_workflow" time="0.047" /><testcase classname="tests.unit.core.test_workflow_engine" name="test_register_and_execute_workflow" time="0.001" /><testcase classname="tests.unit.core.test_workflow_engine" name="test_workflow_step_failure_and_error_handling" time="0.001" /><testcase classname="tests.unit.core.test_workflow_engine" name="test_schema_validation" time="0.007" /><testcase classname="tests.unit.evoseal.test_evaluator" name="test_default_evaluation_scores_and_feedback" time="0.000" /><testcase classname="tests.unit.evoseal.test_evaluator" name="test_custom_weights_affect_score" time="0.000" /><testcase classname="tests.unit.evoseal.test_evaluator" name="test_add_strategy_and_use" time="0.000" /><testcase classname="tests.unit.evoseal.test_evaluator" name="test_feedback_content" time="0.000" /><testcase classname="tests.unit.evoseal.test_selection" name="test_tournament_selection_basic" time="0.000" /><testcase classname="tests.unit.evoseal.test_selection" name="test_roulette_selection_basic" time="0.000" /><testcase classname="tests.unit.evoseal.test_selection" name="test_elitism" time="0.000" /><testcase classname="tests.unit.evoseal.test_selection" name="test_zero_fitness" time="0.001" /><testcase classname="tests.unit.evoseal.test_selection" name="test_unknown_strategy" time="0.000" /><testcase classname="tests.unit.evoseal.test_testrunner" name="test_run_tests_success" time="0.001" /><testcase classname="tests.unit.evoseal.test_testrunner" name="test_run_tests_failure" time="0.001" /><testcase classname="tests.unit.evoseal.test_testrunner" name="test_run_tests_timeout" time="0.001" /><testcase classname="tests.unit.evoseal.test_testrunner" name="test_run_tests_unknown_type" time="0.000" /><testcase classname="tests.unit.evoseal.test_version_database" name="test_add_and_get_variant" time="0.000" /><testcase classname="tests.unit.evoseal.test_version_database" name="test_query_variants" time="0.000" /><testcase classname="tests.unit.evoseal.test_version_database" name="test_lineage_and_history" time="0.000" /><testcase classname="tests.unit.models.test_code_archive" name="test_create_code_archive" time="0.001" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_validation" time="0.001" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_update" time="0.000" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_tags" time="0.000" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_dependencies" time="0.000" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_archiving" time="0.000" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_fork" time="0.000" /><testcase classname="tests.unit.models.test_code_archive" name="test_code_archive_serialization" time="0.001" /><testcase classname="tests.unit.models.test_code_archive" name="test_create_code_archive_with_string_language" time="0.000" /><testcase classname="tests.unit.models.test_evaluation" name="test_evaluation_result_creation" time="0.001" /><testcase classname="tests.unit.models.test_evaluation" name="test_metric_validation_error" time="0.000" /><testcase classname="tests.unit.models.test_evaluation" name="test_serialization_roundtrip" time="0.001" /><testcase classname="tests.unit.models.test_system_config" name="test_from_yaml_and_validate" time="0.002" /><testcase classname="tests.unit.models.test_system_config" name="test_get_dot_notation" time="0.000" /><testcase classname="tests.unit.models.test_system_config" name="test_validate_missing_keys" time="0.000" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_loads_templates_and_metadata" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_lookup_by_category" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_lookup_by_version" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_backward_compat" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_template_content[diagnose_improvement_prompt]" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_template_content[tooluse_prompt]" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_template_content[self_improvement_instructions]" time="0.001" /><testcase classname="tests.unit.prompt_template.test_template_manager" name="test_template_content[testrepo_test_command]" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_line_length_violation" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_trailing_whitespace" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_mixed_indentation" time="0.000" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_quote_consistency" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_apply_suggestion" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_disabled_strategy" time="0.000" /><testcase classname="tests.unit.seal.self_editor.strategies.test_code_style_strategy.TestCodeStyleStrategy" name="test_get_config" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_initialization" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_evaluate_empty_content" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_evaluate_disabled_strategy" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_function_docstring" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_class_docstring" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_module_docstring" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_return_type_hint" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_parameter_type_hint" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_empty_docstring" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_args_section" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_missing_returns_section" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_long_docstring_line" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_skip_private_methods" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_skip_test_methods" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_ignore_patterns" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_get_config" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_numpy_style_docstring" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_documentation_strategy.TestDocumentationStrategy" name="test_rest_style_docstring" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_initialization" time="0.000" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_evaluate_disabled_strategy" time="0.000" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_risky_imports" time="0.002" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_unsafe_functions" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_sql_injection" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_xss" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_command_injection" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_file_operations" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_check_hardcoded_secrets" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_ignore_patterns" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_custom_checks" time="0.001" /><testcase classname="tests.unit.seal.self_editor.strategies.test_security_analysis_strategy.TestSecurityAnalysisStrategy" name="test_get_config" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_batch_loading" time="0.006" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_cached_decorator" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_caching" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_csv_loader" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_json_loader" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_load_data_csv" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_load_data_json" time="0.001" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_load_data_yaml" time="0.002" /><testcase classname="tests.unit.seal.test_data_loaders.TestDataLoaders" name="test_yaml_loader" time="0.002" /><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_lifecycle_management" time="0.001" /><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_async_context_manager" time="0.001" /><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_process_prompt" time="0.003"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede12a0&gt;
+mock_knowledge_base = &lt;evoseal.integration.seal.knowledge.mock_knowledge_base.MockKnowledgeBase object at 0x7fcbdede9c00&gt;
+mock_self_editor = &lt;evoseal.integration.seal.self_editor.mock_self_editor.MockSelfEditor object at 0x7fcbdede85b0&gt;
+
+    @pytest.mark.asyncio
+    async def test_process_prompt(enhanced_seal_system, mock_knowledge_base, mock_self_editor):
+        """Test processing a prompt with knowledge and self-editing."""
+        # Setup test data
+        test_prompt = "What is the capital of France?"
+        test_context = {"user_id": "test_user"}
+    
+        # Process the prompt
+&gt;       result = await enhanced_seal_system.process_prompt(test_prompt, test_context)
+
+tests/unit/seal/test_enhanced_seal_system.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede12a0&gt;
+prompt_text = 'What is the capital of France?', context = {'user_id': 'test_user'}
+template_name = None, kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_caching" time="0.002"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf08e5f0&gt;
+
+    @pytest.mark.asyncio
+    async def test_caching(enhanced_seal_system):
+        """Test that caching works as expected."""
+        # Clear any existing cache
+        enhanced_seal_system.clear_cache()
+    
+        # Enable caching for this test
+        enhanced_seal_system.config.enable_caching = True
+    
+        test_prompt = "What is the capital of France?"
+        test_context = {"test": "caching_test"}
+    
+        # First call - should miss cache
+&gt;       result1 = await enhanced_seal_system.process_prompt(test_prompt, test_context)
+
+tests/unit/seal/test_enhanced_seal_system.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf08e5f0&gt;
+prompt_text = 'What is the capital of France?', context = {'test': 'caching_test'}
+template_name = None, kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_metrics_collection" time="0.002"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdefb8400&gt;
+
+    @pytest.mark.asyncio
+    async def test_metrics_collection(enhanced_seal_system):
+        """Test that metrics are collected properly."""
+        # Process a few prompts
+        prompts = ["Test 1", "Test 2", "Test 3"]
+        for prompt in prompts:
+&gt;           await enhanced_seal_system.process_prompt(prompt)
+
+tests/unit/seal/test_enhanced_seal_system.py:157: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdefb8400&gt;
+prompt_text = 'Test 1', context = {}, template_name = None, kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_conversation_history" time="0.002"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf08ce50&gt;
+
+    @pytest.mark.asyncio
+    async def test_conversation_history(enhanced_seal_system):
+        """Test that conversation history is maintained correctly."""
+        # Clear any existing history
+        enhanced_seal_system.conversation_history.clear()
+    
+        # Add some messages
+&gt;       await enhanced_seal_system.process_prompt("Hello")
+
+tests/unit/seal/test_enhanced_seal_system.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf08ce50&gt;
+prompt_text = 'Hello', context = {}, template_name = None, kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_error_handling" time="0.002" /><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_config_validation" time="0.001" /><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_timezone_handling" time="0.002"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede2ad0&gt;
+
+    @pytest.mark.asyncio
+    async def test_timezone_handling(enhanced_seal_system):
+        """Test that timezone-aware datetimes are handled correctly."""
+        # Test with timezone-naive datetime (using now() instead of utcnow())
+        now_naive = datetime.now()
+&gt;       await enhanced_seal_system.process_prompt("Test timezone", {"timestamp": now_naive})
+
+tests/unit/seal/test_enhanced_seal_system.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede2ad0&gt;
+prompt_text = 'Test timezone'
+context = {'timestamp': datetime.datetime(2025, 7, 23, 3, 16, 48, 610364)}, template_name = None
+kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_self_editing_disabled" time="0.003"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf051ab0&gt;
+mock_self_editor = &lt;evoseal.integration.seal.self_editor.mock_self_editor.MockSelfEditor object at 0x7fcbdf0525f0&gt;
+
+    @pytest.mark.asyncio
+    async def test_self_editing_disabled(enhanced_seal_system, mock_self_editor):
+        """Test that self-editing can be disabled."""
+        # Disable self-editing
+        enhanced_seal_system.config.enable_self_editing = False
+    
+        # Create a test suggestion
+        test_suggestion = {
+            "type": "fact_verification",
+            "operation": "REPLACE",
+            "original_text": "Original",
+            "suggested_text": "Edited",
+            "confidence": 0.9,
+            "explanation": "Test edit",
+        }
+    
+        # Patch the suggest_edits method to return our test suggestion
+        with patch.object(
+            mock_self_editor, "suggest_edits", return_value=[test_suggestion]
+        ) as mock_suggest:
+    
+            # Process a prompt
+&gt;           await enhanced_seal_system.process_prompt("Test prompt", context={"test": "context"})
+
+tests/unit/seal/test_enhanced_seal_system.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf051ab0&gt;
+prompt_text = 'Test prompt', context = {'test': 'context'}, template_name = None, kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_retrieve_relevant_knowledge" time="0.050"><failure message="AssertionError: assert [] == [{'content': ...'score': 0.8}]&#10;  &#10;  Right contains 2 more items, first extra item: #x1B[0m{#x1B[33m'#x1B[39;49;00m#x1B[33mcontent#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: #x1B[33m'#x1B[39;49;00m#x1B[33mTest knowledge 1#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m, #x1B[33m'#x1B[39;49;00m#x1B[33mmetadata#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: {}, #x1B[33m'#x1B[39;49;00m#x1B[33mscore#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: #x1B[94m0.9#x1B[39;49;00m}#x1B[90m#x1B[39;49;00m&#10;  &#10;  Full diff:&#10;  #x1B[0m#x1B[92m+ []#x1B[39;49;00m#x1B[90m#x1B[39;49;00m&#10;  #x1B[91m- [#x1B[39;49;00m#x1B[90m#x1B[39;49;00m&#10;  #x1B[91m-     {#x1B[39;49;00m#x1B[90m#x1B[39;49;00m...&#10;  &#10;  ...Full output truncated (10 lines hidden), use '-vv' to show">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede1e70&gt;
+mock_knowledge_base = &lt;evoseal.integration.seal.knowledge.mock_knowledge_base.MockKnowledgeBase object at 0x7fcbe066c610&gt;
+
+    @pytest.mark.asyncio
+    async def test_retrieve_relevant_knowledge(enhanced_seal_system, mock_knowledge_base):
+        """Test knowledge retrieval with caching."""
+        # Set up test data
+        test_query = "test query"
+        test_results = [
+            {"content": "Test knowledge 1", "score": 0.9, "metadata": {}},
+            {"content": "Test knowledge 2", "score": 0.8, "metadata": {}},
+        ]
+    
+        # Configure mock to return test results on first call, empty on subsequent calls
+        mock_knowledge_base.search.side_effect = [
+            test_results,  # First call
+            [],  # Second call (should use cache)
+        ]
+    
+        # First call - should query knowledge base
+        results = await enhanced_seal_system.retrieve_relevant_knowledge(test_query, context={})
+&gt;       assert results == test_results
+E       AssertionError: assert [] == [{'content': ...'score': 0.8}]
+E         
+E         Right contains 2 more items, first extra item: #x1B[0m{#x1B[33m'#x1B[39;49;00m#x1B[33mcontent#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: #x1B[33m'#x1B[39;49;00m#x1B[33mTest knowledge 1#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m, #x1B[33m'#x1B[39;49;00m#x1B[33mmetadata#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: {}, #x1B[33m'#x1B[39;49;00m#x1B[33mscore#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: #x1B[94m0.9#x1B[39;49;00m}#x1B[90m#x1B[39;49;00m
+E         
+E         Full diff:
+E         #x1B[0m#x1B[92m+ []#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+E         #x1B[91m- [#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+E         #x1B[91m-     {#x1B[39;49;00m#x1B[90m#x1B[39;49;00m...
+E         
+E         ...Full output truncated (10 lines hidden), use '-vv' to show
+
+tests/unit/seal/test_enhanced_seal_system.py:280: AssertionError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_self_edit_process" time="0.003"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdedc8670&gt;
+mock_self_editor = &lt;evoseal.integration.seal.self_editor.mock_self_editor.MockSelfEditor object at 0x7fcbdedca7a0&gt;
+mock_knowledge_base = &lt;evoseal.integration.seal.knowledge.mock_knowledge_base.MockKnowledgeBase object at 0x7fcbdedcae00&gt;
+
+    @pytest.mark.asyncio
+    async def test_self_edit_process(enhanced_seal_system, mock_self_editor, mock_knowledge_base):
+        """Test the self-editing process."""
+        # Enable self-editing for this test
+        enhanced_seal_system.config.enable_self_editing = True
+    
+        # Set up test data
+        test_prompt = "Test prompt"
+        test_context = {"user_id": "test_user"}
+        test_knowledge = [
+            {"content": "Test knowledge 1", "score": 0.9, "metadata": {}},
+        ]
+    
+        # Configure mock knowledge base
+        mock_knowledge_base.search.return_value = test_knowledge
+    
+        # Configure mock editor with a test suggestion
+        test_suggestion = {
+            "type": "clarity_improvement",
+            "operation": "REPLACE",
+            "original_text": "test",
+            "suggested_text": "tested",
+            "confidence": 0.9,
+            "explanation": "Improved clarity",
+        }
+    
+        # Patch the suggest_edits method
+        with patch.object(
+            mock_self_editor, "suggest_edits", return_value=[test_suggestion]
+        ) as mock_suggest:
+    
+            # Process a prompt that will trigger self-editing
+&gt;           response = await enhanced_seal_system.process_prompt(test_prompt, context=test_context)
+
+tests/unit/seal/test_enhanced_seal_system.py:319: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdedc8670&gt;
+prompt_text = 'Test prompt', context = {'user_id': 'test_user'}, template_name = None, kwargs = {}
+
+    async def process_prompt(
+        self,
+        prompt_text: str,
+        context: Optional[Dict[str, Any]] = None,
+        template_name: Optional[str] = None,
+        **kwargs,
+    ) -&gt; Dict[str, Any]:
+        """
+        Process a prompt with knowledge integration and optional self-editing.
+    
+        Args:
+            prompt_text: The input prompt text to process
+            context: Optional context dictionary for the prompt
+            template_name: Optional name of the template to use
+            **kwargs: Additional arguments for prompt construction
+    
+        Returns:
+            Dictionary containing the response and metadata
+    
+        Raises:
+            ValueError: If prompt_text is empty or contains only whitespace
+        """
+        # Input validation
+        if not prompt_text or not prompt_text.strip():
+            if self.metrics:
+                self.metrics.request_count += 1
+                self.metrics.record_error(ValueError("Empty prompt text"))
+            raise ValueError("Prompt text cannot be empty")
+    
+        context = context or {}
+&gt;       start_time = time.time()
+E       NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testcase><testcase classname="tests.unit.seal.test_exceptions.TestSEALExceptions" name="test_error_messages" time="0.001" /><testcase classname="tests.unit.seal.test_exceptions.TestSEALExceptions" name="test_exception_chaining" time="0.000" /><testcase classname="tests.unit.seal.test_exceptions.TestSEALExceptions" name="test_exception_inheritance" time="0.000" /><testcase classname="tests.unit.seal.test_exceptions.TestSEALExceptions" name="test_retryable_error" time="0.000" /><testcase classname="tests.unit.seal.test_exceptions.TestSEALExceptions" name="test_retryable_flag" time="0.000" /><testcase classname="tests.unit.seal.test_exceptions.TestSEALExceptions" name="test_seal_error_basic" time="0.001" /><testcase classname="tests.unit.seal.test_metrics.TestMetrics" name="test_initial_state" time="0.000" /><testcase classname="tests.unit.seal.test_metrics.TestMetrics" name="test_record_processing_time" time="0.000" /><testcase classname="tests.unit.seal.test_metrics.TestMetrics" name="test_record_error" time="0.000" /><testcase classname="tests.unit.seal.test_metrics.TestMetrics" name="test_get_metrics_summary" time="0.000" /><testcase classname="tests.unit.seal.test_metrics.TestMetrics" name="test_edge_cases" time="0.000" /><testcase classname="tests.unit.seal.test_metrics.TestMetrics" name="test_immutability" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestPromptConstructor" name="test_initialization" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestPromptConstructor" name="test_add_template" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_construction.TestPromptConstructor" name="test_create_prompt" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestPromptConstructor" name="test_format_with_style" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatKnowledge" name="test_format_knowledge_none" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatKnowledge" name="test_format_knowledge_string" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatKnowledge" name="test_format_knowledge_list" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatKnowledge" name="test_format_knowledge_max_length" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatExamples" name="test_format_examples_none" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatExamples" name="test_format_examples_string" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatExamples" name="test_format_examples_list" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatExamples" name="test_format_examples_max_examples" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatContext" name="test_format_context_none" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatContext" name="test_format_context_basic" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatContext" name="test_format_context_include_exclude" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatPrompt" name="test_format_prompt_basic" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatPrompt" name="test_format_prompt_with_knowledge" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatPrompt" name="test_format_prompt_with_examples" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_construction.TestFormatPrompt" name="test_format_prompt_missing_vars" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_default_templates_loaded" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_base_templates[base_instruction]" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_base_templates[base_chat]" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_base_templates[base_completion]" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_base_templates[base_chain_of_thought]" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_domain_templates[code_generation]" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_domain_templates[code_explanation]" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_domain_templates[documentation]" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptTemplates" name="test_system_templates" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptIntegration" name="test_construct_with_template" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptIntegration" name="test_template_styles[base_instruction-INSTRUCTION]" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptIntegration" name="test_template_styles[base_chat-CHAT]" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptIntegration" name="test_template_styles[code_generation-INSTRUCTION]" time="0.001" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptIntegration" name="test_template_validation" time="0.000" /><testcase classname="tests.unit.seal.test_prompt_templates.TestPromptCaching" name="test_template_caching" time="0.002"><failure message="NameError: name 'time' is not defined">self = &lt;test_prompt_templates.TestPromptCaching object at 0x7fcbdf5382b0&gt;
+
+    @pytest.mark.asyncio
+    async def test_template_caching(self):
+        """Test that templates are properly cached."""
+        from evoseal.integration.seal.enhanced_seal_system import EnhancedSEALSystem, SEALConfig
+        from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
+        from evoseal.integration.seal.prompt.constructor import PromptTemplate
+    
+        # Create a mock knowledge base
+        mock_kb = MagicMock(spec=KnowledgeBase)
+        mock_kb.search = AsyncMock(return_value=[])
+    
+        # Create SEAL system with caching enabled
+        config = SEALConfig(
+            enable_caching=True,  # This enables all caching, including templates
+            cache_ttl_seconds=60,
+            max_cache_size=100,
+        )
+        system = EnhancedSEALSystem(
+            config=config,
+            knowledge_base=mock_kb,
+        )
+    
+        # Create a test template
+        test_template = PromptTemplate(
+            name="test_template",
+            template="Test template: {user_input}",
+            style="INSTRUCTION",
+            description="A test template",
+            required_fields={"user_input"},
+        )
+    
+        # Add the template to the system's prompt constructor
+        system.prompt_constructor.add_template(test_template)
+    
+        # Manually add the template to the cache
+        system._template_cache["test_template"] = test_template
+    
+        # Get the template - should be in cache
+&gt;       template1 = await system._get_cached_template("test_template")
+
+tests/unit/seal/test_prompt_templates.py:195: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdefb1570&gt;
+template_name = 'test_template'
+
+    async def _get_cached_template(self, template_name: str) -&gt; Any:
+        """Get a compiled template from cache or load it."""
+        if not self.config.enable_caching:
+            return None
+    
+        if template_name in self._template_cache:
+&gt;           self._last_accessed[template_name] = time.time()
+E           NameError: name 'time' is not defined
+
+evoseal/integration/seal/enhanced_seal_system.py:783: NameError</failure></testcase><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_async_retry" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_exhausted" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_rate_limit" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_specific_exceptions" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_success_after_retries" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_success_first_attempt" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_backoff" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_custom_exceptions" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_jitter" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_max_delay" time="0.002" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_negative_retries" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_non_retryable_error" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_retryable_error" time="0.001" /><testcase classname="tests.unit.seal.test_retry.TestRetry" name="test_retry_with_zero_retries" time="0.001" /><testcase classname="tests.unit.seal_interface.test_seal_interface" name="test_seal_interface_submit" time="0.102" /><testcase classname="tests.unit.seal_interface.test_seal_interface" name="test_seal_interface_provider_failure" time="0.012" /><testcase classname="tests.unit.seal_interface.test_seal_interface" name="test_seal_interface_empty_prompt" time="0.001" /><testcase classname="tests.unit.simple_test" name="test_simple" time="0.000" /><testcase classname="tests.unit.storage.test_git_storage" name="test_save_and_load_model" time="0.021" /><testcase classname="tests.unit.storage.test_git_storage" name="test_list_versions" time="0.029" /><testcase classname="tests.unit.storage.test_git_storage" name="test_get_diff" time="0.029" /><testcase classname="tests.unit.storage.test_git_storage" name="test_merge_model" time="0.058" /><testcase classname="tests.unit.storage.test_git_storage" name="test_list_refs" time="0.027" /><testcase classname="tests.unit.storage.test_git_storage" name="test_not_a_git_repo" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestBaseError" name="test_base_error_creation" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestBaseError" name="test_configuration_error" time="0.000" /><testcase classname="tests.unit.test_error_handling.TestBaseError" name="test_error_with_context" time="0.000" /><testcase classname="tests.unit.test_error_handling.TestBaseError" name="test_integration_error" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestBaseError" name="test_retryable_error" time="0.000" /><testcase classname="tests.unit.test_error_handling.TestBaseError" name="test_validation_error" time="0.000" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_create_error_response" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_error_boundary_decorator" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_error_handler_decorator" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_handle_errors_context_manager" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_log_error" time="0.001" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_retry_on_error_decorator" time="0.203" /><testcase classname="tests.unit.test_error_handling.TestErrorHandlingUtils" name="test_setup_logging" time="0.004" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_event_creation" time="0.002" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_event_bus_subscribe" time="0.004" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_event_bus_publish_sync" time="0.004"><failure message="AttributeError: Mock object has no attribute '__name__'. Did you mean: '__ne__'?">self = &lt;evoseal.core.events.EventBus object at 0x7fcbddc6b790&gt;
+event = Event(event_type='test_event', source='test_source', data={'key': 'value'}, timestamp=1753240609.3227136, context={}, _stop_propagation=False)
+kwargs = {}, event_type = 'test_event'
+handlers = [{'filter_fn': None, 'handler': &lt;MagicMock spec='Callable' id='140513575876784'&gt;, 'priority': 0}]
+handler_info = {'filter_fn': None, 'handler': &lt;MagicMock spec='Callable' id='140513575876784'&gt;, 'priority': 0}
+handler = &lt;MagicMock spec='Callable' id='140513575876784'&gt;
+
+    async def publish(self, event: Event | str, **kwargs: Any) -&gt; Event:
+        """
+        Publish an event to all subscribers.
+    
+        Args:
+            event: Event instance or event type string
+            **kwargs: Additional data for the event
+    
+        Returns:
+            The event object after processing
+        """
+        # Create event object if a string is provided
+        if isinstance(event, str):
+            event = Event(event_type=event, source="system", data=kwargs)
+        elif kwargs:
+            # Update event data with any additional kwargs
+            event.data.update(kwargs)
+    
+        # Get event type as string for handler lookup
+        event_type = (
+            event.event_type.value
+            if isinstance(event.event_type, EventType)
+            else str(event.event_type)
+        )
+    
+        # Get all relevant handlers
+        handlers = self._default_handlers.copy()
+        if event_type in self._handlers:
+            handlers.extend(self._handlers[event_type])
+    
+        # Sort by priority (highest first)
+        handlers.sort(key=lambda x: cast(int, x["priority"]), reverse=True)
+    
+        # Process handlers
+        for handler_info in handlers:
+            if event._stop_propagation:
+                break
+    
+            # Skip if filter doesn't pass
+            if handler_info.get("filter_fn") and not handler_info["filter_fn"](event):
+                continue
+    
+            try:
+                handler = handler_info["handler"]
+&gt;               if asyncio.iscoroutinefunction(handler) or asyncio.iscoroutine(handler):
+
+evoseal/core/events.py:532: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.10/asyncio/coroutines.py:182: in iscoroutine
+    if isinstance(obj, _COROUTINE_TYPES):
+/usr/lib/python3.10/abc.py:119: in __instancecheck__
+    return _abc_instancecheck(cls, instance)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cls = &lt;class 'collections.abc.Coroutine'&gt;
+subclass = collections.abc.Callable[[evoseal.core.events.Event], None]
+
+    def __subclasscheck__(cls, subclass):
+        """Override for issubclass(subclass, cls)."""
+&gt;       return _abc_subclasscheck(cls, subclass)
+E       TypeError: issubclass() arg 1 must be a class
+
+/usr/lib/python3.10/abc.py:123: TypeError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;tests.unit.test_event_system.TestEventSystem object at 0x7fcbdf573100&gt;
+
+    @pytest.mark.asyncio
+    async def test_event_bus_publish_sync(self):
+        """Test publishing events synchronously."""
+        bus = EventBus()
+        # Create a properly typed mock handler
+        handler = MagicMock(spec=Callable[[Event], None])
+    
+        # Subscribe handler
+        bus.subscribe("test_event", handler)
+    
+        # Publish event
+        event_data = {"key": "value"}
+        event = Event("test_event", "test_source", event_data)
+&gt;       await bus.publish(event)
+
+tests/unit/test_event_system.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+evoseal/core/events.py:538: in publish
+    f"Error in {handler_info['handler'].__name__} "
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;MagicMock spec='Callable' id='140513575876784'&gt;, name = '__name__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+&gt;               raise AttributeError("Mock object has no attribute %r" % name)
+E               AttributeError: Mock object has no attribute '__name__'. Did you mean: '__ne__'?
+
+/usr/lib/python3.10/unittest/mock.py:643: AttributeError</failure></testcase><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_event_bus_publish_async" time="0.001" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_event_priority" time="0.001" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_event_filtering" time="0.002" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_workflow_event_registration" time="0.001" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_workflow_event_types" time="0.001" /><testcase classname="tests.unit.test_event_system.TestEventSystem" name="test_workflow_event_ordering" time="0.001" /><testcase classname="tests.unit.test_example.TestExample" name="test_example" time="0.001" /><testcase classname="tests.unit.test_repo.TestRepositoryManager" name="test_checkout_branch" time="0.032" /><testcase classname="tests.unit.test_repo.TestRepositoryManager" name="test_clone_repository" time="0.025" /><testcase classname="tests.unit.test_repo.TestRepositoryManager" name="test_commit_changes" time="0.037" /><testcase classname="tests.unit.test_repo.TestRepositoryManager" name="test_get_repository" time="0.027" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_checkout_branch" time="0.027" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_clone_repository" time="0.023" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_commit_changes" time="0.035" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_create_branch_from_commit" time="0.031" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_get_commit_info" time="0.028" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_get_repository" time="0.023" /><testcase classname="tests.unit.test_repository.TestRepositoryManager" name="test_get_status" time="0.038" /><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_checkout_branch" time="0.003"><failure message="AssertionError: False is not true">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_checkout_branch&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513596742416'&gt;
+
+    @patch('git.Repo')
+    def test_checkout_branch(self, mock_repo):
+        """Test checking out a branch."""
+        # Setup
+        branch_name = "feature-branch"
+        mock_repo.return_value = self.mock_repo
+    
+        # Test checkout existing branch
+        result = self.manager.checkout_branch(self.repo_name, branch_name)
+&gt;       self.assertTrue(result)
+E       AssertionError: False is not true
+
+tests/unit/test_repository_manager.py:73: AssertionError</failure></testcase><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_clone_repository" time="0.002" /><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_create_tag" time="0.002"><failure message="evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_create_tag&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513596994752'&gt;
+
+    @patch('git.Repo')
+    def test_create_tag(self, mock_repo):
+        """Test creating a tag."""
+        # Setup
+        tag_name = "v1.0.0"
+        mock_repo.return_value = self.mock_repo
+    
+        # Test create tag
+&gt;       result = self.manager.create_tag(
+            self.repo_name, tag_name, "Release 1.0.0", "abc123"
+        )
+
+tests/unit/test_repository_manager.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbddbef880&gt;, repo_name = 'test-repo'
+tag_name = 'v1.0.0', message = 'Release 1.0.0', commit = 'abc123'
+
+    def create_tag(self, repo_name: str, tag_name: str, message: str = '', commit: str = 'HEAD') -&gt; bool:
+        """Create a tag at the specified commit.
+    
+        Args:
+            repo_name: Name of the repository
+            tag_name: Name of the tag
+            message: Tag message
+            commit: Commit to tag (default: HEAD)
+    
+        Returns:
+            bool: True if tag was created successfully
+    
+        Raises:
+            RepositoryError: If tag creation fails
+        """
+        repo = self.get_repository(repo_name)
+        if not repo:
+&gt;           raise RepositoryNotFoundError(f"Repository '{repo_name}' not found")
+E           evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found
+
+evoseal/core/repository.py:356: RepositoryNotFoundError</failure></testcase><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_get_diff" time="0.003"><failure message="evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_get_diff&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513573198704'&gt;
+
+    @patch('git.Repo')
+    def test_get_diff(self, mock_repo):
+        """Test getting diff between commits."""
+        # Setup
+        mock_repo.return_value = self.mock_repo
+        self.mock_repo.git.diff.return_value = "diff output"
+    
+        # Test get diff
+&gt;       result = self.manager.get_diff(
+            self.repo_name, "main", "feature-branch"
+        )
+
+tests/unit/test_repository_manager.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdda335e0&gt;, repo_name = 'test-repo'
+base = 'main', compare = 'feature-branch'
+
+    def get_diff(self, repo_name: str, base: str = 'HEAD', compare: str = None) -&gt; str:
+        """Get the diff between two commits or branches.
+    
+        Args:
+            repo_name: Name of the repository
+            base: Base commit/branch
+            compare: Compare commit/branch (default: working directory)
+    
+        Returns:
+            str: Diff output
+    
+        Raises:
+            RepositoryError: If diff cannot be generated
+        """
+        repo = self.get_repository(repo_name)
+        if not repo:
+&gt;           raise RepositoryNotFoundError(f"Repository '{repo_name}' not found")
+E           evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found
+
+evoseal/core/repository.py:381: RepositoryNotFoundError</failure></testcase><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_merge_branch_conflict" time="0.003"><failure message="evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_merge_branch_conflict&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513575986720'&gt;
+
+    @patch('git.Repo')
+    def test_merge_branch_conflict(self, mock_repo):
+        """Test merge with conflicts."""
+        # Setup
+        source_branch = "feature-branch"
+        target_branch = "main"
+    
+        # Make merge raise a conflict error
+        self.mock_repo.git.merge.side_effect = GitCommandError("merge", "CONFLICT")
+        self.mock_repo.index.unmerged = ["file1.txt", "file2.txt"]
+        mock_repo.return_value = self.mock_repo
+    
+        # Test merge with conflict
+        with self.assertRaises(ConflictError) as cm:
+&gt;           self.manager.merge_branch(self.repo_name, source_branch, target_branch)
+
+tests/unit/test_repository_manager.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def merge_branch(self, repo_name: str, source_branch: str, target_branch: str, no_ff: bool = False) -&gt; Dict[str, Any]:
+        """Merge changes from source branch into target branch.
+    
+        Args:
+            repo_name: Name of the repository
+            source_branch: Branch to merge from
+            target_branch: Branch to merge into
+            no_ff: If True, create a merge commit even if fast-forward is possible
+    
+        Returns:
+            Dictionary with merge result
+    
+        Raises:
+            RepositoryError: For general repository errors
+            MergeError: If merge fails
+            ConflictError: If there are merge conflicts
+        """
+        repo = self.get_repository(repo_name)
+        if not repo:
+&gt;           raise RepositoryNotFoundError(f"Repository '{repo_name}' not found")
+E           evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found
+
+evoseal/core/repository.py:261: RepositoryNotFoundError</failure></testcase><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_merge_branch_success" time="0.002"><failure message="evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_merge_branch_success&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513575818752'&gt;
+
+    @patch('git.Repo')
+    def test_merge_branch_success(self, mock_repo):
+        """Test successful branch merge."""
+        # Setup
+        source_branch = "feature-branch"
+        target_branch = "main"
+        mock_repo.return_value = self.mock_repo
+    
+        # Test merge
+&gt;       result = self.manager.merge_branch(
+            self.repo_name, source_branch, target_branch
+        )
+
+tests/unit/test_repository_manager.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdd8bfdc0&gt;, repo_name = 'test-repo'
+source_branch = 'feature-branch', target_branch = 'main', no_ff = False
+
+    def merge_branch(self, repo_name: str, source_branch: str, target_branch: str, no_ff: bool = False) -&gt; Dict[str, Any]:
+        """Merge changes from source branch into target branch.
+    
+        Args:
+            repo_name: Name of the repository
+            source_branch: Branch to merge from
+            target_branch: Branch to merge into
+            no_ff: If True, create a merge commit even if fast-forward is possible
+    
+        Returns:
+            Dictionary with merge result
+    
+        Raises:
+            RepositoryError: For general repository errors
+            MergeError: If merge fails
+            ConflictError: If there are merge conflicts
+        """
+        repo = self.get_repository(repo_name)
+        if not repo:
+&gt;           raise RepositoryNotFoundError(f"Repository '{repo_name}' not found")
+E           evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found
+
+evoseal/core/repository.py:261: RepositoryNotFoundError</failure></testcase><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_resolve_conflicts" time="0.004"><failure message="evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_resolve_conflicts&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513594468448'&gt;
+
+    @patch('git.Repo')
+    def test_resolve_conflicts(self, mock_repo):
+        """Test conflict resolution."""
+        # Setup
+        resolution = {
+            "file1.txt": "resolved content 1",
+            "file2.txt": "resolved content 2"
+        }
+        mock_repo.return_value = self.mock_repo
+    
+        # Test resolve conflicts
+        with patch('builtins.open', unittest.mock.mock_open()) as mock_file:
+&gt;           result = self.manager.resolve_conflicts(self.repo_name, resolution)
+
+tests/unit/test_repository_manager.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdf538fd0&gt;, repo_name = 'test-repo'
+resolution = {'file1.txt': 'resolved content 1', 'file2.txt': 'resolved content 2'}
+
+    def resolve_conflicts(self, repo_name: str, resolution: Dict[str, str]) -&gt; bool:
+        """Resolve merge conflicts by providing resolutions for conflicted files.
+    
+        Args:
+            repo_name: Name of the repository
+            resolution: Dictionary mapping file paths to their resolved content
+    
+        Returns:
+            bool: True if conflicts were resolved successfully
+    
+        Raises:
+            RepositoryError: For general repository errors
+        """
+        repo = self.get_repository(repo_name)
+        if not repo:
+&gt;           raise RepositoryNotFoundError(f"Repository '{repo_name}' not found")
+E           evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found
+
+evoseal/core/repository.py:321: RepositoryNotFoundError</failure></testcase><testcase classname="tests.unit.test_repository_manager.TestRepositoryManager" name="test_stash_operations" time="0.002"><failure message="evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found">self = &lt;tests.unit.test_repository_manager.TestRepositoryManager testMethod=test_stash_operations&gt;
+mock_repo = &lt;MagicMock name='Repo' id='140513594156912'&gt;
+
+    @patch('git.Repo')
+    def test_stash_operations(self, mock_repo):
+        """Test stash operations."""
+        # Setup
+        mock_repo.return_value = self.mock_repo
+    
+        # Test stash changes
+&gt;       result = self.manager.stash_changes(self.repo_name, "WIP: Test stash")
+
+tests/unit/test_repository_manager.py:180: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdd8c4a90&gt;, repo_name = 'test-repo'
+message = 'WIP: Test stash'
+
+    def stash_changes(self, repo_name: str, message: str = '') -&gt; bool:
+        """Stash changes in the working directory.
+    
+        Args:
+            repo_name: Name of the repository
+            message: Optional stash message
+    
+        Returns:
+            bool: True if changes were stashed successfully
+    
+        Raises:
+            RepositoryError: If stash operation fails
+        """
+        repo = self.get_repository(repo_name)
+        if not repo:
+&gt;           raise RepositoryNotFoundError(f"Repository '{repo_name}' not found")
+E           evoseal.core.repository.RepositoryNotFoundError: Repository 'test-repo' not found
+
+evoseal/core/repository.py:406: RepositoryNotFoundError</failure></testcase><testcase classname="tests.unit.test_workflow_validator.TestConvenienceFunctions" name="test_validate_workflow_strict" time="0.002" /><testcase classname="tests.unit.test_workflow_validator.TestConvenienceFunctions" name="test_validate_workflow_non_strict" time="0.002" /><testcase classname="tests.unit.test_workflow_validator.TestConvenienceFunctions" name="test_validate_workflow_async" time="0.003" /><testcase classname="tests.unit.test_workflow_validator.TestConvenienceFunctions" name="test_validate_workflow_schema" time="0.002" /><testcase classname="tests.unit.test_workflow_validator.TestConvenienceFunctions" name="test_validate_workflow_schema_async" time="0.002" /><testcase classname="tests.unit.test_workflow_validator.TestConvenienceFunctions" name="test_validation_levels" time="0.002" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_test_environment_creates_temp_dir" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_test_environment_uses_existing_dir" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_create_dir" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_create_file" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_set_env" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_temp_dir" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_temp_file" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_temp_env_vars" time="0.000" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_temp_environment" time="0.001"><failure message="AssertionError: assert 'TEST_VAR' not in environ({'SHELL': '/bin/bash', 'COLORTERM': 'truecolor', 'NVM_INC': '/home/kade/.nvm/versions/node/v18.20.8/include/node', 'TERM_PROGRAM_VERSION': '1.99.3', 'PWD': '/home/kade/EVOSEAL', 'LOGNAME': 'kade', 'XDG_SESSION_TYPE': 'tty', 'VSCODE_GIT_ASKPASS_NODE': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/node', 'MOTD_SHOWN': 'pam', 'HOME': '/home/kade', 'LANG': 'C.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35...: '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/extensions/git/dist/askpass-main.js', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'BROWSER': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/helpers/browser.sh', 'PATH': '/home/kade/EVOSEAL/.venv/bin:/home/kade/EVOSEAL/.venv/bin:/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/remote-cli:/home/kade/.local/bin:/home/kade/.nvm/versions/node/v18.20.8/bin:/home/kade/.cargo/bin:/home/kade/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'NVM_BIN': '/home/kade/.nvm/versions/node/v18.20.8/bin', 'TERM_PROGRAM': 'vscode', 'VSCODE_IPC_HOOK_CLI': '/run/user/1000/vscode-ipc-121a1e6a-0156-4f39-833e-fc033f43efe7.sock', '_': '/home/kade/EVOSEAL/.venv/bin/python', 'PYTEST_VERSION': '8.4.1', 'COV_CORE_SOURCE': 'evoseal', 'COV_CORE_CONFIG': ':', 'COV_CORE_DATAFILE': '/home/kade/EVOSEAL/.coverage', 'TEST_VAR': 'initial_value', 'PYTEST_CURRENT_TEST': 'tests/unit/utils/test_testing_utils.py::test_temp_environment (call)'})&#10; +  where environ({'SHELL': '/bin/bash', 'COLORTERM': 'truecolor', 'NVM_INC': '/home/kade/.nvm/versions/node/v18.20.8/include/node', 'TERM_PROGRAM_VERSION': '1.99.3', 'PWD': '/home/kade/EVOSEAL', 'LOGNAME': 'kade', 'XDG_SESSION_TYPE': 'tty', 'VSCODE_GIT_ASKPASS_NODE': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/node', 'MOTD_SHOWN': 'pam', 'HOME': '/home/kade', 'LANG': 'C.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35...: '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/extensions/git/dist/askpass-main.js', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'BROWSER': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/helpers/browser.sh', 'PATH': '/home/kade/EVOSEAL/.venv/bin:/home/kade/EVOSEAL/.venv/bin:/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/remote-cli:/home/kade/.local/bin:/home/kade/.nvm/versions/node/v18.20.8/bin:/home/kade/.cargo/bin:/home/kade/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'NVM_BIN': '/home/kade/.nvm/versions/node/v18.20.8/bin', 'TERM_PROGRAM': 'vscode', 'VSCODE_IPC_HOOK_CLI': '/run/user/1000/vscode-ipc-121a1e6a-0156-4f39-833e-fc033f43efe7.sock', '_': '/home/kade/EVOSEAL/.venv/bin/python', 'PYTEST_VERSION': '8.4.1', 'COV_CORE_SOURCE': 'evoseal', 'COV_CORE_CONFIG': ':', 'COV_CORE_DATAFILE': '/home/kade/EVOSEAL/.coverage', 'TEST_VAR': 'initial_value', 'PYTEST_CURRENT_TEST': 'tests/unit/utils/test_testing_utils.py::test_temp_environment (call)'}) = os.environ">def test_temp_environment():
+        """Test the temp_environment context manager."""
+        with temp_environment(env_vars={"TEST_VAR": "test_value"}) as env:
+            # Test environment variables
+            assert os.environ["TEST_VAR"] == "test_value"
+    
+            # Test directory creation
+            test_dir = env.create_dir("test_dir")
+            test_file = env.create_file("test_dir/file.txt", "content")
+    
+            assert test_dir.exists()
+            assert test_file.exists()
+    
+        # Everything should be cleaned up
+&gt;       assert "TEST_VAR" not in os.environ
+E       AssertionError: assert 'TEST_VAR' not in environ({'SHELL': '/bin/bash', 'COLORTERM': 'truecolor', 'NVM_INC': '/home/kade/.nvm/versions/node/v18.20.8/include/node', 'TERM_PROGRAM_VERSION': '1.99.3', 'PWD': '/home/kade/EVOSEAL', 'LOGNAME': 'kade', 'XDG_SESSION_TYPE': 'tty', 'VSCODE_GIT_ASKPASS_NODE': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/node', 'MOTD_SHOWN': 'pam', 'HOME': '/home/kade', 'LANG': 'C.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35...: '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/extensions/git/dist/askpass-main.js', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'BROWSER': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/helpers/browser.sh', 'PATH': '/home/kade/EVOSEAL/.venv/bin:/home/kade/EVOSEAL/.venv/bin:/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/remote-cli:/home/kade/.local/bin:/home/kade/.nvm/versions/node/v18.20.8/bin:/home/kade/.cargo/bin:/home/kade/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'NVM_BIN': '/home/kade/.nvm/versions/node/v18.20.8/bin', 'TERM_PROGRAM': 'vscode', 'VSCODE_IPC_HOOK_CLI': '/run/user/1000/vscode-ipc-121a1e6a-0156-4f39-833e-fc033f43efe7.sock', '_': '/home/kade/EVOSEAL/.venv/bin/python', 'PYTEST_VERSION': '8.4.1', 'COV_CORE_SOURCE': 'evoseal', 'COV_CORE_CONFIG': ':', 'COV_CORE_DATAFILE': '/home/kade/EVOSEAL/.coverage', 'TEST_VAR': 'initial_value', 'PYTEST_CURRENT_TEST': 'tests/unit/utils/test_testing_utils.py::test_temp_environment (call)'})
+E        +  where environ({'SHELL': '/bin/bash', 'COLORTERM': 'truecolor', 'NVM_INC': '/home/kade/.nvm/versions/node/v18.20.8/include/node', 'TERM_PROGRAM_VERSION': '1.99.3', 'PWD': '/home/kade/EVOSEAL', 'LOGNAME': 'kade', 'XDG_SESSION_TYPE': 'tty', 'VSCODE_GIT_ASKPASS_NODE': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/node', 'MOTD_SHOWN': 'pam', 'HOME': '/home/kade', 'LANG': 'C.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35...: '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/extensions/git/dist/askpass-main.js', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'BROWSER': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/helpers/browser.sh', 'PATH': '/home/kade/EVOSEAL/.venv/bin:/home/kade/EVOSEAL/.venv/bin:/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/remote-cli:/home/kade/.local/bin:/home/kade/.nvm/versions/node/v18.20.8/bin:/home/kade/.cargo/bin:/home/kade/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'NVM_BIN': '/home/kade/.nvm/versions/node/v18.20.8/bin', 'TERM_PROGRAM': 'vscode', 'VSCODE_IPC_HOOK_CLI': '/run/user/1000/vscode-ipc-121a1e6a-0156-4f39-833e-fc033f43efe7.sock', '_': '/home/kade/EVOSEAL/.venv/bin/python', 'PYTEST_VERSION': '8.4.1', 'COV_CORE_SOURCE': 'evoseal', 'COV_CORE_CONFIG': ':', 'COV_CORE_DATAFILE': '/home/kade/EVOSEAL/.coverage', 'TEST_VAR': 'initial_value', 'PYTEST_CURRENT_TEST': 'tests/unit/utils/test_testing_utils.py::test_temp_environment (call)'}) = os.environ
+
+tests/unit/utils/test_testing_utils.py:114: AssertionError</failure></testcase><testcase classname="tests.unit.utils.test_testing_utils" name="test_test_data_manager" time="0.001" /><testcase classname="tests.unit.utils.test_testing_utils" name="test_create_test_data_manager" time="0.001"><failure message="AttributeError: __enter__">def test_create_test_data_manager():
+        """Test the create_test_data_manager function."""
+&gt;       with create_test_data_manager() as manager:
+E       AttributeError: __enter__
+
+tests/unit/utils/test_testing_utils.py:150: AttributeError</failure></testcase></testsuite></testsuites>
