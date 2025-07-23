@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
+import os
+import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -722,7 +725,7 @@ class EnhancedSEALSystem:
 
         # Create a hash of the key components
         key_str = ":".join(parts).encode("utf-8")
-        key_hash = hashlib.md5(key_str).hexdigest()
+        key_hash = hashlib.sha256(key_str).hexdigest()
 
         return f"seal:{key_hash}"
 

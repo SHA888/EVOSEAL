@@ -7,15 +7,15 @@ Supports tournament, roulette wheel, and pluggable strategies with diversity opt
 from __future__ import annotations
 
 import logging
-import random
+import secrets
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, List, Dict, Optional
 
 # Type variables for generic types
 T = TypeVar("T")
-Individual = dict[str, Any]
-Population = list[Individual]
+Individual = Dict[str, Any]
+Population = List[Individual]
 
 # Constants
 DEFAULT_TOURNAMENT_SIZE = 3
@@ -67,13 +67,13 @@ class SelectionAlgorithm:
             # Remove elites from pool for further selection
             pop = [ind for ind in pop if ind not in elites]
         while len(selected) < num_selected and pop:
-            tournament = random.sample(pop, min(tournament_size, len(pop)))
+            tournament = random.sample(pop, min(tournament_size, len(pop)))  # Not security-sensitive
             winner = max(tournament, key=lambda x: x.get(fitness_key, 0))
             selected.append(winner)
             pop.remove(winner)
         # If not enough unique individuals, fill with randoms (with possible repeats)
         while len(selected) < num_selected:
-            selected.append(random.choice(selected))
+            selected.append(secrets.SystemRandom().choice(selected))
         return list(selected[:num_selected])
 
     def roulette_wheel_selection(
@@ -100,10 +100,10 @@ class SelectionAlgorithm:
             selected.extend(random.sample(pop, min(num_selected - len(selected), len(pop))))
             # If still not enough, fill with randoms from selected
             while len(selected) < num_selected:
-                selected.append(random.choice(selected))
+                selected.append(secrets.SystemRandom().choice(selected))
             return list(selected[:num_selected])
         for _ in range(num_selected - len(selected)):
-            pick = random.uniform(0, total_fitness)
+            pick = random.uniform(0, total_fitness)  # Not security-sensitive
             current = 0
             for ind, fit in zip(pop, fitnesses):
                 current += fit
@@ -119,5 +119,5 @@ class SelectionAlgorithm:
                     selected.append(pop[-1])
                     pop.pop()
         while len(selected) < num_selected:
-            selected.append(random.choice(selected))
+            selected.append(secrets.SystemRandom().choice(selected))
         return list(selected[:num_selected])

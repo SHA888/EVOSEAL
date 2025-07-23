@@ -51,5 +51,6 @@ class EvaluationResult(BaseModel):
     @classmethod
     def from_json(cls, json_str: str, **kwargs: Any) -> EvaluationResult:
         result = cls.model_validate_json(str(json_str), **kwargs)
-        assert isinstance(result, EvaluationResult)
+        if not isinstance(result, EvaluationResult):
+            raise TypeError(f"Expected EvaluationResult instance, got {type(result).__name__}")
         return result

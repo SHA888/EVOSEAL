@@ -59,15 +59,16 @@ class DataCache:
         if self.cache_dir:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def _get_cache_key(self, key: str) -> str:
-        """Generate a cache key from a string."""
-        return hashlib.md5(key.encode("utf-8")).hexdigest()
+    @staticmethod
+    def _generate_key(key: str) -> str:
+        """Generate a cache key from a string using SHA-256."""
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
     def _get_cache_path(self, key: str) -> Optional[Path]:
         """Get the filesystem path for a cache key."""
         if self.cache_dir is None:
             return None
-        return self.cache_dir / f"{self._get_cache_key(key)}.pkl"
+        return self.cache_dir / f"{self._generate_key(key)}.pkl"
 
     def get(self, key: str) -> Any:
         """Get a value from the cache.

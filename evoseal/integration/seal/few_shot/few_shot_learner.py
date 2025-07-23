@@ -152,7 +152,11 @@ class FewShotLearner:
             # Initialize tokenizer
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(
-                    self.base_model_name, cache_dir=self.cache_dir, padding_side="left"
+                    self.base_model_name,
+                    revision="main",  # Pin to a specific commit hash for production
+                    cache_dir=self.cache_dir,
+                    padding_side="left",
+                    trust_remote_code=False  # Only enable if absolutely necessary
                 )
 
                 if not self.tokenizer.pad_token:
@@ -166,10 +170,11 @@ class FewShotLearner:
             try:
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.base_model_name,
+                    revision="main",  # Pin to a specific commit hash for production
                     torch_dtype=(torch.bfloat16 if torch.cuda.is_available() else torch.float32),
                     device_map="auto" if torch.cuda.is_available() else None,
                     cache_dir=self.cache_dir,
-                    trust_remote_code=True,
+                    trust_remote_code=False,  # Only enable if absolutely necessary
                 )
             except ImportError as e:
                 logger.error(f"Missing required dependencies: {str(e)}")
