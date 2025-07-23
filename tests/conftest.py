@@ -4,7 +4,10 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import git  # noqa: F401
 
 # Add the project root to the Python path
 import sys
