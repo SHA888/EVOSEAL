@@ -1,0 +1,17 @@
+# EVOSEAL Local Configuration
+# Copy this file to .evoseal.local and customize as needed
+
+# Base directories (automatically detected if not set)
+# EVOSEAL_HOME="/path/to/evoseal"
+# EVOSEAL_VENV="$EVOSEAL_HOME/.venv"
+# EVOSEAL_LOGS="$EVOSEAL_HOME/logs"
+# EVOSEAL_DATA="$EVOSEAL_HOME/data"
+
+# Service configuration
+# EVOSEAL_SERVICE_NAME="evoseal.service"
+
+# Python configuration
+# PYTHONPATH="$EVOSEAL_HOME:$EVOSEAL_HOME/SEAL"
+
+# Additional environment variables
+# export ANY_OTHER_VARIABLE="value"

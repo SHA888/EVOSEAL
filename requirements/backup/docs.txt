@@ -1,0 +1,9 @@
+# Documentation Dependencies
+-r base.txt
+
+# MkDocs and Extensions
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Additional MkDocs Plugins
+mkdocs-git-revision-date-localized-plugin==1.2.6
