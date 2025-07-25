@@ -1,0 +1,9 @@
+# Core dependencies with specific versions to avoid conflicts
+opentelemetry-api==1.25.0
+opentelemetry-sdk==1.25.0
+opentelemetry-instrumentation==0.46b0
+opentelemetry-exporter-otlp-proto-http==1.25.0
+opentelemetry-semantic-conventions==0.46b0
+importlib-metadata==7.1.0
+semgrep==1.130.0
+commitizen==4.8.3

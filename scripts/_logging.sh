@@ -18,6 +18,9 @@ LOG_LEVEL_ERROR=3
 LOG_LEVEL_FATAL=4
 
 # Default log level
+LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+# Set default log level
 LOG_LEVEL_NUM=$LOG_LEVEL_INFO
 
 # Convert log level string to number
