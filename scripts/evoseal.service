@@ -1,20 +1,26 @@
+# EVOSEAL Systemd Service Template
+# This template uses placeholders that are replaced during installation:
+#   __EVOSEAL_ROOT__ - Full path to EVOSEAL installation directory
+#   __EVOSEAL_USER__ - User account that will run the service
+# Use install_evoseal_service.sh to install with proper substitutions
+
 [Unit]
-Description=EVOSEAL Evolution Service
+Description=EVOSEAL Evolution Service with Auto-Update
 After=network.target
 Requires=network.target
 
 [Service]
 Type=simple
-User=kade
-WorkingDirectory=/home/kade/EVOSEAL
+User=__EVOSEAL_USER__
+WorkingDirectory=__EVOSEAL_ROOT__
 
 # Environment configuration
-EnvironmentFile=/home/kade/EVOSEAL/.evoseal.env
+EnvironmentFile=-__EVOSEAL_ROOT__/.env
 Environment="PYTHONUNBUFFERED=1"
-Environment="LOG_LEVEL=INFO"
-Environment="MAX_RETRIES=3"
-Environment="RETRY_DELAY=60"
-Environment="ITERATIONS=1"
+Environment="PYTHONPATH=__EVOSEAL_ROOT__:__EVOSEAL_ROOT__/SEAL"
+Environment="EVOSEAL_ROOT=__EVOSEAL_ROOT__"
+Environment="EVOSEAL_VENV=__EVOSEAL_ROOT__/.venv"
+Environment="EVOSEAL_LOGS=__EVOSEAL_ROOT__/logs"
 
 # Configure logging
 StandardOutput=journal
@@ -45,7 +51,7 @@ LimitNOFILE=65535
 LimitNPROC=65535
 
 # Main execution command
-ExecStart=/bin/bash -c './scripts/run_evolution_cycle.sh'
+ExecStart=/bin/bash -c './scripts/evoseal-unified-runner.sh --mode=service'
 
 # Restart policy
 Restart=on-failure

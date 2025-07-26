@@ -112,9 +112,9 @@ setup_system_service() {
     log_info "Installing system service file to $SERVICE_FILE..."
     cp "$EVOSEAL_DIR/scripts/evoseal.service" "$SERVICE_FILE"
     
-    # Update paths in the service file
-    sed -i "s|/home/kade/EVOSEAL|$EVOSEAL_DIR|g" "$SERVICE_FILE"
-    sed -i "s|User=kade|User=evoseal|g" "$SERVICE_FILE"
+    # Update placeholders in the service file
+    sed -i "s|__EVOSEAL_ROOT__|$EVOSEAL_DIR|g" "$SERVICE_FILE"
+    sed -i "s|__EVOSEAL_USER__|evoseal|g" "$SERVICE_FILE"
     
     # Reload systemd
     systemctl daemon-reload
