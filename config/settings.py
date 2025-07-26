@@ -12,19 +12,14 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, TypeVar, cast
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Import BaseSettings with proper type checking
-if TYPE_CHECKING:
-    from pydantic.env_settings import BaseSettings, SettingsSourceCallable
-else:
-    from pydantic.env_settings import BaseSettings
+# Define a Protocol for type checking
+class SettingsSourceCallableProtocol(Protocol):
+    def __call__(self, settings: BaseSettings) -> dict[str, Any]: ...
 
-    # Define a Protocol for type checking
-    class SettingsSourceCallableProtocol(Protocol):
-        def __call__(self, settings: BaseSettings) -> dict[str, Any]: ...
-
-    SettingsSourceCallable = SettingsSourceCallableProtocol
+SettingsSourceCallable = SettingsSourceCallableProtocol
 
 # Type variable for generic model typing
 T = TypeVar("T", bound=BaseModel)
@@ -61,6 +56,15 @@ class OpenEvolveConfig(BaseModel):
     checkpoint_dir: str = Field("checkpoints/openevolve", description="Directory for checkpoints")
 
 
+class SEALProviderConfig(BaseModel):
+    """Configuration for a SEAL provider."""
+    
+    name: str = Field(..., description="Provider name")
+    enabled: bool = Field(True, description="Whether this provider is enabled")
+    priority: int = Field(1, description="Provider priority (higher = preferred)")
+    config: dict[str, Any] = Field(default_factory=dict, description="Provider-specific configuration")
+
+
 class SEALConfig(BaseModel):
     """Configuration for the SEAL component."""
 
@@ -75,6 +79,32 @@ class SEALConfig(BaseModel):
     knowledge_base_path: str = Field("data/knowledge", description="Path to knowledge base")
     max_context_length: int = Field(4096, description="Maximum context length for the model")
     default_model: str = Field("gpt-4", description="Default model to use")
+    
+    # Provider configuration
+    default_provider: str = Field("ollama", description="Default provider to use")
+    providers: dict[str, SEALProviderConfig] = Field(
+        default_factory=lambda: {
+            "ollama": SEALProviderConfig(
+                name="ollama",
+                enabled=True,
+                priority=10,
+                config={
+                    "base_url": "http://localhost:11434",
+                    "model": "devstral:latest",
+                    "timeout": 90,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                }
+            ),
+            "dummy": SEALProviderConfig(
+                name="dummy",
+                enabled=True,
+                priority=1,
+                config={}
+            )
+        },
+        description="Available SEAL providers"
+    )
 
 
 class LoggingConfig(BaseModel):
@@ -111,7 +141,10 @@ class Settings(BaseSettings):
 
     # Application settings
     app_name: str = "EVOSEAL"
-    secret_key: str = Field(..., description="Secret key for cryptographic operations")
+    secret_key: str = Field(
+        default="dev-secret-key-change-in-production",
+        description="Secret key for cryptographic operations"
+    )
 
     # Component configurations
     dgm: DGMConfig = Field(default_factory=DGMConfig)
@@ -120,27 +153,16 @@ class Settings(BaseSettings):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
 
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-        env_nested_delimiter = "__"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        extra="allow",
+        validate_assignment=True,
+        env_nested_delimiter="__",
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings: SettingsSourceCallable,
-            env_settings: SettingsSourceCallable,
-            file_secret_settings: SettingsSourceCallable,
-        ) -> tuple[SettingsSourceCallable, ...]:
-            """Customize settings sources to load from JSON files."""
-            return (
-                init_settings,
-                env_settings,
-                file_secret_settings,
-                json_config_settings_source,
-            )
+    # Note: Custom settings sources disabled for now
+    # Can be re-enabled later with proper Pydantic v2 implementation
 
     @classmethod
     def validate_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -165,8 +187,8 @@ class Settings(BaseSettings):
 
         return values
 
-    # Add root_validator to the class after method definition
-    _validate_settings = root_validator(pre=True, allow_reuse=True)(validate_settings)
+    # Add model_validator to the class after method definition
+    _validate_settings = model_validator(mode="before")(validate_settings)
 
     @classmethod
     def model_validate(cls, *args: Any, **kwargs: Any) -> Any:
@@ -174,11 +196,8 @@ class Settings(BaseSettings):
         return super().model_validate(*args, **kwargs)
 
 
-def json_config_settings_source(settings: BaseSettings) -> dict[str, Any]:
+def json_config_settings_source() -> dict[str, Any]:
     """Load settings from JSON config file if it exists.
-
-    Args:
-        settings: The settings instance (unused but required by pydantic)
 
     Returns:
         Dictionary containing the loaded settings
