@@ -2,6 +2,53 @@
 
 All notable changes to the EVOSEAL project are documented here.
 
+## [0.3.2] - 2025-01-27 - Port Consistency and Configuration Standardization
+
+### 🔧 Fixes
+
+#### Port Standardization
+- **Consistent Default Port**: Standardized all components to use port **8081** by default
+- **Eliminated Confusion**: Removed mixed references between ports 8080 and 8081
+- **Universal Configuration**: All code, documentation, and deployment scenarios now use 8081
+
+#### Code Updates
+- **MonitoringDashboard**: Updated default port from 8080 to 8081
+- **Phase3Orchestrator**: Updated default port from 8080 to 8081
+- **Argument Parser**: Updated default port help text and value to 8081
+- **SEALConfig**: Updated dashboard_port default from 8080 to 8081
+
+#### Documentation Updates
+- **Deployment Guide**: Updated development URLs from 8080 to 8081
+- **API Reference**: Updated base URLs for consistency
+- **systemd Template**: Already using 8081 (no change needed)
+- **README**: Already consistent (no change needed)
+
+### 🎯 Benefits
+
+- ✅ **Consistent Experience**: Same port across all deployment scenarios
+- ✅ **Reduced Conflicts**: Port 8081 has fewer conflicts than 8080
+- ✅ **Clear Documentation**: No more confusion about which port to use
+- ✅ **Simplified Deployment**: Single port configuration for all environments
+
+### 🔄 Migration Notes
+
+#### For Existing Users
+- No action required - systemd service already uses port 8081
+- Dashboard remains accessible at current Tailscale IP on port 8081
+- All existing functionality preserved
+
+#### For New Deployments
+- All components now default to port 8081
+- Documentation consistently references port 8081
+- Simplified configuration with single standard port
+
+### 📊 Port Configuration
+
+- **Development**: `http://localhost:8081`
+- **Production**: `http://<tailscale-ip>:8081`
+- **systemd Service**: Configured for port 8081
+- **Default Settings**: All defaults set to 8081
+
 ## [0.3.1] - 2025-01-27 - Portable systemd Service Configuration
 
 ### 🔧 Improvements

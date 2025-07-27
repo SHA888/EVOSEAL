@@ -84,7 +84,7 @@ For development and testing purposes:
 python3 scripts/run_phase3_continuous_evolution.py --verbose
 
 # Access dashboard
-open http://localhost:8080
+open http://localhost:8081
 ```
 
 ### Option 2: Production Deployment with systemd
@@ -179,7 +179,7 @@ systemctl --user restart evoseal.service
 ### Real-time Dashboard
 
 Access the monitoring dashboard:
-- **Development**: http://localhost:8080
+- **Development**: http://localhost:8081
 - **Production**: http://localhost:8081
 
 Dashboard features:

@@ -39,7 +39,7 @@ class Phase3Orchestrator:
         self,
         config_file: Optional[Path] = None,
         dashboard_host: str = "localhost",
-        dashboard_port: int = 8080,
+        dashboard_port: int = 8081,
         evolution_interval: int = 3600,  # 1 hour
         training_check_interval: int = 1800,  # 30 minutes
         min_evolution_samples: int = 50
@@ -224,7 +224,7 @@ async def main():
     parser = argparse.ArgumentParser(description="EVOSEAL Phase 3: Continuous Evolution System")
     parser.add_argument("--config", type=Path, help="Path to configuration file")
     parser.add_argument("--host", type=str, default="localhost", help="Dashboard host address (default: localhost)")
-    parser.add_argument("--port", type=int, default=8080, help="Dashboard port (default: 8080)")
+    parser.add_argument("--port", type=int, default=8081, help="Dashboard port (default: 8081)")
     parser.add_argument("--evolution-interval", type=int, default=3600, 
                        help="Evolution check interval in seconds (default: 3600)")
     parser.add_argument("--training-interval", type=int, default=1800,

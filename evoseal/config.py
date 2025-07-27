@@ -73,7 +73,7 @@ class SEALConfig(BaseSettings):
     
     # Monitoring settings
     monitoring_enabled: bool = Field(True, description="Enable monitoring dashboard")
-    dashboard_port: int = Field(8080, description="Dashboard port")
+    dashboard_port: int = Field(8081, description="Dashboard port")
     dashboard_host: str = Field("localhost", description="Dashboard host")
     
     def get_provider_config(self, provider_name: str) -> Optional[SEALProviderConfig]:
