@@ -26,23 +26,48 @@ Type=simple
 WorkingDirectory=/tmp
 
 # Environment file from the project root (optional)
-EnvironmentFile=-/home/kade/EVOSEAL/.env
+EnvironmentFile=-%h/EVOSEAL/.env
 
-# Set up environment variables
-Environment="PYTHONPATH=/home/kade/EVOSEAL:/home/kade/EVOSEAL/SEAL"
-Environment="EVOSEAL_ROOT=/home/kade/EVOSEAL"
-Environment="EVOSEAL_VENV=/home/kade/EVOSEAL/.venv"
-Environment="EVOSEAL_LOGS=/home/kade/EVOSEAL/logs"
-Environment="EVOSEAL_USER_HOME=/home/kade"
+# Set up environment variables using systemd specifiers
+Environment="PYTHONPATH=%h/EVOSEAL:%h/EVOSEAL/SEAL"
+Environment="EVOSEAL_ROOT=%h/EVOSEAL"
+Environment="EVOSEAL_VENV=%h/EVOSEAL/.venv"
+Environment="EVOSEAL_LOGS=%h/EVOSEAL/logs"
+Environment="EVOSEAL_USER_HOME=%h"
 
-# Phase 3 Continuous Evolution System
-ExecStart=/bin/bash -c 'source /home/kade/.profile && cd /home/kade/EVOSEAL && python3 scripts/run_phase3_continuous_evolution.py --port=8081 --verbose'
+# Phase 3 Continuous Evolution System - Accessible via Tailscale
+# Use %h for home directory and dynamic Tailscale IP detection
+ExecStart=/bin/bash -c 'source %h/.profile && cd %h/EVOSEAL && TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "localhost") && python3 scripts/run_phase3_continuous_evolution.py --host="$TAILSCALE_IP" --port=8081 --verbose'
 
 # Restart configuration
 Restart=always
 RestartSec=5s
 
 # Logging
+StandardOutput=append:%h/EVOSEAL/logs/evoseal.log
+StandardError=append:%h/EVOSEAL/logs/evoseal-error.log
+
+# Minimal security settings for user service
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
+```
+
+### Portable Configuration Features
+
+#### systemd Specifiers Used
+- **`%h`**: User's home directory (replaces hardcoded `/home/username`)
+- **Dynamic IP Detection**: Automatically detects Tailscale IP or falls back to localhost
+- **Portable Paths**: All paths use `%h` for cross-user compatibility
+
+#### Key Benefits
+- ✅ **User Agnostic**: Works for any username/home directory
+- ✅ **Machine Portable**: No hardcoded paths or IPs
+- ✅ **Tailscale Auto-Detection**: Automatically finds Tailscale IP if available
+- ✅ **Graceful Fallback**: Falls back to localhost if Tailscale unavailable
+
+## Installation and Setup
 StandardOutput=append:/home/kade/EVOSEAL/logs/evoseal.log
 StandardError=append:/home/kade/EVOSEAL/logs/evoseal-error.log
 
