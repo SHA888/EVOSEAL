@@ -1,0 +1,31 @@
+{
+  "imports": {
+    "success": true,
+    "components_imported": 5
+  },
+  "devstral_fine_tuner": {
+    "success": true,
+    "gpu_available": false,
+    "model_init": false,
+    "data_prep_success": true,
+    "fallback_mode": true
+  },
+  "model_validator": {
+    "success": true,
+    "validation_completed": true,
+    "overall_score": 0.0,
+    "passed": false
+  },
+  "version_manager": {
+    "success": true,
+    "version_registered": true,
+    "version_count": 1,
+    "statistics_available": true
+  },
+  "bidirectional_manager": {
+    "success": true,
+    "status_available": true,
+    "report_generated": true,
+    "history_accessible": true
+  }
+}
