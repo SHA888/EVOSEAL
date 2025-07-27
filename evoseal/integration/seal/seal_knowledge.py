@@ -9,7 +9,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase, KnowledgeEntry
+from evoseal.integration.seal.knowledge.knowledge_base import (
+    KnowledgeBase,
+    KnowledgeEntry,
+)
 
 
 class SEALKnowledge:
@@ -105,7 +108,9 @@ class SEALKnowledge:
             metadata["source"] = "seal_interaction"
 
         # Store in knowledge base
-        entry_id = self.kb.add_entry(content=knowledge_content, metadata=metadata, tags=tags)
+        entry_id = self.kb.add_entry(
+            content=knowledge_content, metadata=metadata, tags=tags
+        )
 
         return entry_id
 
@@ -153,6 +158,8 @@ if __name__ == "__main__":
     print(f"Stored knowledge with ID: {entry_id}")
 
     # Example of enhancing a prompt with knowledge
-    enhanced = seal_knowledge.enhance_prompt("I need to implement a search algorithm in Python")
+    enhanced = seal_knowledge.enhance_prompt(
+        "I need to implement a search algorithm in Python"
+    )
     print("\nEnhanced prompt:")
     print(enhanced)

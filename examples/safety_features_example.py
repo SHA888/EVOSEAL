@@ -23,7 +23,9 @@ from evoseal.core.rollback_manager import RollbackManager
 from evoseal.core.safety_integration import SafetyIntegration
 
 
-def create_sample_test_results(version: str, success_rate: float = 0.95) -> List[Dict[str, Any]]:
+def create_sample_test_results(
+    version: str, success_rate: float = 0.95
+) -> List[Dict[str, Any]]:
     """Create sample test results for demonstration."""
     return [
         {
@@ -38,7 +40,11 @@ def create_sample_test_results(version: str, success_rate: float = 0.95) -> List
             "success_rate": success_rate,
             "status": "pass" if success_rate >= 0.9 else "fail",
             "timestamp": "2024-01-01T12:00:00Z",
-            "resources": {"duration_sec": 45.2, "memory_mb": 128.5, "cpu_percent": 15.3},
+            "resources": {
+                "duration_sec": 45.2,
+                "memory_mb": 128.5,
+                "cpu_percent": 15.3,
+            },
         },
         {
             "version": version,
@@ -52,7 +58,11 @@ def create_sample_test_results(version: str, success_rate: float = 0.95) -> List
             "success_rate": success_rate,
             "status": "pass" if success_rate >= 0.9 else "fail",
             "timestamp": "2024-01-01T12:00:00Z",
-            "resources": {"duration_sec": 120.8, "memory_mb": 256.2, "cpu_percent": 25.7},
+            "resources": {
+                "duration_sec": 120.8,
+                "memory_mb": 256.2,
+                "cpu_percent": 25.7,
+            },
         },
     ]
 
@@ -67,7 +77,12 @@ def create_sample_version_data(version_id: str) -> Dict[str, Any]:
             f"Optimized performance for version {version_id}",
         ],
         "config": {"learning_rate": 0.001, "batch_size": 32, "epochs": 100},
-        "metrics": {"accuracy": 0.95, "precision": 0.93, "recall": 0.97, "f1_score": 0.95},
+        "metrics": {
+            "accuracy": 0.95,
+            "precision": 0.93,
+            "recall": 0.97,
+            "f1_score": 0.95,
+        },
     }
 
 
@@ -79,7 +94,11 @@ async def demonstrate_checkpoint_manager():
 
     # Create temporary directory for checkpoints
     with tempfile.TemporaryDirectory() as temp_dir:
-        config = {"checkpoint_dir": temp_dir, "max_checkpoints": 10, "auto_cleanup": True}
+        config = {
+            "checkpoint_dir": temp_dir,
+            "max_checkpoints": 10,
+            "auto_cleanup": True,
+        }
 
         checkpoint_manager = CheckpointManager(config)
 
@@ -90,15 +109,19 @@ async def demonstrate_checkpoint_manager():
 
         for version in versions:
             version_data = create_sample_version_data(version)
-            checkpoint_path = checkpoint_manager.create_checkpoint(version, version_data)
+            checkpoint_path = checkpoint_manager.create_checkpoint(
+                version, version_data
+            )
             checkpoint_paths.append(checkpoint_path)
-            print(f"   ✓ Created checkpoint for {version}: {Path(checkpoint_path).name}")
+            print(
+                f"   ✓ Created checkpoint for {version}: {Path(checkpoint_path).name}"
+            )
 
         # List checkpoints
         print("\n2. Listing checkpoints...")
         checkpoints = checkpoint_manager.list_checkpoints()
         for checkpoint in checkpoints:
-            size_bytes = checkpoint.get('checkpoint_size', 0)
+            size_bytes = checkpoint.get("checkpoint_size", 0)
             size_mb = size_bytes / (1024 * 1024) if size_bytes else 0
             print(f"   - {checkpoint['version_id']}: {size_mb:.2f} MB")
 
@@ -114,13 +137,17 @@ async def demonstrate_checkpoint_manager():
         restore_dir = Path(temp_dir) / "restored"
         restore_dir.mkdir(exist_ok=True)
 
-        restore_success = checkpoint_manager.restore_checkpoint("v1.1", str(restore_dir))
+        restore_success = checkpoint_manager.restore_checkpoint(
+            "v1.1", str(restore_dir)
+        )
         print(f"   ✓ Restored v1.1 to {restore_dir}: {restore_success}")
 
         # Get metadata for the restored checkpoint
         metadata = checkpoint_manager.get_checkpoint_metadata("v1.1")
         if metadata:
-            print(f"   Restored data keys: {list(metadata.get('version_data', {}).keys())}")
+            print(
+                f"   Restored data keys: {list(metadata.get('version_data', {}).keys())}"
+            )
         else:
             print("   No metadata available for restored checkpoint")
 
@@ -237,7 +264,9 @@ async def demonstrate_rollback_manager():
         print("\n4. Rollback history...")
         history = rollback_manager.get_rollback_history()
         for entry in history[-3:]:  # Show last 3 entries
-            print(f"   - {entry['timestamp']}: {entry['from_version']} → {entry['to_version']}")
+            print(
+                f"   - {entry['timestamp']}: {entry['from_version']} → {entry['to_version']}"
+            )
             print(f"     Reason: {entry['reason']}")
 
         # Get rollback statistics
@@ -332,9 +361,15 @@ async def demonstrate_safety_integration():
         # Show final safety status
         print("\n3. Final safety system status...")
         final_status = safety_integration.get_safety_status()
-        print(f"   Total checkpoints: {final_status['checkpoint_manager']['total_checkpoints']}")
-        print(f"   Total rollbacks: {final_status['rollback_manager']['total_rollbacks']}")
-        print(f"   Rollback success rate: {final_status['rollback_manager']['success_rate']:.1%}")
+        print(
+            f"   Total checkpoints: {final_status['checkpoint_manager']['total_checkpoints']}"
+        )
+        print(
+            f"   Total rollbacks: {final_status['rollback_manager']['total_rollbacks']}"
+        )
+        print(
+            f"   Rollback success rate: {final_status['rollback_manager']['success_rate']:.1%}"
+        )
 
 
 async def main():

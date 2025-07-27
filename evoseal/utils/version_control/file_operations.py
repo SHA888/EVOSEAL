@@ -75,7 +75,7 @@ class FileOperations:
 
         paths = [str(Path(p)) for p in file_paths]
         try:
-            self.git._run_git_command(['add', '--'] + paths)
+            self.git._run_git_command(["add", "--"] + paths)
             return True
         except GitCommandError as e:
             logger.error(f"Error staging files {paths}: {e}")
@@ -98,7 +98,7 @@ class FileOperations:
 
         paths = [str(Path(p)) for p in file_paths]
         try:
-            self.git._run_git_command(['restore', '--staged', '--'] + paths)
+            self.git._run_git_command(["restore", "--staged", "--"] + paths)
             return True
         except GitCommandError as e:
             logger.error(f"Error unstaging files {paths}: {e}")
@@ -125,7 +125,9 @@ class FileOperations:
         """
         try:
             # Get the status in porcelain v2 format for easier parsing
-            result = self.git._run_git_command(['status', '--porcelain=v2', '--ignored'])
+            result = self.git._run_git_command(
+                ["status", "--porcelain=v2", "--ignored"]
+            )
             return self._parse_status_output(result[1])  # result[1] is stdout
         except GitCommandError as e:
             logger.error(f"Error getting file status: {e}")
@@ -155,7 +157,7 @@ class FileOperations:
             status_code = parts[0]
 
             # Handle different status formats
-            if status_code == '1':  # Regular changed files
+            if status_code == "1":  # Regular changed files
                 # Format: 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path> [<orig_path>]
                 if len(parts) < 9:
                     continue
@@ -163,7 +165,7 @@ class FileOperations:
                 xy = parts[1]
 
                 # For renames and copies, the last two parts are the original and new paths
-                if ('R' in xy or 'C' in xy) and len(parts) >= 10:
+                if ("R" in xy or "C" in xy) and len(parts) >= 10:
                     # Rename or copy: 1 R. N... 100644 100644 100644 1234567 1234567 1234567 old.txt new.txt
                     # The path is the last part, and the original path is the second to last part
                     path = parts[-1]
@@ -172,7 +174,7 @@ class FileOperations:
                     file_info = FileInfo(
                         path=Path(path),
                         status=status,
-                        staged=' ' not in xy[0],  # First char is not space if staged
+                        staged=" " not in xy[0],  # First char is not space if staged
                         original_path=Path(orig_path),
                     )
                     status_map[Path(path)] = file_info
@@ -184,12 +186,12 @@ class FileOperations:
                     file_info = FileInfo(
                         path=Path(path),
                         status=status,
-                        staged=' ' not in xy[0],  # First char is not space if staged
+                        staged=" " not in xy[0],  # First char is not space if staged
                         original_path=None,
                     )
                     status_map[Path(path)] = file_info
 
-            elif status_code.startswith('2'):  # Renamed/Copied files
+            elif status_code.startswith("2"):  # Renamed/Copied files
                 # Format: 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score> <path1> <path2>
                 if len(parts) < 11:
                     continue
@@ -202,22 +204,28 @@ class FileOperations:
                 file_info = FileInfo(
                     path=Path(path2),
                     status=status,
-                    staged=' ' not in xy[0],  # First char is not space if staged
+                    staged=" " not in xy[0],  # First char is not space if staged
                     original_path=Path(path1) if path1 != path2 else None,
                     similarity=(
-                        int(parts[8][1:]) if len(parts) > 8 and parts[8].startswith('R') else None
+                        int(parts[8][1:])
+                        if len(parts) > 8 and parts[8].startswith("R")
+                        else None
                     ),
                 )
                 status_map[Path(path2)] = file_info
 
-            elif status_code.startswith('?') or status_code.startswith(
-                '!'
+            elif status_code.startswith("?") or status_code.startswith(
+                "!"
             ):  # Untracked/Ignored files
                 path = parts[1] if len(parts) > 1 else None
                 if not path:
                     continue
 
-                status = FileStatus.UNTRACKED if status_code.startswith('?') else FileStatus.IGNORED
+                status = (
+                    FileStatus.UNTRACKED
+                    if status_code.startswith("?")
+                    else FileStatus.IGNORED
+                )
                 file_info = FileInfo(path=Path(path), status=status, staged=False)
                 status_map[Path(path)] = file_info
 
@@ -239,31 +247,33 @@ class FileOperations:
         y = xy[1]  # Working tree status
 
         # Check for merge conflicts first
-        if x == 'U' or y == 'U' or (x == 'A' and y == 'A') or (x == 'D' and y == 'D'):
+        if x == "U" or y == "U" or (x == "A" and y == "A") or (x == "D" and y == "D"):
             return FileStatus.UPDATED_BUT_UNMERGED
 
         # Check for staged changes
-        if x != ' ':
-            if x == 'M':
+        if x != " ":
+            if x == "M":
                 return FileStatus.MODIFIED
-            elif x == 'A':
+            elif x == "A":
                 return FileStatus.STAGED
-            elif x == 'D':
+            elif x == "D":
                 return FileStatus.DELETED
-            elif x == 'R':
+            elif x == "R":
                 return FileStatus.RENAMED
-            elif x == 'C':
+            elif x == "C":
                 return FileStatus.COPIED
 
         # Check for unstaged changes
-        if y == 'M':
+        if y == "M":
             return FileStatus.MODIFIED
-        elif y == 'D':
+        elif y == "D":
             return FileStatus.DELETED
 
         return FileStatus.MODIFIED  # Default to modified if we can't determine
 
-    def get_file_diff(self, file_path: Union[str, Path], staged: bool = False) -> Optional[str]:
+    def get_file_diff(
+        self, file_path: Union[str, Path], staged: bool = False
+    ) -> Optional[str]:
         """Get the diff for a specific file.
 
         Args:
@@ -275,9 +285,9 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            cmd = ['diff', '--no-ext-diff', '--']
+            cmd = ["diff", "--no-ext-diff", "--"]
             if staged:
-                cmd.insert(1, '--staged')
+                cmd.insert(1, "--staged")
 
             cmd.append(str(file_path))
             result = self.git._run_git_command(cmd)
@@ -301,13 +311,13 @@ class FileOperations:
         file_path = Path(file_path)
         try:
             # Format: %H: %s (%an, %ad)
-            format_str = '%H|||%s|||%an|||%ad'
+            format_str = "%H|||%s|||%an|||%ad"
             cmd = [
-                'log',
-                f'-n {limit}',
-                f'--pretty=format:{format_str}',
-                '--date=iso',
-                '--',
+                "log",
+                f"-n {limit}",
+                f"--pretty=format:{format_str}",
+                "--date=iso",
+                "--",
                 str(file_path),
             ]
 
@@ -320,13 +330,18 @@ class FileOperations:
                 if not line.strip():
                     continue
 
-                parts = line.split('|||', 3)
+                parts = line.split("|||", 3)
                 if len(parts) != 4:
                     continue
 
                 commit_hash, subject, author, date = parts
                 history.append(
-                    {'hash': commit_hash, 'subject': subject, 'author': author, 'date': date}
+                    {
+                        "hash": commit_hash,
+                        "subject": subject,
+                        "author": author,
+                        "date": date,
+                    }
                 )
 
             return history
@@ -347,13 +362,15 @@ class FileOperations:
         file_path = Path(file_path)
         try:
             # Use git diff --numstat to detect binary files
-            result = self.git._run_git_command(['diff', '--numstat', '--', str(file_path)])
+            result = self.git._run_git_command(
+                ["diff", "--numstat", "--", str(file_path)]
+            )
             if not result[1]:  # Empty output means file is not in git or no changes
                 return False
 
             # Binary files will have a - in the output, e.g., "-\t-\tpath/to/file.bin"
             for line in result[1].splitlines():
-                if line.startswith('-\t-\t'):
+                if line.startswith("-\t-\t"):
                     return True
 
             return False
@@ -370,7 +387,9 @@ class FileOperations:
         """
         try:
             # Get unmerged files
-            result = self.git._run_git_command(['diff', '--name-only', '--diff-filter=U'])
+            result = self.git._run_git_command(
+                ["diff", "--name-only", "--diff-filter=U"]
+            )
             if not result[1]:  # No conflicts
                 return []
 
@@ -393,14 +412,14 @@ class FileOperations:
         file_path = Path(file_path)
         try:
             # Write the resolved content to the file
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
 
             # Stage the resolved file
             self.stage_files(file_path)
             return True
 
-        except (IOError, OSError) as e:
+        except OSError as e:
             logger.error(f"Error writing to file {file_path}: {e}")
             return False
         except GitCommandError as e:
@@ -408,7 +427,7 @@ class FileOperations:
             return False
 
     def get_file_at_commit(
-        self, file_path: Union[str, Path], commit: str = 'HEAD'
+        self, file_path: Union[str, Path], commit: str = "HEAD"
     ) -> Optional[str]:
         """Get the content of a file at a specific commit.
 
@@ -421,7 +440,7 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(['show', f'{commit}:{file_path}'])
+            result = self.git._run_git_command(["show", f"{commit}:{file_path}"])
             return result[1]  # Return stdout
         except GitCommandError as e:
             logger.error(f"Error getting file {file_path} at commit {commit}: {e}")
@@ -438,7 +457,9 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(['ls-files', '--stage', '--', str(file_path)])
+            result = self.git._run_git_command(
+                ["ls-files", "--stage", "--", str(file_path)]
+            )
             if not result[1]:
                 return None
 
@@ -464,7 +485,7 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(['cat-file', '-s', f'HEAD:{file_path}'])
+            result = self.git._run_git_command(["cat-file", "-s", f"HEAD:{file_path}"])
             if not result[1]:
                 return None
 
@@ -485,7 +506,7 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(['cat-file', '-t', f'HEAD:{file_path}'])
+            result = self.git._run_git_command(["cat-file", "-t", f"HEAD:{file_path}"])
             return result[1].strip() if result[1] else None
 
         except GitCommandError as e:
@@ -506,13 +527,15 @@ class FileOperations:
         file_path = Path(file_path)
         try:
             # First check if Git has a guess for the encoding
-            result = self.git._run_git_command(['check-attr', 'encoding', '--', str(file_path)])
+            result = self.git._run_git_command(
+                ["check-attr", "encoding", "--", str(file_path)]
+            )
             if result[1]:
                 # Parse output like: 'test.txt: encoding: set to utf-8'
                 for line in result[1].splitlines():
-                    if 'encoding: set to ' in line:
-                        encoding = line.split('set to ')[1].strip()
-                        if encoding != 'unspecified':
+                    if "encoding: set to " in line:
+                        encoding = line.split("set to ")[1].strip()
+                        if encoding != "unspecified":
                             return encoding
 
                 # Fall back to file command for detection
@@ -520,7 +543,7 @@ class FileOperations:
 
                 try:
                     result = subprocess.run(
-                        ['file', '--mime-encoding', '--brief', str(file_path)],
+                        ["file", "--mime-encoding", "--brief", str(file_path)],
                         capture_output=True,
                         text=True,
                         check=True,
@@ -546,21 +569,23 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(['check-attr', '-a', '--', str(file_path)])
+            result = self.git._run_git_command(
+                ["check-attr", "-a", "--", str(file_path)]
+            )
             if not result[1]:
                 return {}
 
             attributes = {}
             for line in result[1].splitlines():
-                if ':' not in line:
+                if ":" not in line:
                     continue
 
                 # Format: <file>: <attribute>: <value>
-                parts = line.split(':', 2)
+                parts = line.split(":", 2)
                 if len(parts) == 3:
                     attr = parts[1].strip()
                     value = parts[2].strip()
-                    if value.startswith('set: '):
+                    if value.startswith("set: "):
                         value = value[5:]
                     attributes[attr] = value
 
@@ -583,7 +608,7 @@ class FileOperations:
         try:
             # Use porcelain v2 format for easier parsing
             result = self.git._run_git_command(
-                ['blame', '--porcelain', '--line-porcelain', '--', str(file_path)]
+                ["blame", "--porcelain", "--line-porcelain", "--", str(file_path)]
             )
 
             if not result[1]:
@@ -596,10 +621,10 @@ class FileOperations:
                 if not line:
                     continue
 
-                if line[0] == '\t':
+                if line[0] == "\t":
                     # This is the line content
                     if current_entry:
-                        current_entry['line'] = line[1:]
+                        current_entry["line"] = line[1:]
                         blame_entries.append(current_entry)
                         current_entry = None
                     continue
@@ -617,14 +642,14 @@ class FileOperations:
                     continue
 
                 current_entry = {
-                    'commit': commit_hash,
-                    'original_line': original_line,
-                    'final_line': final_line,
-                    'line': '',
-                    'author': '',
-                    'author_mail': '',
-                    'author_time': '',
-                    'summary': '',
+                    "commit": commit_hash,
+                    "original_line": original_line,
+                    "final_line": final_line,
+                    "line": "",
+                    "author": "",
+                    "author_mail": "",
+                    "author_time": "",
+                    "summary": "",
                 }
 
                 # The next lines will contain more information about this commit

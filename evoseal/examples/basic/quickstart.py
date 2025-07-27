@@ -62,7 +62,9 @@ if __name__ == "__main__":
         print("Error: The following required environment variables are not set:")
         for var in missing_vars:
             print(f"- {var}")
-        print("\nPlease create a .env file with these variables or set them in your environment.")
+        print(
+            "\nPlease create a .env file with these variables or set them in your environment."
+        )
         sys.exit(1)
 
     try:

@@ -33,7 +33,7 @@ from evoseal.core.events import (
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -77,13 +77,15 @@ class SimpleEventDemo:
         @subscribe(EventType.WORKFLOW_STARTED)
         async def on_workflow_started(event: Event):
             print(f"   🎯 Workflow started: {event.data}")
-            self.event_counts['workflow_started'] = self.event_counts.get('workflow_started', 0) + 1
+            self.event_counts["workflow_started"] = (
+                self.event_counts.get("workflow_started", 0) + 1
+            )
 
         @subscribe(EventType.WORKFLOW_COMPLETED)
         async def on_workflow_completed(event: Event):
             print(f"   ✅ Workflow completed: {event.data}")
-            self.event_counts['workflow_completed'] = (
-                self.event_counts.get('workflow_completed', 0) + 1
+            self.event_counts["workflow_completed"] = (
+                self.event_counts.get("workflow_completed", 0) + 1
             )
 
         # Publish workflow events
@@ -96,7 +98,9 @@ class SimpleEventDemo:
         )
         await event_bus.publish(
             Event(
-                EventType.WORKFLOW_COMPLETED, "demo", {"workflow_id": "demo-001", "duration": 120.5}
+                EventType.WORKFLOW_COMPLETED,
+                "demo",
+                {"workflow_id": "demo-001", "duration": 120.5},
             )
         )
 
@@ -135,7 +139,9 @@ class SimpleEventDemo:
             )
             await event_bus.publish(error_event)
             self.error_events.append(error_event)
-            print(f"   ❌ Error event: {error_event.error_type} - {error_event.error_message}")
+            print(
+                f"   ❌ Error event: {error_event.error_type} - {error_event.error_message}"
+            )
 
         # Progress Event
         for i in range(3):
@@ -149,11 +155,18 @@ class SimpleEventDemo:
             )
             await event_bus.publish(progress_event)
             self.progress_events.append(progress_event)
-            print(f"   📈 Progress: {progress_event.percentage:.1f}% - {progress_event.message}")
+            print(
+                f"   📈 Progress: {progress_event.percentage:.1f}% - {progress_event.message}"
+            )
 
         # Metrics Event
         metrics_event = create_metrics_event(
-            metrics={"cpu_usage": 45.2, "memory_usage": 78.5, "disk_io": 123.4, "network_io": 56.7},
+            metrics={
+                "cpu_usage": 45.2,
+                "memory_usage": 78.5,
+                "disk_io": 123.4,
+                "network_io": 56.7,
+            },
             source="demo",
             severity="info",
             threshold_exceeded=False,
@@ -195,7 +208,9 @@ class SimpleEventDemo:
             print(f"   🎯 Filtered error: {event.event_type} from {event.source}")
 
         # Publish various events (only some should be filtered)
-        await event_bus.publish(create_error_event("Critical error", "demo", severity="critical"))
+        await event_bus.publish(
+            create_error_event("Critical error", "demo", severity="critical")
+        )
         await event_bus.publish(
             create_error_event("Warning", "demo", severity="warning")
         )  # Won't match filter
@@ -207,7 +222,9 @@ class SimpleEventDemo:
         )  # Won't match filter
 
         await asyncio.sleep(0.1)
-        print(f"   📊 Filtered events captured: {len(filtered_events)} out of 4 published")
+        print(
+            f"   📊 Filtered events captured: {len(filtered_events)} out of 4 published"
+        )
 
     async def demo_enhanced_eventbus(self):
         """Demonstrate enhanced EventBus features."""
@@ -246,14 +263,14 @@ class SimpleEventDemo:
         # Show some metrics details
         print("\n   📊 Event Type Metrics:")
         for event_type, metrics_data in metrics.items():
-            if isinstance(metrics_data, dict) and 'count' in metrics_data:
+            if isinstance(metrics_data, dict) and "count" in metrics_data:
                 print(f"      {event_type}: {metrics_data['count']} events")
 
         # Show recent event history
         print(f"\n   📚 Recent Event History ({len(history)} events):")
         for i, event_dict in enumerate(history[:5], 1):
-            event_type = event_dict.get('event_type', 'unknown')
-            source = event_dict.get('source', 'unknown')
+            event_type = event_dict.get("event_type", "unknown")
+            source = event_dict.get("source", "unknown")
             print(f"      {i}. {event_type} from {source}")
 
 

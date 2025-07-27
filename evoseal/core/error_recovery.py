@@ -93,7 +93,9 @@ class ErrorClassifier:
     def __init__(self):
         self.patterns: List[ErrorPattern] = []
         self.error_history: Dict[str, List[Exception]] = defaultdict(list)
-        self.recovery_success_rates: Dict[str, Dict[RecoveryAction, float]] = defaultdict(dict)
+        self.recovery_success_rates: Dict[str, Dict[RecoveryAction, float]] = (
+            defaultdict(dict)
+        )
 
     def register_pattern(self, pattern: ErrorPattern):
         """Register an error pattern for classification."""
@@ -132,7 +134,9 @@ class ErrorClassifier:
         key = f"{component}:{operation}"
         return len(self.error_history[key])
 
-    def update_recovery_success_rate(self, component: str, action: RecoveryAction, success: bool):
+    def update_recovery_success_rate(
+        self, component: str, action: RecoveryAction, success: bool
+    ):
         """Update success rate for a recovery action."""
         if component not in self.recovery_success_rates:
             self.recovery_success_rates[component] = {}
@@ -172,7 +176,11 @@ class FallbackManager:
         self.fallback_data: Dict[str, Any] = {}
 
     def register_fallback(
-        self, component: str, operation: str, handler: Callable, fallback_data: Optional[Any] = None
+        self,
+        component: str,
+        operation: str,
+        handler: Callable,
+        fallback_data: Optional[Any] = None,
     ):
         """Register a fallback handler for a component operation."""
         key = f"{component}:{operation}"
@@ -239,12 +247,18 @@ class ErrorRecoveryManager:
             ErrorCategory.TIMEOUT: RecoveryStrategy(
                 max_retries=3,
                 retry_delay=5.0,
-                recovery_actions=[RecoveryAction.RETRY, RecoveryAction.RESTART_COMPONENT],
+                recovery_actions=[
+                    RecoveryAction.RETRY,
+                    RecoveryAction.RESTART_COMPONENT,
+                ],
             ),
             ErrorCategory.RESOURCE: RecoveryStrategy(
                 max_retries=2,
                 retry_delay=10.0,
-                recovery_actions=[RecoveryAction.GRACEFUL_DEGRADATION, RecoveryAction.RETRY],
+                recovery_actions=[
+                    RecoveryAction.GRACEFUL_DEGRADATION,
+                    RecoveryAction.RETRY,
+                ],
             ),
             ErrorCategory.INTEGRATION: RecoveryStrategy(
                 max_retries=3,
@@ -304,7 +318,9 @@ class ErrorRecoveryManager:
 
         # Classify the error
         pattern = self.classifier.classify_error(error, component, operation)
-        strategy = pattern.recovery_strategy if pattern else self._get_default_strategy(error)
+        strategy = (
+            pattern.recovery_strategy if pattern else self._get_default_strategy(error)
+        )
 
         logger.info(
             f"Starting recovery for {component}:{operation} - {error.__class__.__name__}",
@@ -317,7 +333,14 @@ class ErrorRecoveryManager:
         for action in strategy.recovery_actions:
             try:
                 result = await self._execute_recovery_action(
-                    action, error, component, operation, original_func, strategy, *args, **kwargs
+                    action,
+                    error,
+                    component,
+                    operation,
+                    original_func,
+                    strategy,
+                    *args,
+                    **kwargs,
                 )
 
                 # Record successful recovery
@@ -386,7 +409,9 @@ class ErrorRecoveryManager:
         # All recovery actions failed - try escalation
         if await self._should_escalate(component, operation):
             try:
-                result = await self._escalate_error(error, component, operation, *args, **kwargs)
+                result = await self._escalate_error(
+                    error, component, operation, *args, **kwargs
+                )
                 return result, RecoveryResult.ESCALATED
             except Exception as escalation_error:
                 logger.error(f"Escalation failed: {escalation_error}")
@@ -423,7 +448,9 @@ class ErrorRecoveryManager:
     ) -> Any:
         """Execute a specific recovery action."""
         if action == RecoveryAction.RETRY:
-            return await self._retry_with_backoff(original_func, strategy, *args, **kwargs)
+            return await self._retry_with_backoff(
+                original_func, strategy, *args, **kwargs
+            )
         elif action == RecoveryAction.FALLBACK:
             return await self.fallback_manager.execute_fallback(
                 component, operation, error, *args, **kwargs
@@ -448,10 +475,12 @@ class ErrorRecoveryManager:
         for attempt in range(strategy.max_retries):
             try:
                 if asyncio.iscoroutinefunction(func):
-                    return await asyncio.wait_for(func(*args, **kwargs), timeout=strategy.timeout)
+                    return await asyncio.wait_for(
+                        func(*args, **kwargs), timeout=strategy.timeout
+                    )
                 else:
                     return func(*args, **kwargs)
-            except Exception as e:
+            except Exception:
                 if attempt == strategy.max_retries - 1:
                     raise
 
@@ -476,7 +505,9 @@ class ErrorRecoveryManager:
 
         logger.info(f"Component {component} restarted successfully")
 
-    async def _graceful_degradation(self, component: str, operation: str, error: Exception) -> Any:
+    async def _graceful_degradation(
+        self, component: str, operation: str, error: Exception
+    ) -> Any:
         """Implement graceful degradation."""
         logger.info(f"Implementing graceful degradation for {component}:{operation}")
 
@@ -510,7 +541,9 @@ class ErrorRecoveryManager:
                 return handler(error, component, operation, *args, **kwargs)
         else:
             # Default escalation - log and re-raise
-            logger.critical(f"Escalating unhandled error for {component}:{operation}: {error}")
+            logger.critical(
+                f"Escalating unhandled error for {component}:{operation}: {error}"
+            )
             raise error
 
     def _get_default_strategy(self, error: Exception) -> RecoveryStrategy:
@@ -579,8 +612,10 @@ def with_error_recovery(
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
-                result, recovery_result = await error_recovery_manager.recover_from_error(
-                    e, component, operation, func, *args, **kwargs
+                result, recovery_result = (
+                    await error_recovery_manager.recover_from_error(
+                        e, component, operation, func, *args, **kwargs
+                    )
                 )
                 if recovery_result == RecoveryResult.SUCCESS:
                     return result

@@ -8,9 +8,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional, Type
 
-from evoseal.providers.seal_providers import SEALProvider
-from evoseal.providers.ollama_provider import OllamaProvider
 from config.settings import settings
+from evoseal.providers.ollama_provider import OllamaProvider
+from evoseal.providers.seal_providers import SEALProvider
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,11 @@ class ProviderManager:
         self._provider_classes: Dict[str, Type[SEALProvider]] = {
             "ollama": OllamaProvider,
         }
-        
+
         # Import DummySEALProvider if available
         try:
             from evoseal.providers.seal_providers import DummySEALProvider
+
             self._provider_classes["dummy"] = DummySEALProvider
         except ImportError:
             logger.warning("DummySEALProvider not available")
@@ -62,7 +63,7 @@ class ProviderManager:
         # Create new provider instance
         provider_instance = self._create_provider(provider_name, provider_config)
         self._providers[provider_name] = provider_instance
-        
+
         logger.info(f"Created provider instance: {provider_name}")
         return provider_instance
 
@@ -77,10 +78,11 @@ class ProviderManager:
         """
         # Get enabled providers sorted by priority (descending)
         enabled_providers = [
-            (name, config) for name, config in settings.seal.providers.items()
+            (name, config)
+            for name, config in settings.seal.providers.items()
             if config.enabled
         ]
-        
+
         if not enabled_providers:
             raise RuntimeError("No SEAL providers are enabled")
 
@@ -91,10 +93,11 @@ class ProviderManager:
         for provider_name, provider_config in enabled_providers:
             try:
                 provider = self.get_provider(provider_name)
-                
+
                 # Test provider health if it supports it
-                if hasattr(provider, 'health_check'):
+                if hasattr(provider, "health_check"):
                     import asyncio
+
                     try:
                         # Check if we're already in an event loop
                         try:
@@ -102,33 +105,43 @@ class ProviderManager:
                             # We're in an event loop, create a task instead
                             task = loop.create_task(provider.health_check())
                             # For now, skip health check in running loop and assume healthy
-                            logger.info(f"Skipping health check in running event loop for {provider_name}")
+                            logger.info(
+                                f"Skipping health check in running event loop for {provider_name}"
+                            )
                             is_healthy = True
                         except RuntimeError:
                             # No running event loop, safe to use asyncio.run
                             is_healthy = asyncio.run(provider.health_check())
-                        
+
                         if is_healthy:
-                            logger.info(f"Selected provider: {provider_name} (priority: {provider_config.priority})")
+                            logger.info(
+                                f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                            )
                             return provider
                         else:
-                            logger.warning(f"Provider {provider_name} failed health check")
+                            logger.warning(
+                                f"Provider {provider_name} failed health check"
+                            )
                             continue
                     except Exception as e:
                         logger.warning(f"Health check failed for {provider_name}: {e}")
                         continue
                 else:
                     # No health check available, assume it's working
-                    logger.info(f"Selected provider: {provider_name} (priority: {provider_config.priority})")
+                    logger.info(
+                        f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                    )
                     return provider
-                    
+
             except Exception as e:
                 logger.warning(f"Failed to initialize provider {provider_name}: {e}")
                 continue
 
         raise RuntimeError("No healthy SEAL providers are available")
 
-    def _create_provider(self, provider_name: str, provider_config: Any) -> SEALProvider:
+    def _create_provider(
+        self, provider_name: str, provider_config: Any
+    ) -> SEALProvider:
         """Create a provider instance.
 
         Args:
@@ -145,14 +158,16 @@ class ProviderManager:
             raise ValueError(f"Unknown provider class: {provider_name}")
 
         provider_class = self._provider_classes[provider_name]
-        
+
         # Extract configuration parameters
         config_params = provider_config.config.copy() if provider_config.config else {}
-        
+
         # Create provider instance with configuration
         try:
             provider_instance = provider_class(**config_params)
-            logger.debug(f"Created {provider_name} provider with config: {config_params}")
+            logger.debug(
+                f"Created {provider_name} provider with config: {config_params}"
+            )
             return provider_instance
         except Exception as e:
             logger.error(f"Failed to create {provider_name} provider: {e}")
@@ -165,7 +180,7 @@ class ProviderManager:
             Dictionary with provider information
         """
         provider_info = {}
-        
+
         for name, config in settings.seal.providers.items():
             info = {
                 "name": config.name,
@@ -175,13 +190,14 @@ class ProviderManager:
                 "available": name in self._provider_classes,
                 "initialized": name in self._providers,
             }
-            
+
             # Add health status if provider is initialized
             if name in self._providers:
                 provider = self._providers[name]
-                if hasattr(provider, 'health_check'):
+                if hasattr(provider, "health_check"):
                     try:
                         import asyncio
+
                         # Check if we're in an event loop
                         try:
                             asyncio.get_running_loop()
@@ -195,9 +211,9 @@ class ProviderManager:
                         info["health_error"] = str(e)
                 else:
                     info["healthy"] = True  # Assume healthy if no health check
-            
+
             provider_info[name] = info
-        
+
         return provider_info
 
     def reload_providers(self) -> None:
@@ -205,7 +221,9 @@ class ProviderManager:
         logger.info("Reloading provider configuration")
         self._providers.clear()
 
-    def register_provider_class(self, name: str, provider_class: Type[SEALProvider]) -> None:
+    def register_provider_class(
+        self, name: str, provider_class: Type[SEALProvider]
+    ) -> None:
         """Register a new provider class.
 
         Args:

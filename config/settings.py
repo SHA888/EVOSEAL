@@ -15,9 +15,11 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, TypeVar, ca
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 # Define a Protocol for type checking
 class SettingsSourceCallableProtocol(Protocol):
     def __call__(self, settings: BaseSettings) -> dict[str, Any]: ...
+
 
 SettingsSourceCallable = SettingsSourceCallableProtocol
 
@@ -37,10 +39,14 @@ class DGMConfig(BaseModel):
     """Configuration for the Darwin Godel Machine component."""
 
     enabled: bool = Field(True, description="Whether DGM is enabled")
-    module_path: str = Field("dgm", description="Path to the DGM module (relative or absolute)")
+    module_path: str = Field(
+        "dgm", description="Path to the DGM module (relative or absolute)"
+    )
     max_iterations: int = Field(100, ge=1, description="Maximum number of iterations")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
-    checkpoint_dir: str = Field("checkpoints/dgm", description="Directory for storing checkpoints")
+    checkpoint_dir: str = Field(
+        "checkpoints/dgm", description="Directory for storing checkpoints"
+    )
 
 
 class OpenEvolveConfig(BaseModel):
@@ -53,16 +59,20 @@ class OpenEvolveConfig(BaseModel):
     population_size: int = Field(50, ge=1, description="Size of the population")
     max_generations: int = Field(100, ge=1, description="Maximum number of generations")
     mutation_rate: float = Field(0.1, ge=0.0, le=1.0, description="Mutation rate")
-    checkpoint_dir: str = Field("checkpoints/openevolve", description="Directory for checkpoints")
+    checkpoint_dir: str = Field(
+        "checkpoints/openevolve", description="Directory for checkpoints"
+    )
 
 
 class SEALProviderConfig(BaseModel):
     """Configuration for a SEAL provider."""
-    
+
     name: str = Field(..., description="Provider name")
     enabled: bool = Field(True, description="Whether this provider is enabled")
     priority: int = Field(1, description="Provider priority (higher = preferred)")
-    config: dict[str, Any] = Field(default_factory=dict, description="Provider-specific configuration")
+    config: dict[str, Any] = Field(
+        default_factory=dict, description="Provider-specific configuration"
+    )
 
 
 class SEALConfig(BaseModel):
@@ -76,10 +86,14 @@ class SEALConfig(BaseModel):
         description="Path to the SEAL (Self-Adapting Language Models) module (relative or absolute)",
     )
     few_shot_enabled: bool = Field(True, description="Enable few-shot learning")
-    knowledge_base_path: str = Field("data/knowledge", description="Path to knowledge base")
-    max_context_length: int = Field(4096, description="Maximum context length for the model")
+    knowledge_base_path: str = Field(
+        "data/knowledge", description="Path to knowledge base"
+    )
+    max_context_length: int = Field(
+        4096, description="Maximum context length for the model"
+    )
     default_model: str = Field("gpt-4", description="Default model to use")
-    
+
     # Provider configuration
     default_provider: str = Field("ollama", description="Default provider to use")
     providers: dict[str, SEALProviderConfig] = Field(
@@ -94,16 +108,13 @@ class SEALConfig(BaseModel):
                     "timeout": 90,
                     "temperature": 0.7,
                     "max_tokens": 2048,
-                }
+                },
             ),
             "dummy": SEALProviderConfig(
-                name="dummy",
-                enabled=True,
-                priority=1,
-                config={}
-            )
+                name="dummy", enabled=True, priority=1, config={}
+            ),
         },
-        description="Available SEAL providers"
+        description="Available SEAL providers",
     )
 
 
@@ -143,7 +154,7 @@ class Settings(BaseSettings):
     app_name: str = "EVOSEAL"
     secret_key: str = Field(
         default="dev-secret-key-change-in-production",
-        description="Secret key for cryptographic operations"
+        description="Secret key for cryptographic operations",
     )
 
     # Component configurations

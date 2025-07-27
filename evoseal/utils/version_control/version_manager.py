@@ -112,7 +112,7 @@ class VersionManager:
             return None
 
         for line in result.output.splitlines():
-            if line.startswith('*'):
+            if line.startswith("*"):
                 return line[2:].strip()
         return None
 
@@ -135,7 +135,7 @@ class VersionManager:
 
         # Get current branch
         for line in result.output.splitlines():
-            if line.startswith('*'):
+            if line.startswith("*"):
                 current_branch = line[2:].strip()
                 branches.append(BranchInfo(name=current_branch, is_current=True))
             else:
@@ -147,7 +147,7 @@ class VersionManager:
             if remote_result.success:
                 for line in remote_result.output.splitlines():
                     branch_name = line.strip()
-                    if ' -> ' not in branch_name:  # Skip HEAD -> refs/...
+                    if " -> " not in branch_name:  # Skip HEAD -> refs/...
                         branches.append(BranchInfo(name=branch_name, is_remote=True))
 
         return branches
@@ -206,23 +206,27 @@ class VersionManager:
 
         # Parse git log output
         for line in result.output.splitlines():
-            if line.startswith('commit '):
+            if line.startswith("commit "):
                 if current_commit:
                     commits.append(current_commit)
                 commit_hash = line[7:]
-                current_commit = CommitInfo(hash=commit_hash, author="", date=None, message="")
-            elif line.startswith('Author: '):
+                current_commit = CommitInfo(
+                    hash=commit_hash, author="", date=None, message=""
+                )
+            elif line.startswith("Author: "):
                 if current_commit:
                     current_commit.author = line[8:].strip()
-            elif line.startswith('Date:   '):
+            elif line.startswith("Date:   "):
                 if current_commit:
                     # Parse date string (e.g., "Date:   Mon Jul 7 12:34:56 2025 +0800")
                     date_str = line[8:].strip()
                     try:
-                        current_commit.date = datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y %z")
+                        current_commit.date = datetime.strptime(
+                            date_str, "%a %b %d %H:%M:%S %Y %z"
+                        )
                     except ValueError:
                         logger.warning(f"Could not parse date: {date_str}")
-            elif line.strip() and not line.startswith('    '):
+            elif line.strip() and not line.startswith("    "):
                 if current_commit:
                     current_commit.message = line.strip()
 
@@ -231,7 +235,9 @@ class VersionManager:
 
         return commits
 
-    def create_commit(self, message: str, files: Optional[List[Union[str, Path]]] = None) -> bool:
+    def create_commit(
+        self, message: str, files: Optional[List[Union[str, Path]]] = None
+    ) -> bool:
         """
         Create a new commit.
 
@@ -317,10 +323,10 @@ class VersionManager:
 
         if result[0]:
             for line in result[1].splitlines():
-                if '\t' in line:
-                    name, url = line.split('\t')
-                    if '(fetch)' in url:
-                        remotes[name] = url.split(' ')[0]
+                if "\t" in line:
+                    name, url = line.split("\t")
+                    if "(fetch)" in url:
+                        remotes[name] = url.split(" ")[0]
 
         return remotes
 
@@ -344,7 +350,9 @@ class VersionManager:
         result = self.git.pull(remote, branch)
         return result.success
 
-    def push(self, remote: str = "origin", branch: str = None, force: bool = False) -> bool:
+    def push(
+        self, remote: str = "origin", branch: str = None, force: bool = False
+    ) -> bool:
         """
         Push changes to a remote repository.
 
@@ -375,9 +383,9 @@ class VersionManager:
         """
         result = self.git.status()
         if not result.success:
-            return {'staged': [], 'unstaged': [], 'untracked': []}
+            return {"staged": [], "unstaged": [], "untracked": []}
 
-        status = {'staged': [], 'unstaged': [], 'untracked': []}
+        status = {"staged": [], "unstaged": [], "untracked": []}
 
         current_section = None
         for line in result.output.splitlines():
@@ -385,21 +393,24 @@ class VersionManager:
             if not line:
                 continue
 
-            if 'Changes to be committed:' in line:
-                current_section = 'staged'
-            elif 'Changes not staged for commit:' in line:
-                current_section = 'unstaged'
-            elif 'Untracked files:' in line:
-                current_section = 'untracked'
-            elif line == 'no changes added to commit (use "git add" and/or "git commit -a")':
+            if "Changes to be committed:" in line:
+                current_section = "staged"
+            elif "Changes not staged for commit:" in line:
+                current_section = "unstaged"
+            elif "Untracked files:" in line:
+                current_section = "untracked"
+            elif (
+                line
+                == 'no changes added to commit (use "git add" and/or "git commit -a")'
+            ):
                 continue
-            elif current_section and ':' in line:
+            elif current_section and ":" in line:
                 # Skip section headers
                 continue
-            elif current_section and line and not line.startswith('('):
+            elif current_section and line and not line.startswith("("):
                 # Add file to current section
                 # Remove status prefix (e.g., 'modified:   file.txt' -> 'file.txt')
-                file_path = line.split(':', 1)[-1].strip()
+                file_path = line.split(":", 1)[-1].strip()
                 if file_path:
                     status[current_section].append(file_path)
 

@@ -27,7 +27,9 @@ class SystemConfig:
     def validate(self) -> bool:
         missing = [k for k in self.REQUIRED_KEYS if k not in self.config]
         if missing:
-            raise ValueError(f"Missing required configuration section(s): {', '.join(missing)}")
+            raise ValueError(
+                f"Missing required configuration section(s): {', '.join(missing)}"
+            )
         return True
 
     @classmethod

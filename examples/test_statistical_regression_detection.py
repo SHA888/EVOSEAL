@@ -50,11 +50,21 @@ class AdvancedMockMetricsTracker:
             # Add realistic noise using cryptographically secure random number generator
             secure_random = secrets.SystemRandom()
             noise_factor = 0.02
-            success_rate = base_success_rate + secure_random.uniform(-noise_factor, noise_factor)
-            accuracy = base_accuracy + secure_random.uniform(-noise_factor, noise_factor)
-            duration = base_duration + secure_random.uniform(-noise_factor * 10, noise_factor * 10)
-            memory = base_memory + secure_random.uniform(-noise_factor * 50, noise_factor * 50)
-            error_rate = base_error_rate + secure_random.uniform(-noise_factor, noise_factor)
+            success_rate = base_success_rate + secure_random.uniform(
+                -noise_factor, noise_factor
+            )
+            accuracy = base_accuracy + secure_random.uniform(
+                -noise_factor, noise_factor
+            )
+            duration = base_duration + secure_random.uniform(
+                -noise_factor * 10, noise_factor * 10
+            )
+            memory = base_memory + secure_random.uniform(
+                -noise_factor * 50, noise_factor * 50
+            )
+            error_rate = base_error_rate + secure_random.uniform(
+                -noise_factor, noise_factor
+            )
 
             # Introduce specific anomalies
             if i == 8:  # Anomaly at version 8
@@ -68,12 +78,12 @@ class AdvancedMockMetricsTracker:
 
             # Ensure values stay within realistic bounds
             data[version_id] = {
-                'success_rate': success_rate,
-                'accuracy': accuracy,
-                'duration_sec': duration,
-                'memory_mb': memory,
-                'error_rate': error_rate,
-                'pass_rate': success_rate * 0.95,  # Correlated with success rate
+                "success_rate": success_rate,
+                "accuracy": accuracy,
+                "duration_sec": duration,
+                "memory_mb": memory,
+                "error_rate": error_rate,
+                "pass_rate": success_rate * 0.95,  # Correlated with success rate
             }
 
         return data
@@ -98,10 +108,10 @@ class AdvancedMockMetricsTracker:
                 change_pct = (new_val - old_val) / old_val if old_val != 0 else 0
 
                 comparison[metric_name] = {
-                    'baseline': old_val,
-                    'current': new_val,
-                    'change_pct': change_pct,
-                    'absolute_change': new_val - old_val,
+                    "baseline": old_val,
+                    "current": new_val,
+                    "change_pct": change_pct,
+                    "absolute_change": new_val - old_val,
                 }
 
         return comparison
@@ -113,15 +123,17 @@ def print_statistical_analysis(metric_name: str, stats: Dict[str, Any]) -> None:
     logger.info(f"  Mean: {stats.get('mean', 0):.4f}")
     logger.info(f"  Median: {stats.get('median', 0):.4f}")
     logger.info(f"  Std Dev: {stats.get('std_dev', 0):.4f}")
-    logger.info(f"  Coefficient of Variation: {stats.get('coefficient_of_variation', 0):.4f}")
+    logger.info(
+        f"  Coefficient of Variation: {stats.get('coefficient_of_variation', 0):.4f}"
+    )
 
-    ci = stats.get('confidence_interval', (0, 0))
+    ci = stats.get("confidence_interval", (0, 0))
     logger.info(
         f"  {stats.get('confidence_level', 0.95)*100:.0f}% Confidence Interval: [{ci[0]:.4f}, {ci[1]:.4f}]"
     )
 
     # Trend analysis
-    trend = stats.get('trend_analysis', {})
+    trend = stats.get("trend_analysis", {})
     if trend:
         logger.info(
             f"  Trend: {trend.get('direction', 'unknown')} ({trend.get('strength', 'unknown')})"
@@ -131,54 +143,60 @@ def print_statistical_analysis(metric_name: str, stats: Dict[str, Any]) -> None:
         logger.info(f"  Predicted Next: {trend.get('predicted_next', 0):.4f}")
 
     # Anomalies
-    anomalies = stats.get('anomalies', [])
+    anomalies = stats.get("anomalies", [])
     if anomalies:
         logger.info(f"  🚨 Anomalies Detected: {len(anomalies)}")
         for anomaly in anomalies[:3]:  # Show first 3 anomalies
-            method = anomaly.get('method', 'unknown')
-            severity = anomaly.get('severity', 'unknown')
-            value = anomaly.get('value', 0)
+            method = anomaly.get("method", "unknown")
+            severity = anomaly.get("severity", "unknown")
+            value = anomaly.get("value", 0)
             logger.info(
                 f"    - Index {anomaly.get('index', 0)}: {value:.4f} ({method}, {severity})"
             )
 
 
-def print_enhanced_regression_analysis(metric_name: str, analysis: Dict[str, Any]) -> None:
+def print_enhanced_regression_analysis(
+    metric_name: str, analysis: Dict[str, Any]
+) -> None:
     """Print formatted enhanced regression analysis."""
     logger.info(f"\n🔍 Enhanced Regression Analysis for {metric_name}:")
 
     # Basic regression
-    basic = analysis.get('basic_regression')
+    basic = analysis.get("basic_regression")
     if basic:
         logger.info(f"  Basic Regression: {basic.get('severity', 'none')} severity")
         logger.info(f"  Change: {basic.get('change', 0):+.2%}")
 
     # Statistical significance
-    stat_sig = analysis.get('statistical_significance')
+    stat_sig = analysis.get("statistical_significance")
     if stat_sig:
-        within_ci = stat_sig.get('within_confidence_interval', True)
-        significance = stat_sig.get('significance', 'unknown')
+        within_ci = stat_sig.get("within_confidence_interval", True)
+        significance = stat_sig.get("significance", "unknown")
         logger.info(f"  Statistical Significance: {significance}")
-        logger.info(f"  Within Confidence Interval: {'✅ Yes' if within_ci else '❌ No'}")
+        logger.info(
+            f"  Within Confidence Interval: {'✅ Yes' if within_ci else '❌ No'}"
+        )
 
     # Historical context
-    hist_context = analysis.get('historical_context')
+    hist_context = analysis.get("historical_context")
     if hist_context:
-        percentile = hist_context.get('percentile_rank', 50)
-        deviation = hist_context.get('deviation_from_mean', 0)
+        percentile = hist_context.get("percentile_rank", 50)
+        deviation = hist_context.get("deviation_from_mean", 0)
         logger.info(f"  Historical Percentile: {percentile:.1f}%")
         logger.info(f"  Deviation from Mean: {deviation:+.4f}")
 
     # Anomaly status
-    anomaly_status = analysis.get('anomaly_status')
+    anomaly_status = analysis.get("anomaly_status")
     if anomaly_status:
-        is_anomaly = anomaly_status.get('is_anomaly', False)
-        logger.info(f"  Anomaly Status: {'🚨 ANOMALY DETECTED' if is_anomaly else '✅ Normal'}")
+        is_anomaly = anomaly_status.get("is_anomaly", False)
+        logger.info(
+            f"  Anomaly Status: {'🚨 ANOMALY DETECTED' if is_anomaly else '✅ Normal'}"
+        )
         if is_anomaly:
-            details = anomaly_status.get('anomaly_details', [])
+            details = anomaly_status.get("anomaly_details", [])
             for detail in details:
-                method = detail.get('method', 'unknown')
-                severity = detail.get('severity', 'unknown')
+                method = detail.get("method", "unknown")
+                severity = detail.get("severity", "unknown")
                 logger.info(f"    - Method: {method}, Severity: {severity}")
 
 
@@ -194,31 +212,31 @@ async def test_statistical_regression_detection():
 
         # Initialize RegressionDetector with statistical analysis enabled
         config = {
-            'regression_threshold': 0.05,
-            'baseline_storage_path': str(baseline_path),
-            'alert_enabled': True,
-            'monitored_metrics': [
-                'success_rate',
-                'accuracy',
-                'duration_sec',
-                'memory_mb',
-                'error_rate',
-                'pass_rate',
+            "regression_threshold": 0.05,
+            "baseline_storage_path": str(baseline_path),
+            "alert_enabled": True,
+            "monitored_metrics": [
+                "success_rate",
+                "accuracy",
+                "duration_sec",
+                "memory_mb",
+                "error_rate",
+                "pass_rate",
             ],
-            'statistical_analysis': {
-                'confidence_level': 0.95,
-                'min_samples': 3,
-                'trend_window': 10,
-                'outlier_threshold': 2.0,
-                'enable_trend_analysis': True,
-                'enable_anomaly_detection': True,
-                'enable_seasonal_adjustment': False,
+            "statistical_analysis": {
+                "confidence_level": 0.95,
+                "min_samples": 3,
+                "trend_window": 10,
+                "outlier_threshold": 2.0,
+                "enable_trend_analysis": True,
+                "enable_anomaly_detection": True,
+                "enable_seasonal_adjustment": False,
             },
-            'anomaly_detection': {
-                'algorithms': ['zscore', 'iqr', 'isolation'],
-                'sensitivity': 'medium',
-                'adaptive_threshold': True,
-                'pattern_recognition': True,
+            "anomaly_detection": {
+                "algorithms": ["zscore", "iqr", "isolation"],
+                "sensitivity": "medium",
+                "adaptive_threshold": True,
+                "pattern_recognition": True,
             },
         }
 
@@ -228,7 +246,7 @@ async def test_statistical_regression_detection():
         # Initialize RegressionDetector
         detector = RegressionDetector(config, mock_tracker)
 
-        logger.info(f"📊 Initialized Statistical RegressionDetector")
+        logger.info("📊 Initialized Statistical RegressionDetector")
         logger.info(
             f"Statistical Analysis: {'✅ Enabled' if config['statistical_analysis']['enable_trend_analysis'] else '❌ Disabled'}"
         )
@@ -246,7 +264,7 @@ async def test_statistical_regression_detection():
             metrics = mock_tracker.get_metrics_by_id(version_id)
             detector.update_historical_metrics(version_id, metrics)
 
-        logger.info(f"Added historical data for 10 versions")
+        logger.info("Added historical data for 10 versions")
 
         # Test 2: Statistical Analysis of Individual Metrics
         logger.info("\n2️⃣ Statistical Analysis of Individual Metrics")
@@ -254,17 +272,19 @@ async def test_statistical_regression_detection():
 
         # Analyze success_rate metric
         success_rate_values = [
-            mock_tracker.get_metrics_by_id(f"v1.{i}")['success_rate'] for i in range(10)
+            mock_tracker.get_metrics_by_id(f"v1.{i}")["success_rate"] for i in range(10)
         ]
-        stats = detector.analyze_metric_statistics('success_rate', success_rate_values)
-        print_statistical_analysis('success_rate', stats)
+        stats = detector.analyze_metric_statistics("success_rate", success_rate_values)
+        print_statistical_analysis("success_rate", stats)
 
         # Analyze duration_sec metric (should show performance trend)
         duration_values = [
-            mock_tracker.get_metrics_by_id(f"v1.{i}")['duration_sec'] for i in range(10)
+            mock_tracker.get_metrics_by_id(f"v1.{i}")["duration_sec"] for i in range(10)
         ]
-        duration_stats = detector.analyze_metric_statistics('duration_sec', duration_values)
-        print_statistical_analysis('duration_sec', duration_stats)
+        duration_stats = detector.analyze_metric_statistics(
+            "duration_sec", duration_values
+        )
+        print_statistical_analysis("duration_sec", duration_stats)
 
         # Test 3: Anomaly Detection on Known Anomalous Version
         logger.info("\n3️⃣ Anomaly Detection on Known Anomalous Version (v1.8)")
@@ -278,30 +298,32 @@ async def test_statistical_regression_detection():
         detector.update_historical_metrics("v1.8", anomalous_metrics)
 
         # Analyze with anomaly detection
-        success_rate_with_anomaly = success_rate_values + [anomalous_metrics['success_rate']]
+        success_rate_with_anomaly = success_rate_values + [
+            anomalous_metrics["success_rate"]
+        ]
         anomaly_stats = detector.analyze_metric_statistics(
-            'success_rate', success_rate_with_anomaly
+            "success_rate", success_rate_with_anomaly
         )
-        print_statistical_analysis('success_rate (with anomaly)', anomaly_stats)
+        print_statistical_analysis("success_rate (with anomaly)", anomaly_stats)
 
         # Test 4: Enhanced Regression Detection
         logger.info("\n4️⃣ Enhanced Regression Detection (v1.7 → v1.8)")
         logger.info("-" * 40)
 
         # Compare normal version to anomalous version
-        has_regression, regression_details = detector.detect_regression('v1.7', 'v1.8')
+        has_regression, regression_details = detector.detect_regression("v1.7", "v1.8")
 
         logger.info(f"Regression Detected: {'⚠️ Yes' if has_regression else '✅ No'}")
 
         if has_regression:
             logger.info(f"Regressions found in {len(regression_details)} metrics:")
             for metric, details in regression_details.items():
-                severity = details.get('severity', 'unknown')
-                change = details.get('change', 0)
+                severity = details.get("severity", "unknown")
+                change = details.get("change", 0)
                 logger.info(f"  - {metric}: {severity} severity ({change:+.2%})")
 
                 # Show enhanced analysis for critical regressions
-                if severity in ['high', 'critical']:
+                if severity in ["high", "critical"]:
                     print_enhanced_regression_analysis(metric, details)
 
         # Test 5: Trend Analysis Over Time
@@ -311,16 +333,19 @@ async def test_statistical_regression_detection():
         # Analyze trends across multiple versions
         versions_to_analyze = [f"v1.{i}" for i in range(15)]
 
-        for metric_name in ['success_rate', 'duration_sec', 'memory_mb']:
-            values = [mock_tracker.get_metrics_by_id(v)[metric_name] for v in versions_to_analyze]
+        for metric_name in ["success_rate", "duration_sec", "memory_mb"]:
+            values = [
+                mock_tracker.get_metrics_by_id(v)[metric_name]
+                for v in versions_to_analyze
+            ]
             trend_stats = detector.analyze_metric_statistics(metric_name, values)
 
-            trend = trend_stats.get('trend_analysis', {})
+            trend = trend_stats.get("trend_analysis", {})
             if trend:
-                direction = trend.get('direction', 'unknown')
-                strength = trend.get('strength', 'unknown')
-                slope = trend.get('slope', 0)
-                r_squared = trend.get('r_squared', 0)
+                direction = trend.get("direction", "unknown")
+                strength = trend.get("strength", "unknown")
+                slope = trend.get("slope", 0)
+                r_squared = trend.get("r_squared", 0)
 
                 logger.info(f"📈 {metric_name}: {direction} trend ({strength})")
                 logger.info(f"   Slope: {slope:.6f}, R²: {r_squared:.4f}")
@@ -330,13 +355,15 @@ async def test_statistical_regression_detection():
         logger.info("-" * 40)
 
         # v1.15 has performance regression (duration and memory spike)
-        has_perf_regression, perf_details = detector.detect_regression('v1.14', 'v1.15')
+        has_perf_regression, perf_details = detector.detect_regression("v1.14", "v1.15")
 
-        logger.info(f"Performance Regression: {'⚠️ Detected' if has_perf_regression else '✅ None'}")
+        logger.info(
+            f"Performance Regression: {'⚠️ Detected' if has_perf_regression else '✅ None'}"
+        )
 
         if has_perf_regression:
             for metric, details in perf_details.items():
-                if metric in ['duration_sec', 'memory_mb']:
+                if metric in ["duration_sec", "memory_mb"]:
                     print_enhanced_regression_analysis(metric, details)
 
         # Test 7: Statistical Significance Testing
@@ -345,10 +372,10 @@ async def test_statistical_regression_detection():
 
         # Test statistical significance of changes
         test_cases = [
-            ('v1.5', 'v1.6', 'Normal progression'),
-            ('v1.7', 'v1.8', 'Anomalous change'),
-            ('v1.11', 'v1.12', 'Subtle change'),
-            ('v1.14', 'v1.15', 'Performance regression'),
+            ("v1.5", "v1.6", "Normal progression"),
+            ("v1.7", "v1.8", "Anomalous change"),
+            ("v1.11", "v1.12", "Subtle change"),
+            ("v1.14", "v1.15", "Performance regression"),
         ]
 
         for old_v, new_v, description in test_cases:
@@ -359,19 +386,19 @@ async def test_statistical_regression_detection():
             new_metrics = mock_tracker.get_metrics_by_id(new_v)
 
             enhanced = detector.get_statistical_regression_analysis(
-                'success_rate', old_metrics['success_rate'], new_metrics['success_rate']
+                "success_rate", old_metrics["success_rate"], new_metrics["success_rate"]
             )
 
-            stat_sig = enhanced.get('statistical_significance')
+            stat_sig = enhanced.get("statistical_significance")
             if stat_sig:
-                significance = stat_sig.get('significance', 'unknown')
-                within_ci = stat_sig.get('within_confidence_interval', True)
+                significance = stat_sig.get("significance", "unknown")
+                within_ci = stat_sig.get("within_confidence_interval", True)
                 logger.info(f"   Statistical Significance: {significance}")
                 logger.info(f"   Within CI: {'✅' if within_ci else '❌'}")
 
-            anomaly_status = enhanced.get('anomaly_status')
+            anomaly_status = enhanced.get("anomaly_status")
             if anomaly_status:
-                is_anomaly = anomaly_status.get('is_anomaly', False)
+                is_anomaly = anomaly_status.get("is_anomaly", False)
                 logger.info(f"   Anomaly: {'🚨 Yes' if is_anomaly else '✅ No'}")
 
         logger.info("\n🎉 Statistical Regression Detection Test Complete!")

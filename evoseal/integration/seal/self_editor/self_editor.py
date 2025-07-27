@@ -118,10 +118,14 @@ class EditHistory(BaseModel):
                 "suggestion": suggestion.to_dict(),
                 "applied": applied,
                 "content_before": self.current_content,
-                "content_after": (suggestion.suggested_text if applied else self.current_content),
+                "content_after": (
+                    suggestion.suggested_text if applied else self.current_content
+                ),
             }
         )
-        self.current_content = suggestion.suggested_text if applied else self.current_content
+        self.current_content = (
+            suggestion.suggested_text if applied else self.current_content
+        )
         self.updated_at = datetime.now(timezone.utc)
 
 
@@ -250,7 +254,9 @@ class DefaultEditStrategy:
 
         raise TypeError(f"Unsupported operation type: {type(operation).__name__}")
 
-    def _log_operation_start(self, op_name: str, content: str, suggestion: EditSuggestion) -> None:
+    def _log_operation_start(
+        self, op_name: str, content: str, suggestion: EditSuggestion
+    ) -> None:
         """Log operation start with relevant debug information."""
         if not logger.isEnabledFor(logging.DEBUG):
             return
@@ -262,7 +268,8 @@ class DefaultEditStrategy:
 
         if suggestion.original_text:
             logger.debug(
-                f"{op_name} - Original text in content: " f"{suggestion.original_text in content}"
+                f"{op_name} - Original text in content: "
+                f"{suggestion.original_text in content}"
             )
 
     def _handle_rewrite(self, content: str, suggestion: EditSuggestion) -> str:
@@ -272,7 +279,11 @@ class DefaultEditStrategy:
         """
         self._log_operation_start("REWRITE", content, suggestion)
         # For REWRITE operation, always return the suggested_text
-        return str(suggestion.suggested_text) if suggestion.suggested_text is not None else ""
+        return (
+            str(suggestion.suggested_text)
+            if suggestion.suggested_text is not None
+            else ""
+        )
 
     def _handle_add(self, content: str, suggestion: EditSuggestion) -> str:
         """Handle ADD operation."""
@@ -376,7 +387,10 @@ class DefaultEditStrategy:
                 pass
 
         # Handle REWRITE operation - always return the suggested_text
-        if str(operation) == str(EditOperation.REWRITE) or operation == EditOperation.REWRITE:
+        if (
+            str(operation) == str(EditOperation.REWRITE)
+            or operation == EditOperation.REWRITE
+        ):
             return (
                 str(actual_suggestion.suggested_text)
                 if actual_suggestion.suggested_text is not None
@@ -400,7 +414,10 @@ class DefaultEditStrategy:
             return actual_content
 
         # Handle REMOVE operation
-        if str(operation) == str(EditOperation.REMOVE) or operation == EditOperation.REMOVE:
+        if (
+            str(operation) == str(EditOperation.REMOVE)
+            or operation == EditOperation.REMOVE
+        ):
             if not actual_suggestion.original_text:
                 return actual_content
 
@@ -412,7 +429,10 @@ class DefaultEditStrategy:
             return actual_content.replace(actual_suggestion.original_text, "", 1)
 
         # Handle REPLACE operation
-        if str(operation) == str(EditOperation.REPLACE) or operation == EditOperation.REPLACE:
+        if (
+            str(operation) == str(EditOperation.REPLACE)
+            or operation == EditOperation.REPLACE
+        ):
             if (
                 not actual_suggestion.original_text
                 or actual_suggestion.original_text not in actual_content
@@ -426,14 +446,21 @@ class DefaultEditStrategy:
             )
 
         # Handle FORMAT operation
-        if str(operation) == str(EditOperation.FORMAT) or operation == EditOperation.FORMAT:
+        if (
+            str(operation) == str(EditOperation.FORMAT)
+            or operation == EditOperation.FORMAT
+        ):
             return "\n".join(line.rstrip() for line in actual_content.split("\n"))
 
         # Handle CLARIFY operation
-        if str(operation) == str(EditOperation.CLARIFY) or operation == EditOperation.CLARIFY:
+        if (
+            str(operation) == str(EditOperation.CLARIFY)
+            or operation == EditOperation.CLARIFY
+        ):
             explanation = (
                 actual_suggestion.explanation
-                if hasattr(actual_suggestion, "explanation") and actual_suggestion.explanation
+                if hasattr(actual_suggestion, "explanation")
+                and actual_suggestion.explanation
                 else "No explanation provided"
             )
             return f"# NOTE: {explanation}\n{actual_content}"
@@ -510,7 +537,9 @@ class SelfEditor:
                 for suggestion in suggestions:
                     if suggestion.confidence >= self.min_confidence:
                         self.histories[content_id].add_edit(suggestion, applied=True)
-                        current_content = self.strategy.apply_edit(current_content, suggestion)
+                        current_content = self.strategy.apply_edit(
+                            current_content, suggestion
+                        )
 
                 # Update the current content in the history
                 self.histories[content_id].current_content = current_content
@@ -520,7 +549,9 @@ class SelfEditor:
 
         return suggestions
 
-    def apply_edit(self, content_id: str, suggestion: EditSuggestion, apply: bool = True) -> str:
+    def apply_edit(
+        self, content_id: str, suggestion: EditSuggestion, apply: bool = True
+    ) -> str:
         """Apply or reject an edit suggestion.
 
         Args:
@@ -542,7 +573,9 @@ class SelfEditor:
         history.add_edit(suggestion, applied=apply)
 
         if apply:
-            history.current_content = self.strategy.apply_edit(history.current_content, suggestion)
+            history.current_content = self.strategy.apply_edit(
+                history.current_content, suggestion
+            )
 
         # Enforce history limit
         self._enforce_history_limit()
@@ -553,7 +586,9 @@ class SelfEditor:
         """Enforce the history limit by removing the oldest histories if needed."""
         while len(self.histories) > self.history_limit:
             # Remove the oldest history
-            oldest_id = min(self.histories.keys(), key=lambda k: self.histories[k].updated_at)
+            oldest_id = min(
+                self.histories.keys(), key=lambda k: self.histories[k].updated_at
+            )
             del self.histories[oldest_id]
 
     def get_edit_history(self, content_id: str) -> EditHistory | None:
@@ -576,7 +611,11 @@ class SelfEditor:
         Returns:
             The current content, or None if no content exists with the given ID.
         """
-        return self.histories[content_id].current_content if content_id in self.histories else None
+        return (
+            self.histories[content_id].current_content
+            if content_id in self.histories
+            else None
+        )
 
     def reset_content(self, content_id: str) -> str | None:
         """Reset content to its original state.

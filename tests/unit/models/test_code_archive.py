@@ -48,7 +48,9 @@ def test_code_archive_validation():
     """Test validation of required fields."""
     # Test empty content
     with pytest.raises(ValidationError) as exc_info:
-        CodeArchive(content="", language=CodeLanguage.PYTHON, title="Test", author_id="user123")
+        CodeArchive(
+            content="", language=CodeLanguage.PYTHON, title="Test", author_id="user123"
+        )
     errors = exc_info.value.errors()
     assert len(errors) > 0
     assert "String should have at least 1 character" in str(errors[0]["msg"])

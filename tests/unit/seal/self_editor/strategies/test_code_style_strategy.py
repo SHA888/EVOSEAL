@@ -3,7 +3,9 @@
 import pytest
 
 from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation
-from evoseal.integration.seal.self_editor.strategies.code_style_strategy import CodeStyleStrategy
+from evoseal.integration.seal.self_editor.strategies.code_style_strategy import (
+    CodeStyleStrategy,
+)
 
 
 class TestCodeStyleStrategy:
@@ -52,7 +54,9 @@ class TestCodeStyleStrategy:
 name = "John Doe"
 """
         suggestions = strategy.evaluate(content)
-        assert any("Mixed single and double quotes" in s.explanation for s in suggestions)
+        assert any(
+            "Mixed single and double quotes" in s.explanation for s in suggestions
+        )
 
     def test_apply_suggestion(self, strategy):
         """Test applying a suggestion to content."""

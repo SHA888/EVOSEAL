@@ -16,7 +16,10 @@ with (
     patch("transformers.AutoModelForCausalLM.from_pretrained"),
     patch("transformers.AutoTokenizer.from_pretrained"),
 ):
-    from evoseal.integration.seal.few_shot.few_shot_learner import FewShotExample, FewShotLearner
+    from evoseal.integration.seal.few_shot.few_shot_learner import (
+        FewShotExample,
+        FewShotLearner,
+    )
 
 # Simple test data
 TEST_EXAMPLES = [

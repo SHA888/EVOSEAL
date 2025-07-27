@@ -39,7 +39,9 @@ class TestPromptTemplates:
                 assert template_str.strip() != ""
             else:
                 # For any other case, fail the test
-                assert False, f"Unexpected template type: {type(template)} for template {name}"
+                assert (
+                    False
+                ), f"Unexpected template type: {type(template)} for template {name}"
 
     @pytest.mark.parametrize(
         "style",
@@ -157,7 +159,10 @@ class TestPromptCaching:
     @pytest.mark.asyncio
     async def test_template_caching(self):
         """Test that templates are properly cached."""
-        from evoseal.integration.seal.enhanced_seal_system import EnhancedSEALSystem, SEALConfig
+        from evoseal.integration.seal.enhanced_seal_system import (
+            EnhancedSEALSystem,
+            SEALConfig,
+        )
         from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
         from evoseal.integration.seal.prompt.constructor import PromptTemplate
 

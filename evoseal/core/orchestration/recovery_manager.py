@@ -159,7 +159,9 @@ class RecoveryManager:
             except asyncio.TimeoutError:
                 logger.error(f"Recovery strategy {strategy_name} timed out")
             except Exception as recovery_error:
-                logger.error(f"Recovery strategy {strategy_name} raised error: {recovery_error}")
+                logger.error(
+                    f"Recovery strategy {strategy_name} raised error: {recovery_error}"
+                )
 
         # All recovery strategies failed
         self.critical_error_count += 1
@@ -207,7 +209,10 @@ class RecoveryManager:
         step_id: Optional[str],
     ) -> bool:
         """Attempt recovery by rolling back to a previous checkpoint."""
-        if not self.recovery_strategy.checkpoint_rollback or not self.checkpoint_manager:
+        if (
+            not self.recovery_strategy.checkpoint_rollback
+            or not self.checkpoint_manager
+        ):
             return False
 
         try:
@@ -226,10 +231,14 @@ class RecoveryManager:
             )
 
             if not checkpoint_data:
-                logger.error(f"Failed to load checkpoint {latest_checkpoint.checkpoint_id}")
+                logger.error(
+                    f"Failed to load checkpoint {latest_checkpoint.checkpoint_id}"
+                )
                 return False
 
-            logger.info(f"Rolling back to checkpoint: {latest_checkpoint.checkpoint_id}")
+            logger.info(
+                f"Rolling back to checkpoint: {latest_checkpoint.checkpoint_id}"
+            )
 
             # Create recovery checkpoint before rollback
             if self.checkpoint_manager:
@@ -332,7 +341,9 @@ class RecoveryManager:
                     logger.info(f"Custom recovery action {action.__name__} completed")
 
                 except Exception as action_error:
-                    logger.error(f"Custom recovery action {action.__name__} failed: {action_error}")
+                    logger.error(
+                        f"Custom recovery action {action.__name__} failed: {action_error}"
+                    )
                     continue
 
             return True
@@ -386,7 +397,9 @@ class RecoveryManager:
             }
 
         total_attempts = len(self.recovery_attempts)
-        successful_attempts = sum(1 for attempt in self.recovery_attempts if attempt.success)
+        successful_attempts = sum(
+            1 for attempt in self.recovery_attempts if attempt.success
+        )
         failed_attempts = total_attempts - successful_attempts
 
         # Group by strategy
@@ -417,7 +430,9 @@ class RecoveryManager:
             "total_attempts": total_attempts,
             "successful_attempts": successful_attempts,
             "failed_attempts": failed_attempts,
-            "success_rate": successful_attempts / total_attempts if total_attempts > 0 else 0.0,
+            "success_rate": (
+                successful_attempts / total_attempts if total_attempts > 0 else 0.0
+            ),
             "by_strategy": by_strategy,
             "by_error_type": by_error_type,
             "average_execution_time": round(average_time, 2),

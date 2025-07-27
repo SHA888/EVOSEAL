@@ -39,7 +39,9 @@ def _initialize_test_knowledge_base(db_path: Path) -> None:
     print(f"Initialized with {len(kb.entries)} entries")
 
 
-def _worker_operation(worker_id: int, db_path: Path) -> tuple[str, list[tuple[str, str, str]]]:
+def _worker_operation(
+    worker_id: int, db_path: Path
+) -> tuple[str, list[tuple[str, str, str]]]:
     """Worker function that performs operations on the knowledge base."""
     print(f"Worker {worker_id} starting...")
     worker_kb = KnowledgeBase(db_path)
@@ -48,7 +50,9 @@ def _worker_operation(worker_id: int, db_path: Path) -> tuple[str, list[tuple[st
     try:
         # Extremely simplified: just do one operation per worker
         # Add a new entry with unique identifier
-        entry_content = f"Worker {worker_id} entry timestamp {datetime.now().isoformat()}"
+        entry_content = (
+            f"Worker {worker_id} entry timestamp {datetime.now().isoformat()}"
+        )
         entry_id = worker_kb.add_entry(entry_content)
         operations.append(("add", entry_id, entry_content))
         print(f"Worker {worker_id} added entry: {entry_content}")
@@ -67,7 +71,9 @@ def _worker_operation(worker_id: int, db_path: Path) -> tuple[str, list[tuple[st
         return error_msg, []
 
 
-def _run_workers_sequentially(num_workers: int, db_path: Path) -> list[tuple[str, list]]:
+def _run_workers_sequentially(
+    num_workers: int, db_path: Path
+) -> list[tuple[str, list]]:
     """Run workers sequentially and return their results."""
     print("\n=== Running workers sequentially ===")
     sequential_results = []
@@ -124,7 +130,9 @@ def _run_workers_concurrently(
     return results
 
 
-def _verify_worker_results(results: list[tuple[str, list]], phase: str = "test") -> None:
+def _verify_worker_results(
+    results: list[tuple[str, list]], phase: str = "test"
+) -> None:
     """Verify that all workers completed successfully."""
     print(f"\n=== Verifying {phase} results ===")
     for i, (result, _) in enumerate(results):
@@ -136,7 +144,9 @@ def _verify_persisted_data(db_path: Path, num_workers: int) -> None:
     """Verify that changes were persisted correctly."""
     print("\n=== Verifying persistence ===")
     final_kb = KnowledgeBase(db_path)
-    entries = final_kb.search_entries(limit=1000)  # Increase limit to ensure we get all entries
+    entries = final_kb.search_entries(
+        limit=1000
+    )  # Increase limit to ensure we get all entries
 
     print(f"Found {len(entries)} total entries in the database")
     for i, entry in enumerate(entries[:10]):  # Only print first 10 entries
@@ -290,7 +300,9 @@ def test_concurrent_access(tmp_path: Path):
     ), f"Expected entries from at least {min_expected_workers} workers, got {len(worker_entries)}"
 
     # Verify we found at least some of the expected entries
-    min_expected_entries = max(1, len(expected_entries) // 4)  # At least 25% of expected entries
+    min_expected_entries = max(
+        1, len(expected_entries) // 4
+    )  # At least 25% of expected entries
     assert (
         entries_found >= min_expected_entries
     ), f"Found only {entries_found} out of {len(expected_entries)} expected entries"
@@ -388,7 +400,8 @@ class TestKnowledgeBasePerformance:
         def _concurrent_ops():
             with ThreadPoolExecutor(max_workers=CONCURRENT_THREADS) as executor:
                 futures = [
-                    executor.submit(self._worker, db_path, i) for i in range(CONCURRENT_THREADS)
+                    executor.submit(self._worker, db_path, i)
+                    for i in range(CONCURRENT_THREADS)
                 ]
                 return [f.result() for f in as_completed(futures)]
 

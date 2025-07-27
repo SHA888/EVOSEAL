@@ -146,7 +146,7 @@ class DataCache:
                 try:
                     with open(cache_path, "wb") as f:
                         pickle.dump(entry, f)
-                except (pickle.PickleError, IOError):
+                except (OSError, pickle.PickleError):
                     # Silently fail on cache write errors
                     pass
 

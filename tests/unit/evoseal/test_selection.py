@@ -21,7 +21,8 @@ HIGH_SCORE = 0.9
 @pytest.fixture
 def population():
     return [
-        {"id": f"v{i}", "eval_score": score} for i, score in enumerate([0.9, 0.8, 0.7, 0.6, 0.5])
+        {"id": f"v{i}", "eval_score": score}
+        for i, score in enumerate([0.9, 0.8, 0.7, 0.6, 0.5])
     ]
 
 
@@ -40,7 +41,9 @@ def test_tournament_selection_basic(population):
 
 def test_roulette_selection_basic(population):
     selector = SelectionAlgorithm()
-    selected = selector.select(population, num_selected=NUM_SELECTED_ROULETTE, strategy="roulette")
+    selected = selector.select(
+        population, num_selected=NUM_SELECTED_ROULETTE, strategy="roulette"
+    )
     assert len(selected) == NUM_SELECTED_ROULETTE
     # Should favor higher eval_score
     assert any(ind["eval_score"] == HIGH_SCORE for ind in selected)
@@ -61,7 +64,9 @@ def test_elitism(population):
 def test_zero_fitness():
     pop = [{"id": f"v{i}", "eval_score": ZERO_FITNESS} for i in range(POPULATION_SIZE)]
     selector = SelectionAlgorithm()
-    selected = selector.select(pop, num_selected=NUM_SELECTED_TOURNAMENT, strategy="roulette")
+    selected = selector.select(
+        pop, num_selected=NUM_SELECTED_TOURNAMENT, strategy="roulette"
+    )
     assert len(selected) == NUM_SELECTED_TOURNAMENT
     # Should not error even if all fitness are zero
 

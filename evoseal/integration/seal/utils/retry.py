@@ -5,7 +5,7 @@ Retry utilities for SEAL system operations.
 import secrets
 import time
 from functools import wraps
-from typing import Any, Callable, Type, TypeVar, Union, Tuple, Optional
+from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
 
 from ..exceptions import RateLimitError, RetryableError, TimeoutError
 

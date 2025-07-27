@@ -134,7 +134,9 @@ class ContextFilter(logging.Filter):
         """
         # Add request ID and hostname to the record using direct attribute access
         if not hasattr(record, "request_id") or record.request_id is None:
-            record.request_id = self._request_id if self._request_id is not None else "global"
+            record.request_id = (
+                self._request_id if self._request_id is not None else "global"
+            )
 
         if not hasattr(record, "hostname") or record.hostname is None:
             record.hostname = platform.node()
@@ -302,7 +304,9 @@ class LoggingMixin:
             **extra,
         }
 
-        self.logger.info(f"Performance metric: {metric_name} = {value}", extra=extra_metrics)
+        self.logger.info(
+            f"Performance metric: {metric_name} = {value}", extra=extra_metrics
+        )
 
 
 @overload

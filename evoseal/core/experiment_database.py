@@ -130,7 +130,9 @@ class ExperimentDatabase:
         )
 
         # Create indexes for better query performance
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments (status)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments (status)"
+        )
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_experiments_type ON experiments (experiment_type)"
         )
@@ -143,7 +145,9 @@ class ExperimentDatabase:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_metrics_experiment_id ON experiment_metrics (experiment_id)"
         )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_name ON experiment_metrics (name)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_metrics_name ON experiment_metrics (name)"
+        )
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_artifacts_experiment_id ON experiment_artifacts (experiment_id)"
         )
@@ -180,8 +184,16 @@ class ExperimentDatabase:
                     experiment.status.value,
                     experiment.config.experiment_type.value,
                     experiment.created_at.isoformat(),
-                    experiment.started_at.isoformat() if experiment.started_at else None,
-                    experiment.completed_at.isoformat() if experiment.completed_at else None,
+                    (
+                        experiment.started_at.isoformat()
+                        if experiment.started_at
+                        else None
+                    ),
+                    (
+                        experiment.completed_at.isoformat()
+                        if experiment.completed_at
+                        else None
+                    ),
                     experiment.updated_at.isoformat(),
                     experiment.config.model_dump_json(),
                     experiment.result.model_dump_json() if experiment.result else None,
@@ -197,9 +209,13 @@ class ExperimentDatabase:
             )
 
             # Clear existing metrics and artifacts for this experiment
-            conn.execute("DELETE FROM experiment_metrics WHERE experiment_id = ?", (experiment.id,))
             conn.execute(
-                "DELETE FROM experiment_artifacts WHERE experiment_id = ?", (experiment.id,)
+                "DELETE FROM experiment_metrics WHERE experiment_id = ?",
+                (experiment.id,),
+            )
+            conn.execute(
+                "DELETE FROM experiment_artifacts WHERE experiment_id = ?",
+                (experiment.id,),
             )
 
             # Save metrics
@@ -279,34 +295,40 @@ class ExperimentDatabase:
         try:
             # Parse the experiment data
             experiment_data = {
-                'id': row['id'],
-                'name': row['name'],
-                'description': row['description'],
-                'status': row['status'],
-                'created_at': datetime.fromisoformat(row['created_at']),
-                'started_at': (
-                    datetime.fromisoformat(row['started_at']) if row['started_at'] else None
-                ),
-                'completed_at': (
-                    datetime.fromisoformat(row['completed_at']) if row['completed_at'] else None
-                ),
-                'updated_at': datetime.fromisoformat(row['updated_at']),
-                'config': ExperimentConfig.model_validate_json(row['config_json']),
-                'result': (
-                    ExperimentResult.model_validate_json(row['result_json'])
-                    if row['result_json']
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "status": row["status"],
+                "created_at": datetime.fromisoformat(row["created_at"]),
+                "started_at": (
+                    datetime.fromisoformat(row["started_at"])
+                    if row["started_at"]
                     else None
                 ),
-                'git_commit': row['git_commit'],
-                'git_branch': row['git_branch'],
-                'git_repository': row['git_repository'],
-                'code_version': row['code_version'],
-                'parent_experiment_id': row['parent_experiment_id'],
-                'created_by': row['created_by'],
-                'tags': json.loads(row['tags_json']) if row['tags_json'] else [],
-                'metadata': json.loads(row['metadata_json']) if row['metadata_json'] else {},
-                'metrics': [],
-                'artifacts': [],
+                "completed_at": (
+                    datetime.fromisoformat(row["completed_at"])
+                    if row["completed_at"]
+                    else None
+                ),
+                "updated_at": datetime.fromisoformat(row["updated_at"]),
+                "config": ExperimentConfig.model_validate_json(row["config_json"]),
+                "result": (
+                    ExperimentResult.model_validate_json(row["result_json"])
+                    if row["result_json"]
+                    else None
+                ),
+                "git_commit": row["git_commit"],
+                "git_branch": row["git_branch"],
+                "git_repository": row["git_repository"],
+                "code_version": row["code_version"],
+                "parent_experiment_id": row["parent_experiment_id"],
+                "created_by": row["created_by"],
+                "tags": json.loads(row["tags_json"]) if row["tags_json"] else [],
+                "metadata": (
+                    json.loads(row["metadata_json"]) if row["metadata_json"] else {}
+                ),
+                "metrics": [],
+                "artifacts": [],
             }
 
             # Get metrics
@@ -320,19 +342,19 @@ class ExperimentDatabase:
 
             for metric_row in metric_rows:
                 metric = ExperimentMetric(
-                    name=metric_row['name'],
-                    value=json.loads(metric_row['value']),
-                    metric_type=MetricType(metric_row['metric_type']),
-                    timestamp=datetime.fromisoformat(metric_row['timestamp']),
-                    iteration=metric_row['iteration'],
-                    step=metric_row['step'],
+                    name=metric_row["name"],
+                    value=json.loads(metric_row["value"]),
+                    metric_type=MetricType(metric_row["metric_type"]),
+                    timestamp=datetime.fromisoformat(metric_row["timestamp"]),
+                    iteration=metric_row["iteration"],
+                    step=metric_row["step"],
                     metadata=(
-                        json.loads(metric_row['metadata_json'])
-                        if metric_row['metadata_json']
+                        json.loads(metric_row["metadata_json"])
+                        if metric_row["metadata_json"]
                         else {}
                     ),
                 )
-                experiment_data['metrics'].append(metric)
+                experiment_data["metrics"].append(metric)
 
             # Get artifacts
             artifact_rows = conn.execute(
@@ -347,21 +369,21 @@ class ExperimentDatabase:
                 from ..models.experiment import ExperimentArtifact
 
                 artifact = ExperimentArtifact(
-                    id=artifact_row['id'],
-                    name=artifact_row['name'],
-                    artifact_type=artifact_row['artifact_type'],
-                    file_path=artifact_row['file_path'],
-                    content=artifact_row['content'],
-                    size_bytes=artifact_row['size_bytes'],
-                    checksum=artifact_row['checksum'],
-                    created_at=datetime.fromisoformat(artifact_row['created_at']),
+                    id=artifact_row["id"],
+                    name=artifact_row["name"],
+                    artifact_type=artifact_row["artifact_type"],
+                    file_path=artifact_row["file_path"],
+                    content=artifact_row["content"],
+                    size_bytes=artifact_row["size_bytes"],
+                    checksum=artifact_row["checksum"],
+                    created_at=datetime.fromisoformat(artifact_row["created_at"]),
                     metadata=(
-                        json.loads(artifact_row['metadata_json'])
-                        if artifact_row['metadata_json']
+                        json.loads(artifact_row["metadata_json"])
+                        if artifact_row["metadata_json"]
                         else {}
                     ),
                 )
-                experiment_data['artifacts'].append(artifact)
+                experiment_data["artifacts"].append(artifact)
 
             return Experiment.model_validate(experiment_data)
 
@@ -435,7 +457,7 @@ class ExperimentDatabase:
         experiments = []
 
         for row in rows:
-            experiment = self.get_experiment(row['id'])
+            experiment = self.get_experiment(row["id"])
             if experiment:
                 experiments.append(experiment)
 
@@ -453,7 +475,9 @@ class ExperimentDatabase:
         conn = self._get_connection()
 
         try:
-            cursor = conn.execute("DELETE FROM experiments WHERE id = ?", (experiment_id,))
+            cursor = conn.execute(
+                "DELETE FROM experiments WHERE id = ?", (experiment_id,)
+            )
             conn.commit()
 
             if cursor.rowcount > 0:
@@ -496,13 +520,15 @@ class ExperimentDatabase:
 
         for row in rows:
             metric = ExperimentMetric(
-                name=row['name'],
-                value=json.loads(row['value']),
-                metric_type=MetricType(row['metric_type']),
-                timestamp=datetime.fromisoformat(row['timestamp']),
-                iteration=row['iteration'],
-                step=row['step'],
-                metadata=json.loads(row['metadata_json']) if row['metadata_json'] else {},
+                name=row["name"],
+                value=json.loads(row["value"]),
+                metric_type=MetricType(row["metric_type"]),
+                timestamp=datetime.fromisoformat(row["timestamp"]),
+                iteration=row["iteration"],
+                step=row["step"],
+                metadata=(
+                    json.loads(row["metadata_json"]) if row["metadata_json"] else {}
+                ),
             )
             metrics.append(metric)
 
@@ -542,7 +568,7 @@ class ExperimentDatabase:
             params.append(created_by)
 
         row = conn.execute(query, params).fetchone()
-        return row['count'] if row else 0
+        return row["count"] if row else 0
 
     def close(self) -> None:
         """Close the database connection."""
@@ -550,7 +576,7 @@ class ExperimentDatabase:
             self._conn.close()
             self._conn = None
 
-    def __enter__(self) -> 'ExperimentDatabase':
+    def __enter__(self) -> ExperimentDatabase:
         """Context manager entry."""
         return self
 
@@ -559,7 +585,9 @@ class ExperimentDatabase:
         self.close()
 
 
-def create_experiment_database(db_path: Union[str, Path] = ":memory:") -> ExperimentDatabase:
+def create_experiment_database(
+    db_path: Union[str, Path] = ":memory:",
+) -> ExperimentDatabase:
     """Create and initialize an experiment database.
 
     Args:

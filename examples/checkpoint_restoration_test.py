@@ -27,7 +27,7 @@ def create_sample_project_structure(project_dir: Path) -> None:
     project_dir.mkdir(parents=True, exist_ok=True)
 
     # Create main.py
-    (project_dir / 'main.py').write_text(
+    (project_dir / "main.py").write_text(
         '''#!/usr/bin/env python3
 """Sample project main file."""
 
@@ -41,20 +41,20 @@ if __name__ == "__main__":
     )
 
     # Create config.json
-    (project_dir / 'config.json').write_text(
-        '''{
+    (project_dir / "config.json").write_text(
+        """{
     "project": "Original Project",
     "version": "1.0",
     "settings": {
         "debug": false,
         "log_level": "INFO"
     }
-}'''
+}"""
     )
 
     # Create README.md
-    (project_dir / 'README.md').write_text(
-        '''# Original Project
+    (project_dir / "README.md").write_text(
+        """# Original Project
 
 This is the original version of the project before restoration.
 
@@ -62,13 +62,13 @@ This is the original version of the project before restoration.
 - Original functionality
 - Basic configuration
 - Simple structure
-'''
+"""
     )
 
     # Create a subdirectory with files
-    src_dir = project_dir / 'src'
+    src_dir = project_dir / "src"
     src_dir.mkdir(exist_ok=True)
-    (src_dir / 'utils.py').write_text(
+    (src_dir / "utils.py").write_text(
         '''"""Utility functions for original project."""
 
 def get_version():
@@ -83,45 +83,45 @@ def process_data(data):
 def create_enhanced_experiment_data() -> Dict[str, Any]:
     """Create enhanced experiment data for checkpoint."""
     return {
-        'id': 'restoration_test_v2.0',
-        'name': 'Enhanced Restoration Test',
-        'description': 'Testing enhanced restoration functionality',
-        'status': 'completed',
-        'type': 'restoration_test',
-        'tags': ['test', 'restoration', 'enhanced'],
-        'config': {
-            'learning_rate': 0.002,
-            'batch_size': 64,
-            'epochs': 200,
-            'model_architecture': 'enhanced_transformer',
-            'optimizer': 'adamw',
-            'scheduler': 'cosine_annealing',
+        "id": "restoration_test_v2.0",
+        "name": "Enhanced Restoration Test",
+        "description": "Testing enhanced restoration functionality",
+        "status": "completed",
+        "type": "restoration_test",
+        "tags": ["test", "restoration", "enhanced"],
+        "config": {
+            "learning_rate": 0.002,
+            "batch_size": 64,
+            "epochs": 200,
+            "model_architecture": "enhanced_transformer",
+            "optimizer": "adamw",
+            "scheduler": "cosine_annealing",
         },
-        'metrics': [
+        "metrics": [
             {
-                'name': 'accuracy',
-                'value': 0.98,
-                'metric_type': 'accuracy',
-                'timestamp': '2024-01-01T15:00:00Z',
-                'iteration': 200,
+                "name": "accuracy",
+                "value": 0.98,
+                "metric_type": "accuracy",
+                "timestamp": "2024-01-01T15:00:00Z",
+                "iteration": 200,
             },
             {
-                'name': 'loss',
-                'value': 0.02,
-                'metric_type': 'loss',
-                'timestamp': '2024-01-01T15:00:00Z',
-                'iteration': 200,
+                "name": "loss",
+                "value": 0.02,
+                "metric_type": "loss",
+                "timestamp": "2024-01-01T15:00:00Z",
+                "iteration": 200,
             },
         ],
-        'result': {
-            'best_fitness': 0.98,
-            'generations_completed': 200,
-            'total_evaluations': 20000,
-            'execution_time': 7200.0,
-            'memory_peak': 4096.0,
+        "result": {
+            "best_fitness": 0.98,
+            "generations_completed": 200,
+            "total_evaluations": 20000,
+            "execution_time": 7200.0,
+            "memory_peak": 4096.0,
         },
-        'changes': {
-            'main.py': '''#!/usr/bin/env python3
+        "changes": {
+            "main.py": '''#!/usr/bin/env python3
 """Enhanced project main file after evolution."""
 
 import json
@@ -155,7 +155,7 @@ def load_config():
 if __name__ == "__main__":
     main()
 ''',
-            'config.json': '''{
+            "config.json": """{
     "project": "Enhanced Evolved Project",
     "version": "2.0",
     "model_architecture": "enhanced_transformer",
@@ -172,8 +172,8 @@ if __name__ == "__main__":
         "enhanced_features": true,
         "performance_monitoring": true
     }
-}''',
-            'README.md': '''# Enhanced Evolved Project
+}""",
+            "README.md": """# Enhanced Evolved Project
 
 This is the enhanced version of the project after evolution and optimization.
 
@@ -194,8 +194,8 @@ This is the enhanced version of the project after evolution and optimization.
 - 200 generations completed
 - 20,000 total evaluations
 - Best fitness: 0.98
-''',
-            'src/utils.py': '''"""Enhanced utility functions for evolved project."""
+""",
+            "src/utils.py": '''"""Enhanced utility functions for evolved project."""
 
 import json
 from typing import Any, Dict
@@ -236,7 +236,7 @@ def optimize_parameters(params: Dict[str, Any]) -> Dict[str, Any]:
 
     return optimized
 ''',
-            'src/models.py': '''"""Enhanced model definitions."""
+            "src/models.py": '''"""Enhanced model definitions."""
 
 class EnhancedTransformer:
     """Enhanced transformer model with improved architecture."""
@@ -278,8 +278,8 @@ async def test_enhanced_restoration_functionality():
         print(f"\nUsing temporary directory: {temp_dir}")
 
         # Setup directories
-        checkpoint_dir = Path(temp_dir) / 'checkpoints'
-        project_dir = Path(temp_dir) / 'project'
+        checkpoint_dir = Path(temp_dir) / "checkpoints"
+        project_dir = Path(temp_dir) / "project"
 
         # Create original project structure
         print("\n1. Creating original project structure...")
@@ -288,10 +288,10 @@ async def test_enhanced_restoration_functionality():
 
         # Initialize checkpoint manager
         config = {
-            'checkpoint_directory': str(checkpoint_dir),
-            'max_checkpoints': 10,
-            'auto_cleanup': True,
-            'compression': True,
+            "checkpoint_directory": str(checkpoint_dir),
+            "max_checkpoints": 10,
+            "auto_cleanup": True,
+            "compression": True,
         }
 
         checkpoint_manager = CheckpointManager(config)
@@ -301,26 +301,28 @@ async def test_enhanced_restoration_functionality():
         experiment_data = create_enhanced_experiment_data()
 
         checkpoint_path = checkpoint_manager.create_checkpoint(
-            'enhanced_v2.0', experiment_data, capture_system_state=True
+            "enhanced_v2.0", experiment_data, capture_system_state=True
         )
         print(f"   ✓ Created checkpoint: {Path(checkpoint_path).name}")
 
         # Test checkpoint validation
         print("\n3. Testing checkpoint validation...")
-        validation_results = checkpoint_manager.validate_checkpoint_for_restoration('enhanced_v2.0')
+        validation_results = checkpoint_manager.validate_checkpoint_for_restoration(
+            "enhanced_v2.0"
+        )
         print(f"   ✓ Validation valid: {validation_results['valid']}")
         print(f"   ✓ Errors: {len(validation_results['errors'])}")
         print(f"   ✓ Warnings: {len(validation_results['warnings'])}")
-        if validation_results['warnings']:
-            for warning in validation_results['warnings']:
+        if validation_results["warnings"]:
+            for warning in validation_results["warnings"]:
                 print(f"     - Warning: {warning}")
 
         # Test basic restoration
         print("\n4. Testing basic restoration...")
-        restore_dir_basic = Path(temp_dir) / 'restored_basic'
+        restore_dir_basic = Path(temp_dir) / "restored_basic"
 
         restoration_result = checkpoint_manager.restore_checkpoint(
-            'enhanced_v2.0', restore_dir_basic, verify_integrity=True
+            "enhanced_v2.0", restore_dir_basic, verify_integrity=True
         )
 
         print(f"   ✓ Basic restoration success: {restoration_result['success']}")
@@ -331,33 +333,39 @@ async def test_enhanced_restoration_functionality():
 
         # Test validated restoration with backup
         print("\n5. Testing validated restoration with backup...")
-        restore_dir_validated = Path(temp_dir) / 'restored_validated'
+        restore_dir_validated = Path(temp_dir) / "restored_validated"
 
         # First copy original project to restoration target
         import shutil
 
         shutil.copytree(project_dir, restore_dir_validated, dirs_exist_ok=True)
-        print(f"   ✓ Copied original project to restoration target")
+        print("   ✓ Copied original project to restoration target")
 
         # Perform validated restoration
         validated_result = checkpoint_manager.restore_checkpoint_with_validation(
-            'enhanced_v2.0', restore_dir_validated, backup_current=True
+            "enhanced_v2.0", restore_dir_validated, backup_current=True
         )
 
         print(f"   ✓ Validated restoration success: {validated_result['success']}")
-        print(f"   ✓ Restoration time: {validated_result['restoration_time']:.2f} seconds")
+        print(
+            f"   ✓ Restoration time: {validated_result['restoration_time']:.2f} seconds"
+        )
         print(f"   ✓ Backup created: {validated_result['backup_created']}")
-        if validated_result['backup_created']:
+        if validated_result["backup_created"]:
             print(f"   ✓ Backup path: {Path(validated_result['backup_path']).name}")
 
         # Check pre-validation results
-        pre_validation = validated_result['pre_validation']
+        pre_validation = validated_result["pre_validation"]
         print(f"   ✓ Pre-validation passed: {pre_validation['valid']}")
 
         # Check post-validation results
-        post_validation = validated_result['post_validation']
-        print(f"   ✓ Post-validation file count: {post_validation.get('file_count', 0)}")
-        print(f"   ✓ Post-validation directory count: {post_validation.get('directory_count', 0)}")
+        post_validation = validated_result["post_validation"]
+        print(
+            f"   ✓ Post-validation file count: {post_validation.get('file_count', 0)}"
+        )
+        print(
+            f"   ✓ Post-validation directory count: {post_validation.get('directory_count', 0)}"
+        )
 
         # Test restoration backup management
         print("\n6. Testing restoration backup management...")
@@ -374,27 +382,27 @@ async def test_enhanced_restoration_functionality():
         print("\n7. Verifying restored files...")
 
         # Check main.py content
-        main_py_path = restore_dir_validated / 'main.py'
+        main_py_path = restore_dir_validated / "main.py"
         if main_py_path.exists():
             content = main_py_path.read_text()
-            if 'Enhanced project main file' in content:
+            if "Enhanced project main file" in content:
                 print("   ✓ main.py correctly restored with enhanced content")
             else:
                 print("   ❌ main.py content not as expected")
 
         # Check config.json
-        config_json_path = restore_dir_validated / 'config.json'
+        config_json_path = restore_dir_validated / "config.json"
         if config_json_path.exists():
             import json
 
             config_data = json.loads(config_json_path.read_text())
-            if config_data.get('version') == '2.0':
+            if config_data.get("version") == "2.0":
                 print("   ✓ config.json correctly restored with version 2.0")
             else:
                 print("   ❌ config.json version not as expected")
 
         # Check new files
-        models_py_path = restore_dir_validated / 'src' / 'models.py'
+        models_py_path = restore_dir_validated / "src" / "models.py"
         if models_py_path.exists():
             print("   ✓ New file src/models.py correctly restored")
         else:
@@ -404,26 +412,30 @@ async def test_enhanced_restoration_functionality():
         print("\n8. Testing partial restoration failure handling...")
 
         # Create a scenario where restoration might fail
-        failure_test_dir = Path(temp_dir) / 'failure_test'
+        failure_test_dir = Path(temp_dir) / "failure_test"
         failure_test_dir.mkdir(exist_ok=True)
 
         # Create a file that might cause issues
-        (failure_test_dir / 'readonly.txt').write_text('test')
-        (failure_test_dir / 'readonly.txt').chmod(0o444)  # Read-only
+        (failure_test_dir / "readonly.txt").write_text("test")
+        (failure_test_dir / "readonly.txt").chmod(0o444)  # Read-only
 
         try:
             # This should still work as we handle permissions properly
             failure_result = checkpoint_manager.restore_checkpoint_with_validation(
-                'enhanced_v2.0', failure_test_dir, backup_current=True
+                "enhanced_v2.0", failure_test_dir, backup_current=True
             )
-            print(f"   ✓ Handled potential failure scenario successfully")
-            print(f"   ✓ Files restored: {failure_result['restoration_details']['restored_files']}")
+            print("   ✓ Handled potential failure scenario successfully")
+            print(
+                f"   ✓ Files restored: {failure_result['restoration_details']['restored_files']}"
+            )
         except Exception as e:
             print(f"   ✓ Properly handled restoration failure: {e}")
 
         # Test backup cleanup
         print("\n9. Testing backup cleanup...")
-        deleted_count = checkpoint_manager.cleanup_restoration_backups(keep_count=1, max_age_days=0)
+        deleted_count = checkpoint_manager.cleanup_restoration_backups(
+            keep_count=1, max_age_days=0
+        )
         print(f"   ✓ Cleaned up {deleted_count} old backups")
 
         remaining_backups = checkpoint_manager.list_restoration_backups()

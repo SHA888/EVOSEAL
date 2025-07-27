@@ -27,8 +27,12 @@ if project_root not in sys.path:
 # Local application imports
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation
-from evoseal.integration.seal.self_editor.models import EditSuggestion as ModelsEditSuggestion
-from evoseal.integration.seal.self_editor.self_editor import EditSuggestion as EditorEditSuggestion
+from evoseal.integration.seal.self_editor.models import (
+    EditSuggestion as ModelsEditSuggestion,
+)
+from evoseal.integration.seal.self_editor.self_editor import (
+    EditSuggestion as EditorEditSuggestion,
+)
 from evoseal.integration.seal.self_editor.self_editor import SelfEditor
 from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import (
     KnowledgeAwareStrategy,
@@ -174,7 +178,10 @@ def print_suggestions(suggestions: list[AnyEditSuggestion]) -> None:
             if isinstance(suggestion, dict):
                 desc = suggestion.get("description", "No description")
                 print(f"\n{i}. {desc}")
-                if "line_number" in suggestion and suggestion["line_number"] is not None:
+                if (
+                    "line_number" in suggestion
+                    and suggestion["line_number"] is not None
+                ):
                     print(f"   Line: {suggestion['line_number']}")
                 if "original" in suggestion and "suggested" in suggestion:
                     print("   Original:")
@@ -240,7 +247,9 @@ def apply_suggestions_interactive(
             print(f"- Suggested: {suggestion.get('suggested', 'N/A')}")
         else:
             print(f"- Type: {getattr(suggestion, 'type', 'N/A')}")
-            print(f"- Description: {getattr(suggestion, 'description', 'No description')}")
+            print(
+                f"- Description: {getattr(suggestion, 'description', 'No description')}"
+            )
             print(f"- Location: {getattr(suggestion, 'line_number', 'N/A')}")
             if hasattr(suggestion, "original") and hasattr(suggestion, "suggested"):
                 print(f"- Original: {suggestion.original}")
@@ -351,13 +360,17 @@ print(calculate_sum(5, 10))  # This should print 15
     suggestions = editor.evaluate_content(content, content_id=content_id)
 
     # Print suggestions
-    suggestions_list = list(suggestions) if not isinstance(suggestions, list) else suggestions
+    suggestions_list = (
+        list(suggestions) if not isinstance(suggestions, list) else suggestions
+    )
     print_suggestions(suggestions_list)
 
     # Interactive application of suggestions
     if suggestions_list:
         # Apply suggestions interactively
-        edited_content = apply_suggestions_interactive(editor, content, suggestions_list)
+        edited_content = apply_suggestions_interactive(
+            editor, content, suggestions_list
+        )
         print("\n" + "=" * 80)
         print("FINAL EDITED CONTENT".center(80))
         print("=" * 80)
@@ -369,7 +382,9 @@ print(calculate_sum(5, 10))  # This should print 15
             if isinstance(entry, tuple) and len(entry) >= 2:
                 operation, description = entry[0], entry[1]
                 operation_str = (
-                    str(operation.value) if hasattr(operation, "value") else str(operation)
+                    str(operation.value)
+                    if hasattr(operation, "value")
+                    else str(operation)
                 )
                 print(f"{i}. {operation_str}: {description}")
             elif hasattr(entry, "operation") and hasattr(entry, "description"):

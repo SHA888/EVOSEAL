@@ -21,7 +21,7 @@ from evoseal.core.orchestration import (
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ async def demonstrate_basic_orchestration():
     try:
         result = await orchestrator.execute_workflow(pipeline)
 
-        print(f"\nWorkflow completed!")
+        print("\nWorkflow completed!")
         print(f"- Total iterations: {len(result.iterations)}")
         print(f"- Successful iterations: {result.success_count}")
         print(f"- Failed iterations: {result.failure_count}")
@@ -228,7 +228,7 @@ async def demonstrate_recovery_orchestration():
         try:
             result = await orchestrator.execute_workflow(pipeline)
 
-            print(f"\nRecovery-enabled workflow completed!")
+            print("\nRecovery-enabled workflow completed!")
             print(f"- Total iterations: {len(result.iterations)}")
             print(f"- Successful iterations: {result.success_count}")
             print(f"- Failed iterations: {result.failure_count}")
@@ -236,7 +236,7 @@ async def demonstrate_recovery_orchestration():
 
             # Show recovery statistics
             recovery_stats = orchestrator.recovery_manager.get_recovery_statistics()
-            print(f"\nRecovery Statistics:")
+            print("\nRecovery Statistics:")
             print(f"- Total recovery attempts: {recovery_stats['total_attempts']}")
             print(f"- Successful recoveries: {recovery_stats['successful_attempts']}")
             print(f"- Recovery success rate: {recovery_stats['success_rate']:.1%}")
@@ -309,7 +309,7 @@ async def demonstrate_parallel_orchestration():
         result = await orchestrator.execute_workflow(pipeline)
         total_time = time.time() - start_time
 
-        print(f"\nParallel workflow completed!")
+        print("\nParallel workflow completed!")
         print(f"- Total wall-clock time: {total_time:.2f}s")
         print(f"- Pipeline execution time: {result.total_execution_time:.2f}s")
         print(f"- Iterations completed: {len(result.iterations)}")
@@ -357,26 +357,30 @@ async def demonstrate_resource_monitoring():
     success = await orchestrator.initialize_workflow(workflow_config)
 
     if success:
-        print(f"Resource-monitored workflow initialized: {workflow_config['workflow_id']}")
+        print(
+            f"Resource-monitored workflow initialized: {workflow_config['workflow_id']}"
+        )
 
         # Let it run for a bit to collect resource data
         result = await orchestrator.execute_workflow(pipeline)
 
-        print(f"\nResource-monitored workflow completed!")
+        print("\nResource-monitored workflow completed!")
 
         # Show resource statistics
         resource_stats = orchestrator.resource_monitor.get_resource_statistics()
-        print(f"\nResource Statistics:")
+        print("\nResource Statistics:")
         print(f"- Monitoring active: {resource_stats['monitoring_active']}")
         print(f"- Snapshots collected: {resource_stats['snapshots_collected']}")
         print(f"- Active alerts: {resource_stats['active_alerts']}")
-        print(f"- Memory usage - Current: {resource_stats['memory_stats']['current']:.1f}%")
+        print(
+            f"- Memory usage - Current: {resource_stats['memory_stats']['current']:.1f}%"
+        )
         print(f"- CPU usage - Current: {resource_stats['cpu_stats']['current']:.1f}%")
 
         # Show any alerts
         active_alerts = orchestrator.resource_monitor.get_active_alerts()
         if active_alerts:
-            print(f"\nActive Resource Alerts:")
+            print("\nActive Resource Alerts:")
             for alert in active_alerts:
                 print(f"- {alert.severity.upper()}: {alert.message}")
 
@@ -423,21 +427,23 @@ async def demonstrate_checkpoint_management():
 
         result = await orchestrator.execute_workflow(pipeline)
 
-        print(f"\nCheckpoint demo completed!")
+        print("\nCheckpoint demo completed!")
         print(f"- Checkpoints created: {result.checkpoints_created}")
 
         # Show checkpoint statistics
         checkpoint_stats = orchestrator.checkpoint_manager.get_checkpoint_statistics()
-        print(f"\nCheckpoint Statistics:")
+        print("\nCheckpoint Statistics:")
         print(f"- Total checkpoints: {checkpoint_stats['total_count']}")
         print(f"- By type: {checkpoint_stats['by_type']}")
         print(f"- Total size: {checkpoint_stats['total_size_mb']} MB")
 
         # List recent checkpoints
         recent_checkpoints = orchestrator.checkpoint_manager.list_checkpoints(limit=3)
-        print(f"\nRecent Checkpoints:")
+        print("\nRecent Checkpoints:")
         for cp in recent_checkpoints:
-            print(f"- {cp.checkpoint_id}: {cp.checkpoint_type.value} at iteration {cp.iteration}")
+            print(
+                f"- {cp.checkpoint_id}: {cp.checkpoint_type.value} at iteration {cp.iteration}"
+            )
 
 
 async def main():

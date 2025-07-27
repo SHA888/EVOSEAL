@@ -33,7 +33,9 @@ class MockSelfEditor:
             ]
 
         # Return a default edit suggestion for other prompts
-        return [{"type": "clarification", "description": "Added context", "confidence": 0.8}]
+        return [
+            {"type": "clarification", "description": "Added context", "confidence": 0.8}
+        ]
 
     async def apply_edit(
         self,

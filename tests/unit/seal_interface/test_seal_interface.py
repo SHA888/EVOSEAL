@@ -30,7 +30,9 @@ class FailingProvider:
 @pytest.mark.asyncio
 async def test_seal_interface_provider_failure():
     provider = FailingProvider()
-    interface = SEALInterface(provider, rate_limit_per_sec=100.0, max_retries=1, retry_delay=0)
+    interface = SEALInterface(
+        provider, rate_limit_per_sec=100.0, max_retries=1, retry_delay=0
+    )
     with pytest.raises(RuntimeError, match="failed after 1 retries"):
         await interface.submit("fail prompt")
 

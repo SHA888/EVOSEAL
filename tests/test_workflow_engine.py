@@ -84,7 +84,9 @@ class TestWorkflowEngine:
         mock_component.test_method.side_effect = Exception("Test error")
         engine.register_component("test", mock_component)
 
-        workflow = [{"name": "failing_step", "component": "test", "method": "test_method"}]
+        workflow = [
+            {"name": "failing_step", "component": "test", "method": "test_method"}
+        ]
         engine.define_workflow("failing_flow", workflow)
 
         # Execute and verify failure

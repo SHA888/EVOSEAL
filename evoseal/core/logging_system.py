@@ -155,7 +155,9 @@ class LogAggregator:
                 self.log_buffer[-1].timestamp - self.log_buffer[0].timestamp
             ).total_seconds()
             if time_span > 0:
-                self.metrics.avg_logs_per_minute = (len(self.log_buffer) / time_span) * 60
+                self.metrics.avg_logs_per_minute = (
+                    len(self.log_buffer) / time_span
+                ) * 60
 
     def get_metrics(self) -> LogMetrics:
         """Get current log metrics."""
@@ -294,7 +296,9 @@ class StructuredLogger:
             markup=True,
         )
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         handler.setFormatter(formatter)
         self.python_logger.addHandler(handler)
 
@@ -587,10 +591,14 @@ class StructuredLogger:
         table.add_row("Logs/Minute", f"{metrics.avg_logs_per_minute:.1f}")
 
         if metrics.last_error:
-            table.add_row("Last Error", metrics.last_error.strftime("%Y-%m-%d %H:%M:%S"))
+            table.add_row(
+                "Last Error", metrics.last_error.strftime("%Y-%m-%d %H:%M:%S")
+            )
 
         if metrics.last_critical:
-            table.add_row("Last Critical", metrics.last_critical.strftime("%Y-%m-%d %H:%M:%S"))
+            table.add_row(
+                "Last Critical", metrics.last_critical.strftime("%Y-%m-%d %H:%M:%S")
+            )
 
         return table
 

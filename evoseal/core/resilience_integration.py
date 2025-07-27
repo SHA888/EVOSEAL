@@ -63,7 +63,11 @@ class ResilienceOrchestrator:
 
     def _setup_default_error_patterns(self):
         """Set up default error patterns and recovery strategies."""
-        from evoseal.core.error_recovery import ErrorPattern, RecoveryAction, RecoveryStrategy
+        from evoseal.core.error_recovery import (
+            ErrorPattern,
+            RecoveryAction,
+            RecoveryStrategy,
+        )
 
         # Network-related errors
         error_recovery_manager.classifier.register_pattern(
@@ -85,7 +89,10 @@ class ResilienceOrchestrator:
                 recovery_strategy=RecoveryStrategy(
                     max_retries=3,
                     retry_delay=5.0,
-                    recovery_actions=[RecoveryAction.RETRY, RecoveryAction.RESTART_COMPONENT],
+                    recovery_actions=[
+                        RecoveryAction.RETRY,
+                        RecoveryAction.RESTART_COMPONENT,
+                    ],
                 ),
             )
         )
@@ -110,7 +117,10 @@ class ResilienceOrchestrator:
                 recovery_strategy=RecoveryStrategy(
                     max_retries=3,
                     retry_delay=30.0,
-                    recovery_actions=[RecoveryAction.RESTART_COMPONENT, RecoveryAction.FALLBACK],
+                    recovery_actions=[
+                        RecoveryAction.RESTART_COMPONENT,
+                        RecoveryAction.FALLBACK,
+                    ],
                 ),
             )
         )
@@ -216,7 +226,9 @@ class ResilienceOrchestrator:
                         "component": name,
                         "failure_count": cb.failure_count,
                         "last_failure": (
-                            cb.last_failure_time.isoformat() if cb.last_failure_time else None
+                            cb.last_failure_time.isoformat()
+                            if cb.last_failure_time
+                            else None
                         ),
                     }
                 )
@@ -224,7 +236,8 @@ class ResilienceOrchestrator:
         # Determine overall health
         if health_status["alerts"]:
             if any(
-                alert["type"] == "component_unhealthy" and "critical" in alert.get("status", "")
+                alert["type"] == "component_unhealthy"
+                and "critical" in alert.get("status", "")
                 for alert in health_status["alerts"]
             ):
                 health_status["overall_health"] = "critical"
@@ -320,7 +333,11 @@ class ResilienceOrchestrator:
 
         # Publish alert event
         await event_bus.publish(
-            Event(event_type="RESILIENCE_ALERT", source="resilience_integration", data=alert)
+            Event(
+                event_type="RESILIENCE_ALERT",
+                source="resilience_integration",
+                data=alert,
+            )
         )
 
     async def _handle_high_error_rate_alert(self, alert: Dict[str, Any]):
@@ -329,7 +346,9 @@ class ResilienceOrchestrator:
             component = alert.get("component", "unknown")
             error_rate = alert.get("error_rate", 0)
 
-            logger.warning(f"High error rate detected for {component}: {error_rate:.2%}")
+            logger.warning(
+                f"High error rate detected for {component}: {error_rate:.2%}"
+            )
 
             # Consider enabling degraded mode
             if error_rate > 0.25:  # 25% error rate

@@ -49,9 +49,13 @@ class BaseEditStrategy(ABC):
         if not suggestion or not self.enabled:
             return content
 
-        if hasattr(suggestion, "original_text") and hasattr(suggestion, "suggested_text"):
+        if hasattr(suggestion, "original_text") and hasattr(
+            suggestion, "suggested_text"
+        ):
             if suggestion.original_text in content:
-                return content.replace(suggestion.original_text, suggestion.suggested_text)
+                return content.replace(
+                    suggestion.original_text, suggestion.suggested_text
+                )
         return content
 
     def get_config(self) -> dict[str, Any]:

@@ -302,11 +302,17 @@ class WorkflowEngine:
 
         if not component_name:
             logger.error(f"Step '{step_name}' is missing required 'component' field")
-            raise ValueError(f"Step '{step_name}' is missing required 'component' field")
+            raise ValueError(
+                f"Step '{step_name}' is missing required 'component' field"
+            )
 
         if component_name not in self.components:
-            logger.error(f"Component '{component_name}' not found for step '{step_name}'")
-            raise ValueError(f"Component '{component_name}' not found for step '{step_name}'")
+            logger.error(
+                f"Component '{component_name}' not found for step '{step_name}'"
+            )
+            raise ValueError(
+                f"Component '{component_name}' not found for step '{step_name}'"
+            )
 
         component = self.components[component_name]
         method = getattr(component, method_name, None)
@@ -417,7 +423,9 @@ class WorkflowEngine:
                     f"Error: {event_data.get('error')}"
                 )
         except Exception as e:
-            logger.error(f"Error handling workflow event {event.event_type}: {e}", exc_info=True)
+            logger.error(
+                f"Error handling workflow event {event.event_type}: {e}", exc_info=True
+            )
 
     def register_event_handler(
         self,
@@ -425,7 +433,10 @@ class WorkflowEngine:
         handler: Callable[[Event], Any] | None = None,
         priority: int = 0,
         filter_fn: Callable[[Event], bool] | None = None,
-    ) -> Callable[[Event], Any] | Callable[[Callable[[Event], Any]], Callable[[Event], Any]]:
+    ) -> (
+        Callable[[Event], Any]
+        | Callable[[Callable[[Event], Any]], Callable[[Event], Any]]
+    ):
         """Register an event handler for workflow events.
 
         This method can be used as a decorator or called directly.
@@ -454,7 +465,9 @@ class WorkflowEngine:
         ) -> Callable[[Event], Any]:
             # Convert event_type to string if it's an Enum
             event_type_str = (
-                event_type.value if isinstance(event_type, EventType) else str(event_type)
+                event_type.value
+                if isinstance(event_type, EventType)
+                else str(event_type)
             )
 
             # Create a wrapper that will handle the event
@@ -486,9 +499,13 @@ class WorkflowEngine:
             )
 
             # Sort handlers by priority (highest first)
-            self._event_handlers[event_type_str].sort(key=lambda x: x["priority"], reverse=True)
+            self._event_handlers[event_type_str].sort(
+                key=lambda x: x["priority"], reverse=True
+            )
 
-            logger.debug(f"Registered event handler for {event_type_str} with priority {priority}")
+            logger.debug(
+                f"Registered event handler for {event_type_str} with priority {priority}"
+            )
             return handler_func
 
         # Handle the case when used as a decorator without calling
@@ -522,7 +539,9 @@ class WorkflowEngine:
             data: Optional data to include with the event
         """
         event_data = data or {}
-        event_type_str = event_type.value if isinstance(event_type, EventType) else str(event_type)
+        event_type_str = (
+            event_type.value if isinstance(event_type, EventType) else str(event_type)
+        )
 
         event = Event(
             event_type=event_type_str,

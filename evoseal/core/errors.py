@@ -376,7 +376,9 @@ def retry_on_error(
                     time.sleep(mdelay)
                     mdelay *= backoff
 
-            return func(*args, **kwargs)  # This line should theoretically never be reached
+            return func(
+                *args, **kwargs
+            )  # This line should theoretically never be reached
 
         return cast(F, wrapper)
 
