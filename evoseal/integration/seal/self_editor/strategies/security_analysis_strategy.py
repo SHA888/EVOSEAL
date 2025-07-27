@@ -50,9 +50,9 @@ class SecurityConfig:
     check_command_injection: bool = True
     check_file_operations: bool = True
     ignore_patterns: list[str] = field(default_factory=list)
-    custom_checks: list[Callable[[str, ast.AST, dict[str, Any]], list[EditSuggestion]]] = field(
-        default_factory=list
-    )
+    custom_checks: list[
+        Callable[[str, ast.AST, dict[str, Any]], list[EditSuggestion]]
+    ] = field(default_factory=list)
 
 
 class SecurityAnalysisStrategy(BaseEditStrategy):
@@ -225,8 +225,13 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for name in node.names:
-                    if name.name in self.RISKY_IMPORTS and not self._is_ignored(name.name):
-                        node_text = ast.get_source_segment(content, node) or f"import {name.name}"
+                    if name.name in self.RISKY_IMPORTS and not self._is_ignored(
+                        name.name
+                    ):
+                        node_text = (
+                            ast.get_source_segment(content, node)
+                            or f"import {name.name}"
+                        )
                         suggestions.append(
                             EditSuggestion(
                                 operation=EditOperation.REWRITE,
@@ -246,7 +251,9 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 module = node.module or ""
                 for name in node.names:
                     full_import = f"{module}.{name.name}" if module else name.name
-                    if full_import in self.RISKY_IMPORTS and not self._is_ignored(full_import):
+                    if full_import in self.RISKY_IMPORTS and not self._is_ignored(
+                        full_import
+                    ):
                         node_text = (
                             ast.get_source_segment(content, node)
                             or f"from {module} import {name.name}"
@@ -269,15 +276,21 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_unsafe_functions(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
+    def _check_unsafe_functions(
+        self, tree: ast.AST, content: str
+    ) -> list[EditSuggestion]:
         """Check for potentially unsafe function calls."""
         suggestions = []
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 func_name = node.func.id
-                if func_name in self.UNSAFE_FUNCTIONS and not self._is_ignored(func_name):
-                    node_text = ast.get_source_segment(content, node) or f"{node.func.id}()"
+                if func_name in self.UNSAFE_FUNCTIONS and not self._is_ignored(
+                    func_name
+                ):
+                    node_text = (
+                        ast.get_source_segment(content, node) or f"{node.func.id}()"
+                    )
                     suggestions.append(
                         EditSuggestion(
                             operation=EditOperation.REWRITE,
@@ -344,14 +357,18 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 # Look for return statements with f-strings or string formatting
                 for stmt in ast.walk(node):
                     if isinstance(stmt, ast.Return) and stmt.value:
-                        if isinstance(stmt.value, (ast.JoinedStr, ast.FormattedValue)) or (
+                        if isinstance(
+                            stmt.value, (ast.JoinedStr, ast.FormattedValue)
+                        ) or (
                             isinstance(stmt.value, ast.Call)
                             and isinstance(stmt.value.func, ast.Attribute)
                             and stmt.value.func.attr in ["format", "format_map"]
                         ):
 
                             # Get the source line for context
-                            source_line = ast.get_source_segment(content, stmt) or str(stmt)
+                            source_line = ast.get_source_segment(content, stmt) or str(
+                                stmt
+                            )
 
                             suggestions.append(
                                 EditSuggestion(
@@ -377,7 +394,10 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and isinstance(node.func, ast.Attribute)
                 and hasattr(node.func, "attr")
                 and node.func.attr in ["write", "send", "respond"]
-                and any(isinstance(arg, (ast.JoinedStr, ast.FormattedValue)) for arg in node.args)
+                and any(
+                    isinstance(arg, (ast.JoinedStr, ast.FormattedValue))
+                    for arg in node.args
+                )
             ):
 
                 source_line = ast.get_source_segment(content, node) or str(node)
@@ -397,7 +417,9 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_command_injection(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
+    def _check_command_injection(
+        self, tree: ast.AST, content: str
+    ) -> list[EditSuggestion]:
         """Check for potential command injection vulnerabilities."""
         suggestions = []
 
@@ -410,7 +432,9 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and node.func.value.id == "os"
                 and node.func.attr == "system"
                 and node.args
-                and isinstance(node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name))
+                and isinstance(
+                    node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name)
+                )
             ):
                 node_text = ast.get_source_segment(content, node) or "os.system()"
                 suggestions.append(
@@ -428,7 +452,9 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
 
         return suggestions
 
-    def _check_file_operations(self, tree: ast.AST, content: str) -> list[EditSuggestion]:
+    def _check_file_operations(
+        self, tree: ast.AST, content: str
+    ) -> list[EditSuggestion]:
         """Check for potentially unsafe file operations."""
         suggestions = []
 
@@ -439,7 +465,9 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and isinstance(node.func, ast.Name)
                 and node.func.id == "open"
                 and node.args
-                and isinstance(node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name))
+                and isinstance(
+                    node.args[0], (ast.JoinedStr, ast.BinOp, ast.Call, ast.Name)
+                )
             ):
                 node_text = ast.get_source_segment(content, node) or "open()"
                 suggestions.append(

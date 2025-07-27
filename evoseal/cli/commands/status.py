@@ -58,7 +58,9 @@ def worker_status(
     ] = None,
     worker_type: Annotated[
         str | None,
-        typer.Option("--type", "-t", help="Filter workers by type (seal, openevolve, dgm)."),
+        typer.Option(
+            "--type", "-t", help="Filter workers by type (seal, openevolve, dgm)."
+        ),
     ] = None,
 ) -> None:
     format: Annotated[
@@ -125,7 +127,7 @@ def system_status(
 
     if os.path.exists(pipeline_state_file):
         try:
-            with open(pipeline_state_file, 'r') as f:
+            with open(pipeline_state_file) as f:
                 pipeline_info = json.load(f)
                 pipeline_status = pipeline_info.get("status", "unknown")
         except (json.JSONDecodeError, FileNotFoundError):
@@ -136,7 +138,7 @@ def system_status(
         cpu_percent = psutil.cpu_percent(interval=1) / 100.0
         memory = psutil.virtual_memory()
         memory_percent = memory.percent / 100.0
-        disk = psutil.disk_usage('.')
+        disk = psutil.disk_usage(".")
         disk_percent = disk.used / disk.total
     except:
         cpu_percent = 0.0
@@ -183,21 +185,23 @@ def system_status(
         if pipeline:
             typer.echo("\nPipeline:")
             typer.echo(f"  Status: {pipeline.get('status', 'unknown').upper()}")
-            if pipeline.get('current_iteration') is not None:
+            if pipeline.get("current_iteration") is not None:
                 typer.echo(
                     f"  Progress: {pipeline.get('current_iteration', 0)}/{pipeline.get('total_iterations', 0)} iterations"
                 )
-            if pipeline.get('current_stage'):
+            if pipeline.get("current_stage"):
                 typer.echo(f"  Current Stage: {pipeline.get('current_stage')}")
 
         typer.echo("\nComponents:")
         for component in status_info["components"]:
             status_color = (
                 "🟢"
-                if component['status'] in ['running', 'operational']
-                else "🔴" if component['status'] in ['failed', 'error'] else "🟡"
+                if component["status"] in ["running", "operational"]
+                else "🔴" if component["status"] in ["failed", "error"] else "🟡"
             )
-            typer.echo(f"  {status_color} {component['name']}: {component['status'].upper()}")
+            typer.echo(
+                f"  {status_color} {component['name']}: {component['status'].upper()}"
+            )
 
         typer.echo("\nResource Usage:")
         resources = status_info["resources"]

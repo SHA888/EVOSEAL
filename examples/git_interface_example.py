@@ -49,7 +49,7 @@ def main():
         print("\n6. Creating and switching to a new branch...")
         branch_result = git.checkout("feature/new-feature", create=True)
         if branch_result.success:
-            print(f"Successfully created and switched to branch 'feature/new-feature'")
+            print("Successfully created and switched to branch 'feature/new-feature'")
 
         # Get repository structure
         print("\n7. Repository structure:")

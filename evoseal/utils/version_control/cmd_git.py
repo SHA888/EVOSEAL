@@ -66,8 +66,8 @@ class CmdGit(GitInterface):
         # Only check if the repository is initialized if a path is provided
         # but don't require it to be initialized yet
         if repo_path:
-            git_dir = Path(repo_path) / '.git'
-            if git_dir.exists() or (Path(repo_path) / 'HEAD').exists():
+            git_dir = Path(repo_path) / ".git"
+            if git_dir.exists() or (Path(repo_path) / "HEAD").exists():
                 self._initialized = True
 
         # Store progress callback
@@ -79,7 +79,7 @@ class CmdGit(GitInterface):
         clone_path: Optional[Union[str, Path]] = None,
         bare: bool = False,
         initial_branch: Optional[str] = None,
-    ) -> 'CmdGit':
+    ) -> "CmdGit":
         """
         Initialize the Git repository.
 
@@ -105,7 +105,9 @@ class CmdGit(GitInterface):
                 return self.clone(repo_url, clone_path)
 
             if not self.repo_path:
-                raise ValueError("repo_path must be set when initializing a new repository")
+                raise ValueError(
+                    "repo_path must be set when initializing a new repository"
+                )
 
             # Check if repository already exists
             git_dir = self.repo_path / ".git"
@@ -148,7 +150,7 @@ class CmdGit(GitInterface):
         branch: Optional[str] = None,
         depth: Optional[int] = None,
         progress_callback: Optional[ProgressCallback] = None,
-    ) -> 'CmdGit':
+    ) -> "CmdGit":
         """
         Clone a Git repository with enhanced options and progress reporting.
 
@@ -212,7 +214,10 @@ class CmdGit(GitInterface):
             if not success:
                 if "Repository not found" in stderr:
                     raise RepositoryNotFoundError(f"Repository not found: {repo_url}")
-                if any(msg in stderr for msg in ["Permission denied", "Authentication failed"]):
+                if any(
+                    msg in stderr
+                    for msg in ["Permission denied", "Authentication failed"]
+                ):
                     if "publickey" in stderr.lower():
                         raise SSHAuthenticationError("SSH authentication failed")
                     else:
@@ -281,7 +286,10 @@ class CmdGit(GitInterface):
             if not success:
                 if "CONFLICT" in stderr or "merge conflict" in stderr.lower():
                     raise MergeConflictError("Merge conflicts detected during pull")
-                if any(msg in stderr for msg in ["Permission denied", "Authentication failed"]):
+                if any(
+                    msg in stderr
+                    for msg in ["Permission denied", "Authentication failed"]
+                ):
                     if "publickey" in stderr.lower():
                         raise SSHAuthenticationError("SSH authentication failed")
                     else:
@@ -355,7 +363,10 @@ class CmdGit(GitInterface):
             if not success:
                 if "rejected" in stderr.lower() and "failed to push" in stderr.lower():
                     raise PushRejectedError(f"Push was rejected: {stderr.strip()}")
-                if any(msg in stderr for msg in ["Permission denied", "Authentication failed"]):
+                if any(
+                    msg in stderr
+                    for msg in ["Permission denied", "Authentication failed"]
+                ):
                     if "publickey" in stderr.lower():
                         raise SSHAuthenticationError("SSH authentication failed")
                     else:
@@ -988,7 +999,9 @@ class CmdGit(GitInterface):
 
             if not success:
                 if "already exists" in stderr and not force:
-                    raise GitError(f"Tag '{name}' already exists. Use force=True to overwrite.")
+                    raise GitError(
+                        f"Tag '{name}' already exists. Use force=True to overwrite."
+                    )
                 raise GitError(f"Tag operation failed: {stderr}")
 
             action = "Deleted" if delete else "Created"
@@ -1068,7 +1081,11 @@ class CmdGit(GitInterface):
                     raise ValueError(f"stash_id is required for '{action}' action")
                 cmd.append(action)
                 if stash_id is not None:
-                    cmd.append(f"stash@{{{stash_id}}}" if isinstance(stash_id, int) else stash_id)
+                    cmd.append(
+                        f"stash@{{{stash_id}}}"
+                        if isinstance(stash_id, int)
+                        else stash_id
+                    )
                 if action == "show" and kwargs.get("stat"):
                     cmd.append("--stat")
 
@@ -1142,7 +1159,7 @@ class CmdGit(GitInterface):
                     f"Failed to decode file '{file_path}' with encoding {encoding}"
                 ) from e
 
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             logger.debug(f"File not found: {file_path}")
             return None
 
@@ -1189,7 +1206,9 @@ class CmdGit(GitInterface):
             try:
                 full_path.write_text(content, encoding=encoding)
             except UnicodeEncodeError as e:
-                raise GitError(f"Failed to encode content with encoding {encoding}: {e}") from e
+                raise GitError(
+                    f"Failed to encode content with encoding {encoding}: {e}"
+                ) from e
 
             # Set file mode if specified
             if mode is not None:
@@ -1251,7 +1270,9 @@ class CmdGit(GitInterface):
                     raise ValueError(f"Path not found: {path}")
                 base_path = path
 
-            def get_structure(current_path: Path, current_depth: int = 0) -> Dict[str, Any]:
+            def get_structure(
+                current_path: Path, current_depth: int = 0
+            ) -> Dict[str, Any]:
                 """Recursively build the repository structure."""
                 logger.debug(
                     f"Processing path: {current_path}, depth: {current_depth}, recursive: {recursive}"
@@ -1268,7 +1289,7 @@ class CmdGit(GitInterface):
 
                 # Skip hidden files/directories if not included
                 if (
-                    current_path.name.startswith('.')
+                    current_path.name.startswith(".")
                     and not include_hidden
                     and current_path != base_path
                 ):
@@ -1310,7 +1331,7 @@ class CmdGit(GitInterface):
                         if item.name == ".git" and not include_hidden:
                             logger.debug(f"Skipping .git directory: {item}")
                             continue
-                        if item.name.startswith('.') and not include_hidden:
+                        if item.name.startswith(".") and not include_hidden:
                             logger.debug(f"Skipping hidden item: {item}")
                             continue
 
@@ -1339,13 +1360,17 @@ class CmdGit(GitInterface):
                                 # Only process directory contents if recursive is True
                                 item_structure = get_structure(item, current_depth + 1)
                                 if item_structure and "contents" in item_structure:
-                                    dir_structure["contents"] = item_structure["contents"]
+                                    dir_structure["contents"] = item_structure[
+                                        "contents"
+                                    ]
 
                             structure["contents"][item.name] = dir_structure
                             logger.debug(f"Added directory to structure: {item.name}")
 
                 except PermissionError as e:
-                    logger.warning(f"Permission denied reading directory {current_path}: {e}")
+                    logger.warning(
+                        f"Permission denied reading directory {current_path}: {e}"
+                    )
                     structure["error"] = "permission_denied"
 
                 return structure
@@ -1354,8 +1379,16 @@ class CmdGit(GitInterface):
             if ref is not None:
                 try:
                     # Get the tree structure using git ls-tree
-                    rel_path = "" if path is None else str(Path(path).relative_to(self.repo_path))
-                    cmd = ["ls-tree", "-l", ref, rel_path] if rel_path else ["ls-tree", "-l", ref]
+                    rel_path = (
+                        ""
+                        if path is None
+                        else str(Path(path).relative_to(self.repo_path))
+                    )
+                    cmd = (
+                        ["ls-tree", "-l", ref, rel_path]
+                        if rel_path
+                        else ["ls-tree", "-l", ref]
+                    )
                     success, stdout, stderr = self._run_git_command(cmd)
 
                     if not success:
@@ -1374,7 +1407,7 @@ class CmdGit(GitInterface):
                             continue
 
                         # Format: <mode> <type> <sha> <size>\t<path>
-                        parts = line.split('\t')
+                        parts = line.split("\t")
                         if len(parts) != 2:
                             continue
 
@@ -1448,7 +1481,7 @@ class CmdGit(GitInterface):
         try:
             self._check_initialized()
             file_path = Path(file_path)
-            
+
             # Check if file exists in the specified ref or working directory
             if not (self.repo_path / file_path).exists():
                 if ref is None or not self._file_exists_in_ref(file_path, ref):
@@ -1462,44 +1495,43 @@ class CmdGit(GitInterface):
                 "--date=iso",
                 "--follow",  # Follow file renames
                 "--name-status",
-                str(file_path)
+                str(file_path),
             ]
-            
+
             if ref:
                 cmd.insert(1, ref)
 
             success, stdout, stderr = self._run_git_command(cmd)
-            
+
             if not success:
                 raise GitError(f"Failed to get file history: {stderr}")
 
             # Parse the log output
             commits = []
             current_commit = None
-            
+
             for line in stdout.splitlines():
-                if '|' in line:
+                if "|" in line:
                     if current_commit:
                         commits.append(current_commit)
-                    hash_, author, email, date, subject = line.split('|', 4)
+                    hash_, author, email, date, subject = line.split("|", 4)
                     current_commit = {
-                        'hash': hash_,
-                        'author': author,
-                        'email': email,
-                        'date': date,
-                        'subject': subject,
-                        'changes': []
+                        "hash": hash_,
+                        "author": author,
+                        "email": email,
+                        "date": date,
+                        "subject": subject,
+                        "changes": [],
                     }
-                elif line and current_commit and '\t' in line:
-                    status, path = line.split('\t', 1)
-                    current_commit['changes'].append({
-                        'status': status[0],  # M, A, D, R, etc.
-                        'path': path
-                    })
-            
+                elif line and current_commit and "\t" in line:
+                    status, path = line.split("\t", 1)
+                    current_commit["changes"].append(
+                        {"status": status[0], "path": path}  # M, A, D, R, etc.
+                    )
+
             if current_commit:
                 commits.append(current_commit)
-            
+
             return commits
 
         except Exception as e:
@@ -1529,57 +1561,59 @@ class CmdGit(GitInterface):
         """
         try:
             self._check_initialized()
-            
+
             # Get structures for both branches
-            struct1 = self.get_repository_structure(ref=branch1, path=path, recursive=True)
-            struct2 = self.get_repository_structure(ref=branch2, path=path, recursive=True)
-            
+            struct1 = self.get_repository_structure(
+                ref=branch1, path=path, recursive=True
+            )
+            struct2 = self.get_repository_structure(
+                ref=branch2, path=path, recursive=True
+            )
+
             # Flatten structures for easier comparison
             flat1 = self._flatten_structure(struct1)
             flat2 = self._flatten_structure(struct2)
-            
+
             # Find differences
             result = {
-                'branch1': branch1,
-                'branch2': branch2,
-                'added': [],
-                'removed': [],
-                'modified': [],
-                'unchanged': []
+                "branch1": branch1,
+                "branch2": branch2,
+                "added": [],
+                "removed": [],
+                "modified": [],
+                "unchanged": [],
             }
-            
+
             all_paths = set(flat1.keys()).union(set(flat2.keys()))
-            
+
             for path in sorted(all_paths):
                 in1 = path in flat1
                 in2 = path in flat2
-                
+
                 if in1 and not in2:
-                    result['removed'].append(flat1[path])
+                    result["removed"].append(flat1[path])
                 elif in2 and not in1:
-                    result['added'].append(flat2[path])
+                    result["added"].append(flat2[path])
                 else:
                     item1 = flat1[path]
                     item2 = flat2[path]
-                    
+
                     # Compare file metadata
                     modified = False
-                    for key in ['size', 'sha', 'modified']:
+                    for key in ["size", "sha", "modified"]:
                         if key in item1 and key in item2 and item1[key] != item2[key]:
                             modified = True
                             break
-                    
+
                     if modified:
-                        result['modified'].append({
-                            'path': path,
-                            'branch1': item1,
-                            'branch2': item2
-                        })
+                        result["modified"].append(
+                            {"path": path, "branch1": item1, "branch2": item2}
+                        )
                     elif include_unchanged:
-                        result['unchanged'].append(item1)
-            
+                        result["unchanged"].append(item1)
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error comparing branches {branch1} and {branch2}: {e}")
             raise GitError(f"Failed to compare branches: {e}") from e
@@ -1592,33 +1626,33 @@ class CmdGit(GitInterface):
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Find references to a file in the repository.
-        
+
         Args:
             file_path: Path to the file to find references for
             ref: Git reference to search in (default: current branch)
             file_types: Limit search to specific file types (extensions)
-            
+
         Returns:
             Dictionary mapping reference types to lists of references
         """
         try:
             self._check_initialized()
             file_path = Path(file_path)
-            
+
             if not file_path.is_absolute():
                 file_path = self.repo_path / file_path
-            
+
             # Get the relative path for searching
             rel_path = file_path.relative_to(self.repo_path)
-            
+
             # Find imports and references
             result = {
-                'imports': self._find_imports(rel_path, ref, file_types),
-                'referenced_by': self._find_referenced_by(rel_path, ref, file_types)
+                "imports": self._find_imports(rel_path, ref, file_types),
+                "referenced_by": self._find_referenced_by(rel_path, ref, file_types),
             }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error finding references for {file_path}: {e}")
             raise GitError(f"Failed to find file references: {e}") from e
@@ -1632,13 +1666,13 @@ class CmdGit(GitInterface):
     ) -> str:
         """
         Generate an ASCII tree diagram of the repository structure.
-        
+
         Args:
             ref: Git reference to generate diagram for
             path: Subdirectory path to generate diagram for
             max_depth: Maximum depth to traverse
             include_hidden: Whether to include hidden files/directories
-            
+
         Returns:
             ASCII string representing the repository structure
         """
@@ -1648,16 +1682,16 @@ class CmdGit(GitInterface):
                 path=path,
                 recursive=True,
                 include_hidden=include_hidden,
-                max_depth=max_depth
+                max_depth=max_depth,
             )
-            
-            if not structure or 'contents' not in structure:
+
+            if not structure or "contents" not in structure:
                 return "Empty repository or path not found"
-                
+
             lines = []
-            self._format_structure(structure['contents'], lines)
-            return '\n'.join(lines)
-            
+            self._format_structure(structure["contents"], lines)
+            return "\n".join(lines)
+
         except Exception as e:
             logger.error(f"Error generating structure diagram: {e}")
             raise GitError(f"Failed to generate structure diagram: {e}") from e
@@ -1674,61 +1708,67 @@ class CmdGit(GitInterface):
     def _flatten_structure(
         self,
         structure: Dict[str, Any],
-        parent_path: str = '',
-        result: Optional[Dict[str, Dict[str, Any]]] = None
+        parent_path: str = "",
+        result: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Dict[str, Any]]:
         """Flatten a nested directory structure into a dictionary of paths to file info."""
         if result is None:
             result = {}
-            
-        if 'contents' in structure:
-            for name, item in structure['contents'].items():
+
+        if "contents" in structure:
+            for name, item in structure["contents"].items():
                 item_path = f"{parent_path}/{name}" if parent_path else name
-                if item.get('type') == 'file':
+                if item.get("type") == "file":
                     result[item_path] = item
-                elif item.get('type') == 'directory' and 'contents' in item:
+                elif item.get("type") == "directory" and "contents" in item:
                     self._flatten_structure(item, item_path, result)
-        
+
         return result
 
     def _find_imports(
         self,
         file_path: Union[str, Path],
         ref: Optional[str],
-        file_types: Optional[List[str]] = None
+        file_types: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Find imports in a file."""
         try:
             content = self.get_file_content(file_path, ref=ref)
             if not content:
                 return []
-                
+
             # Simple regex to find import statements (Python, JavaScript, etc.)
             import_patterns = [
                 # Python: import x, from x import y
-                r'^\s*(?:from\s+([\w.]+)\s+)?import\s+([\w*.,{}\s]+)(?:\s+as\s+\w+)?\s*(?:#.*)?$',
+                r"^\s*(?:from\s+([\w.]+)\s+)?import\s+([\w*.,{}\s]+)(?:\s+as\s+\w+)?\s*(?:#.*)?$",
                 # JavaScript/TypeScript: import x from 'y' or import { x } from 'y'
                 r'^\s*import\s+(?:[\w*{},\s]+\s+from\s+)?["\']([^"\']+)["\']\s*;?\s*(?:/\*.*\*/)?\s*$',
                 # C/C++: #include "x.h" or #include <x.h>
                 r'^\s*#\s*include\s+[<"]([^>"]+)[>"]\s*$',
             ]
-            
+
             imports = []
             for line in content.splitlines():
                 for pattern in import_patterns:
                     match = re.search(pattern, line, re.MULTILINE)
                     if match:
-                        module = match.group(1) or match.group(2) if match.groups() > 1 else match.group(1)
+                        module = (
+                            match.group(1) or match.group(2)
+                            if match.groups() > 1
+                            else match.group(1)
+                        )
                         if module:
-                            imports.append({
-                                'line': line.strip(),
-                                'module': module.strip(),
-                                'file': str(file_path)
-                            })
+                            imports.append(
+                                {
+                                    "line": line.strip(),
+                                    "module": module.strip(),
+                                    "file": str(file_path),
+                                }
+                            )
                             break
-            
+
             return imports
-            
+
         except Exception as e:
             logger.warning(f"Error finding imports in {file_path}: {e}")
             return []
@@ -1737,93 +1777,95 @@ class CmdGit(GitInterface):
         self,
         file_path: Union[str, Path],
         ref: Optional[str],
-        file_types: Optional[List[str]] = None
+        file_types: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Find files that reference the given file."""
         try:
             # Get the base filename without extension for searching
             file_name = Path(file_path).name
-            base_name = file_name.split('.')[0]
-            
+            base_name = file_name.split(".")[0]
+
             # Build git grep command to find references
             cmd = ["grep", "-l", "-I", "--perl-regexp", f"\\b{re.escape(base_name)}\\b"]
-            
+
             # Add file type filters if specified
             if file_types:
-                patterns = ' '.join(f'*.{ft.lstrip(".")}' for ft in file_types)
+                patterns = " ".join(f'*.{ft.lstrip(".")}' for ft in file_types)
                 cmd.extend(["--"] + patterns.split())
-            
+
             success, stdout, _ = self._run_git_command(cmd, ref=ref)
-            
+
             if not success or not stdout.strip():
                 return []
-            
+
             # Parse results
             references = []
             for ref_file in stdout.splitlines():
                 if ref_file and ref_file != str(file_path):
-                    references.append({
-                        'file': ref_file,
-                        'matches': [{'line': line} for line in self._get_matching_lines(ref_file, base_name, ref)]
-                    })
-            
+                    references.append(
+                        {
+                            "file": ref_file,
+                            "matches": [
+                                {"line": line}
+                                for line in self._get_matching_lines(
+                                    ref_file, base_name, ref
+                                )
+                            ],
+                        }
+                    )
+
             return references
-            
+
         except Exception as e:
             logger.warning(f"Error finding references to {file_path}: {e}")
             return []
 
     def _get_matching_lines(
-        self,
-        file_path: str,
-        pattern: str,
-        ref: Optional[str]
+        self, file_path: str, pattern: str, ref: Optional[str]
     ) -> List[Dict[str, Any]]:
         """Get matching lines containing the pattern in a file."""
         try:
             content = self.get_file_content(file_path, ref=ref)
             if not content:
                 return []
-                
+
             lines = []
             for i, line in enumerate(content.splitlines(), 1):
-                if re.search(rf'\b{re.escape(pattern)}\b', line):
-                    lines.append({
-                        'line_number': i,
-                        'content': line.strip()
-                    })
+                if re.search(rf"\b{re.escape(pattern)}\b", line):
+                    lines.append({"line_number": i, "content": line.strip()})
             return lines
-            
+
         except Exception:
             return []
 
     def _format_structure(
-        self,
-        contents: Dict[str, Any],
-        lines: List[str],
-        prefix: str = ''
+        self, contents: Dict[str, Any], lines: List[str], prefix: str = ""
     ) -> None:
         """Recursively format directory structure into ASCII tree."""
         if not contents:
             return
-            
-        items = sorted(contents.items(), key=lambda x: (x[1].get('type') != 'directory', x[0]))
-        
+
+        items = sorted(
+            contents.items(), key=lambda x: (x[1].get("type") != "directory", x[0])
+        )
+
         for i, (name, item) in enumerate(items):
             is_last = i == len(items) - 1
-            
-            if item.get('type') == 'directory':
+
+            if item.get("type") == "directory":
                 lines.append(f"{prefix}{'└── ' if is_last else '├── '}{name}/")
                 new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
-                if 'contents' in item:
-                    self._format_structure(item['contents'], lines, new_prefix)
+                if "contents" in item:
+                    self._format_structure(item["contents"], lines, new_prefix)
             else:
                 # File with size
-                size = item.get('size', 0)
+                size = item.get("size", 0)
                 size_str = f" ({size} bytes)" if size else ""
                 lines.append(f"{prefix}{'└── ' if is_last else '├── '}{name}{size_str}")
 
     def _check_initialized(self) -> None:
         """Check if the repository is initialized, raise an exception if not."""
         if not self.repo_path or not self.is_initialized():
-            raise RuntimeError("Git repository is not initialized. Call initialize() first.")
+            raise RuntimeError(
+                "Git repository is not initialized. Call initialize() first."
+            )

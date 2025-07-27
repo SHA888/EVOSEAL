@@ -60,15 +60,21 @@ class CodeStyleStrategy(BaseEditStrategy):
 
             # Check line length
             if len(line) > self.max_line_length:
-                suggestions.append(self._create_line_length_suggestion(line, line_num, len(line)))
+                suggestions.append(
+                    self._create_line_length_suggestion(line, line_num, len(line))
+                )
 
             # Check for trailing whitespace
             if line.rstrip() != line:
-                suggestions.append(self._create_trailing_whitespace_suggestion(line, line_num))
+                suggestions.append(
+                    self._create_trailing_whitespace_suggestion(line, line_num)
+                )
 
             # Check for mixed indentation
             if self._has_mixed_indentation(line):
-                suggestions.append(self._create_mixed_indentation_suggestion(line, line_num))
+                suggestions.append(
+                    self._create_mixed_indentation_suggestion(line, line_num)
+                )
 
         # Check for consistent quote usage
         if "'" in content and '"' in content:
@@ -90,7 +96,9 @@ class CodeStyleStrategy(BaseEditStrategy):
             line_number=line_num,
         )
 
-    def _create_trailing_whitespace_suggestion(self, line: str, line_num: int) -> EditSuggestion:
+    def _create_trailing_whitespace_suggestion(
+        self, line: str, line_num: int
+    ) -> EditSuggestion:
         """Create suggestion for trailing whitespace."""
         return EditSuggestion(
             operation=EditOperation.REMOVE,
@@ -119,7 +127,9 @@ class CodeStyleStrategy(BaseEditStrategy):
 
         return False
 
-    def _create_mixed_indentation_suggestion(self, line: str, line_num: int) -> EditSuggestion:
+    def _create_mixed_indentation_suggestion(
+        self, line: str, line_num: int
+    ) -> EditSuggestion:
         """Create suggestion for mixed indentation."""
         # Replace tabs with spaces or vice versa based on configuration
         if self.use_spaces:

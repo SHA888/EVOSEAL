@@ -11,12 +11,12 @@ from .git_interface import GitInterface, GitOperation, GitResult
 from .version_manager import BranchInfo, CommitInfo, VersionManager
 
 __all__ = [
-    'GitInterface',
-    'GitResult',
-    'GitOperation',
-    'CmdGit',
-    'VersionManager',
-    'CommitInfo',
-    'BranchInfo',
-    'default_git_implementation',
+    "GitInterface",
+    "GitResult",
+    "GitOperation",
+    "CmdGit",
+    "VersionManager",
+    "CommitInfo",
+    "BranchInfo",
+    "default_git_implementation",
 ]

@@ -10,7 +10,7 @@ import logging
 import secrets
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Protocol, TypeVar, List, Dict, Optional
+from typing import Any, Dict, List, Optional, Protocol, TypeVar
 
 # Type variables for generic types
 T = TypeVar("T")
@@ -46,7 +46,7 @@ class SelectionAlgorithm:
             raise ValueError(f"Unknown selection strategy: {strategy}")
         return list(self.strategies[strategy](population, num_selected, **kwargs))
 
-    def tournament_selection(  # noqa: PLR0913
+    def tournament_selection(
         self,
         population: list[dict[str, Any]],
         num_selected: int,
@@ -68,9 +68,14 @@ class SelectionAlgorithm:
             pop = [ind for ind in pop if ind not in elites]
         while len(selected) < num_selected and pop:
             # Using secrets for sampling to ensure secure random selection
-            tournament = [pop[i] for i in sorted(
-                secrets.SystemRandom().sample(range(len(pop)), min(tournament_size, len(pop)))
-            )]
+            tournament = [
+                pop[i]
+                for i in sorted(
+                    secrets.SystemRandom().sample(
+                        range(len(pop)), min(tournament_size, len(pop))
+                    )
+                )
+            ]
             winner = max(tournament, key=lambda x: x.get(fitness_key, 0))
             selected.append(winner)
             pop.remove(winner)
@@ -102,9 +107,14 @@ class SelectionAlgorithm:
         if total_fitness == 0 and pop:
             # Using secrets for secure random sampling
             sample_size = min(num_selected - len(selected), len(pop))
-            selected.extend([pop[i] for i in sorted(
-                secrets.SystemRandom().sample(range(len(pop)), sample_size)
-            )])
+            selected.extend(
+                [
+                    pop[i]
+                    for i in sorted(
+                        secrets.SystemRandom().sample(range(len(pop)), sample_size)
+                    )
+                ]
+            )
             # If still not enough, fill with randoms from selected
             while len(selected) < num_selected:
                 selected.append(secrets.SystemRandom().choice(selected))

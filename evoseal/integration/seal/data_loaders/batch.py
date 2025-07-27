@@ -6,9 +6,10 @@ and processing them efficiently.
 """
 
 import logging
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 from tqdm import tqdm
 
@@ -83,7 +84,9 @@ class BatchLoader:
                     result = future.result()
                     results.extend(result)
                 except Exception as e:
-                    self.logger.warning(f"Error loading file {file_path}: {str(e)}", exc_info=True)
+                    self.logger.warning(
+                        f"Error loading file {file_path}: {str(e)}", exc_info=True
+                    )
                 finally:
                     if pbar is not None:
                         pbar.update(1)
@@ -93,7 +96,9 @@ class BatchLoader:
 
         return results
 
-    def _load_single_file(self, file_path: Union[str, Path], model: Type[T], **kwargs) -> List[T]:
+    def _load_single_file(
+        self, file_path: Union[str, Path], model: Type[T], **kwargs
+    ) -> List[T]:
         """Load a single file with error handling."""
         try:
             return load_data(file_path, model, **kwargs)

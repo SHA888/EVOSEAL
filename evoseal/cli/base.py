@@ -43,7 +43,9 @@ class EVOSEALCommand(abc.ABC, typer.Typer):
         hidden: bool = False,
         deprecated: bool = False,
         rich_help_panel: Union[str, None] = None,
-    ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
+    ) -> typing.Callable[
+        [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
+    ]:
         """The main entry point for the command.
 
         This method is called when the command is executed. It should be implemented
@@ -70,7 +72,9 @@ class EVOSEALCommand(abc.ABC, typer.Typer):
             A decorator that can be applied to command functions.
         """
         return cast(
-            typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]],
+            typing.Callable[
+                [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
+            ],
             super().callback(
                 cls=cls,
                 invoke_without_command=invoke_without_command,

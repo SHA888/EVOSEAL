@@ -14,13 +14,25 @@ import logging
 import os
 import time
 from collections import defaultdict, deque
+from collections.abc import AsyncGenerator, Awaitable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import (
-    Optional, Dict, List, Any, Union, Deque, Callable, Awaitable, AsyncGenerator, Tuple, Set, Type, TypeVar, cast
+    Any,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
 )
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from evoseal.integration.seal.exceptions import SelfEditingError, ValidationError
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
@@ -95,12 +107,16 @@ class Metrics:
             },
             "timing": {
                 "avg_processing_time": safe_avg(self.processing_times),
-                "avg_knowledge_retrieval_time": safe_avg(self.knowledge_retrieval_times),
+                "avg_knowledge_retrieval_time": safe_avg(
+                    self.knowledge_retrieval_times
+                ),
                 "avg_generation_time": safe_avg(self.generation_times),
                 "avg_self_editing_time": safe_avg(self.self_editing_times),
             },
             "sizes": {
-                "avg_context_size": (safe_avg(self.context_sizes) if self.context_sizes else 0),
+                "avg_context_size": (
+                    safe_avg(self.context_sizes) if self.context_sizes else 0
+                ),
                 "avg_response_length": (
                     safe_avg(self.response_lengths) if self.response_lengths else 0
                 ),
@@ -150,7 +166,9 @@ class SEALConfig(BaseModel):
     @classmethod
     def validate_similarity_threshold(cls, v: float) -> float:
         if not 0.0 <= v <= 1.0:
-            raise ValueError("knowledge_similarity_threshold must be between 0.0 and 1.0")
+            raise ValueError(
+                "knowledge_similarity_threshold must be between 0.0 and 1.0"
+            )
         return v
 
     @field_validator("min_confidence_for_editing")
@@ -224,7 +242,9 @@ class EnhancedSEALSystem:
             self_editor: Optional custom SelfEditor instance or mock
         """
         # Initialize configuration
-        self.config = config if isinstance(config, SEALConfig) else SEALConfig(**(config or {}))
+        self.config = (
+            config if isinstance(config, SEALConfig) else SEALConfig(**(config or {}))
+        )
 
         # Initialize core components with mock implementations by default
         self.knowledge_base = knowledge_base or MockKnowledgeBase()
@@ -232,7 +252,9 @@ class EnhancedSEALSystem:
         self.prompt_constructor = prompt_constructor or PromptConstructor()
 
         # Initialize conversation management
-        self.conversation_history = ConversationHistory(max_history=self.config.max_history_length)
+        self.conversation_history = ConversationHistory(
+            max_history=self.config.max_history_length
+        )
 
         # Initialize metrics and monitoring
         self.metrics = Metrics() if self.config.enable_metrics else None
@@ -253,7 +275,9 @@ class EnhancedSEALSystem:
         self._request_semaphore = asyncio.Semaphore(self.config.max_concurrent_requests)
         self._batch_queue: asyncio.Queue = asyncio.Queue()
 
-        logger.info("EnhancedSEALSystem initialized with config: %s", self.config.model_dump())
+        logger.info(
+            "EnhancedSEALSystem initialized with config: %s", self.config.model_dump()
+        )
 
     async def start(self) -> None:
         """Start the SEAL system and any background tasks."""
@@ -266,7 +290,9 @@ class EnhancedSEALSystem:
 
         # Start background tasks
         if self.config.enable_async_processing:
-            self._background_tasks.append(asyncio.create_task(self._process_batch_queue()))
+            self._background_tasks.append(
+                asyncio.create_task(self._process_batch_queue())
+            )
 
         logger.info("EnhancedSEALSystem started")
 
@@ -289,7 +315,7 @@ class EnhancedSEALSystem:
         self._background_tasks.clear()
         logger.info("EnhancedSEALSystem stopped")
 
-    async def __aenter__(self) -> "EnhancedSEALSystem":
+    async def __aenter__(self) -> EnhancedSEALSystem:
         """Async context manager entry."""
         await self.start()
         return self
@@ -349,7 +375,9 @@ class EnhancedSEALSystem:
 
             # Retrieve relevant knowledge
             knowledge_start = time.time()
-            knowledge = await self.retrieve_relevant_knowledge(prompt_text, context or {})
+            knowledge = await self.retrieve_relevant_knowledge(
+                prompt_text, context or {}
+            )
             knowledge_time = time.time() - knowledge_start
 
             # Record knowledge retrieval metrics
@@ -426,11 +454,15 @@ class EnhancedSEALSystem:
             )
 
             # Cache the result if enabled and not already cached
-            if self.config.enable_caching and not result["metadata"].get("cached", False):
+            if self.config.enable_caching and not result["metadata"].get(
+                "cached", False
+            ):
                 # Create a cache entry without the cached flag
                 cache_entry = {
                     "response": result["response"],
-                    "metadata": {k: v for k, v in result["metadata"].items() if k != "cached"},
+                    "metadata": {
+                        k: v for k, v in result["metadata"].items() if k != "cached"
+                    },
                 }
                 self._add_to_cache(cache_key, cache_entry)
 
@@ -482,7 +514,9 @@ class EnhancedSEALSystem:
 
             # Cache the result
             if self.config.enable_knowledge_caching:
-                self._add_to_cache(cache_key, knowledge, ttl=self.config.knowledge_cache_ttl)
+                self._add_to_cache(
+                    cache_key, knowledge, ttl=self.config.knowledge_cache_ttl
+                )
 
             return knowledge
 
@@ -576,7 +610,9 @@ class EnhancedSEALSystem:
                         edit_result = self.self_editor.apply_edit(
                             text=response,
                             edit_suggestion=edit,
-                            **{"context": context},  # Pass context as a keyword argument
+                            **{
+                                "context": context
+                            },  # Pass context as a keyword argument
                         )
                         if asyncio.iscoroutine(edit_result):
                             response = await edit_result
@@ -587,7 +623,9 @@ class EnhancedSEALSystem:
                         if len(applied_edits) >= self.config.max_self_edit_attempts:
                             break
                     except Exception as e:
-                        logger.error(f"Failed to apply edit {edit.get('type', 'unknown')}: {e}")
+                        logger.error(
+                            f"Failed to apply edit {edit.get('type', 'unknown')}: {e}"
+                        )
                         continue
 
             return response, applied_edits
@@ -602,7 +640,10 @@ class EnhancedSEALSystem:
             try:
                 # Wait for batch to be ready or shutdown
                 batch = []
-                while len(batch) < self.config.batch_size and not self._shutdown_event.is_set():
+                while (
+                    len(batch) < self.config.batch_size
+                    and not self._shutdown_event.is_set()
+                ):
                     try:
                         # Wait for next item with timeout
                         item = await asyncio.wait_for(
@@ -659,13 +700,13 @@ class EnhancedSEALSystem:
         for item in batch:
             try:
                 # Extract request parameters with defaults
-                prompt_text = item.get('prompt_text', '').strip()
+                prompt_text = item.get("prompt_text", "").strip()
                 if not prompt_text:
                     raise ValueError("Empty prompt_text in batch item")
 
-                context = item.get('context', {})
-                template_name = item.get('template_name')
-                metadata = item.get('metadata', {})
+                context = item.get("context", {})
+                template_name = item.get("template_name")
+                metadata = item.get("metadata", {})
 
                 # Process the prompt using the main processing pipeline
                 result = await self.process_prompt(
@@ -678,12 +719,12 @@ class EnhancedSEALSystem:
                 # Record successful processing
                 results.append(
                     {
-                        'success': True,
-                        'response': result.get('response'),
-                        'metadata': {
-                            **result.get('metadata', {}),
-                            'processed_at': datetime.now(timezone.utc).isoformat(),
-                            'batch_size': len(batch),
+                        "success": True,
+                        "response": result.get("response"),
+                        "metadata": {
+                            **result.get("metadata", {}),
+                            "processed_at": datetime.now(timezone.utc).isoformat(),
+                            "batch_size": len(batch),
                         },
                     }
                 )
@@ -703,13 +744,13 @@ class EnhancedSEALSystem:
 
                 results.append(
                     {
-                        'success': False,
-                        'response': None,
-                        'error': error_msg,
-                        'metadata': {
-                            'error_type': type(e).__name__,
-                            'processed_at': datetime.now(timezone.utc).isoformat(),
-                            'batch_size': len(batch),
+                        "success": False,
+                        "response": None,
+                        "error": error_msg,
+                        "metadata": {
+                            "error_type": type(e).__name__,
+                            "processed_at": datetime.now(timezone.utc).isoformat(),
+                            "batch_size": len(batch),
                         },
                     }
                 )

@@ -3,7 +3,12 @@ import json
 import pytest
 
 from evoseal.core.errors import ValidationError
-from evoseal.core.workflow import StepConfig, WorkflowConfig, WorkflowEngine, WorkflowStatus
+from evoseal.core.workflow import (
+    StepConfig,
+    WorkflowConfig,
+    WorkflowEngine,
+    WorkflowStatus,
+)
 
 
 class DummyComponent:

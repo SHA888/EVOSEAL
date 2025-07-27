@@ -7,8 +7,6 @@ bidirectional evolution system continuously.
 
 from .continuous_evolution_service import ContinuousEvolutionService
 
-__all__ = [
-    'ContinuousEvolutionService'
-]
+__all__ = ["ContinuousEvolutionService"]
 
 __version__ = "0.1.0"

@@ -32,7 +32,9 @@ class VersionDatabase:
         # chronological list of variant_ids
         self.history: list[str] = []
         # experiment tracking
-        self.experiment_variants: dict[str, list[str]] = {}  # experiment_id -> variant_ids
+        self.experiment_variants: dict[str, list[str]] = (
+            {}
+        )  # experiment_id -> variant_ids
         self.variant_experiments: dict[str, str] = {}  # variant_id -> experiment_id
 
     def add_variant(
@@ -153,12 +155,16 @@ class VersionDatabase:
 
         # Sort by evaluation score (descending)
         sorted_variants = sorted(
-            variants_to_consider, key=lambda v: v.get("eval_score", float('-inf')), reverse=True
+            variants_to_consider,
+            key=lambda v: v.get("eval_score", float("-inf")),
+            reverse=True,
         )
 
         return sorted_variants[:limit]
 
-    def get_variant_statistics(self, experiment_id: Optional[str] = None) -> dict[str, Any]:
+    def get_variant_statistics(
+        self, experiment_id: Optional[str] = None
+    ) -> dict[str, Any]:
         """Get statistics about variants.
 
         Args:
@@ -169,7 +175,9 @@ class VersionDatabase:
         """
         if experiment_id:
             variant_ids = self.get_experiment_variants(experiment_id)
-            variants = [self.variants[vid] for vid in variant_ids if vid in self.variants]
+            variants = [
+                self.variants[vid] for vid in variant_ids if vid in self.variants
+            ]
         else:
             variants = list(self.variants.values())
 
@@ -251,7 +259,9 @@ class VersionDatabase:
         export_data = {
             "variants": variants_to_export,
             "lineage": {
-                vid: self.lineage[vid] for vid in variants_to_export.keys() if vid in self.lineage
+                vid: self.lineage[vid]
+                for vid in variants_to_export.keys()
+                if vid in self.lineage
             },
             "export_timestamp": datetime.now(timezone.utc).isoformat(),
             "experiment_id": experiment_id,
@@ -260,7 +270,7 @@ class VersionDatabase:
         json_data = json.dumps(export_data, indent=2, default=str)
 
         if file_path:
-            with open(file_path, 'w') as f:
+            with open(file_path, "w") as f:
                 f.write(json_data)
             logger.info(f"Exported variants to {file_path}")
             return None
@@ -277,7 +287,7 @@ class VersionDatabase:
             Number of variants imported
         """
         if isinstance(json_data, (str, Path)) and Path(json_data).exists():
-            with open(json_data, 'r') as f:
+            with open(json_data) as f:
                 data = json.load(f)
         else:
             data = json.loads(str(json_data))

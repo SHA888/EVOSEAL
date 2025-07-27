@@ -95,7 +95,9 @@ class KnowledgeBase:
 
         # Acquire lock with timeout to prevent deadlocks
         if not self._lock.acquire(timeout=5):  # 5-second timeout
-            print("WARNING: Could not acquire lock for adding entry, proceeding without lock")
+            print(
+                "WARNING: Could not acquire lock for adding entry, proceeding without lock"
+            )
             # If we can't get the lock, still add the entry but without synchronization
             self.entries[new_entry.id] = new_entry
         else:
@@ -150,7 +152,9 @@ class KnowledgeBase:
 
         # Try to acquire lock with timeout
         if not self._lock.acquire(timeout=5):  # 5-second timeout
-            print("WARNING: Could not acquire lock for updating entry, proceeding without lock")
+            print(
+                "WARNING: Could not acquire lock for updating entry, proceeding without lock"
+            )
             # If we can't get the lock, try to update anyway
             if entry_id in self.entries:
                 entry_to_update = self.entries[entry_id]
@@ -230,7 +234,9 @@ class KnowledgeBase:
 
         # Filter by tags if provided
         if tags:
-            results = [entry for entry in results if any(tag in entry.tags for tag in tags)]
+            results = [
+                entry for entry in results if any(tag in entry.tags for tag in tags)
+            ]
 
         # Filter by metadata if provided
         if metadata:
@@ -326,7 +332,9 @@ class KnowledgeBase:
                     self._lock.release()
             else:
                 # If we couldn't get the lock, log a warning and continue with empty snapshot
-                print("WARNING: Could not acquire lock for reading entries, using empty snapshot")
+                print(
+                    "WARNING: Could not acquire lock for reading entries, using empty snapshot"
+                )
         except Exception as e:
             print(f"Error acquiring lock: {e}")
             # Continue with whatever entries we have
@@ -347,7 +355,8 @@ class KnowledgeBase:
                         try:
                             data = {
                                 "entries": [
-                                    entry.model_dump() for entry in entries_snapshot.values()
+                                    entry.model_dump()
+                                    for entry in entries_snapshot.values()
                                 ]
                             }
                             json.dump(data, f, indent=self.JSON_INDENT, default=str)
@@ -390,10 +399,18 @@ class KnowledgeBase:
                 entries = {}
                 for entry_data in data.get("entries", []):
                     # Handle datetime deserialization
-                    if "created_at" in entry_data and isinstance(entry_data["created_at"], str):
-                        entry_data["created_at"] = datetime.fromisoformat(entry_data["created_at"])
-                    if "updated_at" in entry_data and isinstance(entry_data["updated_at"], str):
-                        entry_data["updated_at"] = datetime.fromisoformat(entry_data["updated_at"])
+                    if "created_at" in entry_data and isinstance(
+                        entry_data["created_at"], str
+                    ):
+                        entry_data["created_at"] = datetime.fromisoformat(
+                            entry_data["created_at"]
+                        )
+                    if "updated_at" in entry_data and isinstance(
+                        entry_data["updated_at"], str
+                    ):
+                        entry_data["updated_at"] = datetime.fromisoformat(
+                            entry_data["updated_at"]
+                        )
 
                     entry = KnowledgeEntry(**entry_data)
                     entries[entry.id] = entry
@@ -419,7 +436,7 @@ class KnowledgeBase:
                 try:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                     f.close()
-                except (OSError, IOError) as close_error:
+                except OSError as close_error:
                     # Debug log instead of silent pass
                     import logging
 
@@ -445,7 +462,9 @@ class KnowledgeBase:
                         time.sleep(self.SAVE_RETRY_BACKOFF_BASE * (retry + 1))
 
                 # If we get here, all retries failed
-                print(f"Warning: Failed to save to disk after {max_retries} retries: {last_error}")
+                print(
+                    f"Warning: Failed to save to disk after {max_retries} retries: {last_error}"
+                )
             except Exception as e:
                 print(f"Error in _save_to_disk: {e}")
                 # Continue execution despite the error
@@ -494,7 +513,9 @@ if __name__ == "__main__":
     print(f"Found {len(results)} entries matching 'python'")
 
     # Update an entry
-    kb.update_entry(entry1_id, "Python is a high-level, interpreted programming language.")
+    kb.update_entry(
+        entry1_id, "Python is a high-level, interpreted programming language."
+    )
 
     # Save to disk (happens automatically when using methods that modify the KB)
     kb.save_to_disk()

@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ async def main():
 
         logger.info("All examples completed successfully!")
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error in main example")
         raise
 
@@ -63,11 +63,17 @@ async def example_basic_integration():
         "python_executable": "python3",
     }
 
-    seal_config = {"provider_type": "default", "rate_limit_per_sec": 2.0, "max_retries": 3}
+    seal_config = {
+        "provider_type": "default",
+        "rate_limit_per_sec": 2.0,
+        "max_retries": 3,
+    }
 
     # Create integration orchestrator
     orchestrator = create_integration_orchestrator(
-        dgm_config=dgm_config, openevolve_config=openevolve_config, seal_config=seal_config
+        dgm_config=dgm_config,
+        openevolve_config=openevolve_config,
+        seal_config=seal_config,
     )
 
     try:
@@ -97,7 +103,9 @@ async def example_basic_integration():
         logger.info("Component metrics:")
         metrics = await orchestrator.get_all_metrics()
         for component_type, component_metrics in metrics.items():
-            logger.info(f"  {component_type.value}: {json.dumps(component_metrics, indent=2)}")
+            logger.info(
+                f"  {component_type.value}: {json.dumps(component_metrics, indent=2)}"
+            )
 
         # Test individual component operations
         await test_component_operations(orchestrator)
@@ -117,12 +125,18 @@ async def test_component_operations(orchestrator):
         logger.info("Testing DGM operations...")
 
         # Get current archive
-        result = await orchestrator.execute_component_operation(ComponentType.DGM, "get_archive")
+        result = await orchestrator.execute_component_operation(
+            ComponentType.DGM, "get_archive"
+        )
         logger.info(f"DGM Archive: {result.data if result.success else result.error}")
 
         # Get current generation
-        result = await orchestrator.execute_component_operation(ComponentType.DGM, "get_generation")
-        logger.info(f"DGM Generation: {result.data if result.success else result.error}")
+        result = await orchestrator.execute_component_operation(
+            ComponentType.DGM, "get_generation"
+        )
+        logger.info(
+            f"DGM Generation: {result.data if result.success else result.error}"
+        )
 
     # Test SEAL (Self-Adapting Language Models) operations
     if orchestrator.get_component(ComponentType.SEAL):
@@ -160,7 +174,9 @@ def fibonacci(n):
         result = await orchestrator.execute_component_operation(
             ComponentType.OPENEVOLVE, "run_command", ["--help"]
         )
-        logger.info(f"OpenEvolve Help: {result.data if result.success else result.error}")
+        logger.info(
+            f"OpenEvolve Help: {result.data if result.success else result.error}"
+        )
 
 
 async def example_evolution_pipeline():

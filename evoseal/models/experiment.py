@@ -84,7 +84,7 @@ class ExperimentConfig(BaseModel):
     # Custom parameters
     custom_params: Dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator('mutation_rate', 'crossover_rate')
+    @field_validator("mutation_rate", "crossover_rate")
     @classmethod
     def validate_rates(cls, v: float) -> float:
         """Validate that rates are between 0 and 1."""
@@ -92,7 +92,7 @@ class ExperimentConfig(BaseModel):
             raise ValueError("Rate must be between 0.0 and 1.0")
         return v
 
-    @field_validator('selection_pressure')
+    @field_validator("selection_pressure")
     @classmethod
     def validate_selection_pressure(cls, v: float) -> float:
         """Validate that selection pressure is at least 1.0."""
@@ -112,7 +112,7 @@ class ExperimentMetric(BaseModel):
     step: Optional[int] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator('timestamp')
+    @field_validator("timestamp")
     @classmethod
     def ensure_timezone_aware(cls, v: datetime) -> datetime:
         """Ensure timestamp is timezone-aware."""
@@ -134,7 +134,7 @@ class ExperimentArtifact(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator('created_at')
+    @field_validator("created_at")
     @classmethod
     def ensure_timezone_aware(cls, v: datetime) -> datetime:
         """Ensure timestamp is timezone-aware."""
@@ -213,7 +213,7 @@ class Experiment(BaseModel):
     # Additional metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator('created_at', 'started_at', 'completed_at', 'updated_at')
+    @field_validator("created_at", "started_at", "completed_at", "updated_at")
     @classmethod
     def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
         """Ensure datetime fields are timezone-aware."""
@@ -223,12 +223,16 @@ class Experiment(BaseModel):
             return v.replace(tzinfo=timezone.utc)
         return v
 
-    @model_validator(mode='after')
-    def validate_timing(self) -> 'Experiment':
+    @model_validator(mode="after")
+    def validate_timing(self) -> Experiment:
         """Validate timing constraints."""
         if self.started_at and self.started_at < self.created_at:
             raise ValueError("started_at cannot be before created_at")
-        if self.completed_at and self.started_at and self.completed_at < self.started_at:
+        if (
+            self.completed_at
+            and self.started_at
+            and self.completed_at < self.started_at
+        ):
             raise ValueError("completed_at cannot be before started_at")
         return self
 
@@ -347,19 +351,19 @@ class Experiment(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return self.model_dump(mode='json')
+        return self.model_dump(mode="json")
 
     def to_json(self) -> str:
         """Convert to JSON string."""
         return self.model_dump_json()
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Experiment':
+    def from_dict(cls, data: Dict[str, Any]) -> Experiment:
         """Create from dictionary."""
         return cls.model_validate(data)
 
     @classmethod
-    def from_json(cls, json_str: str) -> 'Experiment':
+    def from_json(cls, json_str: str) -> Experiment:
         """Create from JSON string."""
         return cls.model_validate_json(json_str)
 

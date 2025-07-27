@@ -31,7 +31,9 @@ if TYPE_CHECKING:
 if sys.version_info >= (3, 10):
     from typing import TypeAlias
 else:
-    from typing_extensions import TypeAlias  # type: ignore[import-untyped,unused-ignore]
+    from typing_extensions import (
+        TypeAlias,  # type: ignore[import-untyped,unused-ignore]
+    )
 
 """EVOSEAL: Evolutionary Self-Improving AI Agent Framework.
 

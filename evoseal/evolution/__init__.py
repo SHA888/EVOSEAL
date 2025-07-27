@@ -7,28 +7,28 @@ the framework and the AI model.
 """
 
 from .data_collector import EvolutionDataCollector, create_evolution_result
+from .models import (
+    CodeMetrics,
+    EvolutionResult,
+    EvolutionStrategy,
+    ImprovementType,
+    PatternMatch,
+    TrainingExample,
+)
 from .pattern_analyzer import PatternAnalyzer
 from .training_data_builder import TrainingDataBuilder
-from .models import (
-    EvolutionResult, 
-    EvolutionStrategy, 
-    ImprovementType, 
-    CodeMetrics,
-    PatternMatch,
-    TrainingExample
-)
 
 __all__ = [
-    'EvolutionDataCollector',
-    'EvolutionResult',
-    'EvolutionStrategy',
-    'ImprovementType', 
-    'CodeMetrics',
-    'PatternMatch',
-    'TrainingExample',
-    'PatternAnalyzer',
-    'TrainingDataBuilder',
-    'create_evolution_result'
+    "EvolutionDataCollector",
+    "EvolutionResult",
+    "EvolutionStrategy",
+    "ImprovementType",
+    "CodeMetrics",
+    "PatternMatch",
+    "TrainingExample",
+    "PatternAnalyzer",
+    "TrainingDataBuilder",
+    "create_evolution_result",
 ]
 
 __version__ = "0.1.0"

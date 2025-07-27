@@ -159,7 +159,7 @@ class Event:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Event":
+    def from_dict(cls, data: dict[str, Any]) -> Event:
         """Create event from dictionary."""
         event_type = data["event_type"]
         # Try to convert string to EventType enum
@@ -347,7 +347,10 @@ class EventBus:
             if event_str is None:
                 if handler_info in self._default_handlers:
                     self._default_handlers.remove(handler_info)
-            elif event_str in self._handlers and handler_info in self._handlers[event_str]:
+            elif (
+                event_str in self._handlers
+                and handler_info in self._handlers[event_str]
+            ):
                 self._handlers[event_str].remove(handler_info)
 
         return unsubscribe
@@ -398,7 +401,9 @@ class EventBus:
         Returns:
             An unsubscribe function for this handler
         """
-        event_str = event_type.value if isinstance(event_type, EventType) else event_type
+        event_str = (
+            event_type.value if isinstance(event_type, EventType) else event_type
+        )
         return self._add_handler_info(event_str, handler, priority, filter_fn)
 
     @overload
@@ -428,7 +433,9 @@ class EventBus:
 
     def subscribe(
         self,
-        event_type: EventType | str | Callable[[Event], None | Awaitable[None]] | None = None,
+        event_type: (
+            EventType | str | Callable[[Event], None | Awaitable[None]] | None
+        ) = None,
         handler: EventHandler | None = None,
         *,
         priority: int = 0,
@@ -477,9 +484,13 @@ class EventBus:
             handler: The handler function to remove
         """
         if event_type is None:
-            self._default_handlers = [h for h in self._default_handlers if h["handler"] != handler]
+            self._default_handlers = [
+                h for h in self._default_handlers if h["handler"] != handler
+            ]
         else:
-            event_type_str = event_type.value if isinstance(event_type, EventType) else event_type
+            event_type_str = (
+                event_type.value if isinstance(event_type, EventType) else event_type
+            )
             if event_type_str in self._handlers:
                 self._handlers[event_type_str] = [
                     h for h in self._handlers[event_type_str] if h["handler"] != handler
@@ -554,7 +565,7 @@ class EventBus:
         Returns:
             List of event dictionaries sorted by timestamp (newest first)
         """
-        if not hasattr(self, '_event_history'):
+        if not hasattr(self, "_event_history"):
             return []
 
         events = self._event_history
@@ -562,17 +573,19 @@ class EventBus:
         # Filter by event type if specified
         if event_type is not None:
             event_type_str = (
-                event_type.value if isinstance(event_type, EventType) else str(event_type)
+                event_type.value
+                if isinstance(event_type, EventType)
+                else str(event_type)
             )
-            events = [e for e in events if e.get('event_type') == event_type_str]
+            events = [e for e in events if e.get("event_type") == event_type_str]
 
         # Sort by timestamp (newest first) and limit
-        events.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+        events.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
         return events[:limit]
 
     def clear_event_history(self) -> None:
         """Clear the event history."""
-        if hasattr(self, '_event_history'):
+        if hasattr(self, "_event_history"):
             self._event_history.clear()
 
     def enable_event_logging(self, max_history: int = 1000) -> None:
@@ -589,7 +602,7 @@ class EventBus:
         @self.subscribe(priority=1000)  # High priority to log before other handlers
         async def log_event(event: Event) -> None:
             """Log all events for history tracking."""
-            if hasattr(self, '_event_history'):
+            if hasattr(self, "_event_history"):
                 event_dict = event.to_dict()
                 self._event_history.append(event_dict)
 
@@ -598,18 +611,25 @@ class EventBus:
                     self._event_history = self._event_history[-self._max_history :]
 
                 # Log to standard logger based on event type
-                event_type_str = event_dict['event_type']
-                if 'error' in event_type_str.lower() or 'failed' in event_type_str.lower():
-                    logger.error(f"Event: {event_type_str} from {event.source}: {event.data}")
-                elif 'warning' in event_type_str.lower():
-                    logger.warning(f"Event: {event_type_str} from {event.source}: {event.data}")
+                event_type_str = event_dict["event_type"]
+                if (
+                    "error" in event_type_str.lower()
+                    or "failed" in event_type_str.lower()
+                ):
+                    logger.error(
+                        f"Event: {event_type_str} from {event.source}: {event.data}"
+                    )
+                elif "warning" in event_type_str.lower():
+                    logger.warning(
+                        f"Event: {event_type_str} from {event.source}: {event.data}"
+                    )
                 else:
                     logger.info(f"Event: {event_type_str} from {event.source}")
 
     def disable_event_logging(self) -> None:
         """Disable event logging."""
         self._logging_enabled = False
-        if hasattr(self, '_event_history'):
+        if hasattr(self, "_event_history"):
             del self._event_history
 
     def get_handler_count(self, event_type: EventType | str | None = None) -> int:
@@ -624,7 +644,9 @@ class EventBus:
         if event_type is None:
             return len(self._default_handlers)
 
-        event_type_str = event_type.value if isinstance(event_type, EventType) else str(event_type)
+        event_type_str = (
+            event_type.value if isinstance(event_type, EventType) else str(event_type)
+        )
         return len(self._handlers.get(event_type_str, []))
 
     def get_all_event_types(self) -> list[str]:
@@ -635,7 +657,9 @@ class EventBus:
         """
         return list(self._handlers.keys())
 
-    async def publish_batch(self, events: list[Event | str], **common_kwargs: Any) -> list[Event]:
+    async def publish_batch(
+        self, events: list[Event | str], **common_kwargs: Any
+    ) -> list[Event]:
         """Publish multiple events in batch.
 
         Args:
@@ -663,7 +687,10 @@ class EventBus:
                     error_event = Event(
                         event_type=EventType.ERROR_OCCURRED,
                         source="event_bus",
-                        data={"error": str(e), "failed_event_type": str(event.event_type)},
+                        data={
+                            "error": str(e),
+                            "failed_event_type": str(event.event_type),
+                        },
                     )
                 results.append(error_event)
 
@@ -719,7 +746,9 @@ class EnhancedEventBus(EventBus):
             metrics["last_seen"] = event.timestamp
             metrics["sources"].add(event.source)
 
-    def get_event_metrics(self, event_type: EventType | str | None = None) -> dict[str, Any]:
+    def get_event_metrics(
+        self, event_type: EventType | str | None = None
+    ) -> dict[str, Any]:
         """Get event metrics.
 
         Args:
@@ -738,7 +767,9 @@ class EnhancedEventBus(EventBus):
                 result[et] = {**metrics, "sources": list(metrics["sources"])}
             return result
 
-        event_type_str = event_type.value if isinstance(event_type, EventType) else str(event_type)
+        event_type_str = (
+            event_type.value if isinstance(event_type, EventType) else str(event_type)
+        )
         metrics = self._event_metrics.get(event_type_str, {})
         if "sources" in metrics:
             metrics = {**metrics, "sources": list(metrics["sources"])}
@@ -1044,7 +1075,9 @@ def create_event_filter(
                 if isinstance(event.event_type, EventType)
                 else str(event.event_type)
             )
-            type_strs = [et.value if isinstance(et, EventType) else str(et) for et in event_types]
+            type_strs = [
+                et.value if isinstance(et, EventType) else str(et) for et in event_types
+            ]
             if event_type_str not in type_strs:
                 return False
 

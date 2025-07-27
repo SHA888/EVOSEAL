@@ -26,52 +26,58 @@ def test_safety_mechanisms():
     try:
         # Setup managers
         checkpoint_config = {
-            'checkpoint_directory': str(temp_dir / 'checkpoints'),
-            'max_checkpoints': 10,
-            'auto_cleanup': True,
-            'compression': False,
+            "checkpoint_directory": str(temp_dir / "checkpoints"),
+            "max_checkpoints": 10,
+            "auto_cleanup": True,
+            "compression": False,
         }
         checkpoint_manager = CheckpointManager(checkpoint_config)
 
         rollback_config = {
-            'auto_rollback_enabled': True,
-            'rollback_threshold': 0.05,
-            'max_rollback_attempts': 3,
-            'rollback_history_file': str(temp_dir / 'rollback_history.json'),
+            "auto_rollback_enabled": True,
+            "rollback_threshold": 0.05,
+            "max_rollback_attempts": 3,
+            "rollback_history_file": str(temp_dir / "rollback_history.json"),
         }
         rollback_manager = RollbackManager(rollback_config, checkpoint_manager)
 
         # Create test checkpoint
         test_data = {
-            'id': 'safety_test_v1.0',
-            'name': 'Safety Test Checkpoint',
-            'description': 'Test checkpoint for safety verification',
-            'status': 'completed',
-            'type': 'test',
-            'config': {'safety_test': True},
-            'metrics': [],
-            'result': {'test': 'safety'},
-            'changes': {
-                'safety_test.py': '# Safety test content',
-                'safety_config.json': '{"safety": true}',
+            "id": "safety_test_v1.0",
+            "name": "Safety Test Checkpoint",
+            "description": "Test checkpoint for safety verification",
+            "status": "completed",
+            "type": "test",
+            "config": {"safety_test": True},
+            "metrics": [],
+            "result": {"test": "safety"},
+            "changes": {
+                "safety_test.py": "# Safety test content",
+                "safety_config.json": '{"safety": true}',
             },
         }
-        checkpoint_manager.create_checkpoint('safety_test_v1.0', test_data)
+        checkpoint_manager.create_checkpoint("safety_test_v1.0", test_data)
         print("✅ Test checkpoint created successfully")
 
         # TEST 1: Safe handling when version manager points to current directory
-        print("\n🔒 TEST 1: Safe handling when version manager points to current directory...")
+        print(
+            "\n🔒 TEST 1: Safe handling when version manager points to current directory..."
+        )
         mock_version_manager = Mock()
         mock_version_manager.working_dir = str(Path.cwd())
         rollback_manager.version_manager = mock_version_manager
 
         try:
-            result = rollback_manager.rollback_to_version('safety_test_v1.0', 'dangerous_test')
+            result = rollback_manager.rollback_to_version(
+                "safety_test_v1.0", "dangerous_test"
+            )
             if result:
                 # Verify it used safe fallback directory instead of current directory
-                safe_dir = Path.cwd() / '.evoseal' / 'rollback_target'
+                safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
                 if safe_dir.exists():
-                    print("✅ PASSED: Safely used fallback directory instead of current directory")
+                    print(
+                        "✅ PASSED: Safely used fallback directory instead of current directory"
+                    )
                 else:
                     print("❌ FAILED: Safe fallback directory was not created")
                     return False
@@ -87,12 +93,14 @@ def test_safety_mechanisms():
         rollback_manager.version_manager = None
 
         try:
-            result = rollback_manager.rollback_to_version('safety_test_v1.0', 'fallback_test')
+            result = rollback_manager.rollback_to_version(
+                "safety_test_v1.0", "fallback_test"
+            )
             if result:
                 print("✅ PASSED: Safe fallback directory rollback succeeded")
 
                 # Verify safe directory was created
-                safe_dir = Path.cwd() / '.evoseal' / 'rollback_target'
+                safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
                 if safe_dir.exists():
                     print("✅ PASSED: Safe fallback directory was created")
                 else:

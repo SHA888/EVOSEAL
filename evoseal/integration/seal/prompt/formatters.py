@@ -31,7 +31,9 @@ def format_knowledge(
         return knowledge[:max_length] + ("..." if len(knowledge) > max_length else "")
 
     if not isinstance(knowledge, list):
-        return str(knowledge)[:max_length] + ("..." if len(str(knowledge)) > max_length else "")
+        return str(knowledge)[:max_length] + (
+            "..." if len(str(knowledge)) > max_length else ""
+        )
 
     # Handle list of knowledge items
     formatted = []
@@ -71,7 +73,9 @@ def format_knowledge(
     return "\n".join(formatted)
 
 
-def format_examples(examples: Union[str, List[Dict[str, str]], None], max_examples: int = 3) -> str:
+def format_examples(
+    examples: Union[str, List[Dict[str, str]], None], max_examples: int = 3
+) -> str:
     """Format examples for inclusion in a prompt.
 
     Args:
@@ -176,11 +180,15 @@ def format_prompt(
 
     # Format knowledge if provided and expected in template
     if "{knowledge}" in template:
-        format_kwargs["knowledge"] = format_knowledge(knowledge) if knowledge is not None else ""
+        format_kwargs["knowledge"] = (
+            format_knowledge(knowledge) if knowledge is not None else ""
+        )
 
     # Format examples if expected in template
     if "{examples}" in template:
-        format_kwargs["examples"] = format_examples(examples) if examples is not None else ""
+        format_kwargs["examples"] = (
+            format_examples(examples) if examples is not None else ""
+        )
 
     # Add context if expected in template
     if context and "{context}" in template:

@@ -97,8 +97,8 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
                 if isinstance(node, (Constant, Num, Str)):
                     return (
                         node.value
-                        if hasattr(node, 'value')
-                        else node.n if hasattr(node, 'n') else node.s
+                        if hasattr(node, "value")
+                        else node.n if hasattr(node, "n") else node.s
                     )
                 elif isinstance(node, (List, Tuple)):
                     return [self._extract_value(n) for n in node.elts]
@@ -113,8 +113,8 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
                     and isinstance(node.operand, Num)
                 ):
                     return -node.operand.n
-                elif isinstance(node, Name) and node.id in ('True', 'False', 'None'):
-                    return {'True': True, 'False': False, 'None': None}[node.id]
+                elif isinstance(node, Name) and node.id in ("True", "False", "None"):
+                    return {"True": True, "False": False, "None": None}[node.id]
                 return None
 
         with open(config_path, encoding="utf-8") as f:
@@ -136,7 +136,9 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
     except (SyntaxError, ValueError) as e:
         raise ValueError(f"Invalid configuration syntax in {config_path}: {e}") from e
     except PermissionError as e:
-        raise PermissionError(f"Permission denied reading config file: {config_path}") from e
+        raise PermissionError(
+            f"Permission denied reading config file: {config_path}"
+        ) from e
     except Exception as e:
         raise ValueError(f"Error loading configuration from {config_path}: {e}") from e
 
@@ -144,7 +146,9 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
     return {k: v for k, v in config.items() if not k.startswith("__")}
 
 
-def update_config(new_config: ConfigDict, config_path: str | Path | None = None) -> ConfigDict:
+def update_config(
+    new_config: ConfigDict, config_path: str | Path | None = None
+) -> ConfigDict:
     """
     Update the configuration with new values.
 

@@ -167,7 +167,9 @@ class TestDefaultEditStrategy:
         # Print the EditOperation values for debugging
         logger.debug(f"EditOperation.REWRITE value: {EditOperation.REWRITE!r}")
         logger.debug(f"EditOperation.REWRITE type: {type(EditOperation.REWRITE)!r}")
-        logger.debug(f"EditOperation.REWRITE value.value: {EditOperation.REWRITE.value!r}")
+        logger.debug(
+            f"EditOperation.REWRITE value.value: {EditOperation.REWRITE.value!r}"
+        )
 
         suggestion1 = EditSuggestion(
             operation=EditOperation.REWRITE,
@@ -179,12 +181,18 @@ class TestDefaultEditStrategy:
 
         logger.debug(f"Test REWRITE - suggestion1 type: {type(suggestion1)}")
         logger.debug(f"Test REWRITE - suggestion1.operation: {suggestion1.operation!r}")
-        logger.debug(f"Test REWRITE - suggestion1.operation type: {type(suggestion1.operation)!r}")
-        logger.debug(f"Test REWRITE - suggestion1.original_text: {suggestion1.original_text!r}")
+        logger.debug(
+            f"Test REWRITE - suggestion1.operation type: {type(suggestion1.operation)!r}"
+        )
+        logger.debug(
+            f"Test REWRITE - suggestion1.original_text: {suggestion1.original_text!r}"
+        )
         logger.debug(
             f"Test REWRITE - suggestion1.original_text type: {type(suggestion1.original_text)!r}"
         )
-        logger.debug(f"Test REWRITE - suggestion1.suggested_text: {suggestion1.suggested_text!r}")
+        logger.debug(
+            f"Test REWRITE - suggestion1.suggested_text: {suggestion1.suggested_text!r}"
+        )
         logger.debug(
             f"Test REWRITE - suggestion1.suggested_text type: {type(suggestion1.suggested_text)!r}"
         )
@@ -206,7 +214,9 @@ class TestDefaultEditStrategy:
         method = getattr(strategy.__class__, "apply_edit", None)
         if method:
             logger.debug(f"Found apply_edit method: {method}")
-            logger.debug(f"Method is function: {isinstance(method, types.FunctionType)}")
+            logger.debug(
+                f"Method is function: {isinstance(method, types.FunctionType)}"
+            )
             logger.debug(f"Method is method: {isinstance(method, types.MethodType)}")
             logger.debug(
                 f"Method source: {inspect.getsource(method) if inspect.isfunction(method) else 'Not a function'}"
@@ -237,7 +247,9 @@ class TestDefaultEditStrategy:
 
         # Call the apply_edit method with the correct parameters
         print("\n=== DIRECT METHOD CALL ===", file=sys.stderr)
-        print("Calling strategy.apply_edit(original_text, suggestion1)", file=sys.stderr)
+        print(
+            "Calling strategy.apply_edit(original_text, suggestion1)", file=sys.stderr
+        )
         print(f"strategy type: {type(strategy)}", file=sys.stderr)
 
         # Print the actual method that will be called
@@ -273,7 +285,9 @@ class TestDefaultEditStrategy:
 
         # Debug: Print the actual bytes to check for hidden characters
         logger.debug(f"Test REWRITE - result1 bytes: {list(result1.encode('utf-8'))}")
-        logger.debug(f"Test REWRITE - expected bytes: {list(suggested_text.encode('utf-8'))}")
+        logger.debug(
+            f"Test REWRITE - expected bytes: {list(suggested_text.encode('utf-8'))}"
+        )
 
         # Check if the strings are equal character by character
         for i, (r, e) in enumerate(zip(result1, suggested_text)):
@@ -295,7 +309,9 @@ class TestDefaultEditStrategy:
             logger.warning("apply_edit is a Mock object! This might be the issue.")
 
         # Final assertion
-        assert result1 == suggested_text, f"Expected: {suggested_text!r}, got: {result1!r}"
+        assert (
+            result1 == suggested_text
+        ), f"Expected: {suggested_text!r}, got: {result1!r}"
 
         # Test case 2: Rewriting with empty original_text
         suggestion2 = EditSuggestion(
@@ -343,7 +359,9 @@ class TestDefaultEditStrategy:
         content = "This is very very important"
 
         print("\n=== TEST DEBUGGING ===")
-        print(f"Original text to remove: {original_text!r} (length: {len(original_text)})")
+        print(
+            f"Original text to remove: {original_text!r} (length: {len(original_text)})"
+        )
         print(f"Content: {content!r} (length: {len(content)})")
         print(f"Original text in content: {original_text in content}")
         print(f"Content bytes: {content.encode('utf-8')}")
@@ -420,7 +438,9 @@ class TestSelfEditor:
         assert len(suggestions) == 1
         assert suggestions[0].operation == EditOperation.ADD
         assert "test_1" in editor.histories
-        assert editor.histories["test_1"].current_content == content  # Should not change
+        assert (
+            editor.histories["test_1"].current_content == content
+        )  # Should not change
 
     def test_evaluate_content_auto_apply(self):
         """Test evaluating content with auto-apply."""

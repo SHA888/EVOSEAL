@@ -71,7 +71,7 @@ class EVOSEALLogger:
 
         # File formatter (detailed)
         file_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
+            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
         )
         file_handler.setFormatter(file_formatter)
 
@@ -82,12 +82,15 @@ class EVOSEALLogger:
         if self.rich_formatting:
             # Rich handler for beautiful console output
             console_handler = RichHandler(
-                console=self.console, show_time=True, show_path=False, rich_tracebacks=True
+                console=self.console,
+                show_time=True,
+                show_path=False,
+                rich_tracebacks=True,
             )
         else:
             # Standard console handler
             console_handler = logging.StreamHandler(sys.stdout)
-            console_formatter = logging.Formatter('%(levelname)s - %(message)s')
+            console_formatter = logging.Formatter("%(levelname)s - %(message)s")
             console_handler.setFormatter(console_formatter)
 
         console_handler.setLevel(self.logger.level)
@@ -199,7 +202,9 @@ def log_command_execution(command_name: str):
                 return result
             except Exception as e:
                 success = False
-                logger.log_error_with_context(e, {"command": command_name, "args": kwargs})
+                logger.log_error_with_context(
+                    e, {"command": command_name, "args": kwargs}
+                )
                 raise
             finally:
                 duration = time.time() - start_time

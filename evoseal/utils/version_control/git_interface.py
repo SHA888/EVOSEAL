@@ -14,7 +14,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from .exceptions import (
     AuthenticationError,
@@ -31,7 +42,7 @@ from .exceptions import (
 )
 
 # Type variable for the GitInterface class
-TGitInterface = TypeVar('TGitInterface', bound='GitInterface')
+TGitInterface = TypeVar("TGitInterface", bound="GitInterface")
 
 # Type for progress callback functions
 ProgressCallback = Callable[[str, int, int, int], None]
@@ -98,7 +109,7 @@ class GitInterface(ABC):
         self._password = password
         self.timeout = timeout
         self._initialized = False
-        self._ssh_auth_sock = os.environ.get('SSH_AUTH_SOCK')
+        self._ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
 
         # Validate SSH key if provided
         if self.ssh_key_path and not self.ssh_key_path.exists():
@@ -107,15 +118,19 @@ class GitInterface(ABC):
         # Set up environment for Git operations
         self._env = os.environ.copy()
         if self.ssh_key_path:
-            self._env['GIT_SSH_COMMAND'] = f'ssh -i {self.ssh_key_path} -o IdentitiesOnly=yes'
+            self._env["GIT_SSH_COMMAND"] = (
+                f"ssh -i {self.ssh_key_path} -o IdentitiesOnly=yes"
+            )
         if self._password:
             # Configure Git to use the credential helper for this repo
             self._configure_credential_helper()
 
     @abstractmethod
     def initialize(
-        self, repo_url: Optional[str] = None, clone_path: Optional[Union[str, Path]] = None
-    ) -> 'GitInterface':
+        self,
+        repo_url: Optional[str] = None,
+        clone_path: Optional[Union[str, Path]] = None,
+    ) -> "GitInterface":
         """
         Initialize the Git repository.
 
@@ -138,7 +153,7 @@ class GitInterface(ABC):
     @abstractmethod
     def clone(
         self, repo_url: str, target_path: Optional[Union[str, Path]] = None
-    ) -> 'GitInterface':
+    ) -> "GitInterface":
         """
         Clone a Git repository.
 
@@ -166,7 +181,9 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def push(self, remote: str = "origin", branch: str = "main", force: bool = False) -> GitResult:
+    def push(
+        self, remote: str = "origin", branch: str = "main", force: bool = False
+    ) -> GitResult:
         """
         Push changes to a remote repository.
 
@@ -181,7 +198,9 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def commit(self, message: str, files: Optional[List[Union[str, Path]]] = None) -> GitResult:
+    def commit(
+        self, message: str, files: Optional[List[Union[str, Path]]] = None
+    ) -> GitResult:
         """
         Commit changes to the repository.
 
@@ -260,7 +279,10 @@ class GitInterface(ABC):
 
     @abstractmethod
     def tag(
-        self, name: Optional[str] = None, message: Optional[str] = None, delete: bool = False
+        self,
+        name: Optional[str] = None,
+        message: Optional[str] = None,
+        delete: bool = False,
     ) -> GitResult:
         """
         List, create, or delete tags.
@@ -319,7 +341,9 @@ class GitInterface(ABC):
 
         # Configure Git to cache credentials in memory for a short time
         self._run_git_command(["config", "--local", "credential.helper", "cache"])
-        self._run_git_command(["config", "--local", "credential.helper", "'cache --timeout=300'"])
+        self._run_git_command(
+            ["config", "--local", "credential.helper", "'cache --timeout=300'"]
+        )
 
     def _get_auth_env(self) -> Dict[str, str]:
         """Get the environment variables for authentication."""
@@ -327,12 +351,12 @@ class GitInterface(ABC):
 
         # Set up SSH agent if available
         if self._ssh_auth_sock:
-            env['SSH_AUTH_SOCK'] = self._ssh_auth_sock
+            env["SSH_AUTH_SOCK"] = self._ssh_auth_sock
 
         # Set up username and password for HTTPS
         if self.username and self._password:
-            env['GIT_ASKPASS'] = 'true'
-            env['GIT_TERMINAL_PROMPT'] = '0'
+            env["GIT_ASKPASS"] = "true"
+            env["GIT_TERMINAL_PROMPT"] = "0"
 
         return env
 
@@ -404,7 +428,9 @@ class GitInterface(ABC):
 
                 # Check for other common errors
                 if "Repository not found" in stderr:
-                    raise RepositoryNotFoundError(f"Repository not found: {stderr.strip()}")
+                    raise RepositoryNotFoundError(
+                        f"Repository not found: {stderr.strip()}"
+                    )
 
                 if "branch not found" in stderr.lower():
                     raise BranchNotFoundError(f"Branch not found: {stderr.strip()}")
@@ -450,7 +476,11 @@ class GitInterface(ABC):
 
         # This should never be reached, but just in case
         raise GitCommandError(
-            "Unexpected error in _run_git_command", " ".join(cmd), -1, "", "Unknown error"
+            "Unexpected error in _run_git_command",
+            " ".join(cmd),
+            -1,
+            "",
+            "Unknown error",
         )
 
     def _is_retryable_error(self, stderr: str) -> bool:

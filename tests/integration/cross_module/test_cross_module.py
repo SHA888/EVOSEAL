@@ -114,11 +114,15 @@ def mock_components():
     mock_evaluator = MockEvaluator()
 
     # Create mock controller
-    mock_controller = MockController(test_runner=mock_test_runner, evaluator=mock_evaluator)
+    mock_controller = MockController(
+        test_runner=mock_test_runner, evaluator=mock_evaluator
+    )
     mock_controller.set_seal_interface(mock_seal)
 
     # Create mock program
-    mock_program = Program(id="test_prog_1", code="def test(): return 42", language="python")
+    mock_program = Program(
+        id="test_prog_1", code="def test(): return 42", language="python"
+    )
 
     return {
         "seal": mock_seal,

@@ -28,29 +28,29 @@ class MockMetricsTracker:
 
     def __init__(self):
         self.metrics_data = {
-            'v1.0': {
-                'success_rate': 0.95,
-                'accuracy': 0.88,
-                'duration_sec': 2.5,
-                'memory_mb': 128,
-                'error_rate': 0.05,
-                'pass_rate': 0.92,
+            "v1.0": {
+                "success_rate": 0.95,
+                "accuracy": 0.88,
+                "duration_sec": 2.5,
+                "memory_mb": 128,
+                "error_rate": 0.05,
+                "pass_rate": 0.92,
             },
-            'v1.1': {
-                'success_rate': 0.97,  # Improvement
-                'accuracy': 0.85,  # Slight regression
-                'duration_sec': 3.2,  # Performance regression
-                'memory_mb': 135,  # Memory increase
-                'error_rate': 0.03,  # Improvement
-                'pass_rate': 0.94,  # Improvement
+            "v1.1": {
+                "success_rate": 0.97,  # Improvement
+                "accuracy": 0.85,  # Slight regression
+                "duration_sec": 3.2,  # Performance regression
+                "memory_mb": 135,  # Memory increase
+                "error_rate": 0.03,  # Improvement
+                "pass_rate": 0.94,  # Improvement
             },
-            'v1.2': {
-                'success_rate': 0.89,  # Critical regression
-                'accuracy': 0.82,  # Regression
-                'duration_sec': 4.1,  # Significant performance regression
-                'memory_mb': 150,  # Memory regression
-                'error_rate': 0.11,  # Critical error rate increase
-                'pass_rate': 0.85,  # Regression
+            "v1.2": {
+                "success_rate": 0.89,  # Critical regression
+                "accuracy": 0.82,  # Regression
+                "duration_sec": 4.1,  # Significant performance regression
+                "memory_mb": 150,  # Memory regression
+                "error_rate": 0.11,  # Critical error rate increase
+                "pass_rate": 0.85,  # Regression
             },
         }
 
@@ -74,10 +74,10 @@ class MockMetricsTracker:
                 change_pct = (new_val - old_val) / old_val if old_val != 0 else 0
 
                 comparison[metric_name] = {
-                    'baseline': old_val,
-                    'current': new_val,
-                    'change_pct': change_pct,
-                    'absolute_change': new_val - old_val,
+                    "baseline": old_val,
+                    "current": new_val,
+                    "change_pct": change_pct,
+                    "absolute_change": new_val - old_val,
                 }
 
         return comparison
@@ -89,8 +89,8 @@ def alert_callback(regression_data: Dict[str, Any]) -> None:
     logger.warning(f"Detected regressions in {len(regression_data)} metrics:")
 
     for metric, details in regression_data.items():
-        severity = details.get('severity', 'unknown')
-        change = details.get('change', 0)
+        severity = details.get("severity", "unknown")
+        change = details.get("change", 0)
         logger.warning(f"  - {metric}: {severity} severity ({change:.2%} change)")
 
 
@@ -101,7 +101,7 @@ def email_alert_callback(regression_data: Dict[str, Any]) -> None:
         [
             r
             for r in regression_data.values()
-            if isinstance(r, dict) and r.get('severity') == 'critical'
+            if isinstance(r, dict) and r.get("severity") == "critical"
         ]
     )
 
@@ -146,25 +146,25 @@ async def test_regression_detector_interface():
 
         # Initialize RegressionDetector with enhanced configuration
         config = {
-            'regression_threshold': 0.05,  # 5% threshold
-            'baseline_storage_path': str(baseline_path),
-            'alert_enabled': True,
-            'auto_baseline_update': False,
-            'monitored_metrics': [
-                'success_rate',
-                'accuracy',
-                'duration_sec',
-                'memory_mb',
-                'error_rate',
-                'pass_rate',
+            "regression_threshold": 0.05,  # 5% threshold
+            "baseline_storage_path": str(baseline_path),
+            "alert_enabled": True,
+            "auto_baseline_update": False,
+            "monitored_metrics": [
+                "success_rate",
+                "accuracy",
+                "duration_sec",
+                "memory_mb",
+                "error_rate",
+                "pass_rate",
             ],
-            'metric_thresholds': {
-                'success_rate': {'regression': 0.03, 'critical': 0.10},
-                'accuracy': {'regression': 0.05, 'critical': 0.15},
-                'duration_sec': {'regression': 0.20, 'critical': 0.50},
-                'memory_mb': {'regression': 0.15, 'critical': 0.30},
-                'error_rate': {'regression': 0.50, 'critical': 1.00},
-                'pass_rate': {'regression': 0.05, 'critical': 0.15},
+            "metric_thresholds": {
+                "success_rate": {"regression": 0.03, "critical": 0.10},
+                "accuracy": {"regression": 0.05, "critical": 0.15},
+                "duration_sec": {"regression": 0.20, "critical": 0.50},
+                "memory_mb": {"regression": 0.15, "critical": 0.30},
+                "error_rate": {"regression": 0.50, "critical": 1.00},
+                "pass_rate": {"regression": 0.05, "critical": 0.15},
             },
         }
 
@@ -182,8 +182,10 @@ async def test_regression_detector_interface():
         logger.info("\n1️⃣ Testing Baseline Establishment")
         logger.info("-" * 40)
 
-        success = detector.establish_baseline('v1.0', 'production_baseline')
-        logger.info(f"Baseline establishment: {'✅ Success' if success else '❌ Failed'}")
+        success = detector.establish_baseline("v1.0", "production_baseline")
+        logger.info(
+            f"Baseline establishment: {'✅ Success' if success else '❌ Failed'}"
+        )
 
         # List baselines
         baselines = detector.list_baselines()
@@ -207,26 +209,30 @@ async def test_regression_detector_interface():
         logger.info("-" * 40)
 
         pytest_config = {
-            'test_command': 'pytest tests/',
-            'coverage_threshold': 0.80,
-            'performance_tests': True,
+            "test_command": "pytest tests/",
+            "coverage_threshold": 0.80,
+            "performance_tests": True,
         }
 
-        integration_success = detector.integrate_with_test_framework('pytest', pytest_config)
-        logger.info(f"Pytest integration: {'✅ Success' if integration_success else '❌ Failed'}")
+        integration_success = detector.integrate_with_test_framework(
+            "pytest", pytest_config
+        )
+        logger.info(
+            f"Pytest integration: {'✅ Success' if integration_success else '❌ Failed'}"
+        )
 
         # Test 4: Compare against baseline (minor regressions)
         logger.info("\n4️⃣ Testing Baseline Comparison (v1.1)")
         logger.info("-" * 40)
 
         has_regression, regression_details = detector.compare_against_baseline(
-            'v1.1', 'production_baseline'
+            "v1.1", "production_baseline"
         )
         logger.info(f"Regression detected: {'⚠️ Yes' if has_regression else '✅ No'}")
 
         if has_regression:
             summary = detector.get_regression_summary(regression_details)
-            logger.info(f"Regression summary:")
+            logger.info("Regression summary:")
             logger.info(f"  - Total regressions: {summary['total_regressions']}")
             logger.info(f"  - Severity counts: {summary['severity_counts']}")
             logger.info(f"  - Recommendation: {summary['recommendation']}")
@@ -236,33 +242,39 @@ async def test_regression_detector_interface():
         logger.info("-" * 40)
 
         analysis_results = detector.run_regression_analysis(
-            'v1.2', 'production_baseline', trigger_alerts=True
+            "v1.2", "production_baseline", trigger_alerts=True
         )
 
         logger.info(f"Analysis completed for version {analysis_results['version_id']}")
-        logger.info(f"Has regression: {'⚠️ Yes' if analysis_results['has_regression'] else '✅ No'}")
+        logger.info(
+            f"Has regression: {'⚠️ Yes' if analysis_results['has_regression'] else '✅ No'}"
+        )
 
-        if analysis_results['has_regression']:
-            summary = analysis_results['summary']
-            logger.info(f"Analysis summary:")
+        if analysis_results["has_regression"]:
+            summary = analysis_results["summary"]
+            logger.info("Analysis summary:")
             logger.info(f"  - Total regressions: {summary['total_regressions']}")
-            logger.info(f"  - Critical regressions: {len(summary['critical_regressions'])}")
-            logger.info(f"  - Affected metrics: {', '.join(summary['affected_metrics'])}")
+            logger.info(
+                f"  - Critical regressions: {len(summary['critical_regressions'])}"
+            )
+            logger.info(
+                f"  - Affected metrics: {', '.join(summary['affected_metrics'])}"
+            )
             logger.info(f"  - Recommendation: {summary['recommendation']}")
 
             # Show detailed regression information
-            logger.info(f"Detailed regressions:")
-            for metric, details in analysis_results['regression_details'].items():
+            logger.info("Detailed regressions:")
+            for metric, details in analysis_results["regression_details"].items():
                 if isinstance(details, dict):
-                    severity = details.get('severity', 'unknown')
-                    change = details.get('change', 0)
+                    severity = details.get("severity", "unknown")
+                    change = details.get("change", 0)
                     logger.info(f"  - {metric}: {severity} ({change:+.2%})")
 
         # Test 6: Test direct regression detection
         logger.info("\n6️⃣ Testing Direct Regression Detection")
         logger.info("-" * 40)
 
-        has_regression, regression_details = detector.detect_regression('v1.0', 'v1.2')
+        has_regression, regression_details = detector.detect_regression("v1.0", "v1.2")
         logger.info(
             f"Direct comparison (v1.0 → v1.2): {'⚠️ Regression' if has_regression else '✅ No regression'}"
         )
@@ -277,9 +289,9 @@ async def test_regression_detector_interface():
         logger.info(f"Loaded baselines in new instance: {len(baselines2)}")
 
         # Verify baseline data
-        baseline_data = detector2.get_baseline('production_baseline')
+        baseline_data = detector2.get_baseline("production_baseline")
         if baseline_data:
-            logger.info(f"✅ Baseline data successfully persisted and loaded")
+            logger.info("✅ Baseline data successfully persisted and loaded")
             logger.info(f"  - Version: {baseline_data['version_id']}")
             logger.info(f"  - Metrics: {len(baseline_data['metrics'])}")
         else:

@@ -151,22 +151,36 @@ class BaseComponentAdapter(ABC):
                 return True
 
             try:
-                self._update_status(ComponentState.INITIALIZING, "Initializing component")
+                self._update_status(
+                    ComponentState.INITIALIZING, "Initializing component"
+                )
                 success = await self._initialize_impl()
 
                 if success:
                     self._initialized = True
-                    self._update_status(ComponentState.READY, "Component initialized successfully")
-                    self.logger.info(f"{self.component_type.value} component initialized")
+                    self._update_status(
+                        ComponentState.READY, "Component initialized successfully"
+                    )
+                    self.logger.info(
+                        f"{self.component_type.value} component initialized"
+                    )
                 else:
-                    self._update_status(ComponentState.ERROR, "Failed to initialize component")
-                    self.logger.error(f"Failed to initialize {self.component_type.value} component")
+                    self._update_status(
+                        ComponentState.ERROR, "Failed to initialize component"
+                    )
+                    self.logger.error(
+                        f"Failed to initialize {self.component_type.value} component"
+                    )
 
                 return success
 
             except Exception as e:
-                self._update_status(ComponentState.ERROR, f"Initialization error: {str(e)}")
-                self.logger.exception(f"Error initializing {self.component_type.value} component")
+                self._update_status(
+                    ComponentState.ERROR, f"Initialization error: {str(e)}"
+                )
+                self.logger.exception(
+                    f"Error initializing {self.component_type.value} component"
+                )
                 return False
 
     async def start(self) -> bool:
@@ -190,14 +204,20 @@ class BaseComponentAdapter(ABC):
                     self._running = True
                     self.logger.info(f"{self.component_type.value} component started")
                 else:
-                    self._update_status(ComponentState.ERROR, "Failed to start component")
-                    self.logger.error(f"Failed to start {self.component_type.value} component")
+                    self._update_status(
+                        ComponentState.ERROR, "Failed to start component"
+                    )
+                    self.logger.error(
+                        f"Failed to start {self.component_type.value} component"
+                    )
 
                 return success
 
             except Exception as e:
                 self._update_status(ComponentState.ERROR, f"Start error: {str(e)}")
-                self.logger.exception(f"Error starting {self.component_type.value} component")
+                self.logger.exception(
+                    f"Error starting {self.component_type.value} component"
+                )
                 return False
 
     async def stop(self) -> bool:
@@ -214,14 +234,20 @@ class BaseComponentAdapter(ABC):
                     self._update_status(ComponentState.STOPPED, "Component stopped")
                     self.logger.info(f"{self.component_type.value} component stopped")
                 else:
-                    self._update_status(ComponentState.ERROR, "Failed to stop component")
-                    self.logger.error(f"Failed to stop {self.component_type.value} component")
+                    self._update_status(
+                        ComponentState.ERROR, "Failed to stop component"
+                    )
+                    self.logger.error(
+                        f"Failed to stop {self.component_type.value} component"
+                    )
 
                 return success
 
             except Exception as e:
                 self._update_status(ComponentState.ERROR, f"Stop error: {str(e)}")
-                self.logger.exception(f"Error stopping {self.component_type.value} component")
+                self.logger.exception(
+                    f"Error stopping {self.component_type.value} component"
+                )
                 return False
 
     async def pause(self) -> bool:
@@ -240,7 +266,9 @@ class BaseComponentAdapter(ABC):
 
         except Exception as e:
             self._update_status(ComponentState.ERROR, f"Pause error: {str(e)}")
-            self.logger.exception(f"Error pausing {self.component_type.value} component")
+            self.logger.exception(
+                f"Error pausing {self.component_type.value} component"
+            )
             return False
 
     async def resume(self) -> bool:
@@ -259,7 +287,9 @@ class BaseComponentAdapter(ABC):
 
         except Exception as e:
             self._update_status(ComponentState.ERROR, f"Resume error: {str(e)}")
-            self.logger.exception(f"Error resuming {self.component_type.value} component")
+            self.logger.exception(
+                f"Error resuming {self.component_type.value} component"
+            )
             return False
 
     async def cleanup(self) -> bool:
@@ -270,13 +300,17 @@ class BaseComponentAdapter(ABC):
             if success:
                 self._initialized = False
                 self._running = False
-                self._update_status(ComponentState.UNINITIALIZED, "Component cleaned up")
+                self._update_status(
+                    ComponentState.UNINITIALIZED, "Component cleaned up"
+                )
                 self.logger.info(f"{self.component_type.value} component cleaned up")
 
             return success
 
-        except Exception as e:
-            self.logger.exception(f"Error cleaning up {self.component_type.value} component")
+        except Exception:
+            self.logger.exception(
+                f"Error cleaning up {self.component_type.value} component"
+            )
             return False
 
     def get_status(self) -> ComponentStatus:
@@ -286,7 +320,9 @@ class BaseComponentAdapter(ABC):
     def update_config(self, new_config: Dict[str, Any]) -> None:
         """Update component configuration."""
         self.config.config.update(new_config)
-        self.logger.info(f"Updated configuration for {self.component_type.value} component")
+        self.logger.info(
+            f"Updated configuration for {self.component_type.value} component"
+        )
 
     def _update_status(
         self, state: ComponentState, message: str = "", error: Optional[str] = None
@@ -333,7 +369,9 @@ class BaseComponentAdapter(ABC):
     # Abstract methods for component-specific operations
 
     @abstractmethod
-    async def execute(self, operation: str, data: Any = None, **kwargs) -> ComponentResult:
+    async def execute(
+        self, operation: str, data: Any = None, **kwargs
+    ) -> ComponentResult:
         """Execute a component-specific operation."""
         pass
 
@@ -360,7 +398,9 @@ class ComponentManager:
         self.components[adapter.component_type] = adapter
         self.logger.info(f"Registered {adapter.component_type.value} component")
 
-    def get_component(self, component_type: ComponentType) -> Optional[BaseComponentAdapter]:
+    def get_component(
+        self, component_type: ComponentType
+    ) -> Optional[BaseComponentAdapter]:
         """Get a component adapter by type."""
         return self.components.get(component_type)
 
@@ -371,8 +411,10 @@ class ComponentManager:
         for component_type, adapter in self.components.items():
             try:
                 results[component_type] = await adapter.initialize()
-            except Exception as e:
-                self.logger.exception(f"Error initializing {component_type.value} component")
+            except Exception:
+                self.logger.exception(
+                    f"Error initializing {component_type.value} component"
+                )
                 results[component_type] = False
 
         return results
@@ -384,8 +426,10 @@ class ComponentManager:
         for component_type, adapter in self.components.items():
             try:
                 results[component_type] = await adapter.start()
-            except Exception as e:
-                self.logger.exception(f"Error starting {component_type.value} component")
+            except Exception:
+                self.logger.exception(
+                    f"Error starting {component_type.value} component"
+                )
                 results[component_type] = False
 
         return results
@@ -397,8 +441,10 @@ class ComponentManager:
         for component_type, adapter in self.components.items():
             try:
                 results[component_type] = await adapter.stop()
-            except Exception as e:
-                self.logger.exception(f"Error stopping {component_type.value} component")
+            except Exception:
+                self.logger.exception(
+                    f"Error stopping {component_type.value} component"
+                )
                 results[component_type] = False
 
         return results

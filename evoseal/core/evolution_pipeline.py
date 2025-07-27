@@ -110,9 +110,15 @@ class EvolutionPipeline:
         # Initialize MetricsTracker with proper parameters
         metrics_config = self.config.metrics_config
         storage_path = (
-            metrics_config.get('storage_path') if isinstance(metrics_config, dict) else None
+            metrics_config.get("storage_path")
+            if isinstance(metrics_config, dict)
+            else None
         )
-        thresholds = metrics_config.get('thresholds') if isinstance(metrics_config, dict) else None
+        thresholds = (
+            metrics_config.get("thresholds")
+            if isinstance(metrics_config, dict)
+            else None
+        )
         self.metrics_tracker = MetricsTracker(storage_path, thresholds)
 
         self.test_runner = TestRunner(self.config.test_config)
@@ -120,12 +126,12 @@ class EvolutionPipeline:
         # Initialize ImprovementValidator with proper parameters
         validation_config = self.config.validation_config
         min_improvement_score = (
-            validation_config.get('min_improvement_score', 70.0)
+            validation_config.get("min_improvement_score", 70.0)
             if isinstance(validation_config, dict)
             else 70.0
         )
         confidence_level = (
-            validation_config.get('confidence_level', 0.95)
+            validation_config.get("confidence_level", 0.95)
             if isinstance(validation_config, dict)
             else 0.95
         )
@@ -134,9 +140,9 @@ class EvolutionPipeline:
         )
 
         # Initialize safety integration
-        safety_config = getattr(self.config, 'safety_config', {})
+        safety_config = getattr(self.config, "safety_config", {})
         self.safety_integration = SafetyIntegration(
-            safety_config, self.metrics_tracker, getattr(self, 'version_manager', None)
+            safety_config, self.metrics_tracker, getattr(self, "version_manager", None)
         )
 
         # Initialize workflow engine
@@ -165,15 +171,15 @@ class EvolutionPipeline:
         component_configs = {}
 
         # DGM configuration
-        if hasattr(self.config, 'dgm_config') and self.config.dgm_config:
+        if hasattr(self.config, "dgm_config") and self.config.dgm_config:
             component_configs[ComponentType.DGM] = self.config.dgm_config
 
         # OpenEvolve configuration
-        if hasattr(self.config, 'openevolve_config') and self.config.openevolve_config:
+        if hasattr(self.config, "openevolve_config") and self.config.openevolve_config:
             component_configs[ComponentType.OPENEVOLVE] = self.config.openevolve_config
 
         # SEAL (Self-Adapting Language Models) configuration
-        if hasattr(self.config, 'seal_config') and self.config.seal_config:
+        if hasattr(self.config, "seal_config") and self.config.seal_config:
             component_configs[ComponentType.SEAL] = self.config.seal_config
 
         # Store component configs for async initialization
@@ -193,7 +199,14 @@ class EvolutionPipeline:
             await resilience_manager.start_monitoring()
 
         # Register circuit breakers for pipeline components
-        components = ["pipeline", "analyzer", "generator", "adapter", "evaluator", "validator"]
+        components = [
+            "pipeline",
+            "analyzer",
+            "generator",
+            "adapter",
+            "evaluator",
+            "validator",
+        ]
         for component in components:
             resilience_manager.register_circuit_breaker(
                 component,
@@ -227,14 +240,20 @@ class EvolutionPipeline:
         )
 
         # Register recovery strategies
-        resilience_manager.register_recovery_strategy("pipeline", self._pipeline_recovery_strategy)
+        resilience_manager.register_recovery_strategy(
+            "pipeline", self._pipeline_recovery_strategy
+        )
 
         # Register degradation handlers
-        resilience_manager.register_degradation_handler("dgm", self._dgm_degradation_handler)
+        resilience_manager.register_degradation_handler(
+            "dgm", self._dgm_degradation_handler
+        )
         resilience_manager.register_degradation_handler(
             "openevolve", self._openevolve_degradation_handler
         )
-        resilience_manager.register_degradation_handler("seal", self._seal_degradation_handler)
+        resilience_manager.register_degradation_handler(
+            "seal", self._seal_degradation_handler
+        )
 
         # Set isolation policies
         resilience_manager.set_isolation_policy("dgm", {"openevolve"})
@@ -258,33 +277,37 @@ class EvolutionPipeline:
 
         logger.info("Resilience mechanisms initialized")
 
-    async def _pipeline_recovery_strategy(self, component: str, operation: str, error: Exception):
+    async def _pipeline_recovery_strategy(
+        self, component: str, operation: str, error: Exception
+    ):
         """Recovery strategy for pipeline-level errors."""
         logger.info(f"Executing pipeline recovery for {component}:{operation}")
 
         # Reset component state
-        if hasattr(self, 'integration_orchestrator'):
+        if hasattr(self, "integration_orchestrator"):
             await self.integration_orchestrator.restart_component(component)
 
         # Clear any cached data
-        if hasattr(self, '_cached_results'):
+        if hasattr(self, "_cached_results"):
             self._cached_results.clear()
 
         logger.info(f"Pipeline recovery completed for {component}")
 
     async def _dgm_degradation_handler(self, component: str, error: Exception):
         """Handle DGM component degradation."""
-        logger.warning(f"DGM degraded, switching to simplified evolution mode")
+        logger.warning("DGM degraded, switching to simplified evolution mode")
         # Could switch to a simpler evolution algorithm
 
     async def _openevolve_degradation_handler(self, component: str, error: Exception):
         """Handle OpenEvolve component degradation."""
-        logger.warning(f"OpenEvolve degraded, using cached optimization results")
+        logger.warning("OpenEvolve degraded, using cached optimization results")
         # Could use previously cached optimization results
 
     async def _seal_degradation_handler(self, component: str, error: Exception):
         """Handle SEAL component degradation."""
-        logger.warning(f"SEAL (Self-Adapting Language Models) degraded, using rule-based analysis")
+        logger.warning(
+            "SEAL (Self-Adapting Language Models) degraded, using rule-based analysis"
+        )
         # Could fall back to rule-based code analysis
 
     async def _dgm_fallback_handler(self, *args, context=None, **kwargs):
@@ -309,7 +332,9 @@ class EvolutionPipeline:
 
     async def _seal_fallback_handler(self, *args, context=None, **kwargs):
         """Fallback handler for SEAL (Self-Adapting Language Models) operations."""
-        logger.info("Using SEAL (Self-Adapting Language Models) fallback: static analysis")
+        logger.info(
+            "Using SEAL (Self-Adapting Language Models) fallback: static analysis"
+        )
         return {
             "status": "fallback",
             "method": "static_analysis",
@@ -344,7 +369,9 @@ class EvolutionPipeline:
     def _register_event_handlers(self) -> None:
         """Register event handlers for the pipeline."""
         self.event_bus.subscribe(EventType.WORKFLOW_STARTED, self._on_workflow_started)
-        self.event_bus.subscribe(EventType.WORKFLOW_COMPLETED, self._on_workflow_completed)
+        self.event_bus.subscribe(
+            EventType.WORKFLOW_COMPLETED, self._on_workflow_completed
+        )
         self.event_bus.subscribe(EventType.STEP_STARTED, self._on_step_started)
         self.event_bus.subscribe(EventType.STEP_COMPLETED, self._on_step_completed)
 
@@ -427,7 +454,9 @@ class EvolutionPipeline:
                     {
                         "timestamp": datetime.utcnow().isoformat(),
                         "iterations_completed": len(results),
-                        "successful_iterations": sum(1 for r in results if r["success"]),
+                        "successful_iterations": sum(
+                            1 for r in results if r["success"]
+                        ),
                     },
                 )
             )
@@ -487,7 +516,9 @@ class EvolutionPipeline:
                 )
             )
 
-            logger.info(f"Starting safety-aware evolution cycle with {iterations} iterations")
+            logger.info(
+                f"Starting safety-aware evolution cycle with {iterations} iterations"
+            )
 
             for i in range(iterations):
                 iteration_num = i + 1
@@ -510,9 +541,11 @@ class EvolutionPipeline:
                     iteration_result = await self._run_single_iteration(iteration_num)
 
                     # Extract version information
-                    new_version_id = iteration_result.get('version_id', f"iter_{iteration_num}")
-                    new_version_data = iteration_result.get('version_data', {})
-                    test_results = iteration_result.get('test_results', [])
+                    new_version_id = iteration_result.get(
+                        "version_id", f"iter_{iteration_num}"
+                    )
+                    new_version_data = iteration_result.get("version_data", {})
+                    test_results = iteration_result.get("test_results", [])
 
                     # Execute safe evolution step with safety mechanisms
                     safety_result = self.safety_integration.execute_safe_evolution_step(
@@ -526,20 +559,26 @@ class EvolutionPipeline:
                     combined_result = {
                         **iteration_result,
                         "safety_result": safety_result,
-                        "version_accepted": safety_result.get('version_accepted', False),
-                        "rollback_performed": safety_result.get('rollback_performed', False),
-                        "safety_score": safety_result.get('safety_validation', {}).get(
-                            'safety_score', 0.0
+                        "version_accepted": safety_result.get(
+                            "version_accepted", False
+                        ),
+                        "rollback_performed": safety_result.get(
+                            "rollback_performed", False
+                        ),
+                        "safety_score": safety_result.get("safety_validation", {}).get(
+                            "safety_score", 0.0
                         ),
                     }
 
                     results.append(combined_result)
 
                     # Update current version if accepted
-                    if safety_result.get('version_accepted', False):
+                    if safety_result.get("version_accepted", False):
                         current_version_id = new_version_id
-                        logger.info(f"Version {new_version_id} accepted and set as current")
-                    elif safety_result.get('rollback_performed', False):
+                        logger.info(
+                            f"Version {new_version_id} accepted and set as current"
+                        )
+                    elif safety_result.get("rollback_performed", False):
                         logger.warning(f"Rolled back from version {new_version_id}")
                         # Keep current_version_id unchanged after rollback
 
@@ -563,11 +602,13 @@ class EvolutionPipeline:
                         break
 
                     # Stop if critical safety issues detected
-                    safety_validation = safety_result.get('safety_validation', {})
+                    safety_validation = safety_result.get("safety_validation", {})
                     if safety_validation.get(
-                        'rollback_recommended', False
-                    ) and not safety_result.get('rollback_performed', False):
-                        logger.warning("Evolution cycle stopping due to unresolved safety issues")
+                        "rollback_recommended", False
+                    ) and not safety_result.get("rollback_performed", False):
+                        logger.warning(
+                            "Evolution cycle stopping due to unresolved safety issues"
+                        )
                         break
 
                 except Exception as iteration_error:
@@ -587,14 +628,19 @@ class EvolutionPipeline:
                         "iteration": iteration_num,
                         "success": False,
                         "error": str(iteration_error),
-                        "safety_result": {"success": False, "error": str(iteration_error)},
+                        "safety_result": {
+                            "success": False,
+                            "error": str(iteration_error),
+                        },
                         "version_accepted": False,
                         "rollback_performed": False,
                         "safety_score": 0.0,
                     }
                     results.append(error_result)
 
-                    logger.error(f"Error in safe iteration {iteration_num}: {iteration_error}")
+                    logger.error(
+                        f"Error in safe iteration {iteration_num}: {iteration_error}"
+                    )
                     # Continue with next iteration unless it's a critical error
                     continue
 
@@ -608,7 +654,9 @@ class EvolutionPipeline:
                     {
                         "timestamp": datetime.utcnow().isoformat(),
                         "iterations_completed": len(results),
-                        "successful_iterations": sum(1 for r in results if r.get("success", False)),
+                        "successful_iterations": sum(
+                            1 for r in results if r.get("success", False)
+                        ),
                         "accepted_versions": sum(
                             1 for r in results if r.get("version_accepted", False)
                         ),
@@ -621,7 +669,9 @@ class EvolutionPipeline:
                 )
             )
 
-            logger.info(f"Safety-aware evolution cycle completed: {len(results)} iterations")
+            logger.info(
+                f"Safety-aware evolution cycle completed: {len(results)} iterations"
+            )
 
         except Exception as e:
             logger.exception("Error during safety-aware evolution cycle")
@@ -680,7 +730,10 @@ class EvolutionPipeline:
             )
 
             improvements = await resilience_manager.execute_with_resilience(
-                "pipeline", "generate_improvements", self._generate_improvements, analysis
+                "pipeline",
+                "generate_improvements",
+                self._generate_improvements,
+                analysis,
             )
 
             await publish_pipeline_stage_event(
@@ -693,7 +746,10 @@ class EvolutionPipeline:
 
             # 3. Apply SEAL (Self-Adapting Language Models) adaptations with resilience
             await publish_pipeline_stage_event(
-                stage="adapting", status="started", source="evolution_pipeline", iteration=iteration
+                stage="adapting",
+                status="started",
+                source="evolution_pipeline",
+                iteration=iteration,
             )
 
             adapted_improvements = await resilience_manager.execute_with_resilience(
@@ -717,7 +773,10 @@ class EvolutionPipeline:
             )
 
             evaluation_result = await resilience_manager.execute_with_resilience(
-                "pipeline", "evaluate_version", self._evaluate_version, adapted_improvements
+                "pipeline",
+                "evaluate_version",
+                self._evaluate_version,
+                adapted_improvements,
             )
 
             await publish_pipeline_stage_event(
@@ -737,7 +796,10 @@ class EvolutionPipeline:
             )
 
             is_improvement = await resilience_manager.execute_with_resilience(
-                "pipeline", "validate_improvement", self._validate_improvement, evaluation_result
+                "pipeline",
+                "validate_improvement",
+                self._validate_improvement,
+                evaluation_result,
             )
 
             # Update iteration result
@@ -772,16 +834,26 @@ class EvolutionPipeline:
 
             # Try error recovery
             try:
-                recovered_result, recovery_result = await error_recovery_manager.recover_from_error(
-                    e, "pipeline", "run_iteration", self._run_single_iteration, iteration
+                recovered_result, recovery_result = (
+                    await error_recovery_manager.recover_from_error(
+                        e,
+                        "pipeline",
+                        "run_iteration",
+                        self._run_single_iteration,
+                        iteration,
+                    )
                 )
 
                 if recovery_result.value in ["success", "partial_success"]:
-                    logger.info(f"Successfully recovered from iteration {iteration} error")
+                    logger.info(
+                        f"Successfully recovered from iteration {iteration} error"
+                    )
                     return recovered_result
 
             except Exception as recovery_error:
-                logger.error(f"Recovery failed for iteration {iteration}: {recovery_error}")
+                logger.error(
+                    f"Recovery failed for iteration {iteration}: {recovery_error}"
+                )
 
             # Record failure details
             iteration_result.update(
@@ -811,17 +883,23 @@ class EvolutionPipeline:
         # TODO: Implement analysis logic
         return {}
 
-    async def _generate_improvements(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _generate_improvements(
+        self, analysis: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Generate potential improvements based on analysis."""
         # TODO: Implement improvement generation logic
         return []
 
-    async def _adapt_improvements(self, improvements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _adapt_improvements(
+        self, improvements: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Adapt improvements using SEAL (Self-Adapting Language Models)."""
         # TODO: Implement SEAL (Self-Adapting Language Models) adaptation logic
         return improvements
 
-    async def _evaluate_version(self, improvements: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _evaluate_version(
+        self, improvements: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Evaluate a new version with the given improvements."""
         # TODO: Implement version evaluation logic
         return {"metrics": {}}
@@ -836,7 +914,7 @@ class EvolutionPipeline:
     @with_error_recovery("pipeline", "initialize_components")
     async def initialize_components(self) -> bool:
         """Initialize all component adapters with comprehensive error handling."""
-        if not hasattr(self, 'integration_orchestrator'):
+        if not hasattr(self, "integration_orchestrator"):
             logger.error("Integration orchestrator not initialized")
             return False
 
@@ -846,7 +924,10 @@ class EvolutionPipeline:
                 Event(
                     event_type=EventType.COMPONENT_INITIALIZING,
                     source="evolution_pipeline",
-                    data={"pipeline_id": id(self), "timestamp": datetime.utcnow().isoformat()},
+                    data={
+                        "pipeline_id": id(self),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
                 )
             )
 
@@ -923,7 +1004,7 @@ class EvolutionPipeline:
 
     async def start_components(self) -> bool:
         """Start all component adapters."""
-        if not hasattr(self, 'integration_orchestrator'):
+        if not hasattr(self, "integration_orchestrator"):
             logger.error("Integration orchestrator not initialized")
             return False
 
@@ -933,7 +1014,10 @@ class EvolutionPipeline:
                 Event(
                     event_type=EventType.COMPONENT_STARTING,
                     source="evolution_pipeline",
-                    data={"pipeline_id": id(self), "timestamp": datetime.utcnow().isoformat()},
+                    data={
+                        "pipeline_id": id(self),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
                 )
             )
 
@@ -981,7 +1065,7 @@ class EvolutionPipeline:
 
     async def stop_components(self) -> bool:
         """Stop all component adapters."""
-        if not hasattr(self, 'integration_orchestrator'):
+        if not hasattr(self, "integration_orchestrator"):
             return True
 
         try:
@@ -990,7 +1074,10 @@ class EvolutionPipeline:
                 Event(
                     event_type=EventType.COMPONENT_STOPPING,
                     source="evolution_pipeline",
-                    data={"pipeline_id": id(self), "timestamp": datetime.utcnow().isoformat()},
+                    data={
+                        "pipeline_id": id(self),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
                 )
             )
 
@@ -1038,7 +1125,7 @@ class EvolutionPipeline:
 
     def get_component_status(self) -> Dict[str, Any]:
         """Get status of all components."""
-        if not hasattr(self, 'integration_orchestrator'):
+        if not hasattr(self, "integration_orchestrator"):
             return {"error": "Integration orchestrator not initialized"}
 
         try:
@@ -1058,7 +1145,7 @@ class EvolutionPipeline:
 
     async def get_component_metrics(self) -> Dict[str, Any]:
         """Get metrics from all components."""
-        if not hasattr(self, 'integration_orchestrator'):
+        if not hasattr(self, "integration_orchestrator"):
             return {"error": "Integration orchestrator not initialized"}
 
         try:
@@ -1067,13 +1154,20 @@ class EvolutionPipeline:
             logger.exception("Error getting component metrics")
             return {"error": str(e)}
 
-    async def execute_evolution_workflow(self, workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_evolution_workflow(
+        self, workflow_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute a complete evolution workflow using all components."""
-        if not hasattr(self, 'integration_orchestrator'):
-            return {"error": "Integration orchestrator not initialized", "success": False}
+        if not hasattr(self, "integration_orchestrator"):
+            return {
+                "error": "Integration orchestrator not initialized",
+                "success": False,
+            }
 
         try:
-            return await self.integration_orchestrator.execute_evolution_workflow(workflow_config)
+            return await self.integration_orchestrator.execute_evolution_workflow(
+                workflow_config
+            )
         except Exception as e:
             logger.exception("Error executing evolution workflow")
             return {"error": str(e), "success": False}
@@ -1082,12 +1176,16 @@ class EvolutionPipeline:
         """Update legacy connectors for backward compatibility."""
         from ..integration.base_adapter import ComponentType
 
-        if hasattr(self, 'integration_orchestrator'):
-            self.dgm_connector = self.integration_orchestrator.get_component(ComponentType.DGM)
+        if hasattr(self, "integration_orchestrator"):
+            self.dgm_connector = self.integration_orchestrator.get_component(
+                ComponentType.DGM
+            )
             self.openevolve_connector = self.integration_orchestrator.get_component(
                 ComponentType.OPENEVOLVE
             )
-            self.seal_connector = self.integration_orchestrator.get_component(ComponentType.SEAL)
+            self.seal_connector = self.integration_orchestrator.get_component(
+                ComponentType.SEAL
+            )
 
     def _get_current_version_id(self) -> str:
         """Get the current version ID for safety operations.
@@ -1097,23 +1195,23 @@ class EvolutionPipeline:
         """
         try:
             # Try to get version from version database
-            if hasattr(self, 'version_db') and self.version_db:
+            if hasattr(self, "version_db") and self.version_db:
                 latest_version = self.version_db.get_latest_version()
                 if latest_version:
-                    return str(latest_version.get('id', 'baseline'))
+                    return str(latest_version.get("id", "baseline"))
 
             # Try to get from version manager if available
-            if hasattr(self, 'version_manager') and self.version_manager:
-                current_version = getattr(self.version_manager, 'current_version', None)
+            if hasattr(self, "version_manager") and self.version_manager:
+                current_version = getattr(self.version_manager, "current_version", None)
                 if current_version:
                     return str(current_version)
 
             # Fallback to baseline
-            return 'baseline'
+            return "baseline"
 
         except Exception as e:
             logger.warning(f"Error getting current version ID: {e}")
-            return 'baseline'
+            return "baseline"
 
     # Event Handlers
     def _on_workflow_started(self, event: Event) -> None:
@@ -1155,7 +1253,7 @@ class WorkflowStage(Enum):
     FINALIZING = "finalizing"
 
     @classmethod
-    def get_stage_order(cls) -> List['WorkflowStage']:
+    def get_stage_order(cls) -> List[WorkflowStage]:
         """Get the ordered list of workflow stages."""
         return [
             cls.INITIALIZING,
@@ -1168,7 +1266,7 @@ class WorkflowStage(Enum):
         ]
 
     @classmethod
-    def get_required_stages(cls, stage: 'WorkflowStage') -> List['WorkflowStage']:
+    def get_required_stages(cls, stage: WorkflowStage) -> List[WorkflowStage]:
         """Get the list of stages that must be completed before the given stage."""
         stage_order = cls.get_stage_order()
         try:
@@ -1179,7 +1277,7 @@ class WorkflowStage(Enum):
 
     @classmethod
     def validate_stage_transition(
-        cls, from_stage: Optional['WorkflowStage'], to_stage: 'WorkflowStage'
+        cls, from_stage: Optional[WorkflowStage], to_stage: WorkflowStage
     ) -> bool:
         """Validate if a transition between stages is allowed."""
         if from_stage is None:
@@ -1289,7 +1387,7 @@ class WorkflowCoordinator:
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from file."""
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path) as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
@@ -1310,7 +1408,7 @@ class WorkflowCoordinator:
             "work_dir": str(self.work_dir),
         }
 
-        with open(self._get_state_file(), 'w') as f:
+        with open(self._get_state_file(), "w") as f:
             json.dump(state, f, indent=2)
 
     def _load_state(self) -> bool:
@@ -1324,12 +1422,14 @@ class WorkflowCoordinator:
             return False
 
         try:
-            with open(state_file, 'r') as f:
+            with open(state_file) as f:
                 state = json.load(f)
 
             self.state = WorkflowState(state["state"])
             self.current_stage = (
-                WorkflowStage(state["current_stage"]) if state["current_stage"] else None
+                WorkflowStage(state["current_stage"])
+                if state["current_stage"]
+                else None
             )
             self.stage_results = state["stage_results"]
             self.retry_count = state["retry_count"]
@@ -1369,7 +1469,9 @@ class WorkflowCoordinator:
         """
         # Validate stage transition
         if not WorkflowStage.validate_stage_transition(self.current_stage, stage):
-            raise ValueError(f"Invalid stage transition from {self.current_stage} to {stage}")
+            raise ValueError(
+                f"Invalid stage transition from {self.current_stage} to {stage}"
+            )
 
         self.current_stage = stage
         self.stage_attempts = 0
@@ -1400,7 +1502,9 @@ class WorkflowCoordinator:
                 )
 
                 # Execute the stage function
-                result = await self._execute_stage_function(stage, func, *args, **kwargs)
+                result = await self._execute_stage_function(
+                    stage, func, *args, **kwargs
+                )
 
                 # Handle successful stage completion
                 self._handle_stage_success(stage, result)
@@ -1428,7 +1532,9 @@ class WorkflowCoordinator:
             if self.stage_attempts >= self.MAX_STAGE_ATTEMPTS:
                 self._handle_stage_failure(stage)
 
-    async def _execute_stage_function(self, stage: WorkflowStage, func, *args, **kwargs):
+    async def _execute_stage_function(
+        self, stage: WorkflowStage, func, *args, **kwargs
+    ):
         """Execute a single attempt of a stage function with proper error handling."""
         try:
             # Execute the function (supports both sync and async functions)
@@ -1471,7 +1577,9 @@ class WorkflowCoordinator:
         # For other errors, check if we should retry
         if self.stage_attempts < self.MAX_STAGE_ATTEMPTS - 1:
             # Calculate exponential backoff
-            delay = min(self.RETRY_DELAY * (2**self.stage_attempts), 300)  # Max 5 minutes
+            delay = min(
+                self.RETRY_DELAY * (2**self.stage_attempts), 300
+            )  # Max 5 minutes
             logger.info(f"Retrying in {delay} seconds...")
             time.sleep(delay)
             return True
@@ -1538,12 +1646,16 @@ class WorkflowCoordinator:
         """
         if stage == WorkflowStage.INITIALIZING:
             # Ensure we start with a clean working directory
-            self.repo_manager.reset_to_commit(self.current_repo, 'HEAD', hard=True)
+            self.repo_manager.reset_to_commit(self.current_repo, "HEAD", hard=True)
 
         elif stage == WorkflowStage.GENERATING:
             # Create a feature branch for this iteration
-            branch_name = f"feature/iteration-{len(self.stage_results.get('iterations', [])) + 1}"
-            self.repo_manager.checkout_branch(self.current_repo, branch_name, create=True)
+            branch_name = (
+                f"feature/iteration-{len(self.stage_results.get('iterations', [])) + 1}"
+            )
+            self.repo_manager.checkout_branch(
+                self.current_repo, branch_name, create=True
+            )
 
     def _handle_stage_success(self, stage: WorkflowStage, result: Any) -> None:
         """Handle successful stage completion.
@@ -1593,7 +1705,7 @@ class WorkflowCoordinator:
             # conflict resolution strategies here
             repo = self.repo_manager.get_repository(self.current_repo)
             if repo:
-                repo.git.merge('--abort')
+                repo.git.merge("--abort")
 
             return False  # Let the retry logic handle it
 
@@ -1680,7 +1792,9 @@ class WorkflowCoordinator:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             branch_name = f"recovery/{reason}-{timestamp}"
 
-            self.repo_manager.checkout_branch(self.current_repo, branch_name, create=True)
+            self.repo_manager.checkout_branch(
+                self.current_repo, branch_name, create=True
+            )
 
             # Commit any uncommitted changes
             self.repo_manager.commit_changes(
@@ -1772,8 +1886,8 @@ class WorkflowCoordinator:
         """
         try:
             # Extract repository name from URL
-            repo_name = repository_url.split('/')[-1]
-            if repo_name.endswith('.git'):
+            repo_name = repository_url.split("/")[-1]
+            if repo_name.endswith(".git"):
                 repo_name = repo_name[:-4]
 
             # Check if repository already exists locally
@@ -1786,7 +1900,9 @@ class WorkflowCoordinator:
             else:
                 # Clone the repository
                 logger.info(f"Cloning repository from {repository_url}")
-                repo_path = self.repo_manager.clone_repository(repository_url, repo_name)
+                repo_path = self.repo_manager.clone_repository(
+                    repository_url, repo_name
+                )
 
             # Create a new branch for the evolution workflow
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1799,8 +1915,12 @@ class WorkflowCoordinator:
             self.repo_manager.checkout_branch(repo_name, default_branch)
 
             # Create and switch to the new branch
-            if not self.repo_manager.checkout_branch(repo_name, branch_name, create=True):
-                raise RepositoryError(f"Failed to create evolution branch: {branch_name}")
+            if not self.repo_manager.checkout_branch(
+                repo_name, branch_name, create=True
+            ):
+                raise RepositoryError(
+                    f"Failed to create evolution branch: {branch_name}"
+                )
 
             # Store repository information
             self.current_repo = repo_name
@@ -1835,8 +1955,10 @@ class WorkflowCoordinator:
             logger.error(error_msg, exc_info=True)
 
             # Clean up if we partially initialized
-            if 'repo_path' in locals() and repo_path.exists() and not self.current_repo:
-                logger.warning(f"Cleaning up partially initialized repository at {repo_path}")
+            if "repo_path" in locals() and repo_path.exists() and not self.current_repo:
+                logger.warning(
+                    f"Cleaning up partially initialized repository at {repo_path}"
+                )
                 try:
                     shutil.rmtree(repo_path)
                 except Exception as cleanup_error:
@@ -1894,7 +2016,9 @@ class WorkflowCoordinator:
             iteration_result["stages"]["evaluation"] = evaluation
 
             is_improvement = await self._execute_stage(
-                WorkflowStage.VALIDATING, self.pipeline._validate_improvement, evaluation
+                WorkflowStage.VALIDATING,
+                self.pipeline._validate_improvement,
+                evaluation,
             )
 
             iteration_result.update(
@@ -1938,8 +2062,10 @@ class WorkflowCoordinator:
 
                 if self.repo_manager.commit_changes(self.current_repo, commit_message):
                     result["repository"] = self.current_repo
-                    result["commit"] = self.repo_manager.get_status(self.current_repo).get('commit')
-                    logger.info(f"Committed final changes to repository")
+                    result["commit"] = self.repo_manager.get_status(
+                        self.current_repo
+                    ).get("commit")
+                    logger.info("Committed final changes to repository")
                 else:
                     result["warning"] = "No changes to commit"
 
@@ -1953,14 +2079,17 @@ class WorkflowCoordinator:
 def main():
     """Main entry point for the evolution pipeline."""
     import argparse
-    import logging
 
     # Set up argument parser
-    parser = argparse.ArgumentParser(description='EVOSEAL Evolution Pipeline')
-    parser.add_argument('--config', required=True, help='Path to configuration file')
-    parser.add_argument('--repository', required=True, help='URL of the repository to evolve')
-    parser.add_argument('--iterations', type=int, default=5, help='Number of evolution iterations')
-    parser.add_argument('--log-level', default='INFO', help='Logging level')
+    parser = argparse.ArgumentParser(description="EVOSEAL Evolution Pipeline")
+    parser.add_argument("--config", required=True, help="Path to configuration file")
+    parser.add_argument(
+        "--repository", required=True, help="URL of the repository to evolve"
+    )
+    parser.add_argument(
+        "--iterations", type=int, default=5, help="Number of evolution iterations"
+    )
+    parser.add_argument("--log-level", default="INFO", help="Logging level")
 
     # Parse arguments
     args = parser.parse_args()
@@ -1968,7 +2097,7 @@ def main():
     # Configure logging
     logging.basicConfig(
         level=getattr(logging, args.log_level.upper()),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     try:
@@ -1982,9 +2111,11 @@ def main():
         )
 
         # Print summary
-        print(f"\nEvolution completed successfully!")
+        print("\nEvolution completed successfully!")
         print(f"Iterations: {len(results)}")
-        print(f"Improvements found: {sum(1 for r in results if r.get('is_improvement', False))}")
+        print(
+            f"Improvements found: {sum(1 for r in results if r.get('is_improvement', False))}"
+        )
 
     except Exception as e:
         logger.error(f"Evolution failed: {e}", exc_info=True)

@@ -2,7 +2,7 @@
 
 All notable changes to the EVOSEAL project are documented here.
 
-## [0.3.2] - 2025-01-27 - Port Consistency and Configuration Standardization
+## [0.3.2] - 2025-07-27 - Port Consistency and Configuration Standardization
 
 ### 🔧 Fixes
 
@@ -49,7 +49,7 @@ All notable changes to the EVOSEAL project are documented here.
 - **systemd Service**: Configured for port 8081
 - **Default Settings**: All defaults set to 8081
 
-## [0.3.1] - 2025-01-27 - Portable systemd Service Configuration
+## [0.3.1] - 2025-07-27 - Portable systemd Service Configuration
 
 ### 🔧 Improvements
 
@@ -96,7 +96,7 @@ All notable changes to the EVOSEAL project are documented here.
 - Run standard systemd enable/start commands
 - Service automatically detects user environment and network configuration
 
-## [0.3.0] - 2025-01-27 - Phase 3: Bidirectional Continuous Evolution
+## [0.3.0] - 2025-07-27 - Phase 3: Bidirectional Continuous Evolution
 
 ### 🚀 Major Features Added
 

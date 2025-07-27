@@ -9,7 +9,10 @@ from typing import Final
 
 import pytest
 
-from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase, KnowledgeEntry
+from evoseal.integration.seal.knowledge.knowledge_base import (
+    KnowledgeBase,
+    KnowledgeEntry,
+)
 
 # Test constants
 EXPECTED_VERSION_AFTER_UPDATE: Final[int] = 2
@@ -103,7 +106,9 @@ def test_search_entries(tmp_path):
     # Add test entries
     kb.add_entry("Python is a programming language", tags=["programming", "python"])
     kb.add_entry("Machine learning is a field of AI", tags=["ai", "machine-learning"])
-    kb.add_entry("Python is used for data science", tags=["programming", "data-science"])
+    kb.add_entry(
+        "Python is used for data science", tags=["programming", "data-science"]
+    )
 
     # Search by tag
     results = kb.search_entries(tags=["programming"])

@@ -159,8 +159,12 @@ class HealthMonitor:
     def __init__(self, window_size: int = 100):
         self.window_size = window_size
         self.metrics: Dict[str, HealthMetrics] = {}
-        self.operation_history: Dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
-        self.response_times: Dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
+        self.operation_history: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=window_size)
+        )
+        self.response_times: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=window_size)
+        )
 
     def record_operation(
         self,
@@ -246,7 +250,8 @@ class HealthMonitor:
         return [
             component
             for component, metrics in self.metrics.items()
-            if metrics.health_status in [ComponentHealth.UNHEALTHY, ComponentHealth.CRITICAL]
+            if metrics.health_status
+            in [ComponentHealth.UNHEALTHY, ComponentHealth.CRITICAL]
         ]
 
 
@@ -267,7 +272,9 @@ class ResilienceManager:
         self.health_check_interval = 30  # seconds
         self.auto_recovery_enabled = True
 
-    def register_circuit_breaker(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+    def register_circuit_breaker(
+        self, name: str, config: Optional[CircuitBreakerConfig] = None
+    ):
         """Register a circuit breaker for a component."""
         if config is None:
             config = CircuitBreakerConfig()
@@ -320,7 +327,9 @@ class ResilienceManager:
 
             # Record success
             response_time = time.time() - start_time
-            self.health_monitor.record_operation(component, operation, True, response_time)
+            self.health_monitor.record_operation(
+                component, operation, True, response_time
+            )
 
             if circuit_breaker:
                 circuit_breaker.record_success()
@@ -331,7 +340,9 @@ class ResilienceManager:
             response_time = time.time() - start_time
 
             # Record failure
-            self.health_monitor.record_operation(component, operation, False, response_time, e)
+            self.health_monitor.record_operation(
+                component, operation, False, response_time, e
+            )
 
             if circuit_breaker:
                 circuit_breaker.record_failure()
@@ -450,7 +461,9 @@ class ResilienceManager:
                     handler(component, error)
                 logger.info(f"Graceful degradation activated for {component}")
             except Exception as degradation_error:
-                logger.error(f"Graceful degradation failed for {component}: {degradation_error}")
+                logger.error(
+                    f"Graceful degradation failed for {component}: {degradation_error}"
+                )
 
     async def _handle_failure_isolation(self, component: str, error: Exception):
         """Handle failure isolation policies."""
@@ -539,7 +552,9 @@ class ResilienceManager:
                     "state": cb.state.value,
                     "failure_count": cb.failure_count,
                     "last_failure": (
-                        cb.last_failure_time.isoformat() if cb.last_failure_time else None
+                        cb.last_failure_time.isoformat()
+                        if cb.last_failure_time
+                        else None
                     ),
                 }
                 for name, cb in self.circuit_breakers.items()

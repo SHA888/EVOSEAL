@@ -21,7 +21,13 @@ from jsonschema import Draft7Validator
 from jsonschema import ValidationError as JSONSchemaValidationError
 
 # Import Validator type
-from .validation_types import JSONArray, JSONObject, JSONValue, ValidationLevel, ValidationResult
+from .validation_types import (
+    JSONArray,
+    JSONObject,
+    JSONValue,
+    ValidationLevel,
+    ValidationResult,
+)
 from .validation_types import Validator as ValidatorType
 
 # Configure logging
@@ -62,7 +68,9 @@ class WorkflowValidationError(Exception):
 class WorkflowValidator:
     """Validates workflow definitions against a schema and semantic rules."""
 
-    def __init__(self, schema_path: str | Path | None = None, load_schema: bool = True) -> None:
+    def __init__(
+        self, schema_path: str | Path | None = None, load_schema: bool = True
+    ) -> None:
         """Initialize the workflow validator.
 
         Args:
@@ -224,7 +232,9 @@ class WorkflowValidator:
 
         is_valid = self._validate_basic(workflow, result, partial)
         if level_enum == ValidationLevel.FULL and (is_valid or not partial):
-            is_valid = self._run_custom_validators(workflow, result, partial) and is_valid
+            is_valid = (
+                self._run_custom_validators(workflow, result, partial) and is_valid
+            )
         return is_valid
 
     @dataclass
@@ -570,7 +580,9 @@ class WorkflowValidator:
         Returns:
             ValidationResult: The validation result.
         """
-        return await asyncio.to_thread(self.validate, workflow_definition, level, partial)
+        return await asyncio.to_thread(
+            self.validate, workflow_definition, level, partial
+        )
 
 
 def validate_workflow(

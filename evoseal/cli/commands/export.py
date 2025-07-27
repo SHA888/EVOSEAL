@@ -95,7 +95,11 @@ def export_results(
             if include_metrics
             else {}
         ),
-        "code": ("# Sample code\ndef main():\n    print('Hello, World!')" if include_code else ""),
+        "code": (
+            "# Sample code\ndef main():\n    print('Hello, World!')"
+            if include_code
+            else ""
+        ),
     }
 
     output: str = ""
@@ -229,7 +233,9 @@ def export_all(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Create sample export structure
-    (output_dir / "config.yaml").write_text("# Configuration\nproject: evoseal\nversion: 0.1.0")
+    (output_dir / "config.yaml").write_text(
+        "# Configuration\nproject: evoseal\nversion: 0.1.0"
+    )
 
     results_dir = output_dir / "results"
     results_dir.mkdir(exist_ok=True)

@@ -90,7 +90,7 @@ class OllamaProvider(SEALProvider):
             timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 logger.debug(f"Sending request to Ollama: {self.base_url}/api/generate")
-                
+
                 async with session.post(
                     f"{self.base_url}/api/generate",
                     json=payload,
@@ -103,17 +103,21 @@ class OllamaProvider(SEALProvider):
                         )
 
                     result = await response.json()
-                    
+
                     if "error" in result:
                         raise Exception(f"Ollama API error: {result['error']}")
 
                     response_text = result.get("response", "")
-                    
-                    logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
+
+                    logger.debug(
+                        f"Received response from Ollama ({len(response_text)} chars)"
+                    )
                     return response_text
 
         except asyncio.TimeoutError as e:
-            logger.error(f"Timeout error communicating with Ollama after {self.timeout}s: {e}")
+            logger.error(
+                f"Timeout error communicating with Ollama after {self.timeout}s: {e}"
+            )
             raise Exception(f"Ollama request timed out after {self.timeout} seconds")
         except aiohttp.ClientError as e:
             logger.error(f"Network error communicating with Ollama: {e}")
@@ -156,10 +160,12 @@ class OllamaProvider(SEALProvider):
                 if line.strip().startswith("```"):
                     if in_code_block:
                         # End of code block
-                        code_blocks.append({
-                            "language": current_language,
-                            "code": "\n".join(current_block)
-                        })
+                        code_blocks.append(
+                            {
+                                "language": current_language,
+                                "code": "\n".join(current_block),
+                            }
+                        )
                         current_block = []
                         in_code_block = False
                     else:
@@ -193,13 +199,17 @@ class OllamaProvider(SEALProvider):
 
                     data = await response.json()
                     models = [model["name"] for model in data.get("models", [])]
-                    
+
                     # Check if our model is available
                     if self.model not in models:
-                        logger.warning(f"Model {self.model} not found in Ollama. Available: {models}")
+                        logger.warning(
+                            f"Model {self.model} not found in Ollama. Available: {models}"
+                        )
                         return False
 
-                    logger.info(f"Ollama health check passed. Model {self.model} is available.")
+                    logger.info(
+                        f"Ollama health check passed. Model {self.model} is available."
+                    )
                     return True
 
         except Exception as e:

@@ -23,7 +23,9 @@ class DataLoader(ABC, Generic[T]):
     """Abstract base class for data loaders."""
 
     @classmethod
-    def from_file(cls, file_path: Union[str, Path], model: Type[T], **kwargs: Any) -> List[T]:
+    def from_file(
+        cls, file_path: Union[str, Path], model: Type[T], **kwargs: Any
+    ) -> List[T]:
         """Load data from a file.
 
         Args:
@@ -44,7 +46,7 @@ class DataLoader(ABC, Generic[T]):
         except ValueError as e:
             raise ValueError(f"Unsupported file format: {format}") from e
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         return cls.from_string(content, format_enum, model, **kwargs)

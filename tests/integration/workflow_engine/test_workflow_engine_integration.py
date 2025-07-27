@@ -47,7 +47,9 @@ class TestWorkflowEngineIntegration:
         ]
 
     @pytest.mark.asyncio
-    async def test_workflow_lifecycle(self, engine, mock_component, sample_workflow_steps):
+    async def test_workflow_lifecycle(
+        self, engine, mock_component, sample_workflow_steps
+    ):
         """Test the complete workflow lifecycle with synchronous and asynchronous steps."""
         # Setup
         mock_component.test_method.return_value = "step1_result"
@@ -231,7 +233,9 @@ class TestWorkflowEngineIntegration:
                 event_order.append(event_type)
 
         # Register a single handler for all events
-        engine.event_bus.subscribe(event_handler, None)  # None means subscribe to all events
+        engine.event_bus.subscribe(
+            event_handler, None
+        )  # None means subscribe to all events
 
         # Execute the workflow
         success = await engine.execute_workflow_async("event_workflow")
@@ -260,7 +264,9 @@ class TestWorkflowEngineIntegration:
 
         # Verify that each event type appears the expected number of times
         # (should be exactly once for each event type)
-        event_counts = {event: published_events.count(event) for event in set(published_events)}
+        event_counts = {
+            event: published_events.count(event) for event in set(published_events)
+        }
         for event_type, count in event_counts.items():
             assert (
                 count == 1

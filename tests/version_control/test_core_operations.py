@@ -58,7 +58,9 @@ def test_clone_repository(temp_dir: Path, git_remote_repo: Path):
     repo._run_git_command(["remote", "add", "origin", str(git_remote_repo)])
 
     # Push to the remote with the full refspec
-    success, stdout, stderr = repo._run_git_command(["push", "-u", "origin", "main:main"])
+    success, stdout, stderr = repo._run_git_command(
+        ["push", "-u", "origin", "main:main"]
+    )
     assert success, f"Failed to push to remote: {stderr}"
 
     # Clone the repository
@@ -140,7 +142,9 @@ def test_push_changes(git_repo_with_commit: CmdGit, git_remote_repo: Path):
     git_repo_with_commit._run_git_command(["commit", "-m", "Add test file for push"])
 
     # Push to the remote with the -u flag to set upstream
-    result = git_repo_with_commit.push(remote="origin", branch="main", set_upstream=True)
+    result = git_repo_with_commit.push(
+        remote="origin", branch="main", set_upstream=True
+    )
     assert result.success, f"Push failed: {result.error}"
 
     # Verify the push was successful by checking the remote
@@ -212,24 +216,32 @@ def test_pull_changes(temp_dir: Path, git_remote_repo: Path):
 
     # Push the changes
     push_result = repo1.push(remote="origin", branch="main")
-    assert push_result.success, f"Failed to push changes: {push_result.error or 'Unknown error'}"
+    assert (
+        push_result.success
+    ), f"Failed to push changes: {push_result.error or 'Unknown error'}"
 
     # Pull the changes in the second repository
     pull_result = repo2.pull(remote="origin", branch="main")
 
     # Verify the pull was successful
-    assert pull_result.success, f"Failed to pull changes: {pull_result.error or 'Unknown error'}"
+    assert (
+        pull_result.success
+    ), f"Failed to pull changes: {pull_result.error or 'Unknown error'}"
 
     # Verify the new file exists and has the correct content
     new_file_path = repo2_path / "new_file.txt"
     assert new_file_path.exists(), f"File {new_file_path} does not exist after pull"
-    assert new_file_path.read_text() == "new content", f"File content does not match expected"
+    assert (
+        new_file_path.read_text() == "new content"
+    ), "File content does not match expected"
 
 
 def test_checkout_branch(git_repo_with_commit: CmdGit):
     """Test checking out a branch."""
     # Get the current branch name (usually 'master' or 'main')
-    success, default_branch, _ = git_repo_with_commit._run_git_command(["branch", "--show-current"])
+    success, default_branch, _ = git_repo_with_commit._run_git_command(
+        ["branch", "--show-current"]
+    )
     assert success
     default_branch = default_branch.strip()
 
@@ -242,7 +254,9 @@ def test_checkout_branch(git_repo_with_commit: CmdGit):
     assert result.success
 
     # Verify we're on the new branch
-    success, current_branch, _ = git_repo_with_commit._run_git_command(["branch", "--show-current"])
+    success, current_branch, _ = git_repo_with_commit._run_git_command(
+        ["branch", "--show-current"]
+    )
     assert success
     assert current_branch.strip() == "feature-branch"
 
@@ -336,7 +350,9 @@ def test_branch_operations(git_repo_with_commit: CmdGit):
     assert "feature-branch" in result.output
 
     # Get the current branch
-    success, current_branch, _ = git_repo_with_commit._run_git_command(["branch", "--show-current"])
+    success, current_branch, _ = git_repo_with_commit._run_git_command(
+        ["branch", "--show-current"]
+    )
     assert success
 
     # Switch to the new branch
@@ -356,7 +372,9 @@ def test_branch_operations(git_repo_with_commit: CmdGit):
     assert result.success
 
     # Delete the branch (must use -D to force delete as it's not fully merged)
-    success, _, _ = git_repo_with_commit._run_git_command(["branch", "-D", "feature-branch"])
+    success, _, _ = git_repo_with_commit._run_git_command(
+        ["branch", "-D", "feature-branch"]
+    )
     assert success
 
     # Verify branch was deleted

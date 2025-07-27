@@ -70,7 +70,9 @@ class TestPromptConstructor:
         assert result == "User: Hello"
 
         # Test chain of thought
-        result = constructor.format_with_style("Solve this", PromptStyle.CHAIN_OF_THOUGHT)
+        result = constructor.format_with_style(
+            "Solve this", PromptStyle.CHAIN_OF_THOUGHT
+        )
         assert "Let's think step by step" in result
 
 

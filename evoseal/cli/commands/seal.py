@@ -10,7 +10,9 @@ import typer
 
 from ..base import EVOSEALCommand
 
-app = typer.Typer(name="seal", help="SEAL (Self-Adapting Language Models) model operations")
+app = typer.Typer(
+    name="seal", help="SEAL (Self-Adapting Language Models) model operations"
+)
 
 
 @app.callback()
@@ -35,13 +37,17 @@ def generate_text(
     ] = 0.7,
     max_tokens: Annotated[
         int,
-        typer.Option("--max-tokens", "-n", help="Maximum number of tokens to generate."),
+        typer.Option(
+            "--max-tokens", "-n", help="Maximum number of tokens to generate."
+        ),
     ] = 2048,
 ) -> None:
     """Generate text using a SEAL (Self-Adapting Language Models) model."""
     typer.echo(f"Generating text with prompt: {prompt}")
     # TODO: Implement actual SEAL (Self-Adapting Language Models) model integration
-    typer.echo("SEAL (Self-Adapting Language Models) text generation is not yet implemented.")
+    typer.echo(
+        "SEAL (Self-Adapting Language Models) text generation is not yet implemented."
+    )
 
 
 @app.command("train")
@@ -64,9 +70,13 @@ def train_model(
     ] = 8,
 ) -> None:
     """Train a SEAL (Self-Adapting Language Models) model."""
-    typer.echo(f"Training SEAL (Self-Adapting Language Models) model on data from {data_path}")
+    typer.echo(
+        f"Training SEAL (Self-Adapting Language Models) model on data from {data_path}"
+    )
     # TODO: Implement actual SEAL (Self-Adapting Language Models) training
-    typer.echo("SEAL (Self-Adapting Language Models) model training is not yet implemented.")
+    typer.echo(
+        "SEAL (Self-Adapting Language Models) model training is not yet implemented."
+    )
 
 
 if __name__ == "__main__":
