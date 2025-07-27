@@ -9,6 +9,8 @@
 
 **Latest Version**: 0.3.0 (July 27, 2025)
 
+![Dashboard](./assets/evoseal-dashboard.png)
+
 **🎉 Phase 3 Release - Bidirectional Continuous Evolution**:
 - ✅ Complete bidirectional evolution system between EVOSEAL and Devstral
 - ✅ Real-time monitoring dashboard with WebSocket updates

@@ -38,6 +38,7 @@ class Phase3Orchestrator:
     def __init__(
         self,
         config_file: Optional[Path] = None,
+        dashboard_host: str = "localhost",
         dashboard_port: int = 8080,
         evolution_interval: int = 3600,  # 1 hour
         training_check_interval: int = 1800,  # 30 minutes
@@ -69,6 +70,7 @@ class Phase3Orchestrator:
         
         self.dashboard = MonitoringDashboard(
             evolution_service=self.evolution_service,
+            host=dashboard_host,
             port=dashboard_port
         )
         
@@ -221,6 +223,7 @@ async def main():
     """Main entry point for Phase 3 system."""
     parser = argparse.ArgumentParser(description="EVOSEAL Phase 3: Continuous Evolution System")
     parser.add_argument("--config", type=Path, help="Path to configuration file")
+    parser.add_argument("--host", type=str, default="localhost", help="Dashboard host address (default: localhost)")
     parser.add_argument("--port", type=int, default=8080, help="Dashboard port (default: 8080)")
     parser.add_argument("--evolution-interval", type=int, default=3600, 
                        help="Evolution check interval in seconds (default: 3600)")
@@ -263,6 +266,7 @@ async def main():
     # Create and start orchestrator
     orchestrator = Phase3Orchestrator(
         config_file=args.config,
+        dashboard_host=args.host,
         dashboard_port=args.port,
         evolution_interval=args.evolution_interval,
         training_check_interval=args.training_interval,
