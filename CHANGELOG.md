@@ -1,5 +1,135 @@
 # Changelog
 
+All notable changes to the EVOSEAL project are documented here.
+
+## [0.3.0] - 2025-01-27 - Phase 3: Bidirectional Continuous Evolution
+
+### 🚀 Major Features Added
+
+#### Phase 3 Continuous Improvement Loop
+- **ContinuousEvolutionService**: Automated bidirectional evolution system
+  - Continuous monitoring of EVOSEAL ↔ Devstral evolution cycles
+  - Automated training orchestration with configurable intervals
+  - Health monitoring and graceful error handling
+  - Comprehensive statistics and reporting
+
+#### Real-time Monitoring Dashboard
+- **MonitoringDashboard**: Web-based real-time monitoring interface
+  - Live WebSocket updates every 30 seconds
+  - Comprehensive metrics visualization
+  - Service status, evolution progress, and training status
+  - Modern responsive UI with dark theme
+  - REST API endpoints for programmatic access
+
+#### systemd Integration
+- **Production Deployment**: Full systemd user service integration
+  - Automatic startup on boot with user linger
+  - Robust restart policies and error recovery
+  - Comprehensive logging to files and systemd journal
+  - Environment variable configuration
+  - Service management commands
+
+#### Phase 2 Fine-tuning Infrastructure (Completed)
+- **DevstralFineTuner**: LoRA/QLoRA fine-tuning with GPU/CPU fallback
+- **TrainingManager**: Complete training pipeline coordination
+- **ModelValidator**: 5-category comprehensive validation suite
+- **ModelVersionManager**: Version tracking, rollback, and comparison
+- **BidirectionalEvolutionManager**: EVOSEAL ↔ Devstral orchestration
+
+### 🔧 Technical Improvements
+
+#### Architecture
+- Modular Phase 3 service architecture with clear separation of concerns
+- Async/await throughout for scalable continuous operation
+- Comprehensive error handling and graceful degradation
+- Fallback mechanisms for limited hardware environments
+- Integration with existing EVOSEAL provider system
+
+#### Configuration Management
+- **SEALConfig**: Centralized configuration with pydantic v2
+- Environment variable support with defaults
+- Configurable evolution and training intervals
+- Port configuration for dashboard deployment
+- Ollama provider integration settings
+
+#### Data Management
+- Structured data directories for evolution and training data
+- Model version management with automatic cleanup
+- Evolution report generation with trends and recommendations
+- Comprehensive logging with rotation support
+
+### 📚 Documentation
+
+#### New Documentation
+- **PHASE3_BIDIRECTIONAL_EVOLUTION.md**: Complete Phase 3 architecture guide
+- **SYSTEMD_INTEGRATION.md**: systemd service setup and management
+- **DEPLOYMENT_GUIDE.md**: Comprehensive deployment instructions
+- **API_REFERENCE.md**: REST API and WebSocket documentation
+
+#### Updated Documentation
+- **README.md**: Updated with Phase 3 features and quick start
+- Enhanced project structure documentation
+- Added troubleshooting and maintenance guides
+
+### 🛠️ Dependencies
+
+#### Added
+- `aiohttp>=3.8.0`: Async HTTP server for dashboard
+- `aiohttp-cors`: CORS support for web interface
+- `pydantic-settings>=2.0.0`: Enhanced configuration management
+
+#### Updated
+- Enhanced Ollama integration with Devstral model
+- Improved provider management system
+- Better error handling for optional dependencies
+
+### 🔒 Security & Reliability
+
+#### Security
+- systemd user service (no root privileges required)
+- localhost-only dashboard binding
+- NoNewPrivileges systemd directive
+- Local-only operation (no external API calls)
+
+#### Reliability
+- Automatic service restart on failure
+- Comprehensive health checks
+- Graceful shutdown handling
+- Rollback support for model versions
+- Extensive logging and monitoring
+
+### 🐛 Bug Fixes
+- Fixed port conflicts by changing default dashboard port to 8081
+- Resolved transformers dependency issues with fallback modes
+- Fixed test failures in Phase 2 components
+- Corrected data model integration issues
+- Enhanced error handling for missing GPU/transformers
+
+### 🔄 Migration Notes
+
+#### From Previous Versions
+- Legacy `evoseal.service` replaced with Phase 3 system
+- New dashboard accessible on port 8081 (configurable)
+- Updated service management commands
+- New data directory structure
+
+#### Breaking Changes
+- systemd service now runs Phase 3 system instead of legacy runner
+- Dashboard port changed from 8080 to 8081 by default
+- New configuration structure with pydantic v2
+
+### 📊 Performance
+- Optimized continuous evolution loop with configurable intervals
+- Efficient WebSocket updates for real-time monitoring
+- Reduced resource usage with smart scheduling
+- Improved memory management for long-running operations
+
+### 🎯 Next Steps
+- Monitor Phase 3 operation in production
+- Optimize fine-tuning parameters based on real data
+- Extend monitoring with advanced analytics
+- Implement automated backup and recovery
+
 ## [0.2.8] - 2025-07-23
 
 ### Added

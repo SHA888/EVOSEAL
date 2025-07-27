@@ -7,14 +7,16 @@
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Rollback Safety](https://img.shields.io/badge/rollback%20safety-🛡️%20PROTECTED-brightgreen.svg)](#rollback-safety)
 
-**Latest Version**: 0.2.8 (July 23, 2025)
+**Latest Version**: 0.3.0 (July 27, 2025)
 
-**Release Highlights**:
-- Integrated automated release workflow with GitHub Actions
-- Enhanced version management and semantic versioning
-- Improved release notes generation
-- Added comprehensive release checklist
-- Streamlined pre-release and release process
+**🎉 Phase 3 Release - Bidirectional Continuous Evolution**:
+- ✅ Complete bidirectional evolution system between EVOSEAL and Devstral
+- ✅ Real-time monitoring dashboard with WebSocket updates
+- ✅ Production-ready systemd service integration
+- ✅ Comprehensive fine-tuning infrastructure with LoRA/QLoRA
+- ✅ Model validation, versioning, and rollback capabilities
+- ✅ Ollama integration with Mistral AI's Devstral coding model
+- ✅ Continuous improvement loop with automated training cycles
 
 EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution while continuously improving its own architecture. It integrates three key technologies:
 
@@ -26,8 +28,18 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 ## Features
 
+### 🚀 Phase 3: Bidirectional Continuous Evolution
+- 🧬 **Bidirectional Evolution**: EVOSEAL ↔ Devstral mutual improvement loop
+- 🌐 **Real-time Dashboard**: Live monitoring at http://localhost:8081
+- 🔄 **Continuous Operation**: Automated evolution cycles and training
+- 🎯 **Fine-tuning Infrastructure**: LoRA/QLoRA with comprehensive validation
+- 📊 **Model Versioning**: Automatic version tracking and rollback
+- 🛡️ **Safety Controls**: Model validation with alignment testing
+- 🔧 **systemd Integration**: Production-ready service management
+
+### 🏗️ Core Architecture
 - 🧬 Evolutionary algorithm for code improvement
-- 🤖 Integration with multiple AI models (OpenAI, Anthropic)
+- 🤖 Integration with multiple AI models (OpenAI, Anthropic, Ollama)
 - 📊 Performance tracking and metrics
 - 🔄 Continuous self-improvement
 - 📝 Comprehensive documentation
@@ -38,11 +50,13 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 ## Quick Start
 
-Get started with EVOSEAL in minutes:
+### 🚀 Phase 3: Bidirectional Continuous Evolution
+
+Get the complete EVOSEAL bidirectional evolution system running in minutes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Continual-Intelligence/SEAL (Self-Adapting Language Models)
+git clone https://github.com/SHA888/EVOSEAL
 cd EVOSEAL
 
 # Set up virtual environment
@@ -51,12 +65,36 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+pip install aiohttp aiohttp-cors pydantic-settings
 
 # Install in development mode
 pip install -e .
 
-# Run the basic example
-python -m evoseal.examples.basic.quickstart
+# Install and start Ollama with Devstral
+curl -fsSL https://ollama.ai/install.sh | sh
+ollama pull devstral:latest
+ollama serve &
+
+# Run Phase 3 health check
+python3 scripts/run_phase3_continuous_evolution.py --health-check
+
+# Start the complete bidirectional evolution system
+python3 scripts/run_phase3_continuous_evolution.py --verbose
+```
+
+### 🔧 Production Deployment with systemd
+
+For production deployment, integrate with systemd:
+
+```bash
+# The systemd service is already configured
+systemctl --user status evoseal.service
+
+# View real-time logs
+journalctl --user -fu evoseal.service
+
+# Access monitoring dashboard
+open http://localhost:8081
 ```
 
 ## Project Templates
@@ -74,6 +112,8 @@ pip install -r requirements.txt
 
 ## Project Structure
 
+### 🏗️ Phase 3: Bidirectional Evolution Architecture
+
 ```
 evoseal/
 ├── core/                    # Core framework components
@@ -83,29 +123,123 @@ evoseal/
 │   ├── selection.py         # Selection algorithms
 │   └── version_database.py  # Tracking program versions
 │
+├── evolution/              # 📊 Phase 1: Evolution Data Collection
+│   ├── data_collector.py   # Async evolution data collection
+│   ├── pattern_analyzer.py # Pattern extraction from evolution results
+│   ├── training_builder.py # Training data generation
+│   └── models.py           # Evolution data models
+│
+├── fine_tuning/            # 🎯 Phase 2: Fine-tuning Infrastructure
+│   ├── model_fine_tuner.py     # LoRA/QLoRA fine-tuning with Devstral
+│   ├── training_manager.py     # Training pipeline coordination
+│   ├── model_validator.py      # Comprehensive model validation
+│   ├── version_manager.py      # Model version tracking & rollback
+│   └── bidirectional_manager.py # EVOSEAL ↔ Devstral orchestration
+│
+├── services/               # 🚀 Phase 3: Continuous Evolution
+│   ├── continuous_evolution_service.py # Main continuous service
+│   └── monitoring_dashboard.py         # Real-time web dashboard
+│
+├── providers/              # AI/ML model providers
+│   ├── __init__.py
+│   ├── ollama_provider.py  # Ollama/Devstral integration
+│   ├── provider_manager.py # Provider selection & fallback
+│   └── seal_providers.py   # Legacy provider interfaces
+│
 ├── integration/            # Integration modules
 │   ├── dgm/                # Darwin Godel Machine
 │   ├── openevolve/         # OpenEvolve framework
-│   └── seal/               # SEAL (Self-Adapting Language Models) interface
+│   └── seal/               # SEAL interface
 │
-├── agents/                # Agent implementations
-│   ├── __init__.py
-│   ├── agentic_system.py
-│   └── agentic_workflow_agent.py
-│
-├── providers/             # AI/ML model providers
-│   ├── __init__.py
-│   └── seal_providers.py
-│
-├── models/                # Data models and schemas
+├── agents/                 # Agent implementations
+├── models/                 # Data models and schemas
 ├── storage/                # Data persistence
+├── config.py               # Configuration management
 └── utils/                  # Utility functions
 
-tests/                     # Test suite
+scripts/                    # 🔧 Deployment & Management
+├── run_phase3_continuous_evolution.py  # Phase 3 orchestrator
+├── test_phase2_components.py           # Phase 2 testing
+└── provider_cli.py                     # Provider management
+
+tests/                      # Test suite
 ├── integration/            # Integration tests
 ├── unit/                   # Unit tests
 └── regression/             # Regression tests
+
+.config/systemd/user/       # 🔧 Production Service
+└── evoseal.service         # systemd service configuration
 ```
+
+## 🚀 Phase 3: Bidirectional Continuous Evolution
+
+### Architecture Overview
+
+EVOSEAL Phase 3 implements a complete bidirectional evolution system where EVOSEAL and Mistral AI's Devstral coding model continuously improve each other:
+
+1. **Phase 1**: Evolution Data Collection
+   - Async collection of evolution results from EVOSEAL's self-improvement cycles
+   - Pattern analysis to extract successful improvement strategies
+   - Training data generation in multiple formats (Alpaca, Chat, JSONL)
+
+2. **Phase 2**: Fine-tuning Infrastructure
+   - LoRA/QLoRA fine-tuning of Devstral using evolution patterns
+   - Comprehensive model validation with 5-category testing
+   - Version management with automatic rollback capabilities
+   - Safety controls and alignment testing
+
+3. **Phase 3**: Continuous Improvement Loop
+   - Automated evolution cycles and training orchestration
+   - Real-time monitoring dashboard with WebSocket updates
+   - Production-ready systemd service integration
+   - Bidirectional feedback loop: EVOSEAL ↔ Devstral
+
+### 🌐 Real-time Monitoring Dashboard
+
+Access the live monitoring dashboard at **http://localhost:8081**:
+
+- **Service Status**: Real-time system health, uptime, and operational state
+- **Evolution Metrics**: Cycle counts, training progress, model improvements
+- **Training Status**: Data readiness, sample counts, model versions
+- **Performance Analytics**: Success rates, cycles per hour, efficiency metrics
+- **Live Activity Log**: Real-time system events and notifications
+- **WebSocket Updates**: Live data streaming without page refresh
+
+### 🔧 systemd Integration
+
+EVOSEAL Phase 3 runs as a production systemd service:
+
+```bash
+# Service management
+systemctl --user status evoseal.service    # Check status
+systemctl --user restart evoseal.service   # Restart service
+systemctl --user stop evoseal.service      # Stop service
+systemctl --user start evoseal.service     # Start service
+
+# Real-time logs
+journalctl --user -fu evoseal.service       # Follow logs
+
+# Service configuration
+~/.config/systemd/user/evoseal.service      # Service file
+```
+
+### 🎯 Model Integration
+
+**Ollama + Devstral Integration**:
+- **Model**: Mistral AI's Devstral (specialized coding model)
+- **Performance**: 46.8% on SWE-Bench Verified benchmark
+- **Capabilities**: Designed for agentic software development
+- **License**: Apache 2.0 for community use
+- **Requirements**: Single RTX 4090 or Mac with 32GB RAM
+
+### 📊 Continuous Operation
+
+- **Evolution Cycles**: Every 1 hour (configurable)
+- **Training Checks**: Every 30 minutes (configurable)
+- **Automatic Fine-tuning**: Triggered when sufficient evolution data collected
+- **Model Validation**: Comprehensive safety and quality checks
+- **Version Management**: Automatic rollback on validation failure
+- **Health Monitoring**: Continuous system health checks
 
 For detailed installation and usage instructions, see the [Documentation](https://sha888.github.io/EVOSEAL/).
 
