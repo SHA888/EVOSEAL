@@ -34,7 +34,7 @@ class MonitoringDashboard:
         self,
         evolution_service: Optional[ContinuousEvolutionService] = None,
         host: str = "localhost",
-        port: int = 8080,
+        port: int = 8081,
         update_interval: int = 30
     ):
         """

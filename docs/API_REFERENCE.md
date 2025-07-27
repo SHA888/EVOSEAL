@@ -6,7 +6,7 @@ EVOSEAL Phase 3 provides a comprehensive REST API and WebSocket interface throug
 
 ## Base URL
 
-- **Development**: `http://localhost:8080`
+- **Development**: `http://localhost:8081`
 - **Production**: `http://localhost:8081`
 
 ## REST API Endpoints
