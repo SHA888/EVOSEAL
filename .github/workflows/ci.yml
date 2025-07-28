@@ -43,7 +43,7 @@ jobs:
         pip install -e ".[test,dev]"
 
     - name: Check code formatting with Black
-      run: black --check --line-length=100 --skip-string-normalization .
+      run: black --check .
 
     - name: Run Flake8 for style guide enforcement (core files only)
       run: flake8 evoseal/ --exclude=tests,examples,scripts
