@@ -29,13 +29,13 @@ jobs:
     # Only run if the CI workflow was successful or on workflow_dispatch
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && 
-       (github.event.workflow_run.head_branch == 'main' || 
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.head_branch == 'main' ||
         startsWith(github.event.workflow_run.head_branch, 'release/')))
-    
+
     # Use the production environment
     environment: production
-    
+
     # Required permissions
     permissions:
       contents: read

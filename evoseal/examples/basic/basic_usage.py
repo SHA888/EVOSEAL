@@ -73,9 +73,7 @@ def configure_project(project_dir: str) -> None:
 
     for key, value in config_updates.items():
         config_path = str(project_path / ".evoseal" / "config.yaml")
-        exit_code, output = run_command(
-            ["config", "set", key, value, "--config", config_path]
-        )
+        exit_code, output = run_command(["config", "set", key, value, "--config", config_path])
         if exit_code != 0:
             typer.echo(f"Failed to set {key}: {output}")
             raise typer.Exit(1)
@@ -102,9 +100,7 @@ def analyze_results(project_dir: str) -> None:
     project_path = Path(project_dir)
 
     # Get evolution status
-    exit_code, output = run_command(
-        ["openevolve", "status", "--project-dir", project_dir]
-    )
+    exit_code, output = run_command(["openevolve", "status", "--project-dir", project_dir])
     typer.echo(output)
 
     # Export results
@@ -123,9 +119,7 @@ def analyze_results(project_dir: str) -> None:
 DEFAULT_PROJECT_DIR = "evoseal_project"
 
 
-def main(
-    project_dir: str = typer.Argument(DEFAULT_PROJECT_DIR, help="Project directory")
-) -> None:
+def main(project_dir: str = typer.Argument(DEFAULT_PROJECT_DIR, help="Project directory")) -> None:
     """Run a complete EVOSEAL workflow example."""
     # Run the workflow
     setup_project(project_dir)

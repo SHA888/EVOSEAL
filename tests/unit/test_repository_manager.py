@@ -117,9 +117,7 @@ class TestRepositoryManager:
 
         # Verify the returned information
         assert info["name"] == repo_name
-        assert info["path"] == str(
-            repository_manager.work_dir / "repositories" / repo_name
-        )
+        assert info["path"] == str(repository_manager.work_dir / "repositories" / repo_name)
         assert info["branch"] == "main"
         assert info["commit"] == head_commit
         assert info["dirty"] is False
@@ -176,9 +174,7 @@ class TestRepositoryManager:
         # Verify
         self.assertTrue(result["success"])
         self.mock_repo.git.checkout.assert_called_with(target_branch)
-        self.mock_repo.git.merge.assert_called_with(
-            source_branch, no_ff=False, no_commit=True
-        )
+        self.mock_repo.git.merge.assert_called_with(source_branch, no_ff=False, no_commit=True)
 
     @patch("git.Repo")
     def test_merge_branch_conflict(self, mock_repo):
@@ -227,9 +223,7 @@ class TestRepositoryManager:
         mock_repo.return_value = self.mock_repo
 
         # Test create tag
-        result = self.manager.create_tag(
-            self.repo_name, tag_name, "Release 1.0.0", "abc123"
-        )
+        result = self.manager.create_tag(self.repo_name, tag_name, "Release 1.0.0", "abc123")
 
         # Verify
         self.assertTrue(result)

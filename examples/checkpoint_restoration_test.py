@@ -307,9 +307,7 @@ async def test_enhanced_restoration_functionality():
 
         # Test checkpoint validation
         print("\n3. Testing checkpoint validation...")
-        validation_results = checkpoint_manager.validate_checkpoint_for_restoration(
-            "enhanced_v2.0"
-        )
+        validation_results = checkpoint_manager.validate_checkpoint_for_restoration("enhanced_v2.0")
         print(f"   ✓ Validation valid: {validation_results['valid']}")
         print(f"   ✓ Errors: {len(validation_results['errors'])}")
         print(f"   ✓ Warnings: {len(validation_results['warnings'])}")
@@ -347,9 +345,7 @@ async def test_enhanced_restoration_functionality():
         )
 
         print(f"   ✓ Validated restoration success: {validated_result['success']}")
-        print(
-            f"   ✓ Restoration time: {validated_result['restoration_time']:.2f} seconds"
-        )
+        print(f"   ✓ Restoration time: {validated_result['restoration_time']:.2f} seconds")
         print(f"   ✓ Backup created: {validated_result['backup_created']}")
         if validated_result["backup_created"]:
             print(f"   ✓ Backup path: {Path(validated_result['backup_path']).name}")
@@ -360,12 +356,8 @@ async def test_enhanced_restoration_functionality():
 
         # Check post-validation results
         post_validation = validated_result["post_validation"]
-        print(
-            f"   ✓ Post-validation file count: {post_validation.get('file_count', 0)}"
-        )
-        print(
-            f"   ✓ Post-validation directory count: {post_validation.get('directory_count', 0)}"
-        )
+        print(f"   ✓ Post-validation file count: {post_validation.get('file_count', 0)}")
+        print(f"   ✓ Post-validation directory count: {post_validation.get('directory_count', 0)}")
 
         # Test restoration backup management
         print("\n6. Testing restoration backup management...")
@@ -425,17 +417,13 @@ async def test_enhanced_restoration_functionality():
                 "enhanced_v2.0", failure_test_dir, backup_current=True
             )
             print("   ✓ Handled potential failure scenario successfully")
-            print(
-                f"   ✓ Files restored: {failure_result['restoration_details']['restored_files']}"
-            )
+            print(f"   ✓ Files restored: {failure_result['restoration_details']['restored_files']}")
         except Exception as e:
             print(f"   ✓ Properly handled restoration failure: {e}")
 
         # Test backup cleanup
         print("\n9. Testing backup cleanup...")
-        deleted_count = checkpoint_manager.cleanup_restoration_backups(
-            keep_count=1, max_age_days=0
-        )
+        deleted_count = checkpoint_manager.cleanup_restoration_backups(keep_count=1, max_age_days=0)
         print(f"   ✓ Cleaned up {deleted_count} old backups")
 
         remaining_backups = checkpoint_manager.list_restoration_backups()

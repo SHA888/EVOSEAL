@@ -100,9 +100,7 @@ class RepositoryManager:
             return None
         return Repo(repo_path)
 
-    def checkout_branch(
-        self, repo_name: str, branch: str, create: bool = False
-    ) -> bool:
+    def checkout_branch(self, repo_name: str, branch: str, create: bool = False) -> bool:
         """Checkout a branch in the repository.
 
         Args:
@@ -129,9 +127,7 @@ class RepositoryManager:
             print(f"Failed to checkout branch: {e}")
             return False
 
-    def commit_changes(
-        self, repo_name: str, message: str, paths: Optional[list] = None
-    ) -> bool:
+    def commit_changes(self, repo_name: str, message: str, paths: Optional[list] = None) -> bool:
         """Commit changes in the repository.
 
         Args:
@@ -162,9 +158,7 @@ class RepositoryManager:
             print(f"Failed to commit changes: {e}")
             return False
 
-    def create_branch_from_commit(
-        self, repo_name: str, branch_name: str, commit_hash: str
-    ) -> bool:
+    def create_branch_from_commit(self, repo_name: str, branch_name: str, commit_hash: str) -> bool:
         """Create a new branch from a specific commit.
 
         Args:
@@ -187,9 +181,7 @@ class RepositoryManager:
             print(f"Failed to create branch: {e}")
             return False
 
-    def get_commit_info(
-        self, repo_name: str, commit_hash: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_commit_info(self, repo_name: str, commit_hash: str) -> Optional[Dict[str, Any]]:
         """Get information about a specific commit.
 
         Args:
@@ -233,9 +225,7 @@ class RepositoryManager:
 
         try:
             return {
-                "branch": (
-                    repo.active_branch.name if not repo.head.is_detached else None
-                ),
+                "branch": (repo.active_branch.name if not repo.head.is_detached else None),
                 "detached": repo.head.is_detached,
                 "dirty": repo.is_dirty(),
                 "untracked": repo.untracked_files,
@@ -299,9 +289,7 @@ class RepositoryManager:
 
         try:
             # Save current branch to return to it later
-            current_branch = (
-                repo.active_branch.name if not repo.head.is_detached else None
-            )
+            current_branch = repo.active_branch.name if not repo.head.is_detached else None
 
             # Checkout target branch
             repo.git.checkout(target_branch)
@@ -329,14 +317,10 @@ class RepositoryManager:
                 for path in repo.index.unmerged:
                     if path not in conflicts:
                         conflicts.append(path)
-                raise ConflictError(
-                    f"Merge conflict in {repo_name}", conflicts=conflicts
-                )
+                raise ConflictError(f"Merge conflict in {repo_name}", conflicts=conflicts)
 
             # Other git command errors
-            logger.error(
-                f"Error merging branch '{source_branch}' into '{target_branch}': {e}"
-            )
+            logger.error(f"Error merging branch '{source_branch}' into '{target_branch}': {e}")
             raise MergeError(f"Failed to merge branches: {e}")
 
         except Exception as e:
@@ -497,19 +481,13 @@ class RepositoryManager:
 
         try:
             if remote:
-                return [
-                    ref.remote_head
-                    for ref in repo.remote().refs
-                    if ref.remote_head != "HEAD"
-                ]
+                return [ref.remote_head for ref in repo.remote().refs if ref.remote_head != "HEAD"]
             return [ref.name for ref in repo.branches]
         except Exception as e:
             logger.error(f"Error listing branches: {e}")
             raise RepositoryError(f"Failed to list branches: {e}")
 
-    def get_commit_history(
-        self, repo_name: str, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    def get_commit_history(self, repo_name: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Get commit history for the repository.
 
         Args:
@@ -542,9 +520,7 @@ class RepositoryManager:
             logger.error(f"Error getting commit history: {e}")
             raise RepositoryError(f"Failed to get commit history: {e}")
 
-    def reset_to_commit(
-        self, repo_name: str, commit_hash: str, hard: bool = False
-    ) -> bool:
+    def reset_to_commit(self, repo_name: str, commit_hash: str, hard: bool = False) -> bool:
         """Reset repository to a specific commit.
 
         Args:
@@ -570,9 +546,7 @@ class RepositoryManager:
             logger.error(f"Error resetting to commit {commit_hash}: {e}")
             raise RepositoryError(f"Failed to reset repository: {e}")
 
-    def get_file_content(
-        self, repo_name: str, file_path: str, ref: str = "HEAD"
-    ) -> Optional[str]:
+    def get_file_content(self, repo_name: str, file_path: str, ref: str = "HEAD") -> Optional[str]:
         """Get the content of a file at a specific reference.
 
         Args:
@@ -600,9 +574,7 @@ class RepositoryManager:
             logger.error(f"Error reading file {file_path} at {ref}: {e}")
             raise RepositoryError(f"Failed to read file: {e}")
 
-    def get_remote_url(
-        self, repo_name: str, remote_name: str = "origin"
-    ) -> Optional[str]:
+    def get_remote_url(self, repo_name: str, remote_name: str = "origin") -> Optional[str]:
         """Get the URL of a remote repository.
 
         Args:
@@ -654,9 +626,7 @@ class RepositoryManager:
                     if remote_head and hasattr(remote_head, "reference"):
                         return remote_head.reference.name.split("/")[-1]
             except Exception:
-                logger.debug(
-                    "Could not determine default branch from remote, trying local"
-                )
+                logger.debug("Could not determine default branch from remote, trying local")
 
             # Fall back to local branches
             for branch in repo.branches:
@@ -715,9 +685,7 @@ class RepositoryManager:
             # Merge changes from the remote
             repo.git.merge(remote_ref)
 
-            logger.info(
-                f"Successfully pulled changes for {repo_name} on branch {branch}"
-            )
+            logger.info(f"Successfully pulled changes for {repo_name} on branch {branch}")
             return True
 
         except GitCommandError as e:

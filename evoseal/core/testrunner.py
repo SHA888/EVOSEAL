@@ -47,9 +47,7 @@ class TestConfig:
     """Configuration for test execution."""
 
     test_dir: str = DEFAULT_TEST_DIR
-    test_patterns: Dict[str, str] = field(
-        default_factory=lambda: dict(DEFAULT_TEST_PATTERNS)
-    )
+    test_patterns: Dict[str, str] = field(default_factory=lambda: dict(DEFAULT_TEST_PATTERNS))
     timeout: int = DEFAULT_TIMEOUT
     max_workers: int = 4
     capture_output: bool = True
@@ -133,9 +131,7 @@ class TestRunner:
         Returns:
             List of discovered test file paths
         """
-        pattern = self.config.test_patterns.get(
-            test_type, self.config.test_patterns["unit"]
-        )
+        pattern = self.config.test_patterns.get(test_type, self.config.test_patterns["unit"])
         test_dir = Path(self.config.test_dir)
 
         if not test_dir.exists():
@@ -190,15 +186,11 @@ class TestRunner:
                     except Exception as exc:
                         results.append(self._create_error_result(test_type, str(exc)))
 
-                    progress.update(
-                        task, advance=1, description=f"Completed {test_type} tests"
-                    )
+                    progress.update(task, advance=1, description=f"Completed {test_type} tests")
 
         return results
 
-    def _run_test_type(
-        self, target_path: str, test_type: str, config: TestConfig
-    ) -> TestResult:
+    def _run_test_type(self, target_path: str, test_type: str, config: TestConfig) -> TestResult:
         """Run all tests of a specific type against a target.
 
         Args:
@@ -220,9 +212,7 @@ class TestRunner:
             result = self._execute_test_command(cmd, config)
 
             # Parse the test results
-            test_result = self._parse_test_results(
-                result, test_type, self.resource_usage.stop()
-            )
+            test_result = self._parse_test_results(result, test_type, self.resource_usage.stop())
 
             return test_result
 
@@ -264,9 +254,7 @@ class TestRunner:
             env=env,
         )
 
-    def _get_test_command(
-        self, target_path: str, test_type: str, config: TestConfig
-    ) -> List[str]:
+    def _get_test_command(self, target_path: str, test_type: str, config: TestConfig) -> List[str]:
         """Build the test command for the specified test type.
 
         Args:
@@ -431,17 +419,11 @@ class TestRunner:
         # Create a new config with overrides
         config_dict = self.config.__dict__.copy()
         config_dict.update(
-            {
-                k: v
-                for k, v in overrides.items()
-                if k in config_dict and not k.startswith("_")
-            }
+            {k: v for k, v in overrides.items() if k in config_dict and not k.startswith("_")}
         )
 
         # Handle test_patterns specially to merge dicts
-        if "test_patterns" in overrides and isinstance(
-            overrides["test_patterns"], dict
-        ):
+        if "test_patterns" in overrides and isinstance(overrides["test_patterns"], dict):
             config_dict["test_patterns"].update(overrides["test_patterns"])
 
         return TestConfig(**config_dict)

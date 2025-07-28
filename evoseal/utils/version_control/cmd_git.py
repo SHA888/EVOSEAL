@@ -105,9 +105,7 @@ class CmdGit(GitInterface):
                 return self.clone(repo_url, clone_path)
 
             if not self.repo_path:
-                raise ValueError(
-                    "repo_path must be set when initializing a new repository"
-                )
+                raise ValueError("repo_path must be set when initializing a new repository")
 
             # Check if repository already exists
             git_dir = self.repo_path / ".git"
@@ -214,10 +212,7 @@ class CmdGit(GitInterface):
             if not success:
                 if "Repository not found" in stderr:
                     raise RepositoryNotFoundError(f"Repository not found: {repo_url}")
-                if any(
-                    msg in stderr
-                    for msg in ["Permission denied", "Authentication failed"]
-                ):
+                if any(msg in stderr for msg in ["Permission denied", "Authentication failed"]):
                     if "publickey" in stderr.lower():
                         raise SSHAuthenticationError("SSH authentication failed")
                     else:
@@ -286,10 +281,7 @@ class CmdGit(GitInterface):
             if not success:
                 if "CONFLICT" in stderr or "merge conflict" in stderr.lower():
                     raise MergeConflictError("Merge conflicts detected during pull")
-                if any(
-                    msg in stderr
-                    for msg in ["Permission denied", "Authentication failed"]
-                ):
+                if any(msg in stderr for msg in ["Permission denied", "Authentication failed"]):
                     if "publickey" in stderr.lower():
                         raise SSHAuthenticationError("SSH authentication failed")
                     else:
@@ -363,10 +355,7 @@ class CmdGit(GitInterface):
             if not success:
                 if "rejected" in stderr.lower() and "failed to push" in stderr.lower():
                     raise PushRejectedError(f"Push was rejected: {stderr.strip()}")
-                if any(
-                    msg in stderr
-                    for msg in ["Permission denied", "Authentication failed"]
-                ):
+                if any(msg in stderr for msg in ["Permission denied", "Authentication failed"]):
                     if "publickey" in stderr.lower():
                         raise SSHAuthenticationError("SSH authentication failed")
                     else:
@@ -999,9 +988,7 @@ class CmdGit(GitInterface):
 
             if not success:
                 if "already exists" in stderr and not force:
-                    raise GitError(
-                        f"Tag '{name}' already exists. Use force=True to overwrite."
-                    )
+                    raise GitError(f"Tag '{name}' already exists. Use force=True to overwrite.")
                 raise GitError(f"Tag operation failed: {stderr}")
 
             action = "Deleted" if delete else "Created"
@@ -1081,11 +1068,7 @@ class CmdGit(GitInterface):
                     raise ValueError(f"stash_id is required for '{action}' action")
                 cmd.append(action)
                 if stash_id is not None:
-                    cmd.append(
-                        f"stash@{{{stash_id}}}"
-                        if isinstance(stash_id, int)
-                        else stash_id
-                    )
+                    cmd.append(f"stash@{{{stash_id}}}" if isinstance(stash_id, int) else stash_id)
                 if action == "show" and kwargs.get("stat"):
                     cmd.append("--stat")
 
@@ -1206,9 +1189,7 @@ class CmdGit(GitInterface):
             try:
                 full_path.write_text(content, encoding=encoding)
             except UnicodeEncodeError as e:
-                raise GitError(
-                    f"Failed to encode content with encoding {encoding}: {e}"
-                ) from e
+                raise GitError(f"Failed to encode content with encoding {encoding}: {e}") from e
 
             # Set file mode if specified
             if mode is not None:
@@ -1270,9 +1251,7 @@ class CmdGit(GitInterface):
                     raise ValueError(f"Path not found: {path}")
                 base_path = path
 
-            def get_structure(
-                current_path: Path, current_depth: int = 0
-            ) -> Dict[str, Any]:
+            def get_structure(current_path: Path, current_depth: int = 0) -> Dict[str, Any]:
                 """Recursively build the repository structure."""
                 logger.debug(
                     f"Processing path: {current_path}, depth: {current_depth}, recursive: {recursive}"
@@ -1360,17 +1339,13 @@ class CmdGit(GitInterface):
                                 # Only process directory contents if recursive is True
                                 item_structure = get_structure(item, current_depth + 1)
                                 if item_structure and "contents" in item_structure:
-                                    dir_structure["contents"] = item_structure[
-                                        "contents"
-                                    ]
+                                    dir_structure["contents"] = item_structure["contents"]
 
                             structure["contents"][item.name] = dir_structure
                             logger.debug(f"Added directory to structure: {item.name}")
 
                 except PermissionError as e:
-                    logger.warning(
-                        f"Permission denied reading directory {current_path}: {e}"
-                    )
+                    logger.warning(f"Permission denied reading directory {current_path}: {e}")
                     structure["error"] = "permission_denied"
 
                 return structure
@@ -1379,16 +1354,8 @@ class CmdGit(GitInterface):
             if ref is not None:
                 try:
                     # Get the tree structure using git ls-tree
-                    rel_path = (
-                        ""
-                        if path is None
-                        else str(Path(path).relative_to(self.repo_path))
-                    )
-                    cmd = (
-                        ["ls-tree", "-l", ref, rel_path]
-                        if rel_path
-                        else ["ls-tree", "-l", ref]
-                    )
+                    rel_path = "" if path is None else str(Path(path).relative_to(self.repo_path))
+                    cmd = ["ls-tree", "-l", ref, rel_path] if rel_path else ["ls-tree", "-l", ref]
                     success, stdout, stderr = self._run_git_command(cmd)
 
                     if not success:
@@ -1563,12 +1530,8 @@ class CmdGit(GitInterface):
             self._check_initialized()
 
             # Get structures for both branches
-            struct1 = self.get_repository_structure(
-                ref=branch1, path=path, recursive=True
-            )
-            struct2 = self.get_repository_structure(
-                ref=branch2, path=path, recursive=True
-            )
+            struct1 = self.get_repository_structure(ref=branch1, path=path, recursive=True)
+            struct2 = self.get_repository_structure(ref=branch2, path=path, recursive=True)
 
             # Flatten structures for easier comparison
             flat1 = self._flatten_structure(struct1)
@@ -1807,9 +1770,7 @@ class CmdGit(GitInterface):
                             "file": ref_file,
                             "matches": [
                                 {"line": line}
-                                for line in self._get_matching_lines(
-                                    ref_file, base_name, ref
-                                )
+                                for line in self._get_matching_lines(ref_file, base_name, ref)
                             ],
                         }
                     )
@@ -1845,9 +1806,7 @@ class CmdGit(GitInterface):
         if not contents:
             return
 
-        items = sorted(
-            contents.items(), key=lambda x: (x[1].get("type") != "directory", x[0])
-        )
+        items = sorted(contents.items(), key=lambda x: (x[1].get("type") != "directory", x[0]))
 
         for i, (name, item) in enumerate(items):
             is_last = i == len(items) - 1
@@ -1866,6 +1825,4 @@ class CmdGit(GitInterface):
     def _check_initialized(self) -> None:
         """Check if the repository is initialized, raise an exception if not."""
         if not self.repo_path or not self.is_initialized():
-            raise RuntimeError(
-                "Git repository is not initialized. Call initialize() first."
-            )
+            raise RuntimeError("Git repository is not initialized. Call initialize() first.")

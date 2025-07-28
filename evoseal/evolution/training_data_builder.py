@@ -74,9 +74,7 @@ class TrainingDataBuilder:
         Returns:
             List of training examples
         """
-        logger.info(
-            f"Building training data from {len(evolution_results)} evolution results"
-        )
+        logger.info(f"Building training data from {len(evolution_results)} evolution results")
 
         # Filter high-quality results
         high_quality_results = self._filter_high_quality_results(evolution_results)
@@ -104,9 +102,7 @@ class TrainingDataBuilder:
 
         return varied_examples
 
-    def _filter_high_quality_results(
-        self, results: List[EvolutionResult]
-    ) -> List[EvolutionResult]:
+    def _filter_high_quality_results(self, results: List[EvolutionResult]) -> List[EvolutionResult]:
         """Filter results for high-quality training examples."""
         high_quality = []
 
@@ -130,9 +126,7 @@ class TrainingDataBuilder:
 
         # Reasonable length bounds
         return (
-            5 <= orig_lines <= 100
-            and 5 <= imp_lines <= 150
-            and abs(orig_lines - imp_lines) <= 50
+            5 <= orig_lines <= 100 and 5 <= imp_lines <= 150 and abs(orig_lines - imp_lines) <= 50
         )
 
     def _filter_syntax_validity(self, result: EvolutionResult) -> bool:
@@ -164,15 +158,12 @@ class TrainingDataBuilder:
             "def " in result.improved_code and "def " not in result.original_code,
             "try:" in result.improved_code and "try:" not in result.original_code,
             '"""' in result.improved_code and '"""' not in result.original_code,
-            len(result.improved_code.split("\n"))
-            < len(result.original_code.split("\n")) * 0.9,
+            len(result.improved_code.split("\n")) < len(result.original_code.split("\n")) * 0.9,
         ]
 
         return any(improvements)
 
-    def _create_training_example(
-        self, result: EvolutionResult
-    ) -> Optional[TrainingExample]:
+    def _create_training_example(self, result: EvolutionResult) -> Optional[TrainingExample]:
         """Create a training example from an evolution result."""
         try:
             # Generate instruction based on improvement types
@@ -201,9 +192,7 @@ class TrainingDataBuilder:
 
     def _generate_instruction(self, result: EvolutionResult) -> str:
         """Generate an instruction for the training example."""
-        improvement_types = [
-            t.value.replace("_", " ").title() for t in result.improvement_types
-        ]
+        improvement_types = [t.value.replace("_", " ").title() for t in result.improvement_types]
 
         # Base instruction templates
         templates = [
@@ -259,9 +248,7 @@ class TrainingDataBuilder:
         if result.task_description:
             context_parts.append(f"Task: {result.task_description}")
 
-        context_parts.append(
-            f"Strategy: {result.strategy.value.replace('_', ' ').title()}"
-        )
+        context_parts.append(f"Strategy: {result.strategy.value.replace('_', ' ').title()}")
         context_parts.append(f"Improvement: {result.improvement_percentage:.1f}%")
 
         if result.improvement_types:
@@ -289,9 +276,7 @@ class TrainingDataBuilder:
         if orig_lines < 5 or orig_lines > 80:
             length_penalty = 0.1
 
-        quality_score = (
-            base_score + improvement_bonus + diversity_bonus - length_penalty
-        )
+        quality_score = base_score + improvement_bonus + diversity_bonus - length_penalty
         return max(0.0, min(1.0, quality_score))
 
     def _validate_example(self, example: TrainingExample) -> bool:
@@ -330,9 +315,7 @@ class TrainingDataBuilder:
         else:
             return "general_improvement"
 
-    def _balance_examples(
-        self, examples: List[TrainingExample]
-    ) -> List[TrainingExample]:
+    def _balance_examples(self, examples: List[TrainingExample]) -> List[TrainingExample]:
         """Balance examples across different pattern types."""
         if len(examples) <= self.max_examples_per_pattern:
             return examples
@@ -350,22 +333,16 @@ class TrainingDataBuilder:
 
         # Balance across patterns
         balanced = []
-        examples_per_pattern = self.max_examples_per_pattern // max(
-            1, len(pattern_groups)
-        )
+        examples_per_pattern = self.max_examples_per_pattern // max(1, len(pattern_groups))
 
         for pattern, pattern_examples in pattern_groups.items():
             # Sort by quality and take top examples
-            sorted_examples = sorted(
-                pattern_examples, key=lambda x: x.quality_score, reverse=True
-            )
+            sorted_examples = sorted(pattern_examples, key=lambda x: x.quality_score, reverse=True)
             balanced.extend(sorted_examples[:examples_per_pattern])
 
         return balanced
 
-    def _add_instruction_variations(
-        self, examples: List[TrainingExample]
-    ) -> List[TrainingExample]:
+    def _add_instruction_variations(self, examples: List[TrainingExample]) -> List[TrainingExample]:
         """Add variations to instructions for better training diversity."""
         varied_examples = []
 
@@ -376,9 +353,7 @@ class TrainingDataBuilder:
             # Create variations (limit to avoid explosion)
             if len(varied_examples) < len(examples) * 2:  # Max 2x original
                 # Variation 1: More specific instruction
-                specific_instruction = self._make_instruction_specific(
-                    example.instruction
-                )
+                specific_instruction = self._make_instruction_specific(example.instruction)
                 if specific_instruction != example.instruction:
                     varied_example = TrainingExample(
                         instruction=specific_instruction,
@@ -436,17 +411,11 @@ class TrainingDataBuilder:
         saved_files = {}
 
         if format_type == "alpaca":
-            saved_files.update(
-                self._save_alpaca_format(output_dir, train_examples, val_examples)
-            )
+            saved_files.update(self._save_alpaca_format(output_dir, train_examples, val_examples))
         elif format_type == "chat":
-            saved_files.update(
-                self._save_chat_format(output_dir, train_examples, val_examples)
-            )
+            saved_files.update(self._save_chat_format(output_dir, train_examples, val_examples))
         elif format_type == "jsonl":
-            saved_files.update(
-                self._save_jsonl_format(output_dir, train_examples, val_examples)
-            )
+            saved_files.update(self._save_jsonl_format(output_dir, train_examples, val_examples))
 
         # Save metadata
         metadata_file = output_dir / "metadata.json"
@@ -457,8 +426,7 @@ class TrainingDataBuilder:
             "format_type": format_type,
             "created_at": datetime.now().isoformat(),
             "pattern_distribution": {
-                pattern: len(examples)
-                for pattern, examples in self.examples_by_pattern.items()
+                pattern: len(examples) for pattern, examples in self.examples_by_pattern.items()
             },
         }
 
@@ -546,8 +514,7 @@ class TrainingDataBuilder:
         return {
             "total_examples": len(self.training_examples),
             "pattern_distribution": {
-                pattern: len(examples)
-                for pattern, examples in self.examples_by_pattern.items()
+                pattern: len(examples) for pattern, examples in self.examples_by_pattern.items()
             },
             "quality_stats": {
                 "avg_quality": sum(quality_scores) / len(quality_scores),

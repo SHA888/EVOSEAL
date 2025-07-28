@@ -16,9 +16,7 @@ T = TypeVar("T", bound="EVOSEALCommand")
 class EVOSEALCommand:
     """Base class for EVOSEAL CLI commands with common functionality."""
 
-    def __init__(
-        self, project_root: Optional[Union[Path, str]] = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, project_root: Optional[Union[Path, str]] = None, **kwargs: Any) -> None:
         """Initialize the command with an optional project root.
 
         Args:

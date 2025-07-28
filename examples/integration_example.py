@@ -103,9 +103,7 @@ async def example_basic_integration():
         logger.info("Component metrics:")
         metrics = await orchestrator.get_all_metrics()
         for component_type, component_metrics in metrics.items():
-            logger.info(
-                f"  {component_type.value}: {json.dumps(component_metrics, indent=2)}"
-            )
+            logger.info(f"  {component_type.value}: {json.dumps(component_metrics, indent=2)}")
 
         # Test individual component operations
         await test_component_operations(orchestrator)
@@ -125,18 +123,12 @@ async def test_component_operations(orchestrator):
         logger.info("Testing DGM operations...")
 
         # Get current archive
-        result = await orchestrator.execute_component_operation(
-            ComponentType.DGM, "get_archive"
-        )
+        result = await orchestrator.execute_component_operation(ComponentType.DGM, "get_archive")
         logger.info(f"DGM Archive: {result.data if result.success else result.error}")
 
         # Get current generation
-        result = await orchestrator.execute_component_operation(
-            ComponentType.DGM, "get_generation"
-        )
-        logger.info(
-            f"DGM Generation: {result.data if result.success else result.error}"
-        )
+        result = await orchestrator.execute_component_operation(ComponentType.DGM, "get_generation")
+        logger.info(f"DGM Generation: {result.data if result.success else result.error}")
 
     # Test SEAL (Self-Adapting Language Models) operations
     if orchestrator.get_component(ComponentType.SEAL):
@@ -174,9 +166,7 @@ def fibonacci(n):
         result = await orchestrator.execute_component_operation(
             ComponentType.OPENEVOLVE, "run_command", ["--help"]
         )
-        logger.info(
-            f"OpenEvolve Help: {result.data if result.success else result.error}"
-        )
+        logger.info(f"OpenEvolve Help: {result.data if result.success else result.error}")
 
 
 async def example_evolution_pipeline():

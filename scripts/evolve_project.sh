@@ -65,7 +65,7 @@ CURRENT_VERSION=$(get_current_version)
 # Function to prepare the project repository
 function prepare_project() {
   echo "Preparing project repository..." | tee -a "$LOG_FILE"
-  
+
   # If local path doesn't exist, clone the repository
   if [[ ! -d "$LOCAL_PATH" ]]; then
     echo "Cloning repository to $LOCAL_PATH..." | tee -a "$LOG_FILE"
@@ -75,7 +75,7 @@ function prepare_project() {
   else
     echo "Using existing repository at $LOCAL_PATH..." | tee -a "$LOG_FILE"
     cd "$LOCAL_PATH"
-    
+
     # Check if repo is clean
     if [[ -n $(git status --porcelain) ]]; then
       echo "Warning: Repository has uncommitted changes." | tee -a "$LOG_FILE"
@@ -85,12 +85,12 @@ function prepare_project() {
         exit 1
       fi
     fi
-    
+
     # Update repository
     echo "Updating repository..." | tee -a "$LOG_FILE"
     git fetch origin
   fi
-  
+
   # Check if evolution branch exists
   if git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
     echo "Evolution branch $BRANCH exists, checking it out..." | tee -a "$LOG_FILE"
@@ -102,7 +102,7 @@ function prepare_project() {
     git pull origin "$BASE_BRANCH"
     git checkout -b "$BRANCH"
   fi
-  
+
   cd - > /dev/null
   echo "Repository prepared successfully." | tee -a "$LOG_FILE"
 }
@@ -110,25 +110,25 @@ function prepare_project() {
 # Function to run the initial evaluation
 function evaluate_project() {
   echo "Running project evaluation..." | tee -a "$LOG_FILE"
-  
+
   local metrics_file="$RESULTS_DIR/metrics_${TIMESTAMP}.json"
   echo "{\"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\", \"metrics\": {}}" > "$metrics_file"
-  
+
   # Extract and run each metric command
   jq -c '.evaluation.metrics[]' "$CONFIG_FILE" | while read -r metric; do
     local name=$(echo "$metric" | jq -r '.name')
     local tool=$(echo "$metric" | jq -r '.tool')
     local cmd=$(echo "$metric" | jq -r '.command' | sed "s|{target_dir}|$LOCAL_PATH|g" | sed "s|{project_path}|$LOCAL_PATH|g")
     local threshold=$(echo "$metric" | jq -r '.threshold')
-    
+
     echo "Running metric: $name using $tool..." | tee -a "$LOG_FILE"
     echo "Command: $cmd" | tee -a "$LOG_FILE"
-    
+
     # Run the command and capture output
     local result_output
     if result_output=$(eval "$cmd" 2>&1); then
       echo "Metric $name executed successfully." | tee -a "$LOG_FILE"
-      
+
       # Process result based on tool type
       local metric_value
       case "$tool" in
@@ -155,21 +155,21 @@ function evaluate_project() {
           metric_value=$(echo "$result_output" | grep -oP '\d+(\.\d+)?')
           ;;
       esac
-      
+
       echo "Metric value: $metric_value (threshold: $threshold)" | tee -a "$LOG_FILE"
-      
+
       # Add to metrics file
       local tmp_file=$(mktemp)
       jq --arg name "$name" --arg value "$metric_value" --arg threshold "$threshold" \
         '.metrics[$name] = {"value": $value, "threshold": $threshold}' "$metrics_file" > "$tmp_file"
       mv "$tmp_file" "$metrics_file"
-      
+
     else
       echo "Error running metric $name:" | tee -a "$LOG_FILE"
       echo "$result_output" | tee -a "$LOG_FILE"
     fi
   done
-  
+
   echo "Evaluation complete. Results saved to $metrics_file" | tee -a "$LOG_FILE"
   cp "$metrics_file" "$RESULTS_DIR/latest_metrics.json"
 }
@@ -177,14 +177,14 @@ function evaluate_project() {
 # Function to run EVOSEAL evolution on the project
 function evolve_project() {
   echo "Starting EVOSEAL evolution process..." | tee -a "$LOG_FILE"
-  
+
   # Create task file for the external project
   local task_file="$RESULTS_DIR/task_${TIMESTAMP}.json"
-  
+
   # Extract focus areas and target files
   local focus_areas=$(jq -r '.evolution.focus_areas | join(",")' "$CONFIG_FILE")
   local target_files=$(jq -r '.evolution.target_files | join(" ")' "$CONFIG_FILE")
-  
+
   # Create temporary task file
   cat > "$task_file" << EOF
 {
@@ -207,9 +207,9 @@ function evolve_project() {
   }
 }
 EOF
-  
+
   echo "Task file created at $task_file" | tee -a "$LOG_FILE"
-  
+
   # Run EVOSEAL with the external project task
   echo "Running EVOSEAL pipeline with project task..." | tee -a "$LOG_FILE"
   evoseal "$CURRENT_VERSION" pipeline init "$LOCAL_PATH" --force | tee -a "$LOG_FILE"
@@ -217,11 +217,11 @@ EOF
   evoseal "$CURRENT_VERSION" pipeline config --set iterations="$ITERATIONS" | tee -a "$LOG_FILE"
   evoseal "$CURRENT_VERSION" pipeline config --set external.project=true | tee -a "$LOG_FILE"
   evoseal "$CURRENT_VERSION" pipeline config --set external.path="$LOCAL_PATH" | tee -a "$LOG_FILE"
-  
+
   # Start the evolution process
   echo "Starting evolution with $ITERATIONS iterations..." | tee -a "$LOG_FILE"
   evoseal "$CURRENT_VERSION" pipeline start | tee -a "$LOG_FILE"
-  
+
   # Export results
   echo "Exporting results..." | tee -a "$LOG_FILE"
   evoseal "$CURRENT_VERSION" export --output="$RESULT_FILE" | tee -a "$LOG_FILE"
@@ -231,47 +231,47 @@ EOF
 # Function to process the evolution results
 function process_results() {
   echo "Processing evolution results..." | tee -a "$LOG_FILE"
-  
+
   # Check if we should commit changes
   local auto_commit=$(jq -r '.version_control.auto_commit' "$CONFIG_FILE")
-  
+
   if [[ "$auto_commit" == "true" ]]; then
     echo "Auto-commit enabled. Committing changes to the repository..." | tee -a "$LOG_FILE"
-    
+
     # Get commit message template
     local commit_template=$(jq -r '.version_control.commit_message_template' "$CONFIG_FILE")
-    
+
     # Generate commit message from results
     local improvement_type=$(jq -r '.primary_improvement' "$RESULT_FILE")
     local component=$(jq -r '.components[0]' "$RESULT_FILE")
     local detailed_changes=$(jq -r '.changes_summary' "$RESULT_FILE")
-    
+
     # Replace placeholders
     local commit_message="${commit_template/\{improvement_type\}/$improvement_type}"
     commit_message="${commit_message/\{component\}/$component}"
     commit_message="${commit_message/\{detailed_changes\}/$detailed_changes}"
-    
+
     # Commit changes
     cd "$LOCAL_PATH"
     git add .
     git commit -m "$commit_message"
-    
+
     # Check if we should create a pull request
     local auto_pr=$(jq -r '.version_control.pull_request.auto_create' "$CONFIG_FILE")
     if [[ "$auto_pr" == "true" ]]; then
       echo "Auto-PR enabled. However, PR creation requires GitHub CLI or similar tool."
       echo "Please implement the PR creation step manually or extend this script."
     fi
-    
+
     cd - > /dev/null
   else
     echo "Auto-commit disabled. Changes remain uncommitted in the working directory." | tee -a "$LOG_FILE"
   fi
-  
+
   # Run re-evaluation to compare before and after
   echo "Re-evaluating project after evolution..." | tee -a "$LOG_FILE"
   evaluate_project
-  
+
   echo "Evolution process complete!" | tee -a "$LOG_FILE"
   echo "Results saved to $RESULT_FILE" | tee -a "$LOG_FILE"
 }

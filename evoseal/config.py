@@ -61,19 +61,13 @@ class SEALConfig(BaseSettings):
 
     # Evolution settings
     evolution_enabled: bool = Field(True, description="Enable evolution system")
-    evolution_interval: int = Field(
-        3600, description="Evolution check interval in seconds"
-    )
+    evolution_interval: int = Field(3600, description="Evolution check interval in seconds")
     min_evolution_samples: int = Field(50, description="Minimum samples for training")
 
     # Fine-tuning settings
     fine_tuning_enabled: bool = Field(True, description="Enable fine-tuning")
-    training_check_interval: int = Field(
-        1800, description="Training check interval in seconds"
-    )
-    model_validation_timeout: int = Field(
-        300, description="Model validation timeout in seconds"
-    )
+    training_check_interval: int = Field(1800, description="Training check interval in seconds")
+    model_validation_timeout: int = Field(300, description="Model validation timeout in seconds")
 
     # Monitoring settings
     monitoring_enabled: bool = Field(True, description="Enable monitoring dashboard")

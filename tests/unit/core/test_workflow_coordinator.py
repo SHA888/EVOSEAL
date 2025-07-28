@@ -108,15 +108,11 @@ class TestWorkflowCoordinator(unittest.IsolatedAsyncioTestCase):
         self.config_path = self.test_dir / "test_config.json"
 
         # Create test coordinator instance
-        self.coordinator = WorkflowCoordinator(
-            str(self.config_path), str(self.test_dir)
-        )
+        self.coordinator = WorkflowCoordinator(str(self.config_path), str(self.test_dir))
 
         # Create a mock repository manager
         self.mock_repo_manager = MagicMock()
-        self.mock_repo_manager.clone_repository.return_value = (
-            self.test_dir / "test_repo"
-        )
+        self.mock_repo_manager.clone_repository.return_value = self.test_dir / "test_repo"
         self.coordinator.repo_manager = self.mock_repo_manager
 
         # Create a mock event bus

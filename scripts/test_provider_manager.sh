@@ -57,26 +57,26 @@ logger = logging.getLogger(__name__)
 async def test_configuration():
     """Test provider configuration loading."""
     logger.info("Testing provider configuration...")
-    
+
     # Check SEAL configuration
     seal_config = settings.seal
     logger.info(f"SEAL enabled: {seal_config.enabled}")
     logger.info(f"Default provider: {seal_config.default_provider}")
     logger.info(f"Configured providers: {list(seal_config.providers.keys())}")
-    
+
     # Check provider details
     for name, config in seal_config.providers.items():
         logger.info(f"Provider {name}: enabled={config.enabled}, priority={config.priority}")
         logger.info(f"  Config: {config.config}")
-    
+
     return True
 
 async def test_provider_listing():
     """Test provider listing functionality."""
     logger.info("Testing provider listing...")
-    
+
     provider_info = provider_manager.list_providers()
-    
+
     for name, info in provider_info.items():
         status = "✅" if info["enabled"] and info["available"] else "❌"
         logger.info(f"{status} Provider {name}:")
@@ -87,33 +87,33 @@ async def test_provider_listing():
         if "healthy" in info:
             health_status = "✅ Healthy" if info["healthy"] else "❌ Unhealthy"
             logger.info(f"  Health: {health_status}")
-    
+
     return True
 
 async def test_provider_selection():
     """Test provider selection and instantiation."""
     logger.info("Testing provider selection...")
-    
+
     try:
         # Test getting default provider
         logger.info("Getting default provider...")
         default_provider = provider_manager.get_provider()
         logger.info(f"✅ Default provider: {type(default_provider).__name__}")
-        
+
         # Test getting specific provider
         logger.info("Getting Ollama provider...")
         ollama_provider = provider_manager.get_provider("ollama")
         logger.info(f"✅ Ollama provider: {type(ollama_provider).__name__}")
-        
+
         # Test provider health if available
         if hasattr(ollama_provider, 'health_check'):
             logger.info("Testing Ollama provider health...")
             is_healthy = await ollama_provider.health_check()
             health_status = "✅ Healthy" if is_healthy else "❌ Unhealthy"
             logger.info(f"Ollama health: {health_status}")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Provider selection failed: {e}")
         return False
@@ -121,19 +121,19 @@ async def test_provider_selection():
 async def test_best_provider_selection():
     """Test best available provider selection."""
     logger.info("Testing best provider selection...")
-    
+
     try:
         best_provider = provider_manager.get_best_available_provider()
         logger.info(f"✅ Best provider: {type(best_provider).__name__}")
-        
+
         # Test a simple prompt with the best provider
         logger.info("Testing simple prompt with best provider...")
         response = await best_provider.submit_prompt("Hello, test!")
         logger.info(f"✅ Response received ({len(response)} chars)")
         logger.info(f"Response preview: {response[:100]}...")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Best provider selection failed: {e}")
         return False
@@ -141,22 +141,22 @@ async def test_best_provider_selection():
 async def test_provider_fallback():
     """Test provider fallback functionality."""
     logger.info("Testing provider fallback...")
-    
+
     # Temporarily disable high-priority provider to test fallback
     original_providers = settings.seal.providers.copy()
-    
+
     try:
         # Disable Ollama temporarily
         if "ollama" in settings.seal.providers:
             settings.seal.providers["ollama"].enabled = False
             provider_manager.reload_providers()
-            
+
             logger.info("Disabled Ollama provider, testing fallback...")
             fallback_provider = provider_manager.get_best_available_provider()
             logger.info(f"✅ Fallback provider: {type(fallback_provider).__name__}")
-            
+
             return True
-            
+
     except Exception as e:
         logger.error(f"❌ Provider fallback test failed: {e}")
         return False
@@ -169,7 +169,7 @@ async def test_provider_fallback():
 async def main():
     """Run all tests."""
     logger.info("🚀 Starting EVOSEAL Provider Manager Tests")
-    
+
     tests = [
         ("Configuration Test", test_configuration),
         ("Provider Listing Test", test_provider_listing),
@@ -177,7 +177,7 @@ async def main():
         ("Best Provider Selection Test", test_best_provider_selection),
         ("Provider Fallback Test", test_provider_fallback),
     ]
-    
+
     results = []
     for test_name, test_func in tests:
         logger.info(f"\n--- {test_name} ---")
@@ -187,7 +187,7 @@ async def main():
         except Exception as e:
             logger.error(f"Test {test_name} failed with exception: {e}")
             results.append((test_name, False))
-    
+
     # Summary
     logger.info("\n=== Test Results ===")
     passed = 0
@@ -196,9 +196,9 @@ async def main():
         logger.info(f"{test_name}: {status}")
         if result:
             passed += 1
-    
+
     logger.info(f"\nOverall: {passed}/{len(results)} tests passed")
-    
+
     if passed == len(results):
         logger.info("🎉 All tests passed! Provider Manager is working correctly.")
         return 0
@@ -217,12 +217,12 @@ cd "$EVOSEAL_ROOT"
 
 if python3 "$TEST_SCRIPT"; then
     log_info "✅ Provider Manager tests passed!"
-    
+
     # Clean up test script
     rm -f "$TEST_SCRIPT"
-    
+
     log_info "Provider Manager is ready for use!"
-    
+
 else
     log_error "❌ Provider Manager tests failed"
     log_info "Test script saved at: $TEST_SCRIPT"

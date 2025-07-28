@@ -357,9 +357,7 @@ async def demonstrate_resource_monitoring():
     success = await orchestrator.initialize_workflow(workflow_config)
 
     if success:
-        print(
-            f"Resource-monitored workflow initialized: {workflow_config['workflow_id']}"
-        )
+        print(f"Resource-monitored workflow initialized: {workflow_config['workflow_id']}")
 
         # Let it run for a bit to collect resource data
         result = await orchestrator.execute_workflow(pipeline)
@@ -372,9 +370,7 @@ async def demonstrate_resource_monitoring():
         print(f"- Monitoring active: {resource_stats['monitoring_active']}")
         print(f"- Snapshots collected: {resource_stats['snapshots_collected']}")
         print(f"- Active alerts: {resource_stats['active_alerts']}")
-        print(
-            f"- Memory usage - Current: {resource_stats['memory_stats']['current']:.1f}%"
-        )
+        print(f"- Memory usage - Current: {resource_stats['memory_stats']['current']:.1f}%")
         print(f"- CPU usage - Current: {resource_stats['cpu_stats']['current']:.1f}%")
 
         # Show any alerts
@@ -441,9 +437,7 @@ async def demonstrate_checkpoint_management():
         recent_checkpoints = orchestrator.checkpoint_manager.list_checkpoints(limit=3)
         print("\nRecent Checkpoints:")
         for cp in recent_checkpoints:
-            print(
-                f"- {cp.checkpoint_id}: {cp.checkpoint_type.value} at iteration {cp.iteration}"
-            )
+            print(f"- {cp.checkpoint_id}: {cp.checkpoint_type.value} at iteration {cp.iteration}")
 
 
 async def main():

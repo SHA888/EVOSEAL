@@ -29,9 +29,7 @@ def get_git_changes(since_tag: str) -> List[Dict]:
         if not line:
             continue
         commit_hash, author, date, message = line.split("|", 3)
-        changes.append(
-            {"hash": commit_hash, "author": author, "date": date, "message": message}
-        )
+        changes.append({"hash": commit_hash, "author": author, "date": date, "message": message})
     return changes
 
 
@@ -69,12 +67,8 @@ def generate_changelog_excerpt(version: str, metrics: Dict, changes: List[Dict])
     today = datetime.now().strftime("%Y-%m-%d")
 
     # Categorize changes
-    features = [
-        c for c in changes if c["message"].lower().startswith(("feat", "add", "new"))
-    ]
-    fixes = [
-        c for c in changes if c["message"].lower().startswith(("fix", "bug", "issue"))
-    ]
+    features = [c for c in changes if c["message"].lower().startswith(("feat", "add", "new"))]
+    fixes = [c for c in changes if c["message"].lower().startswith(("fix", "bug", "issue"))]
 
     output = [
         f"# EVOSEAL {version} - Release Notes\n",
@@ -83,12 +77,8 @@ def generate_changelog_excerpt(version: str, metrics: Dict, changes: List[Dict])
     ]
 
     # Add evolution metrics
-    output.append(
-        f"- **Evolution Cycles**: {metrics['iterations']} iterations completed"
-    )
-    output.append(
-        f"- **Improvements**: {metrics['improvements']} significant improvements"
-    )
+    output.append(f"- **Evolution Cycles**: {metrics['iterations']} iterations completed")
+    output.append(f"- **Improvements**: {metrics['improvements']} significant improvements")
     output.append(
         f"- **Issues Resolved**: {metrics['regressions']} regressions detected and addressed\n"
     )
@@ -134,9 +124,7 @@ def generate_release_notes(version: str, metrics: Dict, changes: List[Dict]) -> 
             f"- **Files Changed**: {m.get('code_size', {}).get('files_changed', 0)} files"
         )
         if "test_coverage" in m:
-            output.append(
-                f"- **Test Coverage**: {float(m['test_coverage']) * 100:.1f}%"
-            )
+            output.append(f"- **Test Coverage**: {float(m['test_coverage']) * 100:.1f}%")
 
     # Add changes by category
     if metrics.get("changes"):
@@ -167,9 +155,7 @@ def generate_release_notes(version: str, metrics: Dict, changes: List[Dict]) -> 
     if changes and not metrics.get("changes"):
         output.append("\n## 📝 Notable Changes")
         for change in changes[:5]:
-            output.append(
-                f"- `{change['hash'][:7]}` {change['message']} (*{change['date']}*)"
-            )
+            output.append(f"- `{change['hash'][:7]}` {change['message']} (*{change['date']}*)")
 
     # Add footer
     output.extend(
@@ -195,9 +181,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Generate release notes")
     parser.add_argument("version", help="Version number (e.g., v0.2.0)")
-    parser.add_argument(
-        "--since", default=None, help="Previous version tag (default: auto-detect)"
-    )
+    parser.add_argument("--since", default=None, help="Previous version tag (default: auto-detect)")
     parser.add_argument(
         "--output-dir", default="releases", help="Output directory for release files"
     )

@@ -97,9 +97,7 @@ async def test_async_context_manager():
 
 
 @pytest.mark.asyncio
-async def test_process_prompt(
-    enhanced_seal_system, mock_knowledge_base, mock_self_editor
-):
+async def test_process_prompt(enhanced_seal_system, mock_knowledge_base, mock_self_editor):
     """Test processing a prompt with knowledge and self-editing."""
     # Setup test data
     test_prompt = "What is the capital of France?"
@@ -181,12 +179,8 @@ async def test_conversation_history(enhanced_seal_system):
     # Check history
     history = enhanced_seal_system.conversation_history.get_history()
     assert len(history) >= 2  # At least 2 assistant responses
-    assert all(
-        msg["role"] == "assistant" for msg in history
-    )  # Only assistant messages are stored
-    assert any(
-        "Hello" in msg["content"] or "How are you" in msg["content"] for msg in history
-    )
+    assert all(msg["role"] == "assistant" for msg in history)  # Only assistant messages are stored
+    assert any("Hello" in msg["content"] or "How are you" in msg["content"] for msg in history)
 
 
 @pytest.mark.asyncio
@@ -259,9 +253,7 @@ async def test_self_editing_disabled(enhanced_seal_system, mock_self_editor):
     ) as mock_suggest:
 
         # Process a prompt
-        await enhanced_seal_system.process_prompt(
-            "Test prompt", context={"test": "context"}
-        )
+        await enhanced_seal_system.process_prompt("Test prompt", context={"test": "context"})
 
         # Verify suggest_edits was not called when self-editing is disabled
         mock_suggest.assert_not_called()
@@ -284,24 +276,16 @@ async def test_retrieve_relevant_knowledge(enhanced_seal_system, mock_knowledge_
     ]
 
     # First call - should query knowledge base
-    results = await enhanced_seal_system.retrieve_relevant_knowledge(
-        test_query, context={}
-    )
+    results = await enhanced_seal_system.retrieve_relevant_knowledge(test_query, context={})
     assert results == test_results
 
     # Second call - should use cache
-    cached_results = await enhanced_seal_system.retrieve_relevant_knowledge(
-        test_query, context={}
-    )
-    assert (
-        cached_results == test_results
-    )  # Should still get the same results from cache
+    cached_results = await enhanced_seal_system.retrieve_relevant_knowledge(test_query, context={})
+    assert cached_results == test_results  # Should still get the same results from cache
 
 
 @pytest.mark.asyncio
-async def test_self_edit_process(
-    enhanced_seal_system, mock_self_editor, mock_knowledge_base
-):
+async def test_self_edit_process(enhanced_seal_system, mock_self_editor, mock_knowledge_base):
     """Test the self-editing process."""
     # Enable self-editing for this test
     enhanced_seal_system.config.enable_self_editing = True
@@ -332,9 +316,7 @@ async def test_self_edit_process(
     ) as mock_suggest:
 
         # Process a prompt that will trigger self-editing
-        response = await enhanced_seal_system.process_prompt(
-            test_prompt, context=test_context
-        )
+        response = await enhanced_seal_system.process_prompt(test_prompt, context=test_context)
 
         # Verify suggest_edits was called with the correct arguments
         mock_suggest.assert_called_once()

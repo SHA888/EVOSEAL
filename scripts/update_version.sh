@@ -52,7 +52,7 @@ fi
 # Get project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT" || { 
+cd "$PROJECT_ROOT" || {
     print_error "Failed to change to project root directory"
     exit 1
 }
@@ -75,13 +75,13 @@ update_version_in_file() {
     local pattern=$2
     local replacement=$3
     local description=$4
-    
+
     if [ -f "$file" ]; then
         print_status "Updating $description in $file..."
-        
+
         # Create backup
         cp "$file" "$file.bak"
-        
+
         # Update version
         if sed -i "$pattern" "$file"; then
             print_success "✓ Updated $file"
@@ -118,14 +118,14 @@ update_version_in_file "evoseal/__version__.py" \
 if [ -f "README.md" ]; then
     print_status "Updating version references in README.md..."
     cp "README.md" "README.md.bak"
-    
+
     # Update version badge
     sed -i "s/version-v[0-9]\+\.[0-9]\+\.[0-9]\+/version-v$VERSION_NUMBER/" README.md
-    
+
     # Update version text references
     sed -i "s/Latest version: v[0-9]\+\.[0-9]\+\.[0-9]\+/Latest version: v$VERSION_NUMBER/" README.md
     sed -i "s/Version [0-9]\+\.[0-9]\+\.[0-9]\+/Version $VERSION_NUMBER/" README.md
-    
+
     print_success "✓ Updated README.md"
     rm "README.md.bak"
 fi
@@ -134,9 +134,9 @@ fi
 if [ -f "CHANGELOG.md" ]; then
     print_status "Updating CHANGELOG.md..."
     cp "CHANGELOG.md" "CHANGELOG.md.bak"
-    
+
     TODAY=$(date +%Y-%m-%d)
-    
+
     # Look for unreleased version and update it
     if grep -q "## \[Unreleased\]" CHANGELOG.md; then
         sed -i "s/## \[Unreleased\]/## [$VERSION_NUMBER] - $TODAY/" CHANGELOG.md
@@ -149,7 +149,7 @@ if [ -f "CHANGELOG.md" ]; then
         print_warning "No unreleased version found in CHANGELOG.md"
         print_status "Consider adding a new version entry manually"
     fi
-    
+
     rm "CHANGELOG.md.bak"
 fi
 
@@ -194,9 +194,9 @@ read -p "Do you want to commit these version changes? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     print_status "Committing version updates..."
-    
+
     git add pyproject.toml evoseal/__init__.py evoseal/__version__.py README.md CHANGELOG.md
-    
+
     git commit -m "🔖 Bump version to v$VERSION_NUMBER
 
 ✨ Version Update:
@@ -211,9 +211,9 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 - Package metadata updated
 - Documentation reflects new version
 - Ready for release tagging"
-    
+
     print_success "✓ Version changes committed"
-    
+
     # Offer to create git tag
     echo
     read -p "Do you want to create a git tag v$VERSION_NUMBER? (y/N): " -n 1 -r
@@ -222,7 +222,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_status "Creating git tag v$VERSION_NUMBER..."
         git tag -a "v$VERSION_NUMBER" -m "Release v$VERSION_NUMBER"
         print_success "✓ Git tag v$VERSION_NUMBER created"
-        
+
         # Offer to push
         echo
         read -p "Do you want to push changes and tag to origin? (y/N): " -n 1 -r

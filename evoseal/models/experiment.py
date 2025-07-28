@@ -228,11 +228,7 @@ class Experiment(BaseModel):
         """Validate timing constraints."""
         if self.started_at and self.started_at < self.created_at:
             raise ValueError("started_at cannot be before created_at")
-        if (
-            self.completed_at
-            and self.started_at
-            and self.completed_at < self.started_at
-        ):
+        if self.completed_at and self.started_at and self.completed_at < self.started_at:
             raise ValueError("completed_at cannot be before started_at")
         return self
 

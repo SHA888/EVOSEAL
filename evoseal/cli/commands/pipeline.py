@@ -160,18 +160,14 @@ def init_pipeline(
     ] = 10,
     force: Annotated[
         bool,
-        typer.Option(
-            "--force", "-f", help="Force initialization even if pipeline exists"
-        ),
+        typer.Option("--force", "-f", help="Force initialization even if pipeline exists"),
     ] = False,
 ) -> None:
     """Initialize a new evolution pipeline for a repository."""
 
     # Check if pipeline already exists
     if os.path.exists(PIPELINE_STATE_FILE) and not force:
-        console.print(
-            "[yellow]Pipeline already exists. Use --force to reinitialize.[/yellow]"
-        )
+        console.print("[yellow]Pipeline already exists. Use --force to reinitialize.[/yellow]")
         raise typer.Exit(1)
 
     console.print(f"[blue]Initializing evolution pipeline for: {repository}[/blue]")
@@ -223,9 +219,7 @@ def start_pipeline(
     resume: Annotated[
         bool, typer.Option("--resume", "-r", help="Resume from last checkpoint")
     ] = False,
-    debug: Annotated[
-        bool, typer.Option("--debug", "-d", help="Enable debug mode")
-    ] = False,
+    debug: Annotated[bool, typer.Option("--debug", "-d", help="Enable debug mode")] = False,
     interactive: Annotated[
         bool, typer.Option("--interactive", "-i", help="Enable interactive debugging")
     ] = False,
@@ -235,9 +229,7 @@ def start_pipeline(
     state = pipeline_state.load_state()
 
     if state["status"] == "not_started":
-        console.print(
-            "[red]Pipeline not initialized. Run 'evoseal pipeline init' first.[/red]"
-        )
+        console.print("[red]Pipeline not initialized. Run 'evoseal pipeline init' first.[/red]")
         raise typer.Exit(1)
 
     if state["status"] == "running":
@@ -348,12 +340,8 @@ def show_status(
     detailed: Annotated[
         bool, typer.Option("--detailed", "-d", help="Show detailed status information")
     ] = False,
-    json_output: Annotated[
-        bool, typer.Option("--json", help="Output status as JSON")
-    ] = False,
-    watch: Annotated[
-        bool, typer.Option("--watch", "-w", help="Watch status in real-time")
-    ] = False,
+    json_output: Annotated[bool, typer.Option("--json", help="Output status as JSON")] = False,
+    watch: Annotated[bool, typer.Option("--watch", "-w", help="Watch status in real-time")] = False,
 ) -> None:
     """Show pipeline status and progress."""
 
@@ -372,9 +360,7 @@ def show_status(
 
 @app.command("config")
 def manage_config(
-    show: Annotated[
-        bool, typer.Option("--show", "-s", help="Show current configuration")
-    ] = False,
+    show: Annotated[bool, typer.Option("--show", "-s", help="Show current configuration")] = False,
     edit: Annotated[
         bool, typer.Option("--edit", "-e", help="Edit configuration interactively")
     ] = False,
@@ -382,9 +368,7 @@ def manage_config(
         Optional[str],
         typer.Option("--set", help="Set configuration parameter (key=value)"),
     ] = None,
-    reset: Annotated[
-        bool, typer.Option("--reset", help="Reset to default configuration")
-    ] = False,
+    reset: Annotated[bool, typer.Option("--reset", help="Reset to default configuration")] = False,
 ) -> None:
     """Manage pipeline configuration."""
 
@@ -426,9 +410,7 @@ def manage_config(
     if edit:
         # TODO: Implement interactive configuration editing
         console.print("[yellow]Interactive editing not yet implemented[/yellow]")
-        console.print(
-            f"[dim]Edit configuration file directly: {PIPELINE_CONFIG_FILE}[/dim]"
-        )
+        console.print(f"[dim]Edit configuration file directly: {PIPELINE_CONFIG_FILE}[/dim]")
 
     if show or not any([edit, set_param, reset]):
         show_config_summary(config)
@@ -439,9 +421,7 @@ def show_logs(
     follow: Annotated[
         bool, typer.Option("--follow", "-f", help="Follow log output in real-time")
     ] = False,
-    lines: Annotated[
-        int, typer.Option("--lines", "-n", help="Number of lines to show")
-    ] = 50,
+    lines: Annotated[int, typer.Option("--lines", "-n", help="Number of lines to show")] = 50,
     level: Annotated[
         Optional[str], typer.Option("--level", "-l", help="Filter by log level")
     ] = None,
@@ -543,9 +523,7 @@ def setup_logging(logging_config: Dict[str, Any]):
         os.makedirs(os.path.dirname(logging_config["file"]), exist_ok=True)
         file_handler = logging.FileHandler(logging_config["file"])
         file_handler.setLevel(level)
-        file_formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
 
@@ -621,9 +599,7 @@ def display_pipeline_status(state: Dict[str, Any], detailed: bool = False):
         info_table.add_row("Current Stage", state["current_stage"])
 
     if state.get("start_time"):
-        start_time = time.strftime(
-            "%Y-%m-%d %H:%M:%S", time.localtime(state["start_time"])
-        )
+        start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(state["start_time"]))
         info_table.add_row("Started", start_time)
 
     console.print(info_table)
@@ -683,9 +659,7 @@ def watch_pipeline_status(detailed: bool = False):
         console.print("\n[yellow]Stopped watching[/yellow]")
 
 
-async def run_pipeline_async(
-    state: Dict[str, Any], debug: bool = False, interactive: bool = False
-):
+async def run_pipeline_async(state: Dict[str, Any], debug: bool = False, interactive: bool = False):
     """Run the pipeline asynchronously with progress visualization."""
 
     config = state.get("config", {})
@@ -705,14 +679,10 @@ async def run_pipeline_async(
 
     with Live(progress, console=console, refresh_per_second=4):
         # Main iteration task
-        iteration_task = progress.add_task(
-            "[green]Evolution Iterations", total=total_iterations
-        )
+        iteration_task = progress.add_task("[green]Evolution Iterations", total=total_iterations)
 
         # Stage task
-        stage_task = progress.add_task(
-            "[blue]Current Stage", total=7
-        )  # Number of pipeline stages
+        stage_task = progress.add_task("[blue]Current Stage", total=7)  # Number of pipeline stages
 
         # Update progress to current state
         progress.update(iteration_task, completed=start_iteration)
@@ -734,9 +704,7 @@ async def run_pipeline_async(
             ]
 
             for stage_idx, stage_name in enumerate(stages):
-                progress.update(
-                    stage_task, description=f"[blue]{stage_name}", completed=stage_idx
-                )
+                progress.update(stage_task, description=f"[blue]{stage_name}", completed=stage_idx)
                 pipeline_state.update_state({"current_stage": stage_name})
 
                 # Simulate stage work
@@ -745,9 +713,7 @@ async def run_pipeline_async(
                 # Interactive debugging
                 if interactive and debug:
                     console.print(f"\n[yellow]Paused at stage: {stage_name}[/yellow]")
-                    action = typer.prompt(
-                        "Continue (c), Skip (s), or Quit (q)?", default="c"
-                    )
+                    action = typer.prompt("Continue (c), Skip (s), or Quit (q)?", default="c")
                     if action.lower() == "q":
                         return
                     elif action.lower() == "s":

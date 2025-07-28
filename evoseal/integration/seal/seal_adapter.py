@@ -107,9 +107,7 @@ class SEALAdapter(BaseComponentAdapter):
             return True
 
         except Exception as e:
-            self.logger.exception(
-                "Failed to initialize SEAL (Self-Adapting Language Models)"
-            )
+            self.logger.exception("Failed to initialize SEAL (Self-Adapting Language Models)")
             self.status.error = str(e)
             return False
 
@@ -122,20 +120,14 @@ class SEALAdapter(BaseComponentAdapter):
             # Test basic SEAL (Self-Adapting Language Models) functionality
             test_response = await self.seal_interface.submit("test prompt")
             if test_response:
-                self.logger.info(
-                    "SEAL (Self-Adapting Language Models) started successfully"
-                )
+                self.logger.info("SEAL (Self-Adapting Language Models) started successfully")
                 return True
             else:
-                self.logger.error(
-                    "SEAL (Self-Adapting Language Models) start test failed"
-                )
+                self.logger.error("SEAL (Self-Adapting Language Models) start test failed")
                 return False
 
         except Exception as e:
-            self.logger.exception(
-                "Failed to start SEAL (Self-Adapting Language Models)"
-            )
+            self.logger.exception("Failed to start SEAL (Self-Adapting Language Models)")
             self.status.error = str(e)
             return False
 
@@ -160,9 +152,7 @@ class SEALAdapter(BaseComponentAdapter):
         self.logger.info("SEAL (Self-Adapting Language Models) operations resumed")
         return True
 
-    async def execute(
-        self, operation: str, data: Any = None, **kwargs
-    ) -> ComponentResult:
+    async def execute(self, operation: str, data: Any = None, **kwargs) -> ComponentResult:
         """
         Execute a SEAL (Self-Adapting Language Models)-specific operation.
 
@@ -212,15 +202,11 @@ class SEALAdapter(BaseComponentAdapter):
                 result_data = await self._optimize_prompt(data, **kwargs)
 
             else:
-                return ComponentResult(
-                    success=False, error=f"Unknown operation: {operation}"
-                )
+                return ComponentResult(success=False, error=f"Unknown operation: {operation}")
 
             execution_time = asyncio.get_event_loop().time() - start_time
 
-            return ComponentResult(
-                success=True, data=result_data, execution_time=execution_time
-            )
+            return ComponentResult(success=True, data=result_data, execution_time=execution_time)
 
         except Exception as e:
             execution_time = asyncio.get_event_loop().time() - start_time
@@ -228,9 +214,7 @@ class SEALAdapter(BaseComponentAdapter):
                 f"Error executing SEAL (Self-Adapting Language Models) operation: {operation}"
             )
 
-            return ComponentResult(
-                success=False, error=str(e), execution_time=execution_time
-            )
+            return ComponentResult(success=False, error=str(e), execution_time=execution_time)
 
     async def get_metrics(self) -> Dict[str, Any]:
         """Get SEAL (Self-Adapting Language Models)-specific metrics."""
@@ -239,9 +223,7 @@ class SEALAdapter(BaseComponentAdapter):
                 "rate_limit_per_sec": self._rate_limit,
                 "max_retries": self._max_retries,
                 "retry_delay": self._retry_delay,
-                "provider_type": (
-                    type(self.provider).__name__ if self.provider else None
-                ),
+                "provider_type": (type(self.provider).__name__ if self.provider else None),
             }
 
             # Add provider-specific metrics if available
@@ -266,9 +248,7 @@ class SEALAdapter(BaseComponentAdapter):
         elif isinstance(data, dict):
             prompt = data.get("prompt")
         else:
-            raise ValueError(
-                "Submit prompt requires a string prompt or dict with 'prompt' key"
-            )
+            raise ValueError("Submit prompt requires a string prompt or dict with 'prompt' key")
 
         if not prompt:
             raise ValueError("Prompt is required")
@@ -288,9 +268,7 @@ class SEALAdapter(BaseComponentAdapter):
                 result = await self._submit_prompt(prompt_data, **kwargs)
                 results.append(result)
             except Exception as e:
-                results.append(
-                    {"prompt": str(prompt_data), "error": str(e), "success": False}
-                )
+                results.append({"prompt": str(prompt_data), "error": str(e), "success": False})
 
         return {
             "results": results,
@@ -306,9 +284,7 @@ class SEALAdapter(BaseComponentAdapter):
         elif isinstance(data, dict):
             code = data.get("code")
         else:
-            raise ValueError(
-                "Analyze code requires code string or dict with 'code' key"
-            )
+            raise ValueError("Analyze code requires code string or dict with 'code' key")
 
         if not code:
             raise ValueError("Code is required for analysis")
@@ -384,9 +360,7 @@ class SEALAdapter(BaseComponentAdapter):
         elif isinstance(data, dict):
             code = data.get("code")
         else:
-            raise ValueError(
-                "Improve code requires code string or dict with 'code' key"
-            )
+            raise ValueError("Improve code requires code string or dict with 'code' key")
 
         if not code:
             raise ValueError("Code is required for improvement")
@@ -422,9 +396,7 @@ class SEALAdapter(BaseComponentAdapter):
         elif isinstance(data, dict):
             code = data.get("code")
         else:
-            raise ValueError(
-                "Explain code requires code string or dict with 'code' key"
-            )
+            raise ValueError("Explain code requires code string or dict with 'code' key")
 
         if not code:
             raise ValueError("Code is required for explanation")
@@ -499,9 +471,7 @@ class SEALAdapter(BaseComponentAdapter):
         elif isinstance(data, dict):
             original_prompt = data.get("prompt")
         else:
-            raise ValueError(
-                "Optimize prompt requires prompt string or dict with 'prompt' key"
-            )
+            raise ValueError("Optimize prompt requires prompt string or dict with 'prompt' key")
 
         if not original_prompt:
             raise ValueError("Original prompt is required")

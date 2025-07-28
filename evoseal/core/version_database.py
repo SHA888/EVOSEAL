@@ -32,9 +32,7 @@ class VersionDatabase:
         # chronological list of variant_ids
         self.history: list[str] = []
         # experiment tracking
-        self.experiment_variants: dict[str, list[str]] = (
-            {}
-        )  # experiment_id -> variant_ids
+        self.experiment_variants: dict[str, list[str]] = {}  # experiment_id -> variant_ids
         self.variant_experiments: dict[str, str] = {}  # variant_id -> experiment_id
 
     def add_variant(
@@ -162,9 +160,7 @@ class VersionDatabase:
 
         return sorted_variants[:limit]
 
-    def get_variant_statistics(
-        self, experiment_id: Optional[str] = None
-    ) -> dict[str, Any]:
+    def get_variant_statistics(self, experiment_id: Optional[str] = None) -> dict[str, Any]:
         """Get statistics about variants.
 
         Args:
@@ -175,9 +171,7 @@ class VersionDatabase:
         """
         if experiment_id:
             variant_ids = self.get_experiment_variants(experiment_id)
-            variants = [
-                self.variants[vid] for vid in variant_ids if vid in self.variants
-            ]
+            variants = [self.variants[vid] for vid in variant_ids if vid in self.variants]
         else:
             variants = list(self.variants.values())
 
@@ -259,9 +253,7 @@ class VersionDatabase:
         export_data = {
             "variants": variants_to_export,
             "lineage": {
-                vid: self.lineage[vid]
-                for vid in variants_to_export.keys()
-                if vid in self.lineage
+                vid: self.lineage[vid] for vid in variants_to_export.keys() if vid in self.lineage
             },
             "export_timestamp": datetime.now(timezone.utc).isoformat(),
             "experiment_id": experiment_id,

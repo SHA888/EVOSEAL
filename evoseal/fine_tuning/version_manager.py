@@ -100,7 +100,9 @@ class ModelVersionManager:
 
             # Generate version name if not provided
             if not version_name:
-                version_name = f"devstral-v{len(self.registry['versions']) + 1}-{timestamp.strftime('%Y%m%d')}"
+                version_name = (
+                    f"devstral-v{len(self.registry['versions']) + 1}-{timestamp.strftime('%Y%m%d')}"
+                )
 
             # Create version entry
             version_info = {
@@ -125,9 +127,7 @@ class ModelVersionManager:
 
                 # Copy model files
                 try:
-                    shutil.copytree(
-                        model_path, version_dir / "model", dirs_exist_ok=True
-                    )
+                    shutil.copytree(model_path, version_dir / "model", dirs_exist_ok=True)
                     version_info["model_path"] = str(version_dir / "model")
                     version_info["status"] = "stored"
                 except Exception as e:
@@ -154,12 +154,12 @@ class ModelVersionManager:
             logger.error(f"Error registering model version: {e}")
             return {"error": str(e)}
 
-    def _generate_version_id(
-        self, timestamp: datetime, training_results: Dict[str, Any]
-    ) -> str:
+    def _generate_version_id(self, timestamp: datetime, training_results: Dict[str, Any]) -> str:
         """Generate a unique version ID."""
         # Create hash from timestamp and training results
-        content = f"{timestamp.isoformat()}{json.dumps(training_results, sort_keys=True, default=str)}"
+        content = (
+            f"{timestamp.isoformat()}{json.dumps(training_results, sort_keys=True, default=str)}"
+        )
         hash_object = hashlib.md5(content.encode())
         return f"v{timestamp.strftime('%Y%m%d_%H%M%S')}_{hash_object.hexdigest()[:8]}"
 
@@ -174,9 +174,7 @@ class ModelVersionManager:
         # Training metrics
         if training_results:
             metrics["train_loss"] = training_results.get("train_loss")
-            metrics["training_examples"] = training_results.get(
-                "training_examples_count"
-            )
+            metrics["training_examples"] = training_results.get("training_examples_count")
             metrics["fallback_mode"] = training_results.get("fallback_mode", False)
 
         # Validation metrics

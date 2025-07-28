@@ -60,24 +60,18 @@ def test_safety_mechanisms():
         print("✅ Test checkpoint created successfully")
 
         # TEST 1: Safe handling when version manager points to current directory
-        print(
-            "\n🔒 TEST 1: Safe handling when version manager points to current directory..."
-        )
+        print("\n🔒 TEST 1: Safe handling when version manager points to current directory...")
         mock_version_manager = Mock()
         mock_version_manager.working_dir = str(Path.cwd())
         rollback_manager.version_manager = mock_version_manager
 
         try:
-            result = rollback_manager.rollback_to_version(
-                "safety_test_v1.0", "dangerous_test"
-            )
+            result = rollback_manager.rollback_to_version("safety_test_v1.0", "dangerous_test")
             if result:
                 # Verify it used safe fallback directory instead of current directory
                 safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
                 if safe_dir.exists():
-                    print(
-                        "✅ PASSED: Safely used fallback directory instead of current directory"
-                    )
+                    print("✅ PASSED: Safely used fallback directory instead of current directory")
                 else:
                     print("❌ FAILED: Safe fallback directory was not created")
                     return False
@@ -93,9 +87,7 @@ def test_safety_mechanisms():
         rollback_manager.version_manager = None
 
         try:
-            result = rollback_manager.rollback_to_version(
-                "safety_test_v1.0", "fallback_test"
-            )
+            result = rollback_manager.rollback_to_version("safety_test_v1.0", "fallback_test")
             if result:
                 print("✅ PASSED: Safe fallback directory rollback succeeded")
 

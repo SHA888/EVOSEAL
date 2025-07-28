@@ -76,9 +76,7 @@ class MockWorkflowCoordinator:
 sys.modules["evoseal.core.evolution_pipeline"] = MagicMock()
 sys.modules["evoseal.core.evolution_pipeline"].WorkflowState = MockWorkflowState
 sys.modules["evoseal.core.evolution_pipeline"].WorkflowStage = MockWorkflowStage
-sys.modules["evoseal.core.evolution_pipeline"].WorkflowCoordinator = (
-    MockWorkflowCoordinator
-)
+sys.modules["evoseal.core.evolution_pipeline"].WorkflowCoordinator = MockWorkflowCoordinator
 
 # Now import the actual modules we need
 import git
@@ -180,7 +178,7 @@ from sample import add, subtract
 class TestMath(unittest.TestCase):
     def test_add(self):
         self.assertEqual(add(1, 2), 3)
-    
+
     def test_subtract(self):
         self.assertEqual(subtract(5, 3), 2)
 
@@ -229,9 +227,9 @@ if __name__ == "__main__":
         # Modify the sample file to add type hints
         sample_file = self.work_dir / "test_repo" / "sample.py"
         content = sample_file.read_text()
-        content = content.replace(
-            "def add(a, b):", "def add(a: int, b: int) -> int:"
-        ).replace("def subtract(a, b):", "def subtract(a: int, b: int) -> int:")
+        content = content.replace("def add(a, b):", "def add(a: int, b: int) -> int:").replace(
+            "def subtract(a, b):", "def subtract(a: int, b: int) -> int:"
+        )
         sample_file.write_text(content)
 
         # Stage and commit the changes
@@ -265,9 +263,7 @@ if __name__ == "__main__":
             "feedback": "Changes improve code quality with type hints",
         }
 
-    @patch(
-        "evoseal.core.evolution_pipeline.WorkflowCoordinator._run_evolution_iteration"
-    )
+    @patch("evoseal.core.evolution_pipeline.WorkflowCoordinator._run_evolution_iteration")
     async def test_complete_workflow(self, mock_iteration):
         """Test a complete workflow with mocked components."""
         # Configure the mock to return a successful iteration
@@ -291,9 +287,7 @@ if __name__ == "__main__":
         # Verify the iteration was called once
         mock_iteration.assert_called_once()
 
-    @patch(
-        "evoseal.core.evolution_pipeline.WorkflowCoordinator._run_evolution_iteration"
-    )
+    @patch("evoseal.core.evolution_pipeline.WorkflowCoordinator._run_evolution_iteration")
     async def test_workflow_with_pause_resume(self, mock_iteration):
         """Test pausing and resuming the workflow."""
 
@@ -309,9 +303,7 @@ if __name__ == "__main__":
         mock_iteration.side_effect = mock_iteration_side_effect
 
         # Start the workflow in a separate task
-        task = asyncio.create_task(
-            self.coordinator.run_workflow(str(self.repo_dir), iterations=2)
-        )
+        task = asyncio.create_task(self.coordinator.run_workflow(str(self.repo_dir), iterations=2))
 
         # Wait for the workflow to pause
         while not self.coordinator.pause_requested:

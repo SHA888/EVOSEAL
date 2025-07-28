@@ -32,10 +32,7 @@ except ImportError:
     create_dgm_adapter = None
 
 try:
-    from .openevolve.openevolve_adapter import (
-        OpenEvolveAdapter,
-        create_openevolve_adapter,
-    )
+    from .openevolve.openevolve_adapter import OpenEvolveAdapter, create_openevolve_adapter
 
     _OPENEVOLVE_AVAILABLE = True
 except ImportError:
@@ -92,19 +89,14 @@ class IntegrationOrchestrator:
                 dgm_adapter = create_dgm_adapter(**dgm_config)
                 self.component_manager.register_component(dgm_adapter)
             elif ComponentType.DGM in component_configs and not _DGM_AVAILABLE:
-                self.logger.warning(
-                    "DGM configuration provided but DGM adapter not available"
-                )
+                self.logger.warning("DGM configuration provided but DGM adapter not available")
 
             # Initialize OpenEvolve if configured and available
             if ComponentType.OPENEVOLVE in component_configs and _OPENEVOLVE_AVAILABLE:
                 oe_config = component_configs[ComponentType.OPENEVOLVE]
                 oe_adapter = create_openevolve_adapter(**oe_config)
                 self.component_manager.register_component(oe_adapter)
-            elif (
-                ComponentType.OPENEVOLVE in component_configs
-                and not _OPENEVOLVE_AVAILABLE
-            ):
+            elif ComponentType.OPENEVOLVE in component_configs and not _OPENEVOLVE_AVAILABLE:
                 self.logger.warning(
                     "OpenEvolve configuration provided but OpenEvolve adapter not available"
                 )
@@ -129,12 +121,8 @@ class IntegrationOrchestrator:
                 self._initialized = True
                 self.logger.info("Integration orchestrator initialized successfully")
             else:
-                failed_components = [
-                    comp.value for comp, result in results.items() if not result
-                ]
-                self.logger.error(
-                    f"Failed to initialize components: {failed_components}"
-                )
+                failed_components = [comp.value for comp, result in results.items() if not result]
+                self.logger.error(f"Failed to initialize components: {failed_components}")
 
             return success
 
@@ -159,9 +147,7 @@ class IntegrationOrchestrator:
                 self._running = True
                 self.logger.info("All components started successfully")
             else:
-                failed_components = [
-                    comp.value for comp, result in results.items() if not result
-                ]
+                failed_components = [comp.value for comp, result in results.items() if not result]
                 self.logger.error(f"Failed to start components: {failed_components}")
 
             return success
@@ -183,9 +169,7 @@ class IntegrationOrchestrator:
                 self._running = False
                 self.logger.info("All components stopped successfully")
             else:
-                failed_components = [
-                    comp.value for comp, result in results.items() if not result
-                ]
+                failed_components = [comp.value for comp, result in results.items() if not result]
                 self.logger.error(f"Failed to stop components: {failed_components}")
 
             return success
@@ -194,9 +178,7 @@ class IntegrationOrchestrator:
             self.logger.exception("Error stopping components")
             return False
 
-    def get_component(
-        self, component_type: ComponentType
-    ) -> Optional[BaseComponentAdapter]:
+    def get_component(self, component_type: ComponentType) -> Optional[BaseComponentAdapter]:
         """Get a specific component adapter."""
         return self.component_manager.get_component(component_type)
 
@@ -232,9 +214,7 @@ class IntegrationOrchestrator:
 
         return await component.execute(operation, data, **kwargs)
 
-    async def execute_evolution_workflow(
-        self, workflow_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def execute_evolution_workflow(self, workflow_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute a complete evolution workflow coordinating all components.
 
@@ -304,9 +284,7 @@ class IntegrationOrchestrator:
                 )
 
                 if not oe_result.success:
-                    workflow_results["error"] = (
-                        f"OpenEvolve stage failed: {oe_result.error}"
-                    )
+                    workflow_results["error"] = f"OpenEvolve stage failed: {oe_result.error}"
                     return workflow_results
 
             # Stage 3: SEAL (Self-Adapting Language Models) - Code analysis and improvement
@@ -396,9 +374,7 @@ class IntegrationOrchestrator:
             data = op_config.get("data")
             kwargs = op_config.get("kwargs", {})
 
-            task = self.execute_component_operation(
-                component_type, operation, data, **kwargs
-            )
+            task = self.execute_component_operation(component_type, operation, data, **kwargs)
             tasks.append(task)
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -407,9 +383,7 @@ class IntegrationOrchestrator:
         processed_results = []
         for result in results:
             if isinstance(result, Exception):
-                processed_results.append(
-                    ComponentResult(success=False, error=str(result))
-                )
+                processed_results.append(ComponentResult(success=False, error=str(result)))
             else:
                 processed_results.append(result)
 

@@ -32,9 +32,7 @@ async def list_providers():
 
         if "healthy" in info:
             health_icon = "💚" if info["healthy"] else "💔"
-            print(
-                f"   Health: {health_icon} {'Healthy' if info['healthy'] else 'Unhealthy'}"
-            )
+            print(f"   Health: {health_icon} {'Healthy' if info['healthy'] else 'Unhealthy'}")
 
         if "health_error" in info:
             print(f"   Error: {info['health_error']}")

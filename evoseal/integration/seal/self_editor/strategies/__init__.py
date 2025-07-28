@@ -6,11 +6,7 @@ This package contains various editing strategies that can be used with the SelfE
 
 from .base_strategy import BaseEditStrategy
 from .code_style_strategy import CodeStyleStrategy
-from .documentation_strategy import (
-    DocstringStyle,
-    DocumentationConfig,
-    DocumentationStrategy,
-)
+from .documentation_strategy import DocstringStyle, DocumentationConfig, DocumentationStrategy
 from .knowledge_aware_strategy import KnowledgeAwareStrategy
 from .security_analysis_strategy import (
     SecurityAnalysisStrategy,

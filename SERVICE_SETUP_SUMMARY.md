@@ -161,7 +161,7 @@ journalctl --user -u evoseal -n 20
 - `scripts/install_service.sh` - Redundant
 - `scripts/update_dependencies.sh` - Consolidated
 - `scripts/evoseal-runner.sh` - Replaced
-- `scripts/run_continuous.sh` - Replaced  
+- `scripts/run_continuous.sh` - Replaced
 - `scripts/auto_evolve_and_push.sh` - Replaced
 
 ---

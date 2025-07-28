@@ -210,9 +210,7 @@ class VersionManager:
                 if current_commit:
                     commits.append(current_commit)
                 commit_hash = line[7:]
-                current_commit = CommitInfo(
-                    hash=commit_hash, author="", date=None, message=""
-                )
+                current_commit = CommitInfo(hash=commit_hash, author="", date=None, message="")
             elif line.startswith("Author: "):
                 if current_commit:
                     current_commit.author = line[8:].strip()
@@ -221,9 +219,7 @@ class VersionManager:
                     # Parse date string (e.g., "Date:   Mon Jul 7 12:34:56 2025 +0800")
                     date_str = line[8:].strip()
                     try:
-                        current_commit.date = datetime.strptime(
-                            date_str, "%a %b %d %H:%M:%S %Y %z"
-                        )
+                        current_commit.date = datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y %z")
                     except ValueError:
                         logger.warning(f"Could not parse date: {date_str}")
             elif line.strip() and not line.startswith("    "):
@@ -235,9 +231,7 @@ class VersionManager:
 
         return commits
 
-    def create_commit(
-        self, message: str, files: Optional[List[Union[str, Path]]] = None
-    ) -> bool:
+    def create_commit(self, message: str, files: Optional[List[Union[str, Path]]] = None) -> bool:
         """
         Create a new commit.
 
@@ -350,9 +344,7 @@ class VersionManager:
         result = self.git.pull(remote, branch)
         return result.success
 
-    def push(
-        self, remote: str = "origin", branch: str = None, force: bool = False
-    ) -> bool:
+    def push(self, remote: str = "origin", branch: str = None, force: bool = False) -> bool:
         """
         Push changes to a remote repository.
 
@@ -399,10 +391,7 @@ class VersionManager:
                 current_section = "unstaged"
             elif "Untracked files:" in line:
                 current_section = "untracked"
-            elif (
-                line
-                == 'no changes added to commit (use "git add" and/or "git commit -a")'
-            ):
+            elif line == 'no changes added to commit (use "git add" and/or "git commit -a")':
                 continue
             elif current_section and ":" in line:
                 # Skip section headers

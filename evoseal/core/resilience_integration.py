@@ -63,11 +63,7 @@ class ResilienceOrchestrator:
 
     def _setup_default_error_patterns(self):
         """Set up default error patterns and recovery strategies."""
-        from evoseal.core.error_recovery import (
-            ErrorPattern,
-            RecoveryAction,
-            RecoveryStrategy,
-        )
+        from evoseal.core.error_recovery import ErrorPattern, RecoveryAction, RecoveryStrategy
 
         # Network-related errors
         error_recovery_manager.classifier.register_pattern(
@@ -226,9 +222,7 @@ class ResilienceOrchestrator:
                         "component": name,
                         "failure_count": cb.failure_count,
                         "last_failure": (
-                            cb.last_failure_time.isoformat()
-                            if cb.last_failure_time
-                            else None
+                            cb.last_failure_time.isoformat() if cb.last_failure_time else None
                         ),
                     }
                 )
@@ -236,8 +230,7 @@ class ResilienceOrchestrator:
         # Determine overall health
         if health_status["alerts"]:
             if any(
-                alert["type"] == "component_unhealthy"
-                and "critical" in alert.get("status", "")
+                alert["type"] == "component_unhealthy" and "critical" in alert.get("status", "")
                 for alert in health_status["alerts"]
             ):
                 health_status["overall_health"] = "critical"
@@ -346,9 +339,7 @@ class ResilienceOrchestrator:
             component = alert.get("component", "unknown")
             error_rate = alert.get("error_rate", 0)
 
-            logger.warning(
-                f"High error rate detected for {component}: {error_rate:.2%}"
-            )
+            logger.warning(f"High error rate detected for {component}: {error_rate:.2%}")
 
             # Consider enabling degraded mode
             if error_rate > 0.25:  # 25% error rate

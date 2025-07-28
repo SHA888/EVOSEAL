@@ -65,11 +65,11 @@ test = [
     "pytest-benchmark>=4.1.0",
     "coverage>=7.0.0",
     "codecov>=2.1.13,<3.0.0",
-    
+
     # Testing utilities
     "jsonschema>=4.0.0",
     "psutil>=5.9.0",
-    
+
     # Optional dependencies for specific tests
     "torch>=2.0.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",
     "transformers>=4.30.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",

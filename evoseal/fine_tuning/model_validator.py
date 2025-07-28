@@ -215,9 +215,7 @@ class ModelValidator:
 
             for i, test_case in enumerate(test_cases[:total_tests]):
                 try:
-                    prompt = (
-                        f"{test_case['instruction']}\n\n{test_case.get('input', '')}"
-                    )
+                    prompt = f"{test_case['instruction']}\n\n{test_case.get('input', '')}"
                     response = await provider.submit_prompt(prompt)
 
                     # Basic checks
@@ -252,25 +250,19 @@ class ModelValidator:
 
             for test_case in test_cases[:2]:  # Limit tests
                 try:
-                    prompt = (
-                        f"{test_case['instruction']}\n\n{test_case.get('input', '')}"
-                    )
+                    prompt = f"{test_case['instruction']}\n\n{test_case.get('input', '')}"
                     response = await provider.submit_prompt(prompt)
 
                     # Evaluate code quality
                     expected_keywords = test_case.get("expected_keywords", [])
-                    quality_score = self._evaluate_code_quality(
-                        response, expected_keywords
-                    )
+                    quality_score = self._evaluate_code_quality(response, expected_keywords)
                     quality_scores.append(quality_score)
 
                 except Exception as e:
                     logger.debug(f"Code quality test failed: {e}")
                     continue
 
-            avg_score = (
-                sum(quality_scores) / len(quality_scores) if quality_scores else 0.0
-            )
+            avg_score = sum(quality_scores) / len(quality_scores) if quality_scores else 0.0
 
             return {
                 "score": avg_score,
@@ -291,9 +283,9 @@ class ModelValidator:
         score = 0.0
 
         # Check for expected keywords
-        keyword_score = sum(
-            1 for keyword in expected_keywords if keyword in code
-        ) / max(1, len(expected_keywords))
+        keyword_score = sum(1 for keyword in expected_keywords if keyword in code) / max(
+            1, len(expected_keywords)
+        )
         score += keyword_score * 0.4
 
         # Check for basic code structure
@@ -322,9 +314,7 @@ class ModelValidator:
                     response = await provider.submit_prompt(prompt)
 
                     # Evaluate instruction following
-                    following_score = self._evaluate_instruction_following(
-                        instruction, response
-                    )
+                    following_score = self._evaluate_instruction_following(instruction, response)
                     instruction_scores.append(following_score)
 
                 except Exception as e:
@@ -332,9 +322,7 @@ class ModelValidator:
                     continue
 
             avg_score = (
-                sum(instruction_scores) / len(instruction_scores)
-                if instruction_scores
-                else 0.0
+                sum(instruction_scores) / len(instruction_scores) if instruction_scores else 0.0
             )
 
             return {
@@ -370,9 +358,7 @@ class ModelValidator:
             score += 0.3
 
         # Check if response seems relevant
-        if any(
-            word in response_lower for word in ["function", "code", "def", "return"]
-        ):
+        if any(word in response_lower for word in ["function", "code", "def", "return"]):
             score += 0.2
 
         return min(score, 1.0)
@@ -405,9 +391,7 @@ class ModelValidator:
                     logger.debug(f"Safety test failed: {e}")
                     safe_responses += 1  # Timeout/error is safer than harmful response
 
-            safety_score = (
-                safe_responses / total_safety_tests if total_safety_tests > 0 else 1.0
-            )
+            safety_score = safe_responses / total_safety_tests if total_safety_tests > 0 else 1.0
 
             return {
                 "score": safety_score,
@@ -458,9 +442,7 @@ class ModelValidator:
                 try:
                     start_time = datetime.now()
 
-                    prompt = (
-                        f"{test_case['instruction']}\n\n{test_case.get('input', '')}"
-                    )
+                    prompt = f"{test_case['instruction']}\n\n{test_case.get('input', '')}"
                     response = await provider.submit_prompt(prompt)
 
                     response_time = (datetime.now() - start_time).total_seconds()
@@ -477,18 +459,12 @@ class ModelValidator:
                     continue
 
             # Calculate performance score
-            avg_response_time = (
-                sum(response_times) / len(response_times) if response_times else 0
-            )
-            avg_quality = (
-                sum(quality_scores) / len(quality_scores) if quality_scores else 0
-            )
+            avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+            avg_quality = sum(quality_scores) / len(quality_scores) if quality_scores else 0
 
             # Score based on reasonable response time (< 30s) and quality
             time_score = (
-                1.0
-                if avg_response_time < 30
-                else max(0.0, 1.0 - (avg_response_time - 30) / 60)
+                1.0 if avg_response_time < 30 else max(0.0, 1.0 - (avg_response_time - 30) / 60)
             )
             performance_score = (time_score + avg_quality) / 2
 
@@ -504,9 +480,7 @@ class ModelValidator:
             logger.error(f"Error in performance test: {e}")
             return {"score": 0.0, "error": str(e)}
 
-    def _generate_recommendations(
-        self, validation_results: Dict[str, Any]
-    ) -> List[str]:
+    def _generate_recommendations(self, validation_results: Dict[str, Any]) -> List[str]:
         """Generate recommendations based on validation results."""
         recommendations = []
 

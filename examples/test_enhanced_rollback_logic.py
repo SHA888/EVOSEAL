@@ -143,17 +143,13 @@ def setup_event_listeners():
     return rollback_events
 
 
-def test_basic_rollback_with_verification(
-    rollback_manager: RollbackManager, checkpoints
-):
+def test_basic_rollback_with_verification(rollback_manager: RollbackManager, checkpoints):
     """Test basic rollback with post-rollback verification."""
     print("\n🧪 TEST 1: Basic rollback with post-rollback verification")
 
     try:
         # Rollback to version 2
-        success = rollback_manager.rollback_to_version(
-            "test_v2.0", "test_basic_rollback"
-        )
+        success = rollback_manager.rollback_to_version("test_v2.0", "test_basic_rollback")
 
         if success:
             print("✅ Basic rollback with verification succeeded")
@@ -166,9 +162,7 @@ def test_basic_rollback_with_verification(
                 if verification["success"]:
                     print("✅ Post-rollback verification passed")
                 else:
-                    print(
-                        f"❌ Post-rollback verification failed: {verification['error']}"
-                    )
+                    print(f"❌ Post-rollback verification failed: {verification['error']}")
 
             return True
         else:
@@ -194,9 +188,7 @@ def test_cascading_rollback(rollback_manager: RollbackManager, checkpoints):
             print(f"📊 Attempts made: {result['attempts']}")
             return True
         else:
-            print(
-                f"❌ Cascading rollback failed: {result.get('error', 'Unknown error')}"
-            )
+            print(f"❌ Cascading rollback failed: {result.get('error', 'Unknown error')}")
             print(f"🔄 Rollback chain: {result.get('rollback_chain', [])}")
             return False
 
@@ -218,14 +210,10 @@ def test_rollback_failure_handling(rollback_manager: RollbackManager):
         print(f"🛠️ Failure handling result: {result}")
 
         if result["success"]:
-            print(
-                f"✅ Rollback failure recovery succeeded: {result['recovery_strategy']}"
-            )
+            print(f"✅ Rollback failure recovery succeeded: {result['recovery_strategy']}")
             print(f"🎯 Final version: {result['final_version']}")
         else:
-            print(
-                f"❌ Rollback failure recovery failed: {result.get('error', 'Unknown error')}"
-            )
+            print(f"❌ Rollback failure recovery failed: {result.get('error', 'Unknown error')}")
 
         print(f"🔧 Recovery actions taken: {result.get('recovery_actions', [])}")
         return True
@@ -316,9 +304,7 @@ def main():
     # Run tests
     test_results = []
 
-    test_results.append(
-        test_basic_rollback_with_verification(rollback_manager, checkpoints)
-    )
+    test_results.append(test_basic_rollback_with_verification(rollback_manager, checkpoints))
     test_results.append(test_cascading_rollback(rollback_manager, checkpoints))
     test_results.append(test_rollback_failure_handling(rollback_manager))
     test_results.append(test_auto_rollback_with_events(rollback_manager, checkpoints))

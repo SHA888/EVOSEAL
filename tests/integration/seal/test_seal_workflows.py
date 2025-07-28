@@ -78,9 +78,7 @@ class SEALWorkflow:
                 raise
 
         return {
-            "best_program": Program(
-                id="best_prog", code=self.initial_program, language="python"
-            ),
+            "best_program": Program(id="best_prog", code=self.initial_program, language="python"),
             "final_metrics": self.results[-1] if self.results else {},
         }
 
@@ -145,14 +143,8 @@ async def test_seal_workflow_execution(workflow_config, mock_seal_provider):
     assert isinstance(result["final_metrics"], dict)
 
     # Verify SEAL (Self-Adapting Language Models) provider was called the expected number of times
-    assert (
-        mock_seal_provider.submit_prompt.await_count
-        == workflow_config["max_iterations"]
-    )
-    assert (
-        mock_seal_provider.parse_response.await_count
-        == workflow_config["max_iterations"]
-    )
+    assert mock_seal_provider.submit_prompt.await_count == workflow_config["max_iterations"]
+    assert mock_seal_provider.parse_response.await_count == workflow_config["max_iterations"]
 
 
 @pytest.mark.asyncio

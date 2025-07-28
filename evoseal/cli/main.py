@@ -53,9 +53,7 @@ app = typer.Typer(
 app.add_typer(init.app, name="init", help="Initialize a new EVOSEAL project")
 app.add_typer(config.app, name="config", help="Manage configuration")
 app.add_typer(pipeline.app, name="pipeline", help="Pipeline control and monitoring")
-app.add_typer(
-    seal.app, name="seal", help="SEAL (Self-Adapting Language Models) model operations"
-)
+app.add_typer(seal.app, name="seal", help="SEAL (Self-Adapting Language Models) model operations")
 app.add_typer(openevolve.app, name="openevolve", help="OpenEvolve processes")
 app.add_typer(dgm.app, name="dgm", help="DGM code improvement workflows")
 app.add_typer(start.app, name="start", help="Start background processes")

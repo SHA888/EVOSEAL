@@ -158,7 +158,7 @@ python3 scripts/run_phase3_continuous_evolution.py \
 ### Evolution Cycles
 
 - **Frequency**: Every 1 hour (configurable via `--evolution-interval`)
-- **Process**: 
+- **Process**:
   1. Check for new evolution data from EVOSEAL
   2. Analyze patterns and improvement strategies
   3. Update evolution statistics

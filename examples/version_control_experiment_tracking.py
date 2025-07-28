@@ -89,18 +89,16 @@ class MockEvolutionPipeline:
                     # Create variant for some individuals
                     if random.random() < 0.3:  # 30% chance to create variant
                         variant_id = f"variant_{iteration}_{i}"
-                        source_code = f"def solution_{iteration}_{i}():\n    return {new_fitness_val:.3f}"
+                        source_code = (
+                            f"def solution_{iteration}_{i}():\n    return {new_fitness_val:.3f}"
+                        )
 
                         self.integration.track_variant_creation(
                             variant_id=variant_id,
                             source=source_code,
                             test_results={"passed": random.choice([True, False])},
                             eval_score=new_fitness_val,
-                            parent_ids=(
-                                [f"variant_{iteration-1}_{i}"]
-                                if iteration > 1
-                                else None
-                            ),
+                            parent_ids=([f"variant_{iteration-1}_{i}"] if iteration > 1 else None),
                             generation=iteration,
                             individual_index=i,
                         )
@@ -115,8 +113,7 @@ class MockEvolutionPipeline:
                     fitness_scores=population_fitness,
                     best_fitness=current_best,
                     diversity=len(set(f"{f:.2f}" for f in population_fitness)),
-                    convergence_rate=abs(current_best - best_fitness)
-                    / max(best_fitness, 0.001),
+                    convergence_rate=abs(current_best - best_fitness) / max(best_fitness, 0.001),
                 )
 
                 # Track performance metrics
@@ -128,9 +125,7 @@ class MockEvolutionPipeline:
 
                 # Create checkpoint every 3 iterations
                 if iteration % 3 == 0:
-                    checkpoint_id = self.integration.create_checkpoint(
-                        f"iteration_{iteration}"
-                    )
+                    checkpoint_id = self.integration.create_checkpoint(f"iteration_{iteration}")
                     print(f"    💾 Created checkpoint: {checkpoint_id}")
 
                 print(
@@ -161,9 +156,7 @@ class MockEvolutionPipeline:
                 best_fitness=best_fitness,
                 generations_completed=self.max_iterations,
                 total_evaluations=self.max_iterations * self.population_size,
-                convergence_iteration=(
-                    self.max_iterations if best_fitness > 0.8 else None
-                ),
+                convergence_iteration=(self.max_iterations if best_fitness > 0.8 else None),
             )
 
             # Complete experiment
@@ -212,9 +205,7 @@ async def demonstrate_version_control_tracking():
 
             # Create initial commit
             test_file = repo_path / "test.py"
-            test_file.write_text(
-                "# Initial test file\ndef hello():\n    return 'Hello, EVOSEAL!'"
-            )
+            test_file.write_text("# Initial test file\ndef hello():\n    return 'Hello, EVOSEAL!'")
             repo.index.add([str(test_file)])
             repo.index.commit("Initial commit")
 
@@ -281,9 +272,7 @@ async def demonstrate_version_control_tracking():
                 if summary["duration"]
                 else "   Duration: N/A"
             )
-            print(
-                f"   Best Fitness: {summary['latest_metrics'].get('best_fitness', 'N/A')}"
-            )
+            print(f"   Best Fitness: {summary['latest_metrics'].get('best_fitness', 'N/A')}")
             print(f"   Variants: {summary['variant_statistics']['total_variants']}")
             print(f"   Artifacts: {summary['artifact_count']}")
 
@@ -296,16 +285,12 @@ async def demonstrate_version_control_tracking():
         print(
             f"Configuration differences: {len(comparison['configurations']['different_parameters'])}"
         )
-        print(
-            f"Version consistency: {'Yes' if comparison['versions']['same_commit'] else 'No'}"
-        )
+        print(f"Version consistency: {'Yes' if comparison['versions']['same_commit'] else 'No'}")
 
         # Show configuration differences
         if comparison["configurations"]["different_parameters"]:
             print("\nConfiguration differences:")
-            for param, values in comparison["configurations"][
-                "different_parameters"
-            ].items():
+            for param, values in comparison["configurations"]["different_parameters"].items():
                 print(f"  {param}: {values}")
 
         # Analyze variant statistics

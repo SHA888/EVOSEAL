@@ -14,18 +14,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 from .exceptions import (
     AuthenticationError,
@@ -118,9 +107,7 @@ class GitInterface(ABC):
         # Set up environment for Git operations
         self._env = os.environ.copy()
         if self.ssh_key_path:
-            self._env["GIT_SSH_COMMAND"] = (
-                f"ssh -i {self.ssh_key_path} -o IdentitiesOnly=yes"
-            )
+            self._env["GIT_SSH_COMMAND"] = f"ssh -i {self.ssh_key_path} -o IdentitiesOnly=yes"
         if self._password:
             # Configure Git to use the credential helper for this repo
             self._configure_credential_helper()
@@ -181,9 +168,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def push(
-        self, remote: str = "origin", branch: str = "main", force: bool = False
-    ) -> GitResult:
+    def push(self, remote: str = "origin", branch: str = "main", force: bool = False) -> GitResult:
         """
         Push changes to a remote repository.
 
@@ -198,9 +183,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def commit(
-        self, message: str, files: Optional[List[Union[str, Path]]] = None
-    ) -> GitResult:
+    def commit(self, message: str, files: Optional[List[Union[str, Path]]] = None) -> GitResult:
         """
         Commit changes to the repository.
 
@@ -341,9 +324,7 @@ class GitInterface(ABC):
 
         # Configure Git to cache credentials in memory for a short time
         self._run_git_command(["config", "--local", "credential.helper", "cache"])
-        self._run_git_command(
-            ["config", "--local", "credential.helper", "'cache --timeout=300'"]
-        )
+        self._run_git_command(["config", "--local", "credential.helper", "'cache --timeout=300'"])
 
     def _get_auth_env(self) -> Dict[str, str]:
         """Get the environment variables for authentication."""
@@ -428,9 +409,7 @@ class GitInterface(ABC):
 
                 # Check for other common errors
                 if "Repository not found" in stderr:
-                    raise RepositoryNotFoundError(
-                        f"Repository not found: {stderr.strip()}"
-                    )
+                    raise RepositoryNotFoundError(f"Repository not found: {stderr.strip()}")
 
                 if "branch not found" in stderr.lower():
                     raise BranchNotFoundError(f"Branch not found: {stderr.strip()}")

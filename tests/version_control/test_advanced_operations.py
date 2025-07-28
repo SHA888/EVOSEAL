@@ -179,9 +179,7 @@ def test_repository_structure(git_repo_with_commit: CmdGit):
     assert "file2.txt" in contents, "file2.txt should be in the top-level contents"
 
     # Check that dir1 is marked as a directory
-    assert (
-        contents["dir1"]["type"] == "directory"
-    ), "dir1 should be marked as a directory"
+    assert contents["dir1"]["type"] == "directory", "dir1 should be marked as a directory"
 
     # The current implementation may or may not include contents when recursive=False
     # So we'll just check for the directory type and not assume anything about its contents

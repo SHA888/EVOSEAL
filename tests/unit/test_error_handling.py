@@ -174,9 +174,7 @@ class TestErrorHandlingUtils(unittest.TestCase):
         """Test the handle_errors context manager."""
         with self.assertLogs(__name__, level="ERROR") as cm:
             with self.assertRaises(ValueError):
-                with handle_errors(
-                    "test_component", "test_operation", logger=self.logger
-                ):
+                with handle_errors("test_component", "test_operation", logger=self.logger):
                     raise ValueError("Something went wrong")
 
         # Check that the error was logged
@@ -252,9 +250,7 @@ class TestErrorHandlingUtils(unittest.TestCase):
         )
 
         # Verify the number of retry logs (should equal max_retries)
-        retry_logs = [
-            msg for msg in log_context.output if "Retrying flaky_function" in msg
-        ]
+        retry_logs = [msg for msg in log_context.output if "Retrying flaky_function" in msg]
         self.assertEqual(
             len(retry_logs),
             max_retries,
@@ -276,9 +272,7 @@ class TestErrorHandlingUtils(unittest.TestCase):
 
         # Verify the final error log is present
         error_logs = [msg for msg in log_context.output if "Max retries" in msg]
-        self.assertEqual(
-            len(error_logs), 1, f"Expected 1 error log, got {len(error_logs)}"
-        )
+        self.assertEqual(len(error_logs), 1, f"Expected 1 error log, got {len(error_logs)}")
         self.assertIn(
             f"Max retries ({max_retries}) exceeded for flaky_function",
             error_logs[0],

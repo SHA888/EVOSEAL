@@ -78,9 +78,7 @@ class ProviderManager:
         """
         # Get enabled providers sorted by priority (descending)
         enabled_providers = [
-            (name, config)
-            for name, config in settings.seal.providers.items()
-            if config.enabled
+            (name, config) for name, config in settings.seal.providers.items() if config.enabled
         ]
 
         if not enabled_providers:
@@ -119,9 +117,7 @@ class ProviderManager:
                             )
                             return provider
                         else:
-                            logger.warning(
-                                f"Provider {provider_name} failed health check"
-                            )
+                            logger.warning(f"Provider {provider_name} failed health check")
                             continue
                     except Exception as e:
                         logger.warning(f"Health check failed for {provider_name}: {e}")
@@ -139,9 +135,7 @@ class ProviderManager:
 
         raise RuntimeError("No healthy SEAL providers are available")
 
-    def _create_provider(
-        self, provider_name: str, provider_config: Any
-    ) -> SEALProvider:
+    def _create_provider(self, provider_name: str, provider_config: Any) -> SEALProvider:
         """Create a provider instance.
 
         Args:
@@ -165,9 +159,7 @@ class ProviderManager:
         # Create provider instance with configuration
         try:
             provider_instance = provider_class(**config_params)
-            logger.debug(
-                f"Created {provider_name} provider with config: {config_params}"
-            )
+            logger.debug(f"Created {provider_name} provider with config: {config_params}")
             return provider_instance
         except Exception as e:
             logger.error(f"Failed to create {provider_name} provider: {e}")
@@ -221,9 +213,7 @@ class ProviderManager:
         logger.info("Reloading provider configuration")
         self._providers.clear()
 
-    def register_provider_class(
-        self, name: str, provider_class: Type[SEALProvider]
-    ) -> None:
+    def register_provider_class(self, name: str, provider_class: Type[SEALProvider]) -> None:
         """Register a new provider class.
 
         Args:

@@ -98,9 +98,7 @@ class MonitoringDashboard:
             logger.warning("Dashboard is already running")
             return
 
-        logger.info(
-            f"🌐 Starting Monitoring Dashboard on http://{self.host}:{self.port}"
-        )
+        logger.info(f"🌐 Starting Monitoring Dashboard on http://{self.host}:{self.port}")
         self.is_running = True
 
         # Start update task for real-time data
@@ -260,9 +258,7 @@ class MonitoringDashboard:
             status = self.evolution_service.get_service_status()
 
             # Get bidirectional evolution status
-            evolution_status = (
-                self.evolution_service.bidirectional_manager.get_evolution_status()
-            )
+            evolution_status = self.evolution_service.bidirectional_manager.get_evolution_status()
 
             # Get training manager status
             training_status = (

@@ -54,9 +54,7 @@ class SafetyIntegration:
             metrics_tracker = MetricsTracker()
         self.metrics_tracker = metrics_tracker
 
-        self.regression_detector = RegressionDetector(
-            regression_config, self.metrics_tracker
-        )
+        self.regression_detector = RegressionDetector(regression_config, self.metrics_tracker)
 
         # Safety configuration
         self.auto_checkpoint = config.get("auto_checkpoint", True)
@@ -90,9 +88,7 @@ class SafetyIntegration:
                 version_data["checkpoint_timestamp"] = self._get_current_timestamp()
 
             # Create checkpoint
-            checkpoint_path = self.checkpoint_manager.create_checkpoint(
-                version_id, version_data
-            )
+            checkpoint_path = self.checkpoint_manager.create_checkpoint(version_id, version_data)
 
             # Record metrics if test results are available
             if test_results:
@@ -102,9 +98,7 @@ class SafetyIntegration:
             return checkpoint_path
 
         except Exception as e:
-            logger.error(
-                f"Failed to create safety checkpoint for version {version_id}: {e}"
-            )
+            logger.error(f"Failed to create safety checkpoint for version {version_id}: {e}")
             raise
 
     def validate_version_safety(
@@ -139,12 +133,8 @@ class SafetyIntegration:
             if failed_tests:
                 validation_results["test_passed"] = False
                 validation_results["is_safe"] = False
-                validation_results["issues"].append(
-                    f"Found {len(failed_tests)} failed tests"
-                )
-                validation_results["recommendations"].append(
-                    "Fix failing tests before proceeding"
-                )
+                validation_results["issues"].append(f"Found {len(failed_tests)} failed tests")
+                validation_results["recommendations"].append("Fix failing tests before proceeding")
 
             # Check for regressions
             has_regression, regressions = self.regression_detector.detect_regression(
@@ -153,31 +143,21 @@ class SafetyIntegration:
 
             if has_regression:
                 validation_results["regression_detected"] = True
-                regression_summary = self.regression_detector.get_regression_summary(
-                    regressions
-                )
+                regression_summary = self.regression_detector.get_regression_summary(regressions)
 
                 # Determine if rollback is needed
                 if self.regression_detector.is_critical_regression(regressions):
                     validation_results["is_safe"] = False
                     validation_results["rollback_recommended"] = True
                     validation_results["issues"].append("Critical regressions detected")
-                    validation_results["recommendations"].append(
-                        "Immediate rollback recommended"
-                    )
+                    validation_results["recommendations"].append("Immediate rollback recommended")
                 elif regression_summary["severity_counts"]["high"] > 0:
                     validation_results["is_safe"] = False
-                    validation_results["issues"].append(
-                        "High severity regressions detected"
-                    )
-                    validation_results["recommendations"].append(
-                        "Review and fix regressions"
-                    )
+                    validation_results["issues"].append("High severity regressions detected")
+                    validation_results["recommendations"].append("Review and fix regressions")
                 else:
                     validation_results["issues"].append("Minor regressions detected")
-                    validation_results["recommendations"].append(
-                        "Monitor performance closely"
-                    )
+                    validation_results["recommendations"].append("Monitor performance closely")
 
                 validation_results["regression_details"] = regressions
                 validation_results["regression_summary"] = regression_summary
@@ -187,9 +167,7 @@ class SafetyIntegration:
                 validation_results, test_results, regressions if has_regression else {}
             )
 
-            logger.info(
-                f"Version safety validation completed: {validation_results['is_safe']}"
-            )
+            logger.info(f"Version safety validation completed: {validation_results['is_safe']}")
             return validation_results
 
         except Exception as e:
@@ -245,9 +223,7 @@ class SafetyIntegration:
             if safety_validation["is_safe"]:
                 execution_results["version_accepted"] = True
                 execution_results["success"] = True
-                execution_results["actions_taken"].append(
-                    "Version accepted - safety checks passed"
-                )
+                execution_results["actions_taken"].append("Version accepted - safety checks passed")
                 logger.info(f"Version {new_version_id} accepted - safety checks passed")
 
             elif safety_validation["rollback_recommended"] and self.auto_rollback:
@@ -259,9 +235,7 @@ class SafetyIntegration:
                 )
                 execution_results["rollback_performed"] = rollback_success
                 execution_results["actions_taken"].append(
-                    "Automatic rollback performed"
-                    if rollback_success
-                    else "Rollback failed"
+                    "Automatic rollback performed" if rollback_success else "Rollback failed"
                 )
 
                 if rollback_success:
@@ -275,9 +249,7 @@ class SafetyIntegration:
                 execution_results["actions_taken"].append(
                     "Version rejected - manual intervention required"
                 )
-                logger.warning(
-                    f"Version {new_version_id} rejected - safety issues detected"
-                )
+                logger.warning(f"Version {new_version_id} rejected - safety issues detected")
 
             return execution_results
 
@@ -328,9 +300,7 @@ class SafetyIntegration:
 
         try:
             # Clean up old checkpoints
-            deleted_checkpoints = self.checkpoint_manager.cleanup_old_checkpoints(
-                keep_checkpoints
-            )
+            deleted_checkpoints = self.checkpoint_manager.cleanup_old_checkpoints(keep_checkpoints)
             cleanup_stats["checkpoints_deleted"] = deleted_checkpoints
 
             # Optionally clear old rollback history (keep last 100 entries)

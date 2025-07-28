@@ -89,9 +89,7 @@ class CheckpointManager:
                             )
 
                         if isinstance(metadata_dict.get("state"), str):
-                            metadata_dict["state"] = OrchestrationState(
-                                metadata_dict["state"]
-                            )
+                            metadata_dict["state"] = OrchestrationState(metadata_dict["state"])
 
                         metadata = CheckpointMetadata(**metadata_dict)
                         self.checkpoints[metadata.checkpoint_id] = metadata
@@ -138,9 +136,7 @@ class CheckpointManager:
             stage=execution_context.current_stage,
             success_count=0,  # TODO: Calculate from step_results
             failure_count=0,  # TODO: Calculate from step_results
-            total_execution_time=(
-                datetime.utcnow() - execution_context.start_time
-            ).total_seconds(),
+            total_execution_time=(datetime.utcnow() - execution_context.start_time).total_seconds(),
             memory_usage=resource_usage.get("memory_percent", 0),
             cpu_usage=resource_usage.get("cpu_percent", 0),
             experiment_id=execution_context.experiment_id,
@@ -176,9 +172,7 @@ class CheckpointManager:
         # Store in memory registry
         self.checkpoints[checkpoint_id] = metadata
 
-        logger.info(
-            f"Created checkpoint: {checkpoint_id} (type: {checkpoint_type.value})"
-        )
+        logger.info(f"Created checkpoint: {checkpoint_id} (type: {checkpoint_type.value})")
         return checkpoint_id
 
     def _serialize_metadata(self, metadata: CheckpointMetadata) -> Dict[str, Any]:
@@ -247,9 +241,7 @@ class CheckpointManager:
             binary_file = self.checkpoint_dir / f"{checkpoint_id}.pkl"
             if binary_file.exists():
                 with open(binary_file, "rb") as f:
-                    binary_data = pickle.load(
-                        f
-                    )  # nosec B301 - Loading trusted checkpoint data
+                    binary_data = pickle.load(f)  # nosec B301 - Loading trusted checkpoint data
                 checkpoint_data["binary_data"] = binary_data
 
             return checkpoint_data
@@ -278,14 +270,10 @@ class CheckpointManager:
 
         # Apply filters
         if checkpoint_type:
-            checkpoints = [
-                cp for cp in checkpoints if cp.checkpoint_type == checkpoint_type
-            ]
+            checkpoints = [cp for cp in checkpoints if cp.checkpoint_type == checkpoint_type]
 
         if experiment_id:
-            checkpoints = [
-                cp for cp in checkpoints if cp.experiment_id == experiment_id
-            ]
+            checkpoints = [cp for cp in checkpoints if cp.experiment_id == experiment_id]
 
         # Sort by timestamp (newest first)
         checkpoints.sort(key=lambda cp: cp.timestamp, reverse=True)
@@ -357,10 +345,7 @@ class CheckpointManager:
         # Delete by age
         for checkpoint in all_checkpoints:
             if checkpoint.timestamp < cutoff_date:
-                if not (
-                    keep_milestone
-                    and checkpoint.checkpoint_type == CheckpointType.MILESTONE
-                ):
+                if not (keep_milestone and checkpoint.checkpoint_type == CheckpointType.MILESTONE):
                     to_delete.append(checkpoint.checkpoint_id)
 
         # Delete by count (keep newest)
@@ -369,8 +354,7 @@ class CheckpointManager:
             for checkpoint in excess_checkpoints:
                 if checkpoint.checkpoint_id not in to_delete:
                     if not (
-                        keep_milestone
-                        and checkpoint.checkpoint_type == CheckpointType.MILESTONE
+                        keep_milestone and checkpoint.checkpoint_type == CheckpointType.MILESTONE
                     ):
                         to_delete.append(checkpoint.checkpoint_id)
 
@@ -442,11 +426,7 @@ class CheckpointManager:
             "total_count": len(checkpoints),
             "by_type": by_type,
             "by_experiment": by_experiment,
-            "oldest": min(
-                checkpoints, key=lambda cp: cp.timestamp
-            ).timestamp.isoformat(),
-            "newest": max(
-                checkpoints, key=lambda cp: cp.timestamp
-            ).timestamp.isoformat(),
+            "oldest": min(checkpoints, key=lambda cp: cp.timestamp).timestamp.isoformat(),
+            "newest": max(checkpoints, key=lambda cp: cp.timestamp).timestamp.isoformat(),
             "total_size_mb": round(total_size / (1024 * 1024), 2),
         }

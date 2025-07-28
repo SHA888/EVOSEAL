@@ -51,9 +51,7 @@ class DocumentationStrategy(BaseEditStrategy):
     - Adding examples
     """
 
-    def __init__(
-        self, config: Optional[DocumentationConfig] = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, config: Optional[DocumentationConfig] = None, **kwargs: Any) -> None:
         """Initialize the documentation strategy.
 
         Args:
@@ -101,9 +99,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
             # Check all functions and classes
             for node in ast.walk(module):
-                if isinstance(
-                    node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-                ):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     if not self._should_skip_node(node, content):
                         suggestions.extend(self._evaluate_node(node, content))
 
@@ -126,8 +122,9 @@ class DocumentationStrategy(BaseEditStrategy):
         from collections.abc import Iterator, Sequence
 
         # No need to import List as we use built-in list type
-        from typing import Any, TypeVar, cast
+        from typing import Any
         from typing import Optional as Opt
+        from typing import TypeVar, cast
 
         # Initialize with explicit type annotation to ensure we only store EditSuggestion
         suggestions: list[EditSuggestion] = []
@@ -141,9 +138,7 @@ class DocumentationStrategy(BaseEditStrategy):
         # Check existing docstring quality
         docstring = self._safe_get_docstring(node)
         if docstring:
-            quality_suggestions = self._check_docstring_quality(
-                node, docstring, content
-            )
+            quality_suggestions = self._check_docstring_quality(node, docstring, content)
             if quality_suggestions:
                 # We know _check_docstring_quality returns list[EditSuggestion] with no Nones
                 suggestions.extend(quality_suggestions)
@@ -204,9 +199,7 @@ class DocumentationStrategy(BaseEditStrategy):
                 for param in node.args.args:
                     if param.arg != "self":
                         param_type = (
-                            f" ({ast.unparse(param.annotation)}) "
-                            if param.annotation
-                            else " "
+                            f" ({ast.unparse(param.annotation)}) " if param.annotation else " "
                         )
                         param_descriptions.append(
                             f"    {param.arg}:{param_type}Description of {param.arg}"
@@ -236,11 +229,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
                 # Add keyword-only arguments
                 for kwarg in node.args.kwonlyargs:
-                    param_type = (
-                        f" ({ast.unparse(kwarg.annotation)}) "
-                        if kwarg.annotation
-                        else " "
-                    )
+                    param_type = f" ({ast.unparse(kwarg.annotation)}) " if kwarg.annotation else " "
                     param_descriptions.append(
                         f"    {kwarg.arg}:{param_type}Description of {kwarg.arg}"
                     )
@@ -311,11 +300,7 @@ class DocumentationStrategy(BaseEditStrategy):
             if hasattr(param, "name") and hasattr(param, "annotation"):
                 # It's a proper Parameter object
                 param_name = param.name
-                param_type = (
-                    str(param.annotation)
-                    if param.annotation != Parameter.empty
-                    else "Any"
-                )
+                param_type = str(param.annotation) if param.annotation != Parameter.empty else "Any"
             else:
                 # Fallback for string parameters
                 param_name = str(param)
@@ -329,9 +314,7 @@ class DocumentationStrategy(BaseEditStrategy):
             param_desc = f"{param_name} ({param_type}): Description of {param_name}"
 
             # Create a new docstring with the missing parameter
-            new_docstring = self._update_param_docstring(
-                docstring, param_name, param_desc
-            )
+            new_docstring = self._update_param_docstring(docstring, param_name, param_desc)
 
             if new_docstring != docstring:
                 return EditSuggestion(
@@ -354,9 +337,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         return None
 
-    def _update_param_docstring(
-        self, docstring: str, param_name: str, param_desc: str
-    ) -> str:
+    def _update_param_docstring(self, docstring: str, param_name: str, param_desc: str) -> str:
         """Update a docstring to include a parameter description.
 
         Args:
@@ -523,9 +504,7 @@ class DocumentationStrategy(BaseEditStrategy):
                     )
 
                 # Handle keyword-only arguments
-                for arg, default_expr in zip(
-                    node.args.kwonlyargs, node.args.kw_defaults or []
-                ):
+                for arg, default_expr in zip(node.args.kwonlyargs, node.args.kw_defaults or []):
                     # Get the default value if it exists
                     default = (
                         default_expr.value
@@ -670,9 +649,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         # Find the end of the function signature
         insert_line = start_line + 1
-        while insert_line < len(lines) and not lines[insert_line].strip().startswith(
-            ":"
-        ):
+        while insert_line < len(lines) and not lines[insert_line].strip().startswith(":"):
             insert_line += 1
 
         if insert_line < len(lines):
@@ -696,9 +673,7 @@ class DocumentationStrategy(BaseEditStrategy):
             metadata={"node_type": "function", "node_name": node.name},
         )
 
-    def _create_missing_class_docstring(
-        self, node: ast.ClassDef, content: str
-    ) -> EditSuggestion:
+    def _create_missing_class_docstring(self, node: ast.ClassDef, content: str) -> EditSuggestion:
         """Create a suggestion for a missing class docstring."""
         docstring = f"{node.name} class."
 
@@ -707,9 +682,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         # Find where to insert the docstring (after the class definition)
         insert_line = start_line + 1
-        while insert_line < len(lines) and not lines[insert_line].strip().startswith(
-            ":"
-        ):
+        while insert_line < len(lines) and not lines[insert_line].strip().startswith(":"):
             insert_line += 1
 
         if insert_line < len(lines):
@@ -791,9 +764,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _safe_get_docstring(self, node: ast.AST) -> Optional[str]:
         """Safely get docstring from an AST node."""
-        if isinstance(
-            node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)
-        ):
+        if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)):
             return ast.get_docstring(node, clean=False)
         return None
 
@@ -816,9 +787,7 @@ class DocumentationStrategy(BaseEditStrategy):
         if "Attributes" not in parsed.sections:
             # Look for class attributes and instance attributes
             has_attributes = any(
-                isinstance(n, ast.Assign)
-                and n.targets
-                and isinstance(n.targets[0], ast.Name)
+                isinstance(n, ast.Assign) and n.targets and isinstance(n.targets[0], ast.Name)
                 for n in ast.walk(node)
             )
 
@@ -835,8 +804,7 @@ class DocumentationStrategy(BaseEditStrategy):
         # Check for methods section if the class has methods
         if "Methods" not in parsed.sections:
             has_methods = any(
-                isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-                for n in node.body
+                isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) for n in node.body
             )
 
             if has_methods:
@@ -897,9 +865,7 @@ class DocumentationStrategy(BaseEditStrategy):
                     suggestions.extend(class_suggestions)
 
             # Check parameter documentation
-            param_suggestions = self._check_parameter_documentation(
-                node, docstring, content
-            )
+            param_suggestions = self._check_parameter_documentation(node, docstring, content)
             if param_suggestions:
                 # _check_parameter_documentation is typed to return list[EditSuggestion] with no Nones
                 suggestions.extend(param_suggestions)
@@ -917,11 +883,7 @@ class DocumentationStrategy(BaseEditStrategy):
                                 f"Docstring line too long ({len(line)} > "
                                 f"{self.config.max_line_length} characters)"
                             ),
-                            line_number=(
-                                node.lineno + i + 1
-                                if hasattr(node, "lineno")
-                                else i + 1
-                            ),
+                            line_number=(node.lineno + i + 1 if hasattr(node, "lineno") else i + 1),
                             metadata={
                                 "node_type": type(node).__name__.lower(),
                                 "line_length": len(line),
@@ -979,8 +941,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
             # Apply indentation
             new_docstring = "\n".join(
-                (indent + line) if line.strip() else ""
-                for line in new_docstring.split("\n")
+                (indent + line) if line.strip() else "" for line in new_docstring.split("\n")
             )
 
             return EditSuggestion(
@@ -1083,9 +1044,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         return "\n".join(docstring)
 
-    def _generate_args_section(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]
-    ) -> str:
+    def _generate_args_section(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
         """Generate the Args section for a function docstring."""
         args = [arg for arg in node.args.args if arg.arg != "self"]
         if not args and not node.args.vararg and not node.args.kwarg:

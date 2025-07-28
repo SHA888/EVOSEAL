@@ -5,11 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from evoseal.integration.seal.self_editor.models import (
-    EditCriteria,
-    EditOperation,
-    EditSuggestion,
-)
+from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation, EditSuggestion
 from evoseal.integration.seal.self_editor.strategies.documentation_strategy import (
     DocstringStyle,
     DocumentationConfig,
@@ -77,9 +73,7 @@ class TestDocumentationStrategy:
 
         # Find the docstring suggestion
         doc_suggestions = [
-            s
-            for s in suggestions
-            if "Missing docstring for function 'example'" in s.explanation
+            s for s in suggestions if "Missing docstring for function 'example'" in s.explanation
         ]
 
         # There should be at least one docstring suggestion
@@ -102,9 +96,7 @@ class TestDocumentationStrategy:
 
         # Find the class docstring suggestion
         class_suggestions = [
-            s
-            for s in suggestions
-            if "Missing docstring for class 'Example'" in s.explanation
+            s for s in suggestions if "Missing docstring for class 'Example'" in s.explanation
         ]
         assert len(class_suggestions) == 1
 
@@ -125,9 +117,7 @@ def example():
         assert len(suggestions) == 3
 
         # Find the module docstring suggestion
-        module_suggestions = [
-            s for s in suggestions if s.metadata.get("node_type") == "module"
-        ]
+        module_suggestions = [s for s in suggestions if s.metadata.get("node_type") == "module"]
         assert len(module_suggestions) == 1
 
         module_suggestion = module_suggestions[0]
@@ -140,9 +130,7 @@ def example():
     return 42
 """
         suggestions = strategy.evaluate(content)
-        return_suggestions = [
-            s for s in suggestions if "return type hint" in s.explanation.lower()
-        ]
+        return_suggestions = [s for s in suggestions if "return type hint" in s.explanation.lower()]
         assert len(return_suggestions) == 1
         assert "Return type hint is missing" in return_suggestions[0].explanation
 
@@ -152,9 +140,7 @@ def example():
     return param1 + param2
 """
         suggestions = strategy.evaluate(content)
-        param_suggestions = [
-            s for s in suggestions if "parameter 'param1'" in s.explanation
-        ]
+        param_suggestions = [s for s in suggestions if "parameter 'param1'" in s.explanation]
         assert len(param_suggestions) == 1
         assert "Type hint for parameter 'param1'" in param_suggestions[0].explanation
 
@@ -170,9 +156,7 @@ def example():
         assert len(suggestions) >= 2
 
         # Find the empty docstring suggestion
-        empty_doc_suggestions = [
-            s for s in suggestions if "Empty docstring" in s.explanation
-        ]
+        empty_doc_suggestions = [s for s in suggestions if "Empty docstring" in s.explanation]
         # The implementation might not have a specific check for empty docstrings
         # So we'll just verify the function is processed without errors
         assert True  # Just verify we got here without exceptions
@@ -184,9 +168,7 @@ def example():
     return param1 + param2
 """
         suggestions = strategy.evaluate(content)
-        args_suggestions = [
-            s for s in suggestions if "Missing 'Args' section" in s.explanation
-        ]
+        args_suggestions = [s for s in suggestions if "Missing 'Args' section" in s.explanation]
         assert len(args_suggestions) == 1
 
     def test_missing_returns_section(self, strategy):
@@ -205,8 +187,7 @@ def example():
         """Test detection of long lines in docstrings."""
         # Create a docstring with a line longer than the max length
         long_line = (
-            " " * 80
-            + "This is a very long line that exceeds the default 88 character limit."
+            " " * 80 + "This is a very long line that exceeds the default 88 character limit."
         )
         content = f'''def example():
     """{long_line}"""

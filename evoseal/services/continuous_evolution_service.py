@@ -58,9 +58,7 @@ class ContinuousEvolutionService:
         self.min_evolution_samples = min_evolution_samples
 
         # Initialize components
-        self.data_collector = EvolutionDataCollector(
-            data_dir=self.data_dir / "evolution_data"
-        )
+        self.data_collector = EvolutionDataCollector(data_dir=self.data_dir / "evolution_data")
 
         self.bidirectional_manager = BidirectionalEvolutionManager(
             data_collector=self.data_collector,
@@ -155,10 +153,7 @@ class ContinuousEvolutionService:
                     self.last_evolution_check = current_time
 
                 # Check if it's time for training readiness check
-                if (
-                    current_time - self.last_training_check
-                    >= self.training_check_interval
-                ):
+                if current_time - self.last_training_check >= self.training_check_interval:
                     await self._check_training_readiness()
                     self.last_training_check = current_time
 
@@ -265,18 +260,14 @@ class ContinuousEvolutionService:
         """Generate comprehensive service report."""
         try:
             # Get bidirectional evolution report
-            evolution_report = (
-                await self.bidirectional_manager.generate_evolution_report()
-            )
+            evolution_report = await self.bidirectional_manager.generate_evolution_report()
 
             # Get service statistics
             service_report = {
                 "service_info": {
                     "service_name": "ContinuousEvolutionService",
                     "version": "1.0.0",
-                    "start_time": (
-                        self.start_time.isoformat() if self.start_time else None
-                    ),
+                    "start_time": (self.start_time.isoformat() if self.start_time else None),
                     "current_time": datetime.now().isoformat(),
                     "is_running": self.is_running,
                 },
@@ -337,14 +328,10 @@ class ContinuousEvolutionService:
             "start_time": self.start_time.isoformat() if self.start_time else None,
             "uptime_seconds": self.service_stats["total_uptime_seconds"],
             "last_evolution_check": (
-                self.last_evolution_check.isoformat()
-                if self.last_evolution_check
-                else None
+                self.last_evolution_check.isoformat() if self.last_evolution_check else None
             ),
             "last_training_check": (
-                self.last_training_check.isoformat()
-                if self.last_training_check
-                else None
+                self.last_training_check.isoformat() if self.last_training_check else None
             ),
             "statistics": self.service_stats.copy(),
         }

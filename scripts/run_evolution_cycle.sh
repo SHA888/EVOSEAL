@@ -47,18 +47,18 @@ run_phase() {
     local phase_name="$1"
     local script_path="$2"
     shift 2
-    
+
     log_info "Starting phase: $phase_name"
-    
+
     if [ ! -f "$script_path" ]; then
         log_warn "Script not found: $script_path"
         return 0
     fi
-    
+
     if [ ! -x "$script_path" ]; then
         chmod +x "$script_path"
     fi
-    
+
     if "$script_path" "$@"; then
         log_info "Phase completed: $phase_name"
         return 0
@@ -83,19 +83,19 @@ run_phase "Sync Learning Datasets" "$SCRIPT_DIR/sync_learning_datasets.sh"
 # 4. Run evolution cycles
 for ((i=1; i<=ITERATIONS; i++)); do
     log_info "Starting evolution cycle $i/$ITERATIONS"
-    
+
     # 4.1 Run auto-evolution
     run_phase "Auto Evolution" "$SCRIPT_DIR/auto_evolve_and_push.sh" "$i" "$TASK_FILE"
-    
+
     # 4.2 Run tests
     run_phase "Run Tests" "$SCRIPT_DIR/run_tests.sh"
-    
+
     # 4.3 Generate documentation
     run_phase "Generate Documentation" "$SCRIPT_DIR/generate_release_files.sh"
-    
+
     # 4.4 Clean up
     run_phase "Clean Up" "$SCRIPT_DIR/cleanup_metrics.py"
-    
+
     log_info "Completed evolution cycle $i/$ITERATIONS"
 done
 

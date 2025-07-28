@@ -253,9 +253,7 @@ class TestWorkflowValidator:
         assert not result.is_valid
 
         # With SCHEMA_ONLY level, should pass
-        result = validator.validate(
-            workflow, level=ValidationLevel.SCHEMA_ONLY, partial=True
-        )
+        result = validator.validate(workflow, level=ValidationLevel.SCHEMA_ONLY, partial=True)
         assert result.is_valid
 
     @pytest.mark.asyncio  # type: ignore[misc]
@@ -269,9 +267,7 @@ class TestWorkflowValidator:
     def test_register_custom_validator(self, request: FixtureRequest) -> None:
         """Test registering a custom validator."""
 
-        def custom_validator(
-            workflow: dict[str, Any], result: ValidationResult
-        ) -> None:
+        def custom_validator(workflow: dict[str, Any], result: ValidationResult) -> None:
             if workflow.get("name") == "invalid":
                 result.add_error("Invalid workflow name", code="invalid_name")
 
@@ -297,9 +293,7 @@ class TestConvenienceFunctions:
         """Test the validate_workflow function in strict mode."""
         # Test with the actual function
         result = validate_workflow(SAMPLE_WORKFLOW, strict=True)
-        assert result is True or (
-            isinstance(result, ValidationResult) and result.is_valid
-        )
+        assert result is True or (isinstance(result, ValidationResult) and result.is_valid)
 
         # Should raise for invalid workflow
         with pytest.raises(WorkflowValidationError):
@@ -395,18 +389,14 @@ class TestConvenienceFunctions:
         }
 
         # Test schema-only validation
-        schema_result = validate_workflow(
-            workflow, level=ValidationLevel.SCHEMA_ONLY, strict=False
-        )
+        schema_result = validate_workflow(workflow, level=ValidationLevel.SCHEMA_ONLY, strict=False)
         if isinstance(schema_result, bool):
             assert schema_result is True
         else:
             assert schema_result.is_valid
 
         # Test basic validation (should fail due to undefined reference)
-        basic_result = validate_workflow(
-            workflow, level=ValidationLevel.BASIC, strict=False
-        )
+        basic_result = validate_workflow(workflow, level=ValidationLevel.BASIC, strict=False)
         if isinstance(basic_result, bool):
             assert basic_result is False
         else:

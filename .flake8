@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 88
-exclude = 
+exclude =
     .git,
     __pycache__,
     .venv,
@@ -15,7 +15,7 @@ exclude =
     examples,
     scripts/test_*.py,
     scripts/provider_cli.py
-ignore = 
+ignore =
     E203,
     E501,
     W503,

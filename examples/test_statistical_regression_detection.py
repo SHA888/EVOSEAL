@@ -50,21 +50,11 @@ class AdvancedMockMetricsTracker:
             # Add realistic noise using cryptographically secure random number generator
             secure_random = secrets.SystemRandom()
             noise_factor = 0.02
-            success_rate = base_success_rate + secure_random.uniform(
-                -noise_factor, noise_factor
-            )
-            accuracy = base_accuracy + secure_random.uniform(
-                -noise_factor, noise_factor
-            )
-            duration = base_duration + secure_random.uniform(
-                -noise_factor * 10, noise_factor * 10
-            )
-            memory = base_memory + secure_random.uniform(
-                -noise_factor * 50, noise_factor * 50
-            )
-            error_rate = base_error_rate + secure_random.uniform(
-                -noise_factor, noise_factor
-            )
+            success_rate = base_success_rate + secure_random.uniform(-noise_factor, noise_factor)
+            accuracy = base_accuracy + secure_random.uniform(-noise_factor, noise_factor)
+            duration = base_duration + secure_random.uniform(-noise_factor * 10, noise_factor * 10)
+            memory = base_memory + secure_random.uniform(-noise_factor * 50, noise_factor * 50)
+            error_rate = base_error_rate + secure_random.uniform(-noise_factor, noise_factor)
 
             # Introduce specific anomalies
             if i == 8:  # Anomaly at version 8
@@ -123,9 +113,7 @@ def print_statistical_analysis(metric_name: str, stats: Dict[str, Any]) -> None:
     logger.info(f"  Mean: {stats.get('mean', 0):.4f}")
     logger.info(f"  Median: {stats.get('median', 0):.4f}")
     logger.info(f"  Std Dev: {stats.get('std_dev', 0):.4f}")
-    logger.info(
-        f"  Coefficient of Variation: {stats.get('coefficient_of_variation', 0):.4f}"
-    )
+    logger.info(f"  Coefficient of Variation: {stats.get('coefficient_of_variation', 0):.4f}")
 
     ci = stats.get("confidence_interval", (0, 0))
     logger.info(
@@ -155,9 +143,7 @@ def print_statistical_analysis(metric_name: str, stats: Dict[str, Any]) -> None:
             )
 
 
-def print_enhanced_regression_analysis(
-    metric_name: str, analysis: Dict[str, Any]
-) -> None:
+def print_enhanced_regression_analysis(metric_name: str, analysis: Dict[str, Any]) -> None:
     """Print formatted enhanced regression analysis."""
     logger.info(f"\n🔍 Enhanced Regression Analysis for {metric_name}:")
 
@@ -173,9 +159,7 @@ def print_enhanced_regression_analysis(
         within_ci = stat_sig.get("within_confidence_interval", True)
         significance = stat_sig.get("significance", "unknown")
         logger.info(f"  Statistical Significance: {significance}")
-        logger.info(
-            f"  Within Confidence Interval: {'✅ Yes' if within_ci else '❌ No'}"
-        )
+        logger.info(f"  Within Confidence Interval: {'✅ Yes' if within_ci else '❌ No'}")
 
     # Historical context
     hist_context = analysis.get("historical_context")
@@ -189,9 +173,7 @@ def print_enhanced_regression_analysis(
     anomaly_status = analysis.get("anomaly_status")
     if anomaly_status:
         is_anomaly = anomaly_status.get("is_anomaly", False)
-        logger.info(
-            f"  Anomaly Status: {'🚨 ANOMALY DETECTED' if is_anomaly else '✅ Normal'}"
-        )
+        logger.info(f"  Anomaly Status: {'🚨 ANOMALY DETECTED' if is_anomaly else '✅ Normal'}")
         if is_anomaly:
             details = anomaly_status.get("anomaly_details", [])
             for detail in details:
@@ -281,9 +263,7 @@ async def test_statistical_regression_detection():
         duration_values = [
             mock_tracker.get_metrics_by_id(f"v1.{i}")["duration_sec"] for i in range(10)
         ]
-        duration_stats = detector.analyze_metric_statistics(
-            "duration_sec", duration_values
-        )
+        duration_stats = detector.analyze_metric_statistics("duration_sec", duration_values)
         print_statistical_analysis("duration_sec", duration_stats)
 
         # Test 3: Anomaly Detection on Known Anomalous Version
@@ -298,9 +278,7 @@ async def test_statistical_regression_detection():
         detector.update_historical_metrics("v1.8", anomalous_metrics)
 
         # Analyze with anomaly detection
-        success_rate_with_anomaly = success_rate_values + [
-            anomalous_metrics["success_rate"]
-        ]
+        success_rate_with_anomaly = success_rate_values + [anomalous_metrics["success_rate"]]
         anomaly_stats = detector.analyze_metric_statistics(
             "success_rate", success_rate_with_anomaly
         )
@@ -334,10 +312,7 @@ async def test_statistical_regression_detection():
         versions_to_analyze = [f"v1.{i}" for i in range(15)]
 
         for metric_name in ["success_rate", "duration_sec", "memory_mb"]:
-            values = [
-                mock_tracker.get_metrics_by_id(v)[metric_name]
-                for v in versions_to_analyze
-            ]
+            values = [mock_tracker.get_metrics_by_id(v)[metric_name] for v in versions_to_analyze]
             trend_stats = detector.analyze_metric_statistics(metric_name, values)
 
             trend = trend_stats.get("trend_analysis", {})
@@ -357,9 +332,7 @@ async def test_statistical_regression_detection():
         # v1.15 has performance regression (duration and memory spike)
         has_perf_regression, perf_details = detector.detect_regression("v1.14", "v1.15")
 
-        logger.info(
-            f"Performance Regression: {'⚠️ Detected' if has_perf_regression else '✅ None'}"
-        )
+        logger.info(f"Performance Regression: {'⚠️ Detected' if has_perf_regression else '✅ None'}")
 
         if has_perf_regression:
             for metric, details in perf_details.items():

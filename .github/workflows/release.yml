@@ -10,7 +10,7 @@ on:
     tags:
       - 'v*'  # Trigger when version tags are pushed
 
-concurrency: 
+concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
@@ -18,14 +18,14 @@ jobs:
   release:
     # Only run if the pre-release workflow was successful
     if: >
-      github.event_name == 'workflow_dispatch' || 
-      (github.event.workflow_run.conclusion == 'success' && 
-       (github.event.workflow_run.head_branch == 'main' || 
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.head_branch == 'main' ||
         startsWith(github.event.workflow_run.head_branch, 'release/')))
-    
+
     # Use the production environment
     environment: production
-    
+
     # Required permissions
     permissions:
       contents: write
@@ -36,7 +36,7 @@ jobs:
       packages: write
       deployments: write
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
