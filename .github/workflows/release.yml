@@ -53,7 +53,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install build twine pyyaml
+          pip install build twine pyyaml tomli
 
       - name: Verify version consistency
         run: |

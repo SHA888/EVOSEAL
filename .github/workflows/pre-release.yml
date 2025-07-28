@@ -84,16 +84,16 @@ jobs:
           echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> $GITHUB_ENV
 
       - name: Create Release Candidate
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.version.outputs.version }}-rc.$(date +%Y%m%d%H%M%S)
-          release_name: 'Release Candidate ${{ steps.version.outputs.version }}'
+          tag_name: v${{ steps.version.outputs.version }}-rc.${{ github.run_number }}
+          name: 'Release Candidate ${{ steps.version.outputs.version }}'
           body_path: releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md
           draft: true
           prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
