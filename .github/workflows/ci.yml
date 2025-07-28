@@ -89,11 +89,28 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[test]"
 
-    - name: Run tests with pytest
+    - name: Run unit tests
       run: |
-        pytest -v --cov=evoseal --cov-report=xml
+        pytest -v -m "not integration and not slow" --cov=evoseal --cov-report=term --cov-report=xml
       env:
         PYTHONPATH: .
+        PYTHONUNBUFFERED: 1
+
+    - name: Run integration tests
+      if: matrix.python-version == '3.10'  # Only run integration tests once
+      run: |
+        pytest -v -m integration --cov=evoseal --cov-append --cov-report=term --cov-report=xml
+      env:
+        PYTHONPATH: .
+        PYTHONUNBUFFERED: 1
+
+    - name: Run slow tests
+      if: matrix.python-version == '3.10'  # Only run slow tests once
+      run: |
+        pytest -v -m "slow and not integration" --cov=evoseal --cov-append --cov-report=term --cov-report=xml
+      env:
+        PYTHONPATH: .
+        PYTHONUNBUFFERED: 1
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
