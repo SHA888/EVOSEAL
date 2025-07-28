@@ -77,8 +77,19 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
-          echo "Release notes path: releases/$VERSION/RELEASE_NOTES.md"
-          ls -la releases/$VERSION/
+
+      - name: Verify release notes exist
+        run: |
+          RELEASE_NOTES_PATH="releases/${{ steps.extract_version.outputs.version }}/RELEASE_NOTES.md"
+          if [ ! -f "$RELEASE_NOTES_PATH" ]; then
+            echo "⚠️ Release notes not found at $RELEASE_NOTES_PATH"
+            echo "Generating release notes as fallback..."
+            python3 scripts/auto_generate_release_notes.py ${{ steps.extract_version.outputs.version }} --output-dir releases
+          else
+            echo "✅ Release notes found at $RELEASE_NOTES_PATH"
+          fi
+          echo "Release notes path: $RELEASE_NOTES_PATH"
+          ls -la releases/${{ steps.extract_version.outputs.version }}/
 
       - name: Publish to PyPI
         if: startsWith(github.ref, 'refs/tags/v')
