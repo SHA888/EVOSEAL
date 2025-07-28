@@ -27,10 +27,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout code with submodules
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        submodules: 'recursive'  # This will initialize and update submodules
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -75,14 +76,23 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
 
     steps:
-    - name: Checkout code
+    - name: Checkout code with submodules
       uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'  # Initialize and update submodules
+        fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git-lfs
+        git lfs install
 
     - name: Install dependencies
       run: |
