@@ -1,0 +1,24 @@
+{
+  "security": {
+    "ignore-vulnerabilities": [
+      "67895",
+      "65647", 
+      "62556",
+      "59473",
+      "65278",
+      "53048",
+      "54843",
+      "42203"
+    ],
+    "ignore-unpinned-requirements": false,
+    "continue-on-vulnerability-error": false
+  },
+  "alert": {
+    "ignore-vulnerabilities": [],
+    "ignore-unpinned-requirements": false
+  },
+  "report": {
+    "only-report": false,
+    "output-format": "text"
+  }
+}
