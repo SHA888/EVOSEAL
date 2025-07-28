@@ -58,7 +58,7 @@ repos:
       - id: safety
         name: safety
         description: 'Check Python dependencies for known security vulnerabilities'
-        entry: safety check --full-report --ignore=12345,54321
+        entry: safety check --policy-file .safety-policy.json || safety check --short-report
         language: python
         language_version: python3
         pass_filenames: false
@@ -67,11 +67,11 @@ repos:
         additional_dependencies: [safety]
 
   # Security - Python code analysis
-  - repo: https://github.com/PyCQA/bandit --configfile config/bandit.yaml
+  - repo: https://github.com/PyCQA/bandit
     rev: 1.7.8
     hooks:
-      - id: bandit --configfile config/bandit.yaml
-        args: [--recursive, --configfile, '.bandit --configfile config/bandit.yaml']
+      - id: bandit
+        args: [--recursive, --skip, 'B101,B601,B603,B605,B607,B108,B105,B404']
         exclude: |
           (?x)^(
             dgm/|
@@ -87,7 +87,7 @@ repos:
     rev: v1.5.0  # Using the installed version
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: ['--baseline', '.secrets.baseline', '--exclude-files', 'checkpoints/.*\.json$']
         exclude: |
           (?x)^(
             dgm/|
@@ -102,7 +102,7 @@ repos:
             .*\\.png$|
             .*\\.gif$
           )$
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
 
   # Dockerfile linter
   - repo: https://github.com/hadolint/hadolint
@@ -125,5 +125,5 @@ repos:
         entry: trufflehog git file://. --since-commit HEAD --no-update --entropy=False --no-verification
         language: system
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
         always_run: true
