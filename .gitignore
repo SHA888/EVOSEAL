@@ -623,3 +623,6 @@ node_modules/
 # Task files
 # tasks.json
 # tasks/
+
+# IDE and tooling configuration
+.windsurf/
