@@ -143,9 +143,9 @@ update_version() {
     print_success "Updated version to ${GREEN}${new_version}${NC} in all files"
 }
 
-# Check for uncommitted changes in tracked files (ignoring submodules)
+# Check for uncommitted changes in non-submodule files
 check_uncommitted_changes() {
-    # Get list of all changed files
+    # Get list of all changed files (excluding deleted files)
     local all_changes
     all_changes=$(git diff-index --name-status HEAD -- | grep -v '^D' | awk '{print $2}')
 
@@ -156,12 +156,16 @@ check_uncommitted_changes() {
     local submodules
     submodules=$(git submodule status | awk '{print $2}')
 
-    # Check if all changes are in submodules
+    # Check each changed file to see if it's in a submodule
     local non_submodule_changes=0
+    local changed_files=()
+
     for file in $all_changes; do
         local is_submodule=0
+
+        # Check if file is in a submodule directory
         for sub in $submodules; do
-            if [[ $file == $sub/* ]]; then
+            if [[ $file == $sub/* || $file == $sub ]]; then
                 is_submodule=1
                 break
             fi
@@ -169,14 +173,15 @@ check_uncommitted_changes() {
 
         if [ $is_submodule -eq 0 ]; then
             non_submodule_changes=1
-            break
+            changed_files+=("$file")
         fi
     done
 
     if [ $non_submodule_changes -eq 1 ]; then
-        print_error "Uncommitted changes detected in non-submodule files. Please commit or stash them before releasing.\n$all_changes"
+        print_error "Uncommitted changes detected in non-submodule files. Please commit or stash them before releasing.\n${changed_files[*]}"
     else
         print_warning "Changes detected only in submodules. These will be ignored for the release process."
+        return 0
     fi
 }
 
