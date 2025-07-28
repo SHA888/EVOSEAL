@@ -72,6 +72,16 @@ sed -i "s/version = \".*\"/version = \"$VERSION_NUMBER\"/" pyproject.toml
 print_status "Updating version in evoseal/__init__.py..."
 sed -i "s/__version__ = \".*\"/__version__ = \"$VERSION_NUMBER\"/" evoseal/__init__.py
 
+# Update version in dedicated version file
+print_status "Updating version in evoseal/__version__.py..."
+sed -i "s/__version__ = \".*\"/__version__ = \"$VERSION_NUMBER\"/" evoseal/__version__.py
+
+# Update README.md version references
+print_status "Updating version references in README.md..."
+sed -i "s/version-v[0-9]\+\.[0-9]\+\.[0-9]\+/version-v$VERSION_NUMBER/" README.md
+sed -i "s/Latest version: v[0-9]\+\.[0-9]\+\.[0-9]\+/Latest version: v$VERSION_NUMBER/" README.md
+sed -i "s/Version [0-9]\+\.[0-9]\+\.[0-9]\+/Version $VERSION_NUMBER/" README.md
+
 # Update date in changelog (if it's today's release)
 TODAY=$(date +%Y-%m-%d)
 print_status "Updating changelog date to $TODAY..."
