@@ -1,14 +1,14 @@
 {
   "security": {
     "ignore-vulnerabilities": [
-      "67895",
-      "65647",
-      "62556",
-      "59473",
-      "65278",
-      "53048",
-      "54843",
-      "42203"
+      "67895:",
+      "65647:",
+      "62556:",
+      "59473:",
+      "65278:",
+      "53048:",
+      "54843:",
+      "42203:"
     ],
     "ignore-unpinned-requirements": false,
     "continue-on-vulnerability-error": false
