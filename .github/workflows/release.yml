@@ -16,12 +16,10 @@ concurrency:
 
 jobs:
   release:
-    # Only run if the pre-release workflow was successful
+    # Only run if triggered by tag push or manual dispatch
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       (github.event.workflow_run.head_branch == 'main' ||
-        startsWith(github.event.workflow_run.head_branch, 'release/')))
+      startsWith(github.ref, 'refs/tags/v')
 
     # Use the production environment
     environment: production
