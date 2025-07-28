@@ -203,7 +203,7 @@ configure_logging()
 # Version information for EVOSEAL
 # Minimum Python version: 3.9
 # This version should be kept in sync with pyproject.toml and setup.cfg
-__version__ = "0.2.0"
+__version__ = "0.3.2"
 
 # CLI functionality
 if sys.version_info >= (3, 8):
