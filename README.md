@@ -7,7 +7,7 @@
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Rollback Safety](https://img.shields.io/badge/rollback%20safety-🛡️%20PROTECTED-brightgreen.svg)](#rollback-safety)
 
-**Latest Version**: 0.3.0 (July 27, 2025)
+**Latest Version**: 0.3.2 (July 27, 2025)
 
 ![Dashboard](./assets/evoseal-dashboard.png)
 
