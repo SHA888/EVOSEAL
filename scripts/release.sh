@@ -143,24 +143,14 @@ update_version() {
     print_success "Updated version to ${GREEN}${new_version}${NC} in all files"
 }
 
-# Check for uncommitted changes (ignoring submodules)
+# Check for uncommitted changes in tracked files
 check_uncommitted_changes() {
-    # Get list of tracked submodules
-    local submodules
-    submodules=$(git submodule status | awk '{print $2}')
-
-    # Build grep exclude pattern for submodules
-    local exclude_pattern="^ M "
-    for sub in $submodules; do
-        exclude_pattern+="\|^ M $sub"
-    done
-
-    # Check for uncommitted changes, excluding submodules and untracked files
+    # Only check for changes in tracked files (ignore untracked files and submodules)
     local changes
-    changes=$(git status --porcelain | grep -v '^??' | eval "grep -v \"$exclude_pattern\"")
+    changes=$(git diff-index --name-status HEAD -- | grep -v '^D' | awk '{print $2}')
 
     if [ -n "$changes" ]; then
-        print_error "Uncommitted changes detected (excluding submodules). Please commit or stash them before releasing:\n$changes"
+        print_error "Uncommitted changes detected in tracked files. Please commit or stash them before releasing.\n$changes"
     fi
 }
 
