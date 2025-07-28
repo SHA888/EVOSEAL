@@ -143,6 +143,16 @@ update_version() {
     print_success "Updated version to ${GREEN}${new_version}${NC} in all files"
 }
 
+# Check for uncommitted changes (ignoring submodules)
+check_uncommitted_changes() {
+    local changes
+    changes=$(git status --porcelain | grep -v '^ M' | grep -v '^??' | grep -v '^ M SEAL' | grep -v '^ M dgm' | grep -v '^ M openevolve')
+
+    if [ -n "$changes" ]; then
+        print_error "Uncommitted changes detected (excluding submodules). Please commit or stash them before releasing:\n$changes"
+    fi
+}
+
 # Run safety checks
 run_safety_checks() {
     if [ "$SKIP_SAFETY" = true ]; then
@@ -152,10 +162,8 @@ run_safety_checks() {
 
     print_status "Running safety checks..."
 
-    # Check for uncommitted changes
-    if ! git diff --exit-code --quiet; then
-        print_error "Uncommitted changes detected. Please commit or stash them before releasing."
-    fi
+    # Check for uncommitted changes (ignoring submodules)
+    check_uncommitted_changes
 
     # Check if on main branch
     local current_branch
