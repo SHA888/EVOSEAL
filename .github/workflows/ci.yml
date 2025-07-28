@@ -3,29 +3,115 @@ name: CI
 on:
   push:
     branches: [main, 'release/*']
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # Match semantic version tags
   pull_request:
     branches: [main, 'release/*']
   workflow_dispatch:  # Allow manual triggering
 
+# Set default permissions for the workflow
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+  statuses: write
+
+# Control concurrency to prevent multiple runs for the same ref
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Skip Tests (Temporarily)
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
 
     steps:
-    - name: Skip tests
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
       run: |
-        echo "Tests are temporarily disabled. This is a placeholder job."
-        exit 0
+        python -m pip install --upgrade pip
+        pip install -e ".[test,dev]"
+
+    - name: Validate pyproject.toml
+      run: |
+        python -c "import tomli; tomli.load(open('pyproject.toml', 'rb'))"
+        echo "✅ pyproject.toml is valid"
+
+    - name: Check for version consistency
+      id: check_version
+      run: |
+        # Get version from pyproject.toml
+        PYPROJECT_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
+
+        # Check if this is a tag push
+        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]]; then
+            echo "::error::Version mismatch! pyproject.toml ($PYPROJECT_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+        fi
+
+        echo "✅ Version consistency check passed"
+
+  test:
+    name: Run Tests
+    needs: validate
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test]"
+
+    - name: Run tests with pytest
+      run: |
+        pytest -v --cov=evoseal --cov-report=xml
+      env:
+        PYTHONPATH: .
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        fail_ci_if_error: false
 
   lint:
     name: Lint and Type Check
-    needs: test  # Run after tests
+    needs: [validate, test]  # Run after validate and test
     runs-on: ubuntu-latest
+
+    # Only run linting on main and release branches or pull requests
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      github.event_name == 'pull_request'
 
     steps:
     - name: Checkout code
@@ -59,8 +145,14 @@ jobs:
 
   security:
     name: Security Checks
-    needs: test  # Run after tests
+    needs: [validate, test]  # Run after validate and test
     runs-on: ubuntu-latest
+
+    # Only run security checks on main and release branches or pull requests
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      github.event_name == 'pull_request'
 
     steps:
     - name: Checkout code
@@ -96,6 +188,12 @@ jobs:
     name: Build Package
     needs: [test, lint, security]  # Run after all other jobs
     runs-on: ubuntu-latest
+
+    # Only build on main and release branches or tags
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      startsWith(github.ref, 'refs/tags/v')
 
     steps:
     - name: Checkout code
