@@ -610,3 +610,16 @@ site/
 dgm/
 openevolve/
 SEAL/
+
+# Logs
+logs
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+.idea
+.vscode
+
+# Task files
+# tasks.json
+# tasks/

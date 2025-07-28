@@ -116,15 +116,49 @@ jobs:
             releases/${{ steps.version.outputs.version }}/
             dist/*
 
-      - name: Create Pull Request (Manual Step)
+      - name: Create Release Branch
         if: github.event_name != 'pull_request'  # Skip if already in a PR
         run: |
-          echo "##[warning] Manual Pull Request Required"
-          echo "Please create a pull request from 'release/v${{ steps.version.outputs.version }}' to 'main' with the following details:"
-          echo "Title: Release Candidate: ${{ steps.version.outputs.version }}"
-          echo "Body: This is a release candidate. Please review the changes before proceeding with the release."
-          echo "\n**Release Notes Preview:**"
-          echo "${{ steps.create_release.outputs.upload_url }}"
-          echo "\nYou can create the PR using this link:"
-          echo "https://github.com/${{ github.repository }}/compare/main...release/v${{ steps.version.outputs.version }}?expand=1&title=Release+Candidate%3A+${{ steps.version.outputs.version }}"
-          echo "\nAfter creating the PR, please add the 'release' label and request reviews as needed."
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+          # Create and switch to release branch
+          RELEASE_BRANCH="release/v${{ steps.version.outputs.version }}"
+          git checkout -b "$RELEASE_BRANCH"
+
+          # Push the release branch
+          git push -u origin "$RELEASE_BRANCH"
+          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        if: github.event_name != 'pull_request'  # Skip if already in a PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: prepare release v${{ steps.version.outputs.version }}"
+          title: "Release Candidate: v${{ steps.version.outputs.version }}"
+          body: |
+            ## Release Candidate: v${{ steps.version.outputs.version }}
+
+            This is an automated release candidate. Please review the changes before proceeding with the release.
+
+            **Release Notes Preview:**
+            ${{ steps.create_release.outputs.upload_url }}
+
+            ### Review Checklist
+            - [ ] Verify version numbers are correct
+            - [ ] Review release notes for accuracy
+            - [ ] Run tests locally
+            - [ ] Check for any last-minute changes needed
+
+            ### Next Steps
+            - [ ] Approve this PR
+            - [ ] Merge when ready
+          branch: "${{ env.RELEASE_BRANCH }}"
+          base: "main"
+          labels: "release,automated-pr"
+          delete-branch: true
+          draft: false
+          team-reviewers: |
+            maintainers
+            code-owners
