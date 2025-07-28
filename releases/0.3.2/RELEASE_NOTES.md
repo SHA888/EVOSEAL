@@ -1,72 +1,364 @@
-# EVOSEAL v0.3.2 - Port Consistency and Configuration Standardization
+# EVOSEAL v0.3.2 Release Notes
 
-*Released on: 2025-07-27*
+## 🎉 Release Highlights
 
-## 🔧 Fixes
-
-### Port Standardization
+### 🔧 Fixes
+#### Port Standardization
 - **Consistent Default Port**: Standardized all components to use port **8081** by default
 - **Eliminated Confusion**: Removed mixed references between ports 8080 and 8081
 - **Universal Configuration**: All code, documentation, and deployment scenarios now use 8081
-
-### Code Updates
+#### Code Updates
 - **MonitoringDashboard**: Updated default port from 8080 to 8081
 - **Phase3Orchestrator**: Updated default port from 8080 to 8081
 - **Argument Parser**: Updated default port help text and value to 8081
 - **SEALConfig**: Updated dashboard_port default from 8080 to 8081
-
-### Documentation Updates
+#### Documentation Updates
 - **Deployment Guide**: Updated development URLs from 8080 to 8081
 - **API Reference**: Updated base URLs for consistency
 - **systemd Template**: Already using 8081 (no change needed)
 - **README**: Already consistent (no change needed)
-
-### WebSocket Stability Improvements
-- **JSON Serialization Fix**: Added custom datetime serializer for WebSocket messages
-- **Connection Stability**: Resolved WebSocket disconnection issues caused by serialization errors
-- **Real-time Updates**: Improved reliability of live dashboard updates
-
-## 🎯 Benefits
-
+### 🎯 Benefits
 - ✅ **Consistent Experience**: Same port across all deployment scenarios
 - ✅ **Reduced Conflicts**: Port 8081 has fewer conflicts than 8080
 - ✅ **Clear Documentation**: No more confusion about which port to use
 - ✅ **Simplified Deployment**: Single port configuration for all environments
-- ✅ **Stable WebSocket**: Reliable real-time dashboard updates
-
-## 🔄 Migration Notes
-
-### For Existing Users
+### 🔄 Migration Notes
+#### For Existing Users
+- No action required - systemd service already uses port 8081
 - Dashboard remains accessible at current Tailscale IP on port 8081
 - All existing functionality preserved
-- No action required for most users
-
-### For New Deployments
+#### For New Deployments
 - All components now default to port 8081
 - Documentation consistently references port 8081
 - Simplified configuration with single standard port
-
-## 📊 Port Configuration
-
+### 📊 Port Configuration
 - **Development**: `http://localhost:8081`
 - **Production**: `http://<tailscale-ip>:8081`
 - **systemd Service**: Configured for port 8081
 - **Default Settings**: All defaults set to 8081
 
-## 🛠️ Technical Details
+## 📅 Release Information
+- **Version**: 0.3.2
+- **Release Date**: 2025-07-27
+- **Total Commits**: 268
 
-### Files Updated
-- `evoseal/services/monitoring_dashboard.py` - Default port and JSON serialization
-- `scripts/run_phase3_continuous_evolution.py` - Default port and help text
-- `evoseal/config/settings.py` - SEALConfig default port
-- `docs/DEPLOYMENT_GUIDE.md` - Development URLs
-- `docs/API_REFERENCE.md` - Base URLs
+## ✨ New Features
 
-### Backward Compatibility
-- Existing command-line usage with explicit `--port` arguments remains unchanged
-- Configuration files with explicit port settings are respected
-- Only default values have been updated
+- 🚀 Release v0.3.0: Phase 3 Bidirectional Continuous Evolution ([35e0aae](https://github.com/SHA888/EVOSEAL/commit/35e0aae))
+- feat: Implement Phase 1 - Evolution Data Collection System ([3de7a3e](https://github.com/SHA888/EVOSEAL/commit/3de7a3e))
+- feat: Integrate EVOSEAL with Ollama and implement provider management system ([bbcaf92](https://github.com/SHA888/EVOSEAL/commit/bbcaf92))
+- feat: Consolidate EVOSEAL service scripts and implement unified runner ([53cc0af](https://github.com/SHA888/EVOSEAL/commit/53cc0af))
+- Add semgrep wrapper and fix logging script ([fdd8f0b](https://github.com/SHA888/EVOSEAL/commit/fdd8f0b))
+- Add test files and requirements ([31e390a](https://github.com/SHA888/EVOSEAL/commit/31e390a))
+- feat: Add logging and evolution cycle automation ([ddf834d](https://github.com/SHA888/EVOSEAL/commit/ddf834d))
+- feat: add automated cleanup system for metrics and releases ([af5412f](https://github.com/SHA888/EVOSEAL/commit/af5412f))
+- feat: add automated release notes and metrics collection ([ac7310d](https://github.com/SHA888/EVOSEAL/commit/ac7310d))
+- Add continuous operation capability for EVOSEAL v0.1.2 ([e166a51](https://github.com/SHA888/EVOSEAL/commit/e166a51))
+- 🚀 Release EVOSEAL v0.1.1 - Continuous Development Intelligence ([b5e6322](https://github.com/SHA888/EVOSEAL/commit/b5e6322))
+- feat: Complete Evolution Pipeline Safety Integration (Task #8) ([3ba45c8](https://github.com/SHA888/EVOSEAL/commit/3ba45c8))
+- feat: Implement comprehensive statistical regression detection ([1d3a409](https://github.com/SHA888/EVOSEAL/commit/1d3a409))
+- ✨ Implement enhanced rollback logic - Task #5 Complete ([86c2d05](https://github.com/SHA888/EVOSEAL/commit/86c2d05))
+- feat: Implement enhanced checkpoint restoration logic with comprehensive validation ([34c3d95](https://github.com/SHA888/EVOSEAL/commit/34c3d95))
+- feat: Implement enhanced checkpoint creation logic with compression and integrity verification ([0da5d6d](https://github.com/SHA888/EVOSEAL/commit/0da5d6d))
+- Implement foundational safety & validation features ([3d863c9](https://github.com/SHA888/EVOSEAL/commit/3d863c9))
+- feat: Implement comprehensive error handling and resilience system (Task #8) ([f0c6695](https://github.com/SHA888/EVOSEAL/commit/f0c6695))
+- feat: Implement comprehensive end-to-end workflow orchestration system ([f4c5013](https://github.com/SHA888/EVOSEAL/commit/f4c5013))
+- Implement comprehensive version control and experiment tracking system ([60139ce](https://github.com/SHA888/EVOSEAL/commit/60139ce))
+- feat: Implement comprehensive enhanced event system for EVOSEAL pipeline ([15e0fc8](https://github.com/SHA888/EVOSEAL/commit/15e0fc8))
+- feat: Implement comprehensive core component integration system ([ee2da27](https://github.com/SHA888/EVOSEAL/commit/ee2da27))
+- feat: Implement comprehensive CLI pipeline control interface ([57f7226](https://github.com/SHA888/EVOSEAL/commit/57f7226))
+- Add workflow coordinator implementation and tests ([3381769](https://github.com/SHA888/EVOSEAL/commit/3381769))
+- feat(core): implement EvolutionPipeline core architecture ([c70ea06](https://github.com/SHA888/EVOSEAL/commit/c70ea06))
+- feat(testing): add comprehensive integration tests for TestRunner ([002dc21](https://github.com/SHA888/EVOSEAL/commit/002dc21))
+- feat(metrics): enhance comparison logic with statistical analysis ([ee551be](https://github.com/SHA888/EVOSEAL/commit/ee551be))
+- feat(metrics): enhance metrics calculation logic ([c45c07b](https://github.com/SHA888/EVOSEAL/commit/c45c07b))
+- feat: Add test environment management utilities ([12e1726](https://github.com/SHA888/EVOSEAL/commit/12e1726))
+- feat: Implement comprehensive test execution framework ([db35de8](https://github.com/SHA888/EVOSEAL/commit/db35de8))
+- feat: enhance Git error handling system with comprehensive error classes and recovery options ([c98b400](https://github.com/SHA888/EVOSEAL/commit/c98b400))
+- feat: Enhance repository structure extraction in CmdGit ([8e45c7b](https://github.com/SHA888/EVOSEAL/commit/8e45c7b))
+- feat: complete task 7.4 - implement file operations module ([81b76e2](https://github.com/SHA888/EVOSEAL/commit/81b76e2))
+- feat(version_control): implement GitInterface base class and CmdGit implementation ([c9d2fd1](https://github.com/SHA888/EVOSEAL/commit/c9d2fd1))
+- feat: mark Task 6 and subtasks as completed ([34a0d38](https://github.com/SHA888/EVOSEAL/commit/34a0d38))
+- feat(data_loaders): Implement data loading utilities with batch processing and caching ([0fc10e3](https://github.com/SHA888/EVOSEAL/commit/0fc10e3))
+- feat: Implement SecurityAnalysisStrategy for detecting security issues ([1d8ad10](https://github.com/SHA888/EVOSEAL/commit/1d8ad10))
+- feat: Implement SelfEditor component with edit history and strategies ([b498676](https://github.com/SHA888/EVOSEAL/commit/b498676))
+- feat: Add KnowledgeBase component with SEAL integration ([88cd59f](https://github.com/SHA888/EVOSEAL/commit/88cd59f))
+- feat: Enhance FewShotLearner with advanced example management and selection strategies ([146076f](https://github.com/SHA888/EVOSEAL/commit/146076f))
+- feat: complete SEAL integration tests and fix code style ([0fad1e5](https://github.com/SHA888/EVOSEAL/commit/0fad1e5))
+- feat(seal): complete SEALInterface, provider, tests, docs, and standardize naming (closes #4.3) ([a41aaf1](https://github.com/SHA888/EVOSEAL/commit/a41aaf1))
+- Add comprehensive integration tests for WorkflowEngine ([72d1631](https://github.com/SHA888/EVOSEAL/commit/72d1631))
+- Add CodeQL badge to README.md ([6d6ef89](https://github.com/SHA888/EVOSEAL/commit/6d6ef89))
+- Add GitHub Actions workflows and Dependabot configuration ([a343ee7](https://github.com/SHA888/EVOSEAL/commit/a343ee7))
+- feat: Add development tooling and package configuration ([e9acc25](https://github.com/SHA888/EVOSEAL/commit/e9acc25))
+- feat(logging): implement and test enhanced logging module ([523449e](https://github.com/SHA888/EVOSEAL/commit/523449e))
+- feat: complete task 1.2 - scaffold project directory structure ([253f498](https://github.com/SHA888/EVOSEAL/commit/253f498))
+- feat: expand Phase 1 tasks with subtasks and complexity analysis ([d8a056e](https://github.com/SHA888/EVOSEAL/commit/d8a056e))
+- feat: add initial task list for Phase 1 MVP implementation ([9fdcb03](https://github.com/SHA888/EVOSEAL/commit/9fdcb03))
+
+## 🐛 Bug Fixes
+
+- 🔧 Release v0.3.2: Port Consistency and Configuration Standardization ([5c450ec](https://github.com/SHA888/EVOSEAL/commit/5c450ec))
+- 🔧 Release v0.3.1: Portable systemd Service Configuration ([4f6f990](https://github.com/SHA888/EVOSEAL/commit/4f6f990))
+- fix: Make systemd service template portable and update to unified runner ([41d684f](https://github.com/SHA888/EVOSEAL/commit/41d684f))
+- fix: Remove redundant deprecated files ([aafb47b](https://github.com/SHA888/EVOSEAL/commit/aafb47b))
+- fix: address security issues identified by Bandit ([1055b3a](https://github.com/SHA888/EVOSEAL/commit/1055b3a))
+- fix: add missing Tuple import in conftest.py ([e52f466](https://github.com/SHA888/EVOSEAL/commit/e52f466))
+- fix: update test configuration and dependencies ([e46d7ed](https://github.com/SHA888/EVOSEAL/commit/e46d7ed))
+- fix: update codecov version constraint to use latest available version ([2f76f86](https://github.com/SHA888/EVOSEAL/commit/2f76f86))
+- fix: update CI workflow and dependencies ([eee7217](https://github.com/SHA888/EVOSEAL/commit/eee7217))
+- Fix release workflow to use correct release notes path ([57f84c5](https://github.com/SHA888/EVOSEAL/commit/57f84c5))
+- fix: reset pipeline state for next evolution cycle ([07c8de3](https://github.com/SHA888/EVOSEAL/commit/07c8de3))
+- fix: update release notes handling in automation scripts ([399a463](https://github.com/SHA888/EVOSEAL/commit/399a463))
+- fix: slow down evolution frequency and add version control ([52f6a90](https://github.com/SHA888/EVOSEAL/commit/52f6a90))
+- fix: update release checklist path in workflow ([4e2edfe](https://github.com/SHA888/EVOSEAL/commit/4e2edfe))
+- fix: correct YAML syntax in github-script action ([67f8b37](https://github.com/SHA888/EVOSEAL/commit/67f8b37))
+- fix: update PR creation to use github-script with better error handling ([f75c825](https://github.com/SHA888/EVOSEAL/commit/f75c825))
+- fix: update release workflow permissions and token handling\n\n- Add required workflow permissions for releases and PRs\n- Switch to actions/create-release for better token handling\n- Fix PR creation to use version from previous step\n- Update branch naming to include 'v' prefix ([e10beae](https://github.com/SHA888/EVOSEAL/commit/e10beae))
+- fix: update release notes file paths in workflow ([93a5fe5](https://github.com/SHA888/EVOSEAL/commit/93a5fe5))
+- fix: update version extraction in pre-release workflow ([c64d459](https://github.com/SHA888/EVOSEAL/commit/c64d459))
+- fix: switch from Poetry to pip for dependency management ([7318942](https://github.com/SHA888/EVOSEAL/commit/7318942))
+- fix: add missing dependencies to workflows ([2cded49](https://github.com/SHA888/EVOSEAL/commit/2cded49))
+- fix: update actions/upload-artifact to v4 ([b27b659](https://github.com/SHA888/EVOSEAL/commit/b27b659))
+- fix: update workflow triggers ([e9a7f50](https://github.com/SHA888/EVOSEAL/commit/e9a7f50))
+- Fix version extraction in continuous operation scripts with head -n 1 ([7ffe4ad](https://github.com/SHA888/EVOSEAL/commit/7ffe4ad))
+- Fix end-of-file formatting in checkpoint metadata ([b590419](https://github.com/SHA888/EVOSEAL/commit/b590419))
+- Fix terminology: DGM (Dynamic Genetic Model → Darwin Godel Machine) and SEAL (Self-Adapting Language Models) ([314dce8](https://github.com/SHA888/EVOSEAL/commit/314dce8))
+- Fix MkDocs plugin compatibility issues ([d03aa13](https://github.com/SHA888/EVOSEAL/commit/d03aa13))
+- Fix GitHub Actions workflow - update to latest action versions ([3baf709](https://github.com/SHA888/EVOSEAL/commit/3baf709))
+- Fix test suite and improve test infrastructure ([de191f3](https://github.com/SHA888/EVOSEAL/commit/de191f3))
+- fix: enhance git interface security and testing ([c17e2e9](https://github.com/SHA888/EVOSEAL/commit/c17e2e9))
+- Fix security tool configurations and pre-commit hooks ([535c9b2](https://github.com/SHA888/EVOSEAL/commit/535c9b2))
+- Fix SEAL prompt system integration and tests ([b137b31](https://github.com/SHA888/EVOSEAL/commit/b137b31))
+- Fix KnowledgeBase concurrency issues and improve thread safety ([ee28e9e](https://github.com/SHA888/EVOSEAL/commit/ee28e9e))
+- Fix DefaultEditStrategy.apply_edit to handle both instance and class method calls and fix KnowledgeBase concurrent tests ([198397e](https://github.com/SHA888/EVOSEAL/commit/198397e))
+- Fix failing tests and update dependencies ([ad78b14](https://github.com/SHA888/EVOSEAL/commit/ad78b14))
+- fix(knowledge_base): resolve infinite loop in _save_to_disk method ([f888a32](https://github.com/SHA888/EVOSEAL/commit/f888a32))
+- fix: improve KnowledgeBase concurrency and testing ([879448f](https://github.com/SHA888/EVOSEAL/commit/879448f))
+- Fix FewShotLearner test suite and improve mocking ([d2cbdd0](https://github.com/SHA888/EVOSEAL/commit/d2cbdd0))
+- Fix import errors and update test cases for reorganized project structure ([e45ef81](https://github.com/SHA888/EVOSEAL/commit/e45ef81))
+- Fix integration test for OpenEvolve controller ([bd8edf3](https://github.com/SHA888/EVOSEAL/commit/bd8edf3))
+- Fix isort import order in test_evaluator.py. All pre-commit checks green. ([b7a8637](https://github.com/SHA888/EVOSEAL/commit/b7a8637))
+- Fix ruff UP006/UP035: use built-in list for type annotations in Controller. All style checks green. ([a72b08d](https://github.com/SHA888/EVOSEAL/commit/a72b08d))
+- Fix import order and style in benchmark script for full pre-commit compliance. ([9a8788b](https://github.com/SHA888/EVOSEAL/commit/9a8788b))
+- fix(tests): stabilize DGM EvolutionManager edge-case tests, suppress isort/ruff import order lint, and update ruff config for test imports ([275045b](https://github.com/SHA888/EVOSEAL/commit/275045b))
+- Fix type for EvolutionManager: pass str(tmp_path) for mypy compatibility in benchmark_evolution.py. All lint and type errors resolved. ([3c36b25](https://github.com/SHA888/EVOSEAL/commit/3c36b25))
+- Fix end-of-file in .taskmaster/tasks/tasks.json after marking 4.4 done ([63c3512](https://github.com/SHA888/EVOSEAL/commit/63c3512))
+- fix: ruff B904, use 'raise ... from e' for ImportError chaining (full compliance) ([ab439aa](https://github.com/SHA888/EVOSEAL/commit/ab439aa))
+- fix(test): apply formatting to SystemConfig test for pre-commit hooks ([823c0c6](https://github.com/SHA888/EVOSEAL/commit/823c0c6))
+- Fix magic number and typing issues in test_error_handling.py ([049f609](https://github.com/SHA888/EVOSEAL/commit/049f609))
+- Fix RetryableError and update pre-commit hooks ([1060f2a](https://github.com/SHA888/EVOSEAL/commit/1060f2a))
+- Fix SARIF file path in Snyk workflow ([a036d41](https://github.com/SHA888/EVOSEAL/commit/a036d41))
+- Fix Dependabot configuration ([3697492](https://github.com/SHA888/EVOSEAL/commit/3697492))
+- Fix and enhance GitHub Actions and Dependabot configurations ([962128c](https://github.com/SHA888/EVOSEAL/commit/962128c))
+- Fix _check_undefined_references to respect partial parameter ([e2ca90b](https://github.com/SHA888/EVOSEAL/commit/e2ca90b))
+- Fix error handling in WorkflowValidationError ([e47e1ea](https://github.com/SHA888/EVOSEAL/commit/e47e1ea))
+- Fix race condition in _publish_event ([02b4aa9](https://github.com/SHA888/EVOSEAL/commit/02b4aa9))
+- Fix event loop handling in publish function ([ea0c3dc](https://github.com/SHA888/EVOSEAL/commit/ea0c3dc))
+- Fix event system and logging implementation ([15ab511](https://github.com/SHA888/EVOSEAL/commit/15ab511))
+- fix: update .gitignore to properly handle MkDocs documentation ([78146df](https://github.com/SHA888/EVOSEAL/commit/78146df))
+
+## 🔒 Security Improvements
+
+- 🛡️ Complete rollback safety documentation and verification ([d91b49f](https://github.com/SHA888/EVOSEAL/commit/d91b49f))
+- security: harden subprocess usage and address security warnings ([08a2d6e](https://github.com/SHA888/EVOSEAL/commit/08a2d6e))
+
+## ⚡ Performance Improvements
+
+- Optimize attribute access in ContextFilter ([1928250](https://github.com/SHA888/EVOSEAL/commit/1928250))
+
+## 👷 CI/CD & Infrastructure
+
+- ci: temporarily disable tests in CI workflow ([ada6485](https://github.com/SHA888/EVOSEAL/commit/ada6485))
+- ci: update CodeQL and pre-commit configuration ([a24666d](https://github.com/SHA888/EVOSEAL/commit/a24666d))
+
+## 📝 Documentation
+
+- docs: Add release artifacts for version 0.2.20 ([6f1fcdb](https://github.com/SHA888/EVOSEAL/commit/6f1fcdb))
+- docs: Add release artifacts for version 0.2.19 ([3e1233e](https://github.com/SHA888/EVOSEAL/commit/3e1233e))
+- docs: Add release artifacts for version 0.2.18 ([7cb8f3a](https://github.com/SHA888/EVOSEAL/commit/7cb8f3a))
+- docs: Add release artifacts for version 0.2.17 ([795b3d0](https://github.com/SHA888/EVOSEAL/commit/795b3d0))
+- docs: Add release artifacts for version 0.2.16 ([786731e](https://github.com/SHA888/EVOSEAL/commit/786731e))
+- docs: Add release artifacts for version 0.2.15 ([bc28893](https://github.com/SHA888/EVOSEAL/commit/bc28893))
+- docs: Add release artifacts for version 0.2.14 ([fbba05c](https://github.com/SHA888/EVOSEAL/commit/fbba05c))
+- docs: Add release artifacts for version 0.2.13 ([ffca9f7](https://github.com/SHA888/EVOSEAL/commit/ffca9f7))
+- docs: Add release artifacts for version 0.2.12 ([41a1348](https://github.com/SHA888/EVOSEAL/commit/41a1348))
+- docs: Add release artifacts for version 0.2.11 ([1f0e61c](https://github.com/SHA888/EVOSEAL/commit/1f0e61c))
+- docs: Add release artifacts for version 0.2.10 ([74fe301](https://github.com/SHA888/EVOSEAL/commit/74fe301))
+- docs: Add release artifacts for version 0.2.9 ([7e29b65](https://github.com/SHA888/EVOSEAL/commit/7e29b65))
+- docs: Add release artifacts for version 0.2.5 ([8b75f38](https://github.com/SHA888/EVOSEAL/commit/8b75f38))
+- docs: Add release artifacts for version 0.2.4 ([91fbaaf](https://github.com/SHA888/EVOSEAL/commit/91fbaaf))
+- docs: Add release artifacts for version 0.2.3 ([18b40fa](https://github.com/SHA888/EVOSEAL/commit/18b40fa))
+- docs: add release artifacts for v0.2.1 ([8a4e0f5](https://github.com/SHA888/EVOSEAL/commit/8a4e0f5))
+- docs: Add release artifacts for version 0.2.2 ([d9df5ab](https://github.com/SHA888/EVOSEAL/commit/d9df5ab))
+- 📝 Clean up README redundant sections ([14c3b83](https://github.com/SHA888/EVOSEAL/commit/14c3b83))
+- docs: Update README with pipeline CLI commands and virtual environment guidelines ([f1c8515](https://github.com/SHA888/EVOSEAL/commit/f1c8515))
+- docs: update documentation for new project structure ([e6d7631](https://github.com/SHA888/EVOSEAL/commit/e6d7631))
+- docs,feat: update SEAL references, add SEAL interface/provider/tests/examples, standardize naming and usage (fully linted) ([e5aeb01](https://github.com/SHA888/EVOSEAL/commit/e5aeb01))
+- docs(security): add dependency security scanning documentation ([a530eca](https://github.com/SHA888/EVOSEAL/commit/a530eca))
+- docs: update license badge to Apache 2.0 in README ([e683a0d](https://github.com/SHA888/EVOSEAL/commit/e683a0d))
+- docs: add documentation source files ([8b0e393](https://github.com/SHA888/EVOSEAL/commit/8b0e393))
+- docs: add comprehensive documentation and examples ([a5565df](https://github.com/SHA888/EVOSEAL/commit/a5565df))
+- docs: update DGM references to use 'Darwin Godel Machine' instead of 'Dynamic Genetic Model' ([8ed9654](https://github.com/SHA888/EVOSEAL/commit/8ed9654))
+- docs: create phase-based PRD documents for manageable development approach ([0c89556](https://github.com/SHA888/EVOSEAL/commit/0c89556))
+- docs: enhance PRD with detailed technical specifications for development phase ([1084dff](https://github.com/SHA888/EVOSEAL/commit/1084dff))
+- docs: add Design Considerations and Challenges section to address review feedback in both README and PRD ([1f9e363](https://github.com/SHA888/EVOSEAL/commit/1f9e363))
+- docs: add copyright for OpenEvolve author in README ([42ba5e7](https://github.com/SHA888/EVOSEAL/commit/42ba5e7))
+- docs: add SEAL citation to README ([50e6c61](https://github.com/SHA888/EVOSEAL/commit/50e6c61))
+- docs: add Product Requirements Document (PRD) ([4aae258](https://github.com/SHA888/EVOSEAL/commit/4aae258))
+
+## ♻️ Code Improvements
+
+- refactor: Clean up redundant EVOSEAL scripts and enhance installer ([b8ef9ab](https://github.com/SHA888/EVOSEAL/commit/b8ef9ab))
+- refactor: update CI/CD pipeline with sequential workflow dependencies ([3373200](https://github.com/SHA888/EVOSEAL/commit/3373200))
+- Clean up old release files and add v0.2.21 release notes ([59a85ba](https://github.com/SHA888/EVOSEAL/commit/59a85ba))
+- refactor: replace automated PR creation with manual instructions ([a0ea962](https://github.com/SHA888/EVOSEAL/commit/a0ea962))
+- Refactor: Clean up code and improve security ([4812088](https://github.com/SHA888/EVOSEAL/commit/4812088))
+- refactor: update pre-commit config and reformat code ([a79b3b6](https://github.com/SHA888/EVOSEAL/commit/a79b3b6))
+- refactor: clean up requirements and update dependencies ([fbf9ccd](https://github.com/SHA888/EVOSEAL/commit/fbf9ccd))
+- refactor: move DGM integration to proper package structure ([d11a96e](https://github.com/SHA888/EVOSEAL/commit/d11a96e))
+- refactor: update type hints and fix imports ([54ad62f](https://github.com/SHA888/EVOSEAL/commit/54ad62f))
+- refactor(tests): improve test maintainability with constants ([d472291](https://github.com/SHA888/EVOSEAL/commit/d472291))
+- refactor: update type annotations and fix linting issues ([dba335f](https://github.com/SHA888/EVOSEAL/commit/dba335f))
+- refactor: standardize virtual environment references to use .venv ([8306310](https://github.com/SHA888/EVOSEAL/commit/8306310))
+- refactor: improve type checking and code organization ([6c537ce](https://github.com/SHA888/EVOSEAL/commit/6c537ce))
+- refactor: enhance workflow validation and error handling ([6f4cedd](https://github.com/SHA888/EVOSEAL/commit/6f4cedd))
+- Improve event loop management in _execute_step ([98f63d2](https://github.com/SHA888/EVOSEAL/commit/98f63d2))
+- Refactor config classes to use TypedDict ([917564c](https://github.com/SHA888/EVOSEAL/commit/917564c))
+- Refactor _check_undefined_references for better maintainability ([3af1739](https://github.com/SHA888/EVOSEAL/commit/3af1739))
+- Refactor subscribe method for better maintainability ([41e5f1b](https://github.com/SHA888/EVOSEAL/commit/41e5f1b))
+- Refactor workflow validator and fix type checking ([8a4db29](https://github.com/SHA888/EVOSEAL/commit/8a4db29))
+- refactor: fix linting and type checking issues across the codebase ([3ef1ee0](https://github.com/SHA888/EVOSEAL/commit/3ef1ee0))
+- refactor: fix circular imports and update task status ([951e107](https://github.com/SHA888/EVOSEAL/commit/951e107))
+- Refactor requirements and update documentation ([d9f9d67](https://github.com/SHA888/EVOSEAL/commit/d9f9d67))
+
+## 🔧 Other Changes
+
+- Update requirements and add systemd service configuration ([9c1cb34](https://github.com/SHA888/EVOSEAL/commit/9c1cb34))
+- Enhance security with secure random number generation and model versioning ([c1ce8ec](https://github.com/SHA888/EVOSEAL/commit/c1ce8ec))
+- test: update repository tests with new fixtures ([53aabac](https://github.com/SHA888/EVOSEAL/commit/53aabac))
+- Bump version to 0.2.25 and update release notes ([acd7124](https://github.com/SHA888/EVOSEAL/commit/acd7124))
+- Bump version to 0.2.24 and update release notes ([26ab550](https://github.com/SHA888/EVOSEAL/commit/26ab550))
+- Bump version to 0.2.23 and update release notes ([c76d894](https://github.com/SHA888/EVOSEAL/commit/c76d894))
+- Bump version to 0.2.22 and update release notes ([220684c](https://github.com/SHA888/EVOSEAL/commit/220684c))
+- Bump version to 0.2.21 for PyPI release ([e376f7b](https://github.com/SHA888/EVOSEAL/commit/e376f7b))
+- Reset pipeline state for new evolution cycle ([155c988](https://github.com/SHA888/EVOSEAL/commit/155c988))
+- Merge pull request #13 from SHA888/merge-release-v0.2.8 ([7353631](https://github.com/SHA888/EVOSEAL/commit/7353631))
+- Merge pull request #12 from SHA888/release/v0.2.8 ([80ac8ad](https://github.com/SHA888/EVOSEAL/commit/80ac8ad))
+- Resolve merge conflicts with main ([2311840](https://github.com/SHA888/EVOSEAL/commit/2311840))
+- Merge branch 'pr-12' into merge-release-v0.2.8 ([87bacfe](https://github.com/SHA888/EVOSEAL/commit/87bacfe))
+- Auto-update to v0.2.20 - Evolution cycle completed at 2025-07-23 03:09:01 ([7d97db4](https://github.com/SHA888/EVOSEAL/commit/7d97db4))
+- Auto-update to v0.2.19 - Evolution cycle completed at 2025-07-23 03:02:31 ([46dc8eb](https://github.com/SHA888/EVOSEAL/commit/46dc8eb))
+- Auto-update to v0.2.18 - Evolution cycle completed at 2025-07-23 02:42:23 ([ffb0620](https://github.com/SHA888/EVOSEAL/commit/ffb0620))
+- Auto-update to v0.2.17 - Evolution cycle completed at 2025-07-23 02:35:53 ([9d3698a](https://github.com/SHA888/EVOSEAL/commit/9d3698a))
+- Auto-update to v0.2.16 - Evolution cycle completed at 2025-07-23 02:30:45 ([33b3083](https://github.com/SHA888/EVOSEAL/commit/33b3083))
+- Auto-update to v0.2.15 - Evolution cycle completed at 2025-07-23 02:18:48 ([7243dba](https://github.com/SHA888/EVOSEAL/commit/7243dba))
+- Auto-update to v0.2.14 - Evolution cycle completed at 2025-07-23 01:54:35 ([ead4e19](https://github.com/SHA888/EVOSEAL/commit/ead4e19))
+- Auto-update to v0.2.13 - Evolution cycle completed at 2025-07-23 01:49:26 ([907824f](https://github.com/SHA888/EVOSEAL/commit/907824f))
+- Auto-update to v0.2.12 - Evolution cycle completed at 2025-07-23 01:45:40 ([2a6b743](https://github.com/SHA888/EVOSEAL/commit/2a6b743))
+- Auto-update to v0.2.11 - Evolution cycle completed at 2025-07-23 01:39:10 ([b11f493](https://github.com/SHA888/EVOSEAL/commit/b11f493))
+- Auto-update to v0.2.10 - Evolution cycle completed at 2025-07-23 01:36:45 ([6ae004b](https://github.com/SHA888/EVOSEAL/commit/6ae004b))
+- Auto-update to v0.2.9 - Evolution cycle completed at 2025-07-23 01:13:54 ([fe36b8f](https://github.com/SHA888/EVOSEAL/commit/fe36b8f))
+- Merge remote-tracking branch 'origin/release/v0.2.8' into release/v0.2.8 ([9ac4c78](https://github.com/SHA888/EVOSEAL/commit/9ac4c78))
+- chore: prepare release candidate 0.2.8 ([923277a](https://github.com/SHA888/EVOSEAL/commit/923277a))
+- Merge pull request #11 from SHA888/release/v0.2.8 ([721803e](https://github.com/SHA888/EVOSEAL/commit/721803e))
+- chore: prepare for v0.2.8 release ([fd52588](https://github.com/SHA888/EVOSEAL/commit/fd52588))
+- Auto-update to v0.2.5 - Evolution cycle completed at 2025-07-22 06:50:15 ([b3564b6](https://github.com/SHA888/EVOSEAL/commit/b3564b6))
+- Auto-update to v0.2.4 - Evolution cycle completed at 2025-07-22 06:48:47 ([acbe83f](https://github.com/SHA888/EVOSEAL/commit/acbe83f))
+- Auto-update to v0.2.3 - Evolution cycle completed at 2025-07-22 06:45:57 ([7914bde](https://github.com/SHA888/EVOSEAL/commit/7914bde))
+- Auto-update to v0.2.2 - Evolution cycle completed at 2025-07-22 06:44:28 ([ce0a0fe](https://github.com/SHA888/EVOSEAL/commit/ce0a0fe))
+- Release v0.2.0: Automated Release Management ([231c194](https://github.com/SHA888/EVOSEAL/commit/231c194))
+- Bump version from 0.1.2 to 0.1.3 ([0f07294](https://github.com/SHA888/EVOSEAL/commit/0f07294))
+- Potential fix for code scanning alert no. 184: Unused global variable ([fb05463](https://github.com/SHA888/EVOSEAL/commit/fb05463))
+- ✅ Update v0.1.1 release checklist - Release completed successfully ([8ab9ea9](https://github.com/SHA888/EVOSEAL/commit/8ab9ea9))
+- Prepare for v0.1.0 release ([0de0b2c](https://github.com/SHA888/EVOSEAL/commit/0de0b2c))
+- Update checkpoint test data ([e8500af](https://github.com/SHA888/EVOSEAL/commit/e8500af))
+- Setup GitHub Pages documentation deployment ([25d59b2](https://github.com/SHA888/EVOSEAL/commit/25d59b2))
+- Complete documentation reorganization ([19e5ead](https://github.com/SHA888/EVOSEAL/commit/19e5ead))
+- 🎉 Complete EVOSEAL Safety Integration - All Core Tasks Finished ([866e91d](https://github.com/SHA888/EVOSEAL/commit/866e91d))
+- Update task statuses and sync submodules ([31df345](https://github.com/SHA888/EVOSEAL/commit/31df345))
+- Merge pull request #8 from SHA888/feature/enhance-git-interface ([e232057](https://github.com/SHA888/EVOSEAL/commit/e232057))
+- style(version_control): fix formatting and imports ([5e94bec](https://github.com/SHA888/EVOSEAL/commit/5e94bec))
+- Style: Fix code formatting and import ordering ([570284b](https://github.com/SHA888/EVOSEAL/commit/570284b))
+- Merge pull request #7 from SHA888/enhance/seal-system ([0b1ac7a](https://github.com/SHA888/EVOSEAL/commit/0b1ac7a))
+- Potential fix for code scanning alert no. 478: Variable defined multiple times ([862034a](https://github.com/SHA888/EVOSEAL/commit/862034a))
+- Potential fix for code scanning alert no. 472: Unused import ([f7c3349](https://github.com/SHA888/EVOSEAL/commit/f7c3349))
+- Potential fix for code scanning alert no. 487: Unused local variable ([d2d2336](https://github.com/SHA888/EVOSEAL/commit/d2d2336))
+- Potential fix for code scanning alert no. 473: Unused import ([eb6fcb0](https://github.com/SHA888/EVOSEAL/commit/eb6fcb0))
+- Potential fix for code scanning alert no. 483: Unused import ([a8b8254](https://github.com/SHA888/EVOSEAL/commit/a8b8254))
+- Potential fix for code scanning alert no. 482: Unused import ([fe2a173](https://github.com/SHA888/EVOSEAL/commit/fe2a173))
+- Consolidate SEAL system with enhanced implementation ([273b546](https://github.com/SHA888/EVOSEAL/commit/273b546))
+- Merge pull request #6 from SHA888/dependabot/pip/python-packages-4e499bd244 ([748a2ac](https://github.com/SHA888/EVOSEAL/commit/748a2ac))
+- chore(deps): (deps): bump the python-packages group with 29 updates ([9e4d06e](https://github.com/SHA888/EVOSEAL/commit/9e4d06e))
+- Mark SelfEditor component tasks as done ([c74a7b4](https://github.com/SHA888/EVOSEAL/commit/c74a7b4))
+- chore: update task status for 6.3 to done ([f187192](https://github.com/SHA888/EVOSEAL/commit/f187192))
+- Update DocumentationStrategy tests to match implementation ([914f8d7](https://github.com/SHA888/EVOSEAL/commit/914f8d7))
+- Enhance SelfEditor with KnowledgeBase integration ([b019139](https://github.com/SHA888/EVOSEAL/commit/b019139))
+- Enhance KnowledgeBase with concurrent access support and comprehensive testing ([ad3480e](https://github.com/SHA888/EVOSEAL/commit/ad3480e))
+- chore: remove deprecated setup files ([64135dd](https://github.com/SHA888/EVOSEAL/commit/64135dd))
+- test: add lightweight tests for FewShotLearner with mocks ([2f9a76f](https://github.com/SHA888/EVOSEAL/commit/2f9a76f))
+- chore: update pre-commit config to exclude submodules ([4751eab](https://github.com/SHA888/EVOSEAL/commit/4751eab))
+- Remove test files ([88ebfec](https://github.com/SHA888/EVOSEAL/commit/88ebfec))
+- Test commit to check pre-commit hook ([fb13c62](https://github.com/SHA888/EVOSEAL/commit/fb13c62))
+- Task 5.5 done: Implement pluggable selection algorithm (tournament, roulette, elitism) with full unit tests and project-wide test/lint compliance. Pytest excludes submodules and benchmarks. ([a3687e7](https://github.com/SHA888/EVOSEAL/commit/a3687e7))
+- Pre-commit: fix EOF/trailing whitespace in tasks.json. SelectionAlgorithm and tests for Task 5.5 complete. ([d775abf](https://github.com/SHA888/EVOSEAL/commit/d775abf))
+- Configure ruff to exclude openevolve/ from linting. All main code and config are now compliant and clean. ([5e8e9e1](https://github.com/SHA888/EVOSEAL/commit/5e8e9e1))
+- Replace all magic value 2 with MAGIC_MAX_WORKERS in test_testrunner.py. All compliance checks green. ([a6bf600](https://github.com/SHA888/EVOSEAL/commit/a6bf600))
+- Remove legacy Controller implementation and test from openevolve submodule. Ownership now in evoseal. ([89332bf](https://github.com/SHA888/EVOSEAL/commit/89332bf))
+- test: ensure all code lint/format clean; update DGM/EVOSEAL integration test and submodules; .taskmaster/tasks/tasks.json maintenance ([a986d30](https://github.com/SHA888/EVOSEAL/commit/a986d30))
+- Integrate DGM with EVOSEAL models, adapter, tests, mypy config, and all recent fixes [task 4.5 done] ([afcb0ab](https://github.com/SHA888/EVOSEAL/commit/afcb0ab))
+- Apply Black formatting to prompt template test; all lint and format checks passing ([e702c2a](https://github.com/SHA888/EVOSEAL/commit/e702c2a))
+- test(agentic-system): replace all magic value 2 with named constant for ruff PLR2004 compliance ([2f68d73](https://github.com/SHA888/EVOSEAL/commit/2f68d73))
+- Complete Task 3.5: Implement Git-compatible storage functions, versioning, diff, merge, and tests (type annotations, lint/mypy fixes) ([03dc3db](https://github.com/SHA888/EVOSEAL/commit/03dc3db))
+- Complete Task 3.4: Implement WorkflowEngine, JSON schemas, validation utilities, error handling, and initial tests (final lint fixes) ([effcba5](https://github.com/SHA888/EVOSEAL/commit/effcba5))
+- test: fix formatting and magic value lint in evaluation model test ([9b5a41f](https://github.com/SHA888/EVOSEAL/commit/9b5a41f))
+- chore: finalize EvaluationResult model and pass all pre-commit hooks\n\n- All lint, formatting, and type errors resolved\n- Completes task 3.2 (Evaluation Results Data Model) ([18c7946](https://github.com/SHA888/EVOSEAL/commit/18c7946))
+- chore(deps): update and secure dependencies ([8098cdb](https://github.com/SHA888/EVOSEAL/commit/8098cdb))
+- chore: update task status and submodule ([1a0fcab](https://github.com/SHA888/EVOSEAL/commit/1a0fcab))
+- chore: mark task 2.5 as completed ([44a96a4](https://github.com/SHA888/EVOSEAL/commit/44a96a4))
+- Remove test file used for pre-commit verification ([883252c](https://github.com/SHA888/EVOSEAL/commit/883252c))
+- Test pre-commit hook ([ec7835e](https://github.com/SHA888/EVOSEAL/commit/ec7835e))
+- Merge pull request #3 from SHA888/feature/communication-patterns ([2637ca2](https://github.com/SHA888/EVOSEAL/commit/2637ca2))
+- Remove Snyk integration ([1cf042c](https://github.com/SHA888/EVOSEAL/commit/1cf042c))
+- Merge pull request #1 from SHA888/feature/communication-patterns ([cb0473f](https://github.com/SHA888/EVOSEAL/commit/cb0473f))
+- Remove unused exception variable in _validate_schema ([ecaec59](https://github.com/SHA888/EVOSEAL/commit/ecaec59))
+- Simplify error handling in _validate_schema ([289dc52](https://github.com/SHA888/EVOSEAL/commit/289dc52))
+- Remove unreachable return statement in validate_workflow_schema_async ([d5ab8dc](https://github.com/SHA888/EVOSEAL/commit/d5ab8dc))
+- Update execute_workflow to use asyncio.run() for better event loop management ([bd4b506](https://github.com/SHA888/EVOSEAL/commit/bd4b506))
+- Simplify _publish_event method in WorkflowEngine ([77db0aa](https://github.com/SHA888/EVOSEAL/commit/77db0aa))
+- Merge pull request #2 from SHA888/fix/event-loop-handling ([47dd3b6](https://github.com/SHA888/EVOSEAL/commit/47dd3b6))
+- Update task status to mark 2.4 as completed ([b811284](https://github.com/SHA888/EVOSEAL/commit/b811284))
+- chore: clean up .gitignore file ([4616955](https://github.com/SHA888/EVOSEAL/commit/4616955))
+- chore: add .gitmodules and initialize submodules ([352971d](https://github.com/SHA888/EVOSEAL/commit/352971d))
+- chore: enhance .gitignore with comprehensive Python and development patterns ([5680207](https://github.com/SHA888/EVOSEAL/commit/5680207))
+- chore: update task status for 1.1 (Create Git Repository) to in-progress ([88e733b](https://github.com/SHA888/EVOSEAL/commit/88e733b))
+- chore: add task-master configuration and project files ([59d734f](https://github.com/SHA888/EVOSEAL/commit/59d734f))
+- Initial commit: Add LICENSE, NOTICE, README.md and core components ([9c1bed7](https://github.com/SHA888/EVOSEAL/commit/9c1bed7))
+
+## 🔗 Useful Links
+
+- [📚 Documentation](https://sha888.github.io/EVOSEAL/)
+- [🐙 GitHub Repository](https://github.com/SHA888/EVOSEAL)
+- [🐛 Report Issues](https://github.com/SHA888/EVOSEAL/issues)
+- [📋 Full Changelog](https://github.com/SHA888/EVOSEAL/blob/main/CHANGELOG.md)
+
+## 📊 Contributors
+
+Thanks to all contributors who made this release possible:
+
+- Kresna Sucandra
+- SHA888
+- dependabot[bot]
 
 ---
 
-**This release ensures consistent port configuration across all EVOSEAL components and improves WebSocket reliability.**
+**Installation:**
+```bash
+pip install evoseal==0.3.2
+```
+
+**Upgrade:**
+```bash
+pip install --upgrade evoseal
+```
+
+*This release was automatically generated on 2025-07-28 02:55:50 UTC*
