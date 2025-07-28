@@ -18,16 +18,14 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
 
-    # Only run if the CI workflow was successful
+    # Only run if the CI workflow was successful and not a dependabot PR
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       (github.event.workflow_run.head_branch == 'main' ||
-        startsWith(github.event.workflow_run.head_branch, 'release/')))
-
-    # Skip analysis for dependabot PRs
-    if: (github.actor != 'dependabot[bot]')
+      (github.actor != 'dependabot[bot]') &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event_name == 'schedule' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        (github.event.workflow_run.head_branch == 'main' ||
+         startsWith(github.event.workflow_run.head_branch, 'release/'))))
 
     permissions:
       actions: read
