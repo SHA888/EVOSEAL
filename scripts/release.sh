@@ -145,8 +145,19 @@ update_version() {
 
 # Check for uncommitted changes (ignoring submodules)
 check_uncommitted_changes() {
+    # Get list of tracked submodules
+    local submodules
+    submodules=$(git submodule status | awk '{print $2}')
+
+    # Build grep exclude pattern for submodules
+    local exclude_pattern="^ M "
+    for sub in $submodules; do
+        exclude_pattern+="\|^ M $sub"
+    done
+
+    # Check for uncommitted changes, excluding submodules and untracked files
     local changes
-    changes=$(git status --porcelain | grep -v '^ M' | grep -v '^??' | grep -v '^ M SEAL' | grep -v '^ M dgm' | grep -v '^ M openevolve')
+    changes=$(git status --porcelain | grep -v '^??' | eval "grep -v \"$exclude_pattern\"")
 
     if [ -n "$changes" ]; then
         print_error "Uncommitted changes detected (excluding submodules). Please commit or stash them before releasing:\n$changes"
