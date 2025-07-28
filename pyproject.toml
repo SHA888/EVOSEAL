@@ -23,22 +23,37 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "python-dotenv>=1.0.0",
+    # Core dependencies
     "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "typing-extensions>=4.0.0",
+    "python-dotenv>=1.0.0",
     "PyYAML>=6.0.1",
+
+    # CLI dependencies
     "typer[all]>=0.12.0",
     "rich>=13.0.0",
+    "click>=8.0.0",
+    "shellingham>=1.5.0",
+
+    # HTTP clients
+    "aiohttp>=3.8.0",
+    "httpx>=0.24.0",
+
+    # Data science
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+
+    # AI and ML
+    "openai>=1.0.0",
+    "anthropic>=0.7.0",
+
+    # Utilities
+    "tqdm>=4.66.0",
+    "python-slugify>=8.0.0",
     "requests>=2.31.0",
     "GitPython>=3.1.40",
     "structlog>=23.1.0",
-    "numpy>=1.24.0",
-    "pandas>=2.0.0",
-    "openai>=1.0.0",
-    "anthropic>=0.7.0",
-    "tqdm>=4.66.0",
-    "python-slugify>=8.0.0",
-    "click>=8.0.0",
-    "shellingham>=1.5.0",
 ]
 
 [project.scripts]
@@ -72,6 +87,7 @@ test = [
     "aiohttp>=3.8.0",
     "httpx>=0.24.0",
     "tomli>=2.0.0 ; python_version < '3.11'",
+    "eval-type-backport>=0.0.1 ; python_version < '3.10'",
 
     # Optional dependencies for specific tests
     "torch>=2.0.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",
