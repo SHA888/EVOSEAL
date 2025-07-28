@@ -130,9 +130,7 @@ class ExperimentDatabase:
         )
 
         # Create indexes for better query performance
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments (status)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments (status)")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_experiments_type ON experiments (experiment_type)"
         )
@@ -145,9 +143,7 @@ class ExperimentDatabase:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_metrics_experiment_id ON experiment_metrics (experiment_id)"
         )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_metrics_name ON experiment_metrics (name)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_name ON experiment_metrics (name)")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_artifacts_experiment_id ON experiment_artifacts (experiment_id)"
         )
@@ -184,16 +180,8 @@ class ExperimentDatabase:
                     experiment.status.value,
                     experiment.config.experiment_type.value,
                     experiment.created_at.isoformat(),
-                    (
-                        experiment.started_at.isoformat()
-                        if experiment.started_at
-                        else None
-                    ),
-                    (
-                        experiment.completed_at.isoformat()
-                        if experiment.completed_at
-                        else None
-                    ),
+                    (experiment.started_at.isoformat() if experiment.started_at else None),
+                    (experiment.completed_at.isoformat() if experiment.completed_at else None),
                     experiment.updated_at.isoformat(),
                     experiment.config.model_dump_json(),
                     experiment.result.model_dump_json() if experiment.result else None,
@@ -301,14 +289,10 @@ class ExperimentDatabase:
                 "status": row["status"],
                 "created_at": datetime.fromisoformat(row["created_at"]),
                 "started_at": (
-                    datetime.fromisoformat(row["started_at"])
-                    if row["started_at"]
-                    else None
+                    datetime.fromisoformat(row["started_at"]) if row["started_at"] else None
                 ),
                 "completed_at": (
-                    datetime.fromisoformat(row["completed_at"])
-                    if row["completed_at"]
-                    else None
+                    datetime.fromisoformat(row["completed_at"]) if row["completed_at"] else None
                 ),
                 "updated_at": datetime.fromisoformat(row["updated_at"]),
                 "config": ExperimentConfig.model_validate_json(row["config_json"]),
@@ -324,9 +308,7 @@ class ExperimentDatabase:
                 "parent_experiment_id": row["parent_experiment_id"],
                 "created_by": row["created_by"],
                 "tags": json.loads(row["tags_json"]) if row["tags_json"] else [],
-                "metadata": (
-                    json.loads(row["metadata_json"]) if row["metadata_json"] else {}
-                ),
+                "metadata": (json.loads(row["metadata_json"]) if row["metadata_json"] else {}),
                 "metrics": [],
                 "artifacts": [],
             }
@@ -475,9 +457,7 @@ class ExperimentDatabase:
         conn = self._get_connection()
 
         try:
-            cursor = conn.execute(
-                "DELETE FROM experiments WHERE id = ?", (experiment_id,)
-            )
+            cursor = conn.execute("DELETE FROM experiments WHERE id = ?", (experiment_id,))
             conn.commit()
 
             if cursor.rowcount > 0:
@@ -526,9 +506,7 @@ class ExperimentDatabase:
                 timestamp=datetime.fromisoformat(row["timestamp"]),
                 iteration=row["iteration"],
                 step=row["step"],
-                metadata=(
-                    json.loads(row["metadata_json"]) if row["metadata_json"] else {}
-                ),
+                metadata=(json.loads(row["metadata_json"]) if row["metadata_json"] else {}),
             )
             metrics.append(metric)
 

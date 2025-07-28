@@ -12,12 +12,7 @@ import secrets
 import time
 from pathlib import Path
 
-from evoseal.utils.logging import (
-    LoggingMixin,
-    log_execution_time,
-    setup_logging,
-    with_request_id,
-)
+from evoseal.utils.logging import LoggingMixin, log_execution_time, setup_logging, with_request_id
 
 # Initialize logging
 logger = setup_logging()

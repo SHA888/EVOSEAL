@@ -28,10 +28,7 @@ except ImportError as e:
     warnings.warn(f"DGM adapter not available: {e}", ImportWarning)
 
 try:
-    from .openevolve.openevolve_adapter import (
-        OpenEvolveAdapter,
-        create_openevolve_adapter,
-    )
+    from .openevolve.openevolve_adapter import OpenEvolveAdapter, create_openevolve_adapter
 
     _OPENEVOLVE_AVAILABLE = True
 except ImportError as e:

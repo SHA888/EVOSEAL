@@ -174,9 +174,7 @@ async def test_enhanced_checkpoint_functionality():
 
         # Verify integrity
         print("   Verifying checkpoint integrity...")
-        integrity_ok = checkpoint_manager_compressed.verify_checkpoint_integrity(
-            "enhanced_v1.0"
-        )
+        integrity_ok = checkpoint_manager_compressed.verify_checkpoint_integrity("enhanced_v1.0")
         print(f"   ✓ Integrity verification: {'PASSED' if integrity_ok else 'FAILED'}")
 
         # List checkpoints with detailed info
@@ -184,19 +182,11 @@ async def test_enhanced_checkpoint_functionality():
         checkpoints = checkpoint_manager_compressed.list_checkpoints()
         for checkpoint in checkpoints:
             print(f"   Version: {checkpoint['version_id']}")
-            print(
-                f"   Size: {checkpoint.get('checkpoint_size', 0) / (1024*1024):.2f} MB"
-            )
+            print(f"   Size: {checkpoint.get('checkpoint_size', 0) / (1024*1024):.2f} MB")
             print(f"   Files: {checkpoint.get('file_count', 0)}")
-            print(
-                f"   System State: {'Yes' if checkpoint.get('system_state_captured') else 'No'}"
-            )
-            print(
-                f"   Compression: {'Yes' if checkpoint.get('compression_enabled') else 'No'}"
-            )
-            print(
-                f"   Integrity Hash: {checkpoint.get('integrity_hash', 'N/A')[:16]}..."
-            )
+            print(f"   System State: {'Yes' if checkpoint.get('system_state_captured') else 'No'}")
+            print(f"   Compression: {'Yes' if checkpoint.get('compression_enabled') else 'No'}")
+            print(f"   Integrity Hash: {checkpoint.get('integrity_hash', 'N/A')[:16]}...")
             print(f"   Model Params: {len(checkpoint.get('config_snapshot', {}))}")
             print(f"   Metrics: {checkpoint.get('metrics_count', 0)}")
 
@@ -223,18 +213,14 @@ async def test_enhanced_checkpoint_functionality():
                 f"   Python version: {system_state['system_info'].get('python_version', 'N/A')[:20]}..."
             )
             print(f"   Platform: {system_state['system_info'].get('platform', 'N/A')}")
-            print(
-                f"   CPU count: {system_state['system_info'].get('cpu_count', 'N/A')}"
-            )
+            print(f"   CPU count: {system_state['system_info'].get('cpu_count', 'N/A')}")
             print(
                 f"   Memory total: {system_state['system_info'].get('memory_total', 0) / (1024**3):.1f} GB"
             )
 
             model_state = system_state.get("model_state", {})
             if model_state:
-                print(
-                    f"   Model architecture: {model_state.get('model_architecture', 'N/A')}"
-                )
+                print(f"   Model architecture: {model_state.get('model_architecture', 'N/A')}")
                 print(f"   Learning rate: {model_state.get('learning_rate', 'N/A')}")
                 print(f"   Batch size: {model_state.get('batch_size', 'N/A')}")
                 print(f"   Optimizer: {model_state.get('optimizer', 'N/A')}")
@@ -242,12 +228,8 @@ async def test_enhanced_checkpoint_functionality():
             evolution_state = system_state.get("evolution_state", {})
             if evolution_state:
                 print(f"   Best fitness: {evolution_state.get('best_fitness', 'N/A')}")
-                print(
-                    f"   Generations: {evolution_state.get('generations_completed', 'N/A')}"
-                )
-                print(
-                    f"   Execution time: {evolution_state.get('execution_time', 'N/A')} seconds"
-                )
+                print(f"   Generations: {evolution_state.get('generations_completed', 'N/A')}")
+                print(f"   Execution time: {evolution_state.get('execution_time', 'N/A')} seconds")
 
         # Test without compression for comparison
         print("\n5. Testing without compression for comparison...")
@@ -261,10 +243,8 @@ async def test_enhanced_checkpoint_functionality():
         checkpoint_manager_uncompressed = CheckpointManager(config_uncompressed)
 
         # Create checkpoint without compression
-        checkpoint_path_uncompressed = (
-            checkpoint_manager_uncompressed.create_checkpoint(
-                "enhanced_v1.0_uncompressed", experiment_data, capture_system_state=True
-            )
+        checkpoint_path_uncompressed = checkpoint_manager_uncompressed.create_checkpoint(
+            "enhanced_v1.0_uncompressed", experiment_data, capture_system_state=True
         )
 
         # Compare sizes

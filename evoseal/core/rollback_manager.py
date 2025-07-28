@@ -51,9 +51,7 @@ class RollbackManager:
 
         # Configuration
         self.auto_rollback_enabled = config.get("auto_rollback_enabled", True)
-        self.rollback_threshold = config.get(
-            "rollback_threshold", 0.1
-        )  # 10% regression threshold
+        self.rollback_threshold = config.get("rollback_threshold", 0.1)  # 10% regression threshold
         self.max_rollback_attempts = config.get("max_rollback_attempts", 3)
         self.rollback_history_file = Path(
             config.get("rollback_history_file", "./rollback_history.json")
@@ -64,9 +62,7 @@ class RollbackManager:
 
         logger.info("RollbackManager initialized")
 
-    def rollback_to_version(
-        self, version_id: str, reason: str = "manual_rollback"
-    ) -> bool:
+    def rollback_to_version(self, version_id: str, reason: str = "manual_rollback") -> bool:
         """Rollback to a specific version.
 
         Args:
@@ -92,20 +88,14 @@ class RollbackManager:
             self._validate_rollback_target(working_dir)
 
             # Restore checkpoint to working directory
-            success = self.checkpoint_manager.restore_checkpoint(
-                version_id, working_dir
-            )
+            success = self.checkpoint_manager.restore_checkpoint(version_id, working_dir)
             if not success:
-                raise RollbackError(
-                    f"Failed to restore checkpoint for version {version_id}"
-                )
+                raise RollbackError(f"Failed to restore checkpoint for version {version_id}")
 
             # Post-rollback verification
             verification_result = self._verify_rollback_success(version_id, working_dir)
             if not verification_result["success"]:
-                logger.error(
-                    f"Post-rollback verification failed: {verification_result['error']}"
-                )
+                logger.error(f"Post-rollback verification failed: {verification_result['error']}")
                 # Don't raise exception here - rollback succeeded but verification failed
                 # This is logged for monitoring but doesn't fail the rollback
 
@@ -135,9 +125,7 @@ class RollbackManager:
             except Exception as e:
                 logger.warning(f"Failed to publish rollback event: {e}")
 
-            logger.info(
-                f"Successfully rolled back to version {version_id} (reason: {reason})"
-            )
+            logger.info(f"Successfully rolled back to version {version_id} (reason: {reason})")
             return True
 
         except Exception as e:
@@ -154,9 +142,7 @@ class RollbackManager:
 
             # Attempt failure recovery if enabled
             if self.config.get("enable_rollback_failure_recovery", True):
-                logger.info(
-                    f"Attempting rollback failure recovery for version {version_id}"
-                )
+                logger.info(f"Attempting rollback failure recovery for version {version_id}")
                 recovery_result = self.handle_rollback_failure(version_id, str(e))
 
                 if recovery_result["success"]:
@@ -259,14 +245,10 @@ class RollbackManager:
                 if regressions:
                     should_rollback = True
                     rollback_reasons.append("metrics_regression")
-                    logger.warning(
-                        f"Found metrics regressions: {list(regressions.keys())}"
-                    )
+                    logger.warning(f"Found metrics regressions: {list(regressions.keys())}")
 
             if not should_rollback:
-                logger.debug(
-                    "No rollback needed - tests passed and no regressions detected"
-                )
+                logger.debug("No rollback needed - tests passed and no regressions detected")
                 return False
 
             # Find the parent version to rollback to
@@ -330,9 +312,7 @@ class RollbackManager:
         Returns:
             List of rollback events
         """
-        history = sorted(
-            self.rollback_history, key=lambda x: x.get("timestamp", ""), reverse=True
-        )
+        history = sorted(self.rollback_history, key=lambda x: x.get("timestamp", ""), reverse=True)
         if limit:
             history = history[:limit]
         return history
@@ -344,9 +324,7 @@ class RollbackManager:
             Dictionary with rollback statistics
         """
         total_rollbacks = len(self.rollback_history)
-        successful_rollbacks = len(
-            [r for r in self.rollback_history if r.get("success", False)]
-        )
+        successful_rollbacks = len([r for r in self.rollback_history if r.get("success", False)])
         auto_rollbacks = len(
             [r for r in self.rollback_history if "auto_rollback" in r.get("reason", "")]
         )
@@ -524,9 +502,7 @@ class RollbackManager:
 
         return safe_rollback_dir
 
-    def _verify_rollback_success(
-        self, version_id: str, working_dir: Path
-    ) -> Dict[str, Any]:
+    def _verify_rollback_success(self, version_id: str, working_dir: Path) -> Dict[str, Any]:
         """Verify that rollback was successful.
 
         Args:
@@ -554,19 +530,15 @@ class RollbackManager:
 
             # Verify checkpoint integrity if possible
             try:
-                checkpoint_path = self.checkpoint_manager.get_checkpoint_path(
-                    version_id
-                )
+                checkpoint_path = self.checkpoint_manager.get_checkpoint_path(version_id)
                 if checkpoint_path and hasattr(
                     self.checkpoint_manager, "verify_checkpoint_integrity"
                 ):
-                    integrity_check = (
-                        self.checkpoint_manager.verify_checkpoint_integrity(version_id)
+                    integrity_check = self.checkpoint_manager.verify_checkpoint_integrity(
+                        version_id
                     )
                     if not integrity_check:
-                        logger.warning(
-                            f"Checkpoint integrity verification failed for {version_id}"
-                        )
+                        logger.warning(f"Checkpoint integrity verification failed for {version_id}")
                         # Don't fail verification for this - it's a warning
             except Exception as e:
                 logger.warning(f"Could not verify checkpoint integrity: {e}")
@@ -604,9 +576,7 @@ class RollbackManager:
 
             return {"success": False, "error": str(e)}
 
-    def cascading_rollback(
-        self, failed_version_id: str, max_attempts: int = 3
-    ) -> Dict[str, Any]:
+    def cascading_rollback(self, failed_version_id: str, max_attempts: int = 3) -> Dict[str, Any]:
         """Perform cascading rollback when multiple rollbacks are needed.
 
         Args:
@@ -679,15 +649,11 @@ class RollbackManager:
                             "rollback_chain": rollback_chain,
                         }
                     else:
-                        logger.warning(
-                            f"Rollback to {parent_version} failed, trying next parent"
-                        )
+                        logger.warning(f"Rollback to {parent_version} failed, trying next parent")
                         current_version = parent_version
 
                 except Exception as e:
-                    logger.error(
-                        f"Exception during cascading rollback attempt {attempt + 1}: {e}"
-                    )
+                    logger.error(f"Exception during cascading rollback attempt {attempt + 1}: {e}")
                     rollback_chain.append(
                         {
                             "from_version": current_version,
@@ -713,9 +679,7 @@ class RollbackManager:
             return {
                 "success": False,
                 "error": str(e),
-                "rollback_chain": (
-                    rollback_chain if "rollback_chain" in locals() else []
-                ),
+                "rollback_chain": (rollback_chain if "rollback_chain" in locals() else []),
             }
 
     def handle_rollback_failure(
@@ -746,9 +710,7 @@ class RollbackManager:
             recovery_actions = []
 
             # Strategy 1: Try cascading rollback if not already attempted
-            if attempt_count == 1 and self.config.get(
-                "enable_cascading_rollback", True
-            ):
+            if attempt_count == 1 and self.config.get("enable_cascading_rollback", True):
                 logger.info("Attempting cascading rollback as recovery strategy")
                 cascading_result = self.cascading_rollback(version_id)
                 recovery_actions.append(
@@ -766,9 +728,7 @@ class RollbackManager:
             # Strategy 2: Try to find a known good version
             known_good_versions = self._find_known_good_versions()
             if known_good_versions:
-                logger.info(
-                    f"Attempting rollback to known good version: {known_good_versions[0]}"
-                )
+                logger.info(f"Attempting rollback to known good version: {known_good_versions[0]}")
                 try:
                     success = self.rollback_to_version(
                         known_good_versions[0],
@@ -794,9 +754,7 @@ class RollbackManager:
                     recovery_actions[-1]["error"] = str(e)
 
             # All recovery strategies failed
-            logger.error(
-                f"All recovery strategies failed for rollback of version {version_id}"
-            )
+            logger.error(f"All recovery strategies failed for rollback of version {version_id}")
             return {
                 "success": False,
                 "error": "All recovery strategies failed",
@@ -825,14 +783,10 @@ class RollbackManager:
             version_success_count = {}
             for event in successful_rollbacks:
                 version_id = event["version_id"]
-                version_success_count[version_id] = (
-                    version_success_count.get(version_id, 0) + 1
-                )
+                version_success_count[version_id] = version_success_count.get(version_id, 0) + 1
 
             # Sort by success count (most successful first)
-            known_good = sorted(
-                version_success_count.items(), key=lambda x: x[1], reverse=True
-            )
+            known_good = sorted(version_success_count.items(), key=lambda x: x[1], reverse=True)
 
             return [version_id for version_id, _ in known_good[:5]]  # Return top 5
 
@@ -846,9 +800,7 @@ class RollbackManager:
             try:
                 with open(self.rollback_history_file, encoding="utf-8") as f:
                     self.rollback_history = json.load(f)
-                logger.debug(
-                    f"Loaded {len(self.rollback_history)} rollback events from history"
-                )
+                logger.debug(f"Loaded {len(self.rollback_history)} rollback events from history")
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"Failed to load rollback history: {e}")
                 self.rollback_history = []

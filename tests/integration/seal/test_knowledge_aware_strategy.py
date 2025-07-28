@@ -117,14 +117,10 @@ class TestKnowledgeAwareStrategy:
     def test_min_similarity_validation(self, mock_knowledge_base):
         """Test validation of min_similarity parameter."""
         # Test invalid values
-        with pytest.raises(
-            ValueError, match="min_similarity must be between 0.0 and 1.0"
-        ):
+        with pytest.raises(ValueError, match="min_similarity must be between 0.0 and 1.0"):
             KnowledgeAwareStrategy(mock_knowledge_base, min_similarity=-0.1)
 
-        with pytest.raises(
-            ValueError, match="min_similarity must be between 0.0 and 1.0"
-        ):
+        with pytest.raises(ValueError, match="min_similarity must be between 0.0 and 1.0"):
             KnowledgeAwareStrategy(mock_knowledge_base, min_similarity=1.1)
 
         # Test valid values (should not raise)

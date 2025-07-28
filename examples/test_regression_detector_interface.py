@@ -183,9 +183,7 @@ async def test_regression_detector_interface():
         logger.info("-" * 40)
 
         success = detector.establish_baseline("v1.0", "production_baseline")
-        logger.info(
-            f"Baseline establishment: {'✅ Success' if success else '❌ Failed'}"
-        )
+        logger.info(f"Baseline establishment: {'✅ Success' if success else '❌ Failed'}")
 
         # List baselines
         baselines = detector.list_baselines()
@@ -214,12 +212,8 @@ async def test_regression_detector_interface():
             "performance_tests": True,
         }
 
-        integration_success = detector.integrate_with_test_framework(
-            "pytest", pytest_config
-        )
-        logger.info(
-            f"Pytest integration: {'✅ Success' if integration_success else '❌ Failed'}"
-        )
+        integration_success = detector.integrate_with_test_framework("pytest", pytest_config)
+        logger.info(f"Pytest integration: {'✅ Success' if integration_success else '❌ Failed'}")
 
         # Test 4: Compare against baseline (minor regressions)
         logger.info("\n4️⃣ Testing Baseline Comparison (v1.1)")
@@ -246,20 +240,14 @@ async def test_regression_detector_interface():
         )
 
         logger.info(f"Analysis completed for version {analysis_results['version_id']}")
-        logger.info(
-            f"Has regression: {'⚠️ Yes' if analysis_results['has_regression'] else '✅ No'}"
-        )
+        logger.info(f"Has regression: {'⚠️ Yes' if analysis_results['has_regression'] else '✅ No'}")
 
         if analysis_results["has_regression"]:
             summary = analysis_results["summary"]
             logger.info("Analysis summary:")
             logger.info(f"  - Total regressions: {summary['total_regressions']}")
-            logger.info(
-                f"  - Critical regressions: {len(summary['critical_regressions'])}"
-            )
-            logger.info(
-                f"  - Affected metrics: {', '.join(summary['affected_metrics'])}"
-            )
+            logger.info(f"  - Critical regressions: {len(summary['critical_regressions'])}")
+            logger.info(f"  - Affected metrics: {', '.join(summary['affected_metrics'])}")
             logger.info(f"  - Recommendation: {summary['recommendation']}")
 
             # Show detailed regression information

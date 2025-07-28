@@ -15,7 +15,7 @@ jobs:
   test:
     name: Skip Tests (Temporarily)
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Skip tests
       run: |
@@ -26,33 +26,33 @@ jobs:
     name: Lint and Type Check
     needs: test  # Run after tests
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
         cache: 'pip'
-    
+
     - name: Install development dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[test,dev]"
-    
+
     - name: Check code formatting with Black
       run: black --check .
-    
+
     - name: Run Flake8 for style guide enforcement (core files only)
       run: flake8 evoseal/ --exclude=tests,examples,scripts
       continue-on-error: true
-    
+
     - name: Run MyPy for static type checking (core files only)
       run: mypy --install-types --non-interactive evoseal/ --ignore-missing-imports
       continue-on-error: true
-    
+
     - name: Run Ruff for additional linting (auto-fix enabled)
       run: ruff check . --fix
       continue-on-error: true
@@ -61,22 +61,22 @@ jobs:
     name: Security Checks
     needs: test  # Run after tests
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
         cache: 'pip'
-    
+
     - name: Install security tools
       run: |
         python -m pip install --upgrade pip
         pip install safety bandit
-    
+
     - name: Check for known security vulnerabilities
       run: |
         # Try new scan command first, fallback to deprecated check if auth fails
@@ -85,7 +85,7 @@ jobs:
         safety check --ignore 67895 --ignore 65647 --ignore 62556 --ignore 59473 --ignore 65278 --ignore 53048 --ignore 54843 --ignore 42203 --ignore 51499 --ignore 50959 --ignore 74429 --ignore 48542 --ignore 77744 --ignore 77745 --short-report || \
         echo "Security scan completed - some non-critical vulnerabilities found in system packages"
       continue-on-error: true
-    
+
     - name: Run Bandit for security issues
       run: |
         bandit -r evoseal/ -f json -o bandit-report.json || echo "Bandit scan completed"
@@ -96,21 +96,21 @@ jobs:
     name: Build Package
     needs: [test, lint, security]  # Run after all other jobs
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: Install build tools
       run: |
         python -m pip install --upgrade pip
         pip install build
-    
+
     - name: Build package
       run: |
         python -m build

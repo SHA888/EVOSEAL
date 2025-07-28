@@ -90,9 +90,7 @@ def main() -> None:
 def show_config(
     key: Annotated[
         str | None,
-        typer.Argument(
-            help="Configuration key to show (e.g., 'seal.model'). Omit to show all."
-        ),
+        typer.Argument(help="Configuration key to show (e.g., 'seal.model'). Omit to show all."),
     ] = None,
     config_file: Annotated[
         Path | None,
@@ -127,9 +125,7 @@ def show_config(
     if config_file is None:
         config_file = find_config_file()
         if config_file is None:
-            typer.echo(
-                "No configuration file found. Use 'evoseal config set' to create one."
-            )
+            typer.echo("No configuration file found. Use 'evoseal config set' to create one.")
             raise typer.Exit(1)
 
     config = load_config(config_file)

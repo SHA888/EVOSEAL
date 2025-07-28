@@ -103,9 +103,7 @@ class PromptConstructor:
             "chain_of_thought": PromptTemplate(
                 name="chain_of_thought",
                 template=(
-                    "Question: {question}\n"
-                    "Knowledge:\n{knowledge}\n"
-                    "Let's think step by step."
+                    "Question: {question}\n" "Knowledge:\n{knowledge}\n" "Let's think step by step."
                 ),
                 style=PromptStyle.CHAIN_OF_THOUGHT,
                 required_fields=["question"],
@@ -152,11 +150,7 @@ class PromptConstructor:
         Returns:
             Formatted prompt string
         """
-        style_enum = (
-            PromptStyle(style)
-            if isinstance(style, str)
-            else (style or self.default_style)
-        )
+        style_enum = PromptStyle(style) if isinstance(style, str) else (style or self.default_style)
 
         if style_enum == PromptStyle.INSTRUCTION:
             return f"Instruction: {content}\n\nResponse:"
@@ -195,9 +189,7 @@ class PromptConstructor:
         # Otherwise, create a new template from parameters
         name = name_or_template
         if template is None or style is None:
-            raise ValueError(
-                "Both template and style must be provided when name is a string"
-            )
+            raise ValueError("Both template and style must be provided when name is a string")
 
         if not required_fields:
             required_fields = set()

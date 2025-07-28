@@ -67,9 +67,7 @@ class RegressionDetector:
         self.severity_levels = ["low", "medium", "high", "critical"]
 
         # Baseline management
-        self.baseline_storage_path = Path(
-            config.get("baseline_storage_path", "./baselines.json")
-        )
+        self.baseline_storage_path = Path(config.get("baseline_storage_path", "./baselines.json"))
         self.baselines: Dict[str, Dict[str, Any]] = {}
         self._load_baselines()
 
@@ -126,9 +124,7 @@ class RegressionDetector:
             },
         )
 
-        logger.info(
-            f"RegressionDetector initialized with threshold: {self.regression_threshold}"
-        )
+        logger.info(f"RegressionDetector initialized with threshold: {self.regression_threshold}")
         logger.info(
             f"Monitoring {len(self.monitored_metrics)} metrics with baselines: {len(self.baselines)}"
         )
@@ -147,9 +143,7 @@ class RegressionDetector:
         """
         try:
             # Get metrics comparison from MetricsTracker
-            comparison = self.metrics_tracker.compare_metrics(
-                old_version_id, new_version_id
-            )
+            comparison = self.metrics_tracker.compare_metrics(old_version_id, new_version_id)
             if not comparison:
                 logger.warning(
                     f"No comparison data available for versions {old_version_id} vs {new_version_id}"
@@ -169,9 +163,7 @@ class RegressionDetector:
                     or self.statistical_config["enable_anomaly_detection"]
                 ):
 
-                    old_value = metric_data.get(
-                        "baseline", metric_data.get("before", 0)
-                    )
+                    old_value = metric_data.get("baseline", metric_data.get("before", 0))
                     new_value = metric_data.get("current", metric_data.get("after", 0))
 
                     # Get enhanced statistical analysis
@@ -191,9 +183,7 @@ class RegressionDetector:
 
                     # Enhance severity based on statistical significance
                     stat_sig = enhanced_analysis.get("statistical_significance")
-                    if stat_sig and not stat_sig.get(
-                        "within_confidence_interval", True
-                    ):
+                    if stat_sig and not stat_sig.get("within_confidence_interval", True):
                         # Statistically significant regression
                         if severity == "low":
                             severity = "medium"
@@ -206,9 +196,7 @@ class RegressionDetector:
                         # Anomalous behavior detected
                         anomaly_details = anomaly_status.get("anomaly_details", [])
                         critical_anomalies = [
-                            a
-                            for a in anomaly_details
-                            if a.get("severity") == "critical"
+                            a for a in anomaly_details if a.get("severity") == "critical"
                         ]
                         if critical_anomalies:
                             severity = "critical"
@@ -226,9 +214,7 @@ class RegressionDetector:
                         }
                 else:
                     # Fall back to basic regression analysis
-                    regression_info = self._analyze_metric_regression(
-                        metric_name, metric_data
-                    )
+                    regression_info = self._analyze_metric_regression(metric_name, metric_data)
                     if regression_info:
                         regressions[metric_name] = regression_info
 
@@ -268,9 +254,7 @@ class RegressionDetector:
 
         for old_version, new_version in version_comparisons:
             comparison_key = f"{old_version}_vs_{new_version}"
-            has_regression, regression_details = self.detect_regression(
-                old_version, new_version
-            )
+            has_regression, regression_details = self.detect_regression(old_version, new_version)
             results[comparison_key] = (has_regression, regression_details)
 
         return results
@@ -329,10 +313,7 @@ class RegressionDetector:
         Returns:
             True if any critical regressions are found
         """
-        return any(
-            regression.get("severity") == "critical"
-            for regression in regressions.values()
-        )
+        return any(regression.get("severity") == "critical" for regression in regressions.values())
 
     def get_regression_threshold(self, metric_name: str) -> float:
         """Get the regression threshold for a specific metric.
@@ -344,9 +325,7 @@ class RegressionDetector:
             Regression threshold for the metric
         """
         if metric_name in self.metric_thresholds:
-            return self.metric_thresholds[metric_name].get(
-                "regression", self.regression_threshold
-            )
+            return self.metric_thresholds[metric_name].get("regression", self.regression_threshold)
         return self.regression_threshold
 
     def update_thresholds(self, new_thresholds: Dict[str, Dict[str, float]]) -> None:
@@ -517,9 +496,7 @@ class RegressionDetector:
             baseline_data = {
                 "version_id": str(version_id),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "metrics": (
-                    metrics.to_dict() if hasattr(metrics, "to_dict") else metrics
-                ),
+                "metrics": (metrics.to_dict() if hasattr(metrics, "to_dict") else metrics),
                 "monitored_metrics": self.monitored_metrics.copy(),
                 "thresholds": self.metric_thresholds.copy(),
             }
@@ -527,9 +504,7 @@ class RegressionDetector:
             self.baselines[baseline_name] = baseline_data
             self._save_baselines()
 
-            logger.info(
-                f"Established baseline '{baseline_name}' from version {version_id}"
-            )
+            logger.info(f"Established baseline '{baseline_name}' from version {version_id}")
 
             # Publish baseline established event
             try:
@@ -603,9 +578,7 @@ class RegressionDetector:
 
         return self.detect_regression(baseline_version_id, version_id)
 
-    def register_alert_callback(
-        self, callback: Callable[[Dict[str, Any]], None]
-    ) -> None:
+    def register_alert_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
         """Register a callback function to be called when regressions are detected.
 
         Args:
@@ -642,9 +615,7 @@ class RegressionDetector:
             except Exception as e:
                 logger.error(f"Error in alert callback {callback.__name__}: {e}")
 
-    def integrate_with_test_framework(
-        self, framework_name: str, config: Dict[str, Any]
-    ) -> bool:
+    def integrate_with_test_framework(self, framework_name: str, config: Dict[str, Any]) -> bool:
         """Configure integration with a testing framework.
 
         Args:
@@ -705,9 +676,7 @@ class RegressionDetector:
 
             # Auto-update baseline if configured and no critical regressions
             if self.auto_baseline_update and not summary.get("critical_regressions"):
-                logger.info(
-                    f"Auto-updating baseline '{baseline_name}' with version {version_id}"
-                )
+                logger.info(f"Auto-updating baseline '{baseline_name}' with version {version_id}")
                 self.establish_baseline(version_id, baseline_name)
 
             return analysis_results
@@ -730,9 +699,7 @@ class RegressionDetector:
             f"metrics_tracked={len(self.metric_thresholds)})"
         )
 
-    def analyze_metric_statistics(
-        self, metric_name: str, values: List[float]
-    ) -> Dict[str, Any]:
+    def analyze_metric_statistics(self, metric_name: str, values: List[float]) -> Dict[str, Any]:
         """Perform statistical analysis on metric values.
 
         Args:
@@ -788,9 +755,7 @@ class RegressionDetector:
                 "sample_size": len(values),
                 "trend_analysis": trend_analysis,
                 "anomalies": anomalies,
-                "coefficient_of_variation": (
-                    (std_dev / mean_val) if mean_val != 0 else 0
-                ),
+                "coefficient_of_variation": ((std_dev / mean_val) if mean_val != 0 else 0),
             }
 
         except Exception as e:
@@ -870,9 +835,7 @@ class RegressionDetector:
             logger.error(f"Error in trend analysis: {e}")
             return {"trend": "error", "error": str(e)}
 
-    def _detect_anomalies(
-        self, metric_name: str, values: List[float]
-    ) -> List[Dict[str, Any]]:
+    def _detect_anomalies(self, metric_name: str, values: List[float]) -> List[Dict[str, Any]]:
         """Detect anomalies in metric values using multiple algorithms.
 
         Args:
@@ -998,9 +961,7 @@ class RegressionDetector:
                         "high": 0.15,  # 15% change
                     }
 
-                    threshold = sensitivity_thresholds.get(
-                        self.anomaly_config["sensitivity"], 0.3
-                    )
+                    threshold = sensitivity_thresholds.get(self.anomaly_config["sensitivity"], 0.3)
 
                     if change_pct > threshold:
                         anomalies.append(
@@ -1010,9 +971,7 @@ class RegressionDetector:
                                 "previous_value": prev_val,
                                 "change_percent": change_pct,
                                 "method": "pattern_spike",
-                                "severity": (
-                                    "critical" if change_pct > threshold * 2 else "high"
-                                ),
+                                "severity": ("critical" if change_pct > threshold * 2 else "high"),
                             }
                         )
 
@@ -1022,9 +981,7 @@ class RegressionDetector:
             logger.error(f"Error in pattern anomaly detection: {e}")
             return []
 
-    def update_historical_metrics(
-        self, version_id: str, metrics: Dict[str, Any]
-    ) -> None:
+    def update_historical_metrics(self, version_id: str, metrics: Dict[str, Any]) -> None:
         """Update historical metrics for statistical analysis.
 
         Args:
@@ -1035,9 +992,7 @@ class RegressionDetector:
             timestamp = datetime.now(timezone.utc).isoformat()
 
             for metric_name, value in metrics.items():
-                if metric_name in self.monitored_metrics and isinstance(
-                    value, (int, float)
-                ):
+                if metric_name in self.monitored_metrics and isinstance(value, (int, float)):
                     self.historical_metrics[metric_name].append(
                         {
                             "version_id": version_id,
@@ -1075,9 +1030,7 @@ class RegressionDetector:
                 {
                     "baseline": old_value,
                     "current": new_value,
-                    "change_pct": (
-                        (new_value - old_value) / old_value if old_value != 0 else 0
-                    ),
+                    "change_pct": ((new_value - old_value) / old_value if old_value != 0 else 0),
                 },
             )
 
@@ -1104,9 +1057,7 @@ class RegressionDetector:
                     enhanced_analysis["statistical_significance"] = {
                         "within_confidence_interval": is_within_ci,
                         "confidence_level": stats["confidence_level"],
-                        "significance": (
-                            "not_significant" if is_within_ci else "significant"
-                        ),
+                        "significance": ("not_significant" if is_within_ci else "significant"),
                     }
 
                 # Historical context
@@ -1124,9 +1075,7 @@ class RegressionDetector:
                 if stats.get("anomalies"):
                     # Check if the new value (last in the list) is an anomaly
                     new_value_anomalies = [
-                        a
-                        for a in stats["anomalies"]
-                        if a.get("index") == len(analysis_values) - 1
+                        a for a in stats["anomalies"] if a.get("index") == len(analysis_values) - 1
                     ]
                     enhanced_analysis["anomaly_status"] = {
                         "is_anomaly": len(new_value_anomalies) > 0,
@@ -1139,9 +1088,7 @@ class RegressionDetector:
             logger.error(f"Error in statistical regression analysis: {e}")
             return {"error": str(e)}
 
-    def _calculate_percentile_rank(
-        self, value: float, historical_values: List[float]
-    ) -> float:
+    def _calculate_percentile_rank(self, value: float, historical_values: List[float]) -> float:
         """Calculate percentile rank of a value in historical data."""
         if not historical_values:
             return 50.0

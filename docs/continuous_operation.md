@@ -35,12 +35,12 @@ EVOSEAL can be run as a systemd service for true continuous operation:
 
 ### Service Monitoring
 
-- **Check service status**: 
+- **Check service status**:
   ```bash
   sudo systemctl status evoseal.service
   ```
 
-- **View logs**: 
+- **View logs**:
   ```bash
   journalctl -u evoseal.service -f
   ```

@@ -347,10 +347,7 @@ class EventBus:
             if event_str is None:
                 if handler_info in self._default_handlers:
                     self._default_handlers.remove(handler_info)
-            elif (
-                event_str in self._handlers
-                and handler_info in self._handlers[event_str]
-            ):
+            elif event_str in self._handlers and handler_info in self._handlers[event_str]:
                 self._handlers[event_str].remove(handler_info)
 
         return unsubscribe
@@ -401,9 +398,7 @@ class EventBus:
         Returns:
             An unsubscribe function for this handler
         """
-        event_str = (
-            event_type.value if isinstance(event_type, EventType) else event_type
-        )
+        event_str = event_type.value if isinstance(event_type, EventType) else event_type
         return self._add_handler_info(event_str, handler, priority, filter_fn)
 
     @overload
@@ -433,9 +428,7 @@ class EventBus:
 
     def subscribe(
         self,
-        event_type: (
-            EventType | str | Callable[[Event], None | Awaitable[None]] | None
-        ) = None,
+        event_type: EventType | str | Callable[[Event], None | Awaitable[None]] | None = None,
         handler: EventHandler | None = None,
         *,
         priority: int = 0,
@@ -484,13 +477,9 @@ class EventBus:
             handler: The handler function to remove
         """
         if event_type is None:
-            self._default_handlers = [
-                h for h in self._default_handlers if h["handler"] != handler
-            ]
+            self._default_handlers = [h for h in self._default_handlers if h["handler"] != handler]
         else:
-            event_type_str = (
-                event_type.value if isinstance(event_type, EventType) else event_type
-            )
+            event_type_str = event_type.value if isinstance(event_type, EventType) else event_type
             if event_type_str in self._handlers:
                 self._handlers[event_type_str] = [
                     h for h in self._handlers[event_type_str] if h["handler"] != handler
@@ -573,9 +562,7 @@ class EventBus:
         # Filter by event type if specified
         if event_type is not None:
             event_type_str = (
-                event_type.value
-                if isinstance(event_type, EventType)
-                else str(event_type)
+                event_type.value if isinstance(event_type, EventType) else str(event_type)
             )
             events = [e for e in events if e.get("event_type") == event_type_str]
 
@@ -612,17 +599,10 @@ class EventBus:
 
                 # Log to standard logger based on event type
                 event_type_str = event_dict["event_type"]
-                if (
-                    "error" in event_type_str.lower()
-                    or "failed" in event_type_str.lower()
-                ):
-                    logger.error(
-                        f"Event: {event_type_str} from {event.source}: {event.data}"
-                    )
+                if "error" in event_type_str.lower() or "failed" in event_type_str.lower():
+                    logger.error(f"Event: {event_type_str} from {event.source}: {event.data}")
                 elif "warning" in event_type_str.lower():
-                    logger.warning(
-                        f"Event: {event_type_str} from {event.source}: {event.data}"
-                    )
+                    logger.warning(f"Event: {event_type_str} from {event.source}: {event.data}")
                 else:
                     logger.info(f"Event: {event_type_str} from {event.source}")
 
@@ -644,9 +624,7 @@ class EventBus:
         if event_type is None:
             return len(self._default_handlers)
 
-        event_type_str = (
-            event_type.value if isinstance(event_type, EventType) else str(event_type)
-        )
+        event_type_str = event_type.value if isinstance(event_type, EventType) else str(event_type)
         return len(self._handlers.get(event_type_str, []))
 
     def get_all_event_types(self) -> list[str]:
@@ -657,9 +635,7 @@ class EventBus:
         """
         return list(self._handlers.keys())
 
-    async def publish_batch(
-        self, events: list[Event | str], **common_kwargs: Any
-    ) -> list[Event]:
+    async def publish_batch(self, events: list[Event | str], **common_kwargs: Any) -> list[Event]:
         """Publish multiple events in batch.
 
         Args:
@@ -746,9 +722,7 @@ class EnhancedEventBus(EventBus):
             metrics["last_seen"] = event.timestamp
             metrics["sources"].add(event.source)
 
-    def get_event_metrics(
-        self, event_type: EventType | str | None = None
-    ) -> dict[str, Any]:
+    def get_event_metrics(self, event_type: EventType | str | None = None) -> dict[str, Any]:
         """Get event metrics.
 
         Args:
@@ -767,9 +741,7 @@ class EnhancedEventBus(EventBus):
                 result[et] = {**metrics, "sources": list(metrics["sources"])}
             return result
 
-        event_type_str = (
-            event_type.value if isinstance(event_type, EventType) else str(event_type)
-        )
+        event_type_str = event_type.value if isinstance(event_type, EventType) else str(event_type)
         metrics = self._event_metrics.get(event_type_str, {})
         if "sources" in metrics:
             metrics = {**metrics, "sources": list(metrics["sources"])}
@@ -1075,9 +1047,7 @@ def create_event_filter(
                 if isinstance(event.event_type, EventType)
                 else str(event.event_type)
             )
-            type_strs = [
-                et.value if isinstance(et, EventType) else str(et) for et in event_types
-            ]
+            type_strs = [et.value if isinstance(et, EventType) else str(et) for et in event_types]
             if event_type_str not in type_strs:
                 return False
 

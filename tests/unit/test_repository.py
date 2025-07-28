@@ -47,9 +47,7 @@ class TestRepositoryManager:
         repository_manager.clone_repository(test_repo_url, "test_clone")
 
         # Second clone with the same name should raise an error
-        with pytest.raises(
-            RepositoryError, match="Repository 'test_clone' already exists"
-        ):
+        with pytest.raises(RepositoryError, match="Repository 'test_clone' already exists"):
             repository_manager.clone_repository(test_repo_url, "test_clone")
 
     def test_get_repository(self):
@@ -57,18 +55,14 @@ class TestRepositoryManager:
         self.repo_manager.clone_repository(self.test_repo_url, "test_get")
         repo = self.repo_manager.get_repository("test_get")
         self.assertIsNotNone(repo)
-        self.assertEqual(
-            repo.working_dir, str(self.work_dir / "repositories" / "test_get")
-        )
+        self.assertEqual(repo.working_dir, str(self.work_dir / "repositories" / "test_get"))
 
     def test_checkout_branch(self):
         """Test checking out a branch."""
         self.repo_manager.clone_repository(self.test_repo_url, "test_branch")
 
         # Create a new branch
-        result = self.repo_manager.checkout_branch(
-            "test_branch", "new-feature", create=True
-        )
+        result = self.repo_manager.checkout_branch("test_branch", "new-feature", create=True)
         self.assertTrue(result)
 
         # Verify the branch was created and checked out
@@ -95,9 +89,7 @@ class TestRepositoryManager:
 
     def test_create_branch_from_commit(self):
         """Test creating a branch from a specific commit."""
-        self.repo_manager.clone_repository(
-            self.test_repo_url, "test_branch_from_commit"
-        )
+        self.repo_manager.clone_repository(self.test_repo_url, "test_branch_from_commit")
 
         # Get the initial commit
         repo = self.repo_manager.get_repository("test_branch_from_commit")

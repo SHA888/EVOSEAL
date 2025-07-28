@@ -353,7 +353,7 @@ ws.onopen = function() {
 ws.onmessage = function(event) {
   const message = JSON.parse(event.data);
   console.log('Received:', message.type, message.data);
-  
+
   if (message.type === 'metrics_update') {
     updateDashboard(message.data);
   }
@@ -395,12 +395,12 @@ import json
 
 async def websocket_client():
     uri = "ws://localhost:8081/ws"
-    
+
     async with websockets.connect(uri) as websocket:
         async for message in websocket:
             data = json.loads(message)
             print(f"Received {data['type']}: {data['timestamp']}")
-            
+
             if data['type'] == 'metrics_update':
                 # Process metrics update
                 process_metrics(data['data'])

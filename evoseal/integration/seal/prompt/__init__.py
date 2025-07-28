@@ -7,12 +7,7 @@ for different use cases.
 """
 
 from .constructor import PromptConstructor, PromptStyle, PromptTemplate
-from .default_templates import (
-    BASE_TEMPLATES,
-    DOMAIN_TEMPLATES,
-    SYSTEM_TEMPLATES,
-    get_all_templates,
-)
+from .default_templates import BASE_TEMPLATES, DOMAIN_TEMPLATES, SYSTEM_TEMPLATES, get_all_templates
 from .formatters import format_context, format_examples, format_knowledge, format_prompt
 
 # Initialize default templates

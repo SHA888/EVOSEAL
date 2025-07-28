@@ -123,7 +123,7 @@ CYCLE_COUNT=0
 should_check_for_updates() {
     local current_time=$(date +%s)
     local time_since_last_update=$((current_time - LAST_UPDATE_CHECK))
-    
+
     if [ $time_since_last_update -ge $UPDATE_INTERVAL ]; then
         return 0  # Yes, should update
     else
@@ -135,7 +135,7 @@ should_check_for_updates() {
 perform_update_check() {
     log_info "Performing daily update check..."
     LAST_UPDATE_CHECK=$(date +%s)
-    
+
     if execute_with_retry "$EVOSEAL_ROOT/scripts/update_evoseal.sh" 3 60; then
         log_info "Update check completed successfully"
         return 0
@@ -149,7 +149,7 @@ perform_update_check() {
 run_evolution_cycle() {
     local cycle_num=$1
     log_info "Starting evolution cycle #$cycle_num"
-    
+
     if [ -f "$EVOSEAL_ROOT/scripts/run_evolution_cycle.sh" ]; then
         if execute_with_retry "$EVOSEAL_ROOT/scripts/run_evolution_cycle.sh" 2 30; then
             log_info "Evolution cycle #$cycle_num completed successfully"
@@ -178,68 +178,68 @@ trap cleanup SIGTERM SIGINT
 case "$MODE" in
     service)
         log_info "Starting service mode operation"
-        
+
         # Initial update check
         if should_check_for_updates; then
             perform_update_check
         fi
-        
+
         # Main service loop
         while true; do
             CYCLE_COUNT=$((CYCLE_COUNT + 1))
-            
+
             # Check for updates periodically
             if should_check_for_updates; then
                 perform_update_check
             fi
-            
+
             # Run evolution cycle
             run_evolution_cycle $CYCLE_COUNT
-            
+
             # Wait before next cycle
             log_info "Waiting $WAIT_TIME seconds before next cycle..."
             sleep $WAIT_TIME
         done
         ;;
-        
+
     continuous)
         log_info "Starting continuous mode operation"
         log_info "Running $ITERATIONS evolution cycles with $WAIT_TIME second intervals"
-        
+
         for ((i=1; i<=ITERATIONS; i++)); do
             run_evolution_cycle $i
-            
+
             if [ $i -lt $ITERATIONS ]; then
                 log_info "Waiting $WAIT_TIME seconds before next cycle..."
                 sleep $WAIT_TIME
             fi
         done
-        
+
         log_info "Continuous mode completed $ITERATIONS cycles"
         ;;
-        
+
     auto)
         log_info "Starting auto mode operation"
         log_info "Full automation with updates, evolution, and version management"
-        
+
         # Initial update
         perform_update_check
-        
+
         # Main auto loop
         while true; do
             CYCLE_COUNT=$((CYCLE_COUNT + 1))
-            
+
             # Periodic update checks
             if should_check_for_updates; then
                 perform_update_check
             fi
-            
+
             # Run evolution cycle
             run_evolution_cycle $CYCLE_COUNT
-            
+
             # Additional auto-mode specific tasks could go here
             # (version management, release preparation, etc.)
-            
+
             log_info "Waiting $WAIT_TIME seconds before next cycle..."
             sleep $WAIT_TIME
         done

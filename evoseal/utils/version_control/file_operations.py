@@ -125,9 +125,7 @@ class FileOperations:
         """
         try:
             # Get the status in porcelain v2 format for easier parsing
-            result = self.git._run_git_command(
-                ["status", "--porcelain=v2", "--ignored"]
-            )
+            result = self.git._run_git_command(["status", "--porcelain=v2", "--ignored"])
             return self._parse_status_output(result[1])  # result[1] is stdout
         except GitCommandError as e:
             logger.error(f"Error getting file status: {e}")
@@ -207,9 +205,7 @@ class FileOperations:
                     staged=" " not in xy[0],  # First char is not space if staged
                     original_path=Path(path1) if path1 != path2 else None,
                     similarity=(
-                        int(parts[8][1:])
-                        if len(parts) > 8 and parts[8].startswith("R")
-                        else None
+                        int(parts[8][1:]) if len(parts) > 8 and parts[8].startswith("R") else None
                     ),
                 )
                 status_map[Path(path2)] = file_info
@@ -221,11 +217,7 @@ class FileOperations:
                 if not path:
                     continue
 
-                status = (
-                    FileStatus.UNTRACKED
-                    if status_code.startswith("?")
-                    else FileStatus.IGNORED
-                )
+                status = FileStatus.UNTRACKED if status_code.startswith("?") else FileStatus.IGNORED
                 file_info = FileInfo(path=Path(path), status=status, staged=False)
                 status_map[Path(path)] = file_info
 
@@ -271,9 +263,7 @@ class FileOperations:
 
         return FileStatus.MODIFIED  # Default to modified if we can't determine
 
-    def get_file_diff(
-        self, file_path: Union[str, Path], staged: bool = False
-    ) -> Optional[str]:
+    def get_file_diff(self, file_path: Union[str, Path], staged: bool = False) -> Optional[str]:
         """Get the diff for a specific file.
 
         Args:
@@ -362,9 +352,7 @@ class FileOperations:
         file_path = Path(file_path)
         try:
             # Use git diff --numstat to detect binary files
-            result = self.git._run_git_command(
-                ["diff", "--numstat", "--", str(file_path)]
-            )
+            result = self.git._run_git_command(["diff", "--numstat", "--", str(file_path)])
             if not result[1]:  # Empty output means file is not in git or no changes
                 return False
 
@@ -387,9 +375,7 @@ class FileOperations:
         """
         try:
             # Get unmerged files
-            result = self.git._run_git_command(
-                ["diff", "--name-only", "--diff-filter=U"]
-            )
+            result = self.git._run_git_command(["diff", "--name-only", "--diff-filter=U"])
             if not result[1]:  # No conflicts
                 return []
 
@@ -457,9 +443,7 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(
-                ["ls-files", "--stage", "--", str(file_path)]
-            )
+            result = self.git._run_git_command(["ls-files", "--stage", "--", str(file_path)])
             if not result[1]:
                 return None
 
@@ -527,9 +511,7 @@ class FileOperations:
         file_path = Path(file_path)
         try:
             # First check if Git has a guess for the encoding
-            result = self.git._run_git_command(
-                ["check-attr", "encoding", "--", str(file_path)]
-            )
+            result = self.git._run_git_command(["check-attr", "encoding", "--", str(file_path)])
             if result[1]:
                 # Parse output like: 'test.txt: encoding: set to utf-8'
                 for line in result[1].splitlines():
@@ -569,9 +551,7 @@ class FileOperations:
         """
         file_path = Path(file_path)
         try:
-            result = self.git._run_git_command(
-                ["check-attr", "-a", "--", str(file_path)]
-            )
+            result = self.git._run_git_command(["check-attr", "-a", "--", str(file_path)])
             if not result[1]:
                 return {}
 

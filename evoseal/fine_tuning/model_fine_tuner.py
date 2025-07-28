@@ -145,15 +145,11 @@ class DevstralFineTuner:
             # Load model
             model_kwargs = {
                 "trust_remote_code": True,
-                "torch_dtype": (
-                    torch.float16 if torch.cuda.is_available() else torch.float32
-                ),
+                "torch_dtype": (torch.float16 if torch.cuda.is_available() else torch.float32),
                 "device_map": "auto" if torch.cuda.is_available() else None,
             }
 
-            self.model = AutoModelForCausalLM.from_pretrained(
-                base_model, **model_kwargs
-            )
+            self.model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
 
             # Configure for training
             self.model.config.use_cache = False
@@ -190,9 +186,7 @@ class DevstralFineTuner:
 
             # If transformers not available, create fallback data
             if not TRANSFORMERS_AVAILABLE or not self.is_initialized:
-                logger.warning(
-                    "Creating fallback training data (transformers not available)"
-                )
+                logger.warning("Creating fallback training data (transformers not available)")
 
                 # Create simple text format for fallback
                 fallback_data = []
@@ -372,8 +366,7 @@ echo "Training data prepared at: {training_data_path}"
 
             # Save model
             model_save_path = (
-                self.output_dir
-                / f"fine_tuned_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                self.output_dir / f"fine_tuned_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             )
             trainer.save_model(str(model_save_path))
 

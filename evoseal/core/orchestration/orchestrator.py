@@ -16,13 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-)
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 from evoseal.core.events import (
     create_error_event,
@@ -107,9 +101,7 @@ class WorkflowOrchestrator:
         # Register event handlers
         self._register_event_handlers()
 
-        logger.info(
-            f"WorkflowOrchestrator initialized with workspace: {self.workspace_dir}"
-        )
+        logger.info(f"WorkflowOrchestrator initialized with workspace: {self.workspace_dir}")
 
     def _register_event_handlers(self) -> None:
         """Register event handlers for orchestration events."""
@@ -152,9 +144,7 @@ class WorkflowOrchestrator:
             )
 
             # Parse workflow steps
-            self.workflow_steps = self._parse_workflow_steps(
-                workflow_config.get("steps", [])
-            )
+            self.workflow_steps = self._parse_workflow_steps(workflow_config.get("steps", []))
 
             # Validate workflow
             if not self._validate_workflow():
@@ -189,9 +179,7 @@ class WorkflowOrchestrator:
             )
             return False
 
-    def _parse_workflow_steps(
-        self, steps_config: List[Dict[str, Any]]
-    ) -> List[WorkflowStep]:
+    def _parse_workflow_steps(self, steps_config: List[Dict[str, Any]]) -> List[WorkflowStep]:
         """Parse workflow steps from configuration."""
         steps = []
         for step_config in steps_config:
@@ -374,9 +362,7 @@ class WorkflowOrchestrator:
                     # Check for checkpoint
                     if self._should_create_checkpoint(iteration):
                         await self._create_checkpoint(CheckpointType.AUTOMATIC)
-                        logger.info(
-                            f"Created automatic checkpoint at iteration {iteration}"
-                        )
+                        logger.info(f"Created automatic checkpoint at iteration {iteration}")
 
                     # Update progress
                     progress.update(task, advance=1)
@@ -528,10 +514,7 @@ class WorkflowOrchestrator:
                 break
 
             # Execute ready steps in parallel
-            tasks = [
-                self._execute_single_step(pipeline_instance, step)
-                for step in ready_steps
-            ]
+            tasks = [self._execute_single_step(pipeline_instance, step) for step in ready_steps]
 
             step_results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -627,9 +610,7 @@ class WorkflowOrchestrator:
                     )
                     await asyncio.sleep(step.retry_delay * (2**attempt))
                 else:
-                    logger.error(
-                        f"Step {step.step_id} failed after {attempt + 1} attempts: {e}"
-                    )
+                    logger.error(f"Step {step.step_id} failed after {attempt + 1} attempts: {e}")
 
                     # Publish step failure event
                     await publish_pipeline_stage_event(
@@ -668,9 +649,7 @@ class WorkflowOrchestrator:
         if hasattr(component_obj, operation):
             method = getattr(component_obj, operation)
         else:
-            raise AttributeError(
-                f"Operation {operation} not found on component {component}"
-            )
+            raise AttributeError(f"Operation {operation} not found on component {component}")
 
         # Call method
         if asyncio.iscoroutinefunction(method):

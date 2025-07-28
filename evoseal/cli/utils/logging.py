@@ -202,9 +202,7 @@ def log_command_execution(command_name: str):
                 return result
             except Exception as e:
                 success = False
-                logger.log_error_with_context(
-                    e, {"command": command_name, "args": kwargs}
-                )
+                logger.log_error_with_context(e, {"command": command_name, "args": kwargs})
                 raise
             finally:
                 duration = time.time() - start_time

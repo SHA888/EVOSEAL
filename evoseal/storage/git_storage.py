@@ -48,13 +48,9 @@ class GitStorage:
         # Validate git command arguments
         for arg in args:
             if not isinstance(arg, str):
-                raise ValueError(
-                    f"Git command arguments must be strings, got {type(arg)}"
-                )
+                raise ValueError(f"Git command arguments must be strings, got {type(arg)}")
             if ";" in arg or "`" in arg or "&&" in arg:
-                raise ValueError(
-                    f"Potentially dangerous characters in git argument: {arg}"
-                )
+                raise ValueError(f"Potentially dangerous characters in git argument: {arg}")
 
         # Use shutil.which to safely find the git executable
         git_path = shutil.which("git")
@@ -72,9 +68,7 @@ class GitStorage:
                 text=True,
                 check=check,
                 shell=False,  # Prevent shell injection
-                **{
-                    k: v for k, v in kwargs.items() if k != "shell"
-                },  # Force shell=False
+                **{k: v for k, v in kwargs.items() if k != "shell"},  # Force shell=False
             )
             return result
         except subprocess.CalledProcessError as e:
@@ -117,9 +111,7 @@ class GitStorage:
             result = self._run_git(args)
         except subprocess.CalledProcessError as e:
             if "fatal: Path" in (e.stderr or ""):
-                raise FileNotFoundError(
-                    f"File not found at {ref or 'HEAD'}:{rel_path}"
-                ) from e
+                raise FileNotFoundError(f"File not found at {ref or 'HEAD'}:{rel_path}") from e
             raise
         return dict(json.loads(result.stdout))
 
@@ -151,8 +143,6 @@ class GitStorage:
         """List branches and tags in the repo."""
         branches = self._run_git(["branch", "--list"]).stdout.strip().splitlines()
         tags = self._run_git(["tag", "--list"]).stdout.strip().splitlines()
-        clean_branches = [
-            b.strip().replace("*", "").strip() for b in branches if b.strip()
-        ]
+        clean_branches = [b.strip().replace("*", "").strip() for b in branches if b.strip()]
         clean_tags = [t.strip() for t in tags if t.strip()]
         return {"branches": clean_branches, "tags": clean_tags}

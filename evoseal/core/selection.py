@@ -71,9 +71,7 @@ class SelectionAlgorithm:
             tournament = [
                 pop[i]
                 for i in sorted(
-                    secrets.SystemRandom().sample(
-                        range(len(pop)), min(tournament_size, len(pop))
-                    )
+                    secrets.SystemRandom().sample(range(len(pop)), min(tournament_size, len(pop)))
                 )
             ]
             winner = max(tournament, key=lambda x: x.get(fitness_key, 0))
@@ -110,9 +108,7 @@ class SelectionAlgorithm:
             selected.extend(
                 [
                     pop[i]
-                    for i in sorted(
-                        secrets.SystemRandom().sample(range(len(pop)), sample_size)
-                    )
+                    for i in sorted(secrets.SystemRandom().sample(range(len(pop)), sample_size))
                 ]
             )
             # If still not enough, fill with randoms from selected

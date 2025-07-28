@@ -40,7 +40,7 @@ fi
 # Function to install required packages
 install_dependencies() {
     log_info "Installing required packages..."
-    
+
     if [ "$INSTALL_MODE" = "system" ]; then
         # System-wide installation
         apt-get update
@@ -56,18 +56,18 @@ install_dependencies() {
             fi
         done
     fi
-    
+
     # Set up virtual environment and install Python dependencies
     log_info "Setting up Python virtual environment..."
     cd "$EVOSEAL_DIR"
-    
+
     if [ ! -d ".venv" ]; then
         python3 -m venv .venv
         log_info "Created virtual environment"
     fi
-    
+
     source .venv/bin/activate
-    
+
     # Install dependencies
     if [ -f "requirements.txt" ]; then
         pip install -r requirements.txt
@@ -84,10 +84,10 @@ install_dependencies() {
 # Function to set up the service
 setup_service() {
     log_info "Setting up EVOSEAL service in $INSTALL_MODE mode..."
-    
+
     # Make scripts executable
     chmod +x "$EVOSEAL_DIR/scripts/"*.sh
-    
+
     if [ "$INSTALL_MODE" = "system" ]; then
         setup_system_service
     else
@@ -98,31 +98,31 @@ setup_service() {
 # Function to set up system service
 setup_system_service() {
     local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-    
+
     # Create a dedicated user for the service
     if ! id -u evoseal >/dev/null 2>&1; then
         log_info "Creating 'evoseal' user..."
         useradd -r -s /usr/sbin/nologin evoseal
     fi
-    
+
     # Set ownership of EVOSEAL directory
     chown -R evoseal:evoseal "$EVOSEAL_DIR"
-    
+
     # Install the service file
     log_info "Installing system service file to $SERVICE_FILE..."
     cp "$EVOSEAL_DIR/scripts/evoseal.service" "$SERVICE_FILE"
-    
+
     # Update placeholders in the service file
     sed -i "s|__EVOSEAL_ROOT__|$EVOSEAL_DIR|g" "$SERVICE_FILE"
     sed -i "s|__EVOSEAL_USER__|evoseal|g" "$SERVICE_FILE"
-    
+
     # Reload systemd
     systemctl daemon-reload
-    
+
     # Enable and start the service
     systemctl enable "$SERVICE_NAME"
     systemctl restart "$SERVICE_NAME"
-    
+
     log_info "System service installed and started successfully"
     log_info "To view logs: journalctl -u $SERVICE_NAME -f"
 }
@@ -131,10 +131,10 @@ setup_system_service() {
 setup_user_service() {
     local USER_SERVICE_DIR="$HOME/.config/systemd/user"
     local SERVICE_FILE="$USER_SERVICE_DIR/${SERVICE_NAME}.service"
-    
+
     # Create user systemd directory
     mkdir -p "$USER_SERVICE_DIR"
-    
+
     # Create user service file based on our working template
     log_info "Creating user service file at $SERVICE_FILE..."
     cat > "$SERVICE_FILE" << EOF
@@ -178,22 +178,22 @@ NoNewPrivileges=true
 [Install]
 WantedBy=default.target
 EOF
-    
+
     # Ensure log directory exists
     mkdir -p "$EVOSEAL_LOGS"
-    
+
     # Reload user systemd
     systemctl --user daemon-reload
-    
+
     # Enable and start the user service
     systemctl --user enable "$SERVICE_NAME"
     systemctl --user restart "$SERVICE_NAME"
-    
+
     # Enable linger for the user so service starts at boot
     if command -v loginctl >/dev/null 2>&1; then
         loginctl enable-linger "$SCRIPT_USER" || log_warn "Could not enable linger"
     fi
-    
+
     log_info "User service installed and started successfully"
     log_info "To view logs: journalctl --user -u $SERVICE_NAME -f"
     log_info "To check status: systemctl --user status $SERVICE_NAME"

@@ -56,9 +56,7 @@ class VersionTracker:
         self.work_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize databases
-        self.experiment_db = experiment_db or ExperimentDatabase(
-            self.work_dir / "experiments.db"
-        )
+        self.experiment_db = experiment_db or ExperimentDatabase(self.work_dir / "experiments.db")
         self.version_db = version_db or VersionDatabase()
         self.repo_manager = repo_manager or RepositoryManager(self.work_dir)
 
@@ -171,18 +169,13 @@ class VersionTracker:
             repo = self.repo_manager.get_repository(experiment.git_repository)
             if repo and repo.is_dirty():
                 message = (
-                    commit_message
-                    or f"Auto-commit before starting experiment {experiment.name}"
+                    commit_message or f"Auto-commit before starting experiment {experiment.name}"
                 )
-                success = self.repo_manager.commit_changes(
-                    experiment.git_repository, message
-                )
+                success = self.repo_manager.commit_changes(experiment.git_repository, message)
                 if success:
                     # Update experiment with new commit
                     experiment.git_commit = repo.head.commit.hexsha
-                    experiment.code_version = (
-                        f"{experiment.git_branch}@{experiment.git_commit[:8]}"
-                    )
+                    experiment.code_version = f"{experiment.git_branch}@{experiment.git_commit[:8]}"
 
         # Start the experiment
         experiment.start()
@@ -239,9 +232,7 @@ class VersionTracker:
                 repo = self.repo_manager.get_repository(experiment.git_repository)
                 if repo:
                     repo.create_tag(tag_name, message=f"Experiment: {experiment.name}")
-                    logger.info(
-                        f"Created git tag {tag_name} for experiment {experiment.id}"
-                    )
+                    logger.info(f"Created git tag {tag_name} for experiment {experiment.id}")
             except Exception as e:
                 logger.warning(f"Could not create git tag: {e}")
 
@@ -314,9 +305,7 @@ class VersionTracker:
         with open(metadata_file, "w") as f:
             json.dump(checkpoint_metadata, f, indent=2)
 
-        logger.info(
-            f"Created checkpoint {checkpoint_id} for experiment {experiment_id}"
-        )
+        logger.info(f"Created checkpoint {checkpoint_id} for experiment {experiment_id}")
         return checkpoint_id
 
     def restore_checkpoint(self, checkpoint_id: str) -> Experiment:
@@ -335,9 +324,7 @@ class VersionTracker:
         # Load experiment from checkpoint
         experiment_file = checkpoint_dir / "experiment.json"
         if not experiment_file.exists():
-            raise VersionTrackingError(
-                f"Experiment data not found in checkpoint {checkpoint_id}"
-            )
+            raise VersionTrackingError(f"Experiment data not found in checkpoint {checkpoint_id}")
 
         with open(experiment_file) as f:
             experiment = Experiment.from_json(f.read())
@@ -356,9 +343,7 @@ class VersionTracker:
         # Save restored experiment to database
         self.experiment_db.save_experiment(experiment)
 
-        logger.info(
-            f"Restored experiment {experiment.id} from checkpoint {checkpoint_id}"
-        )
+        logger.info(f"Restored experiment {experiment.id} from checkpoint {checkpoint_id}")
         return experiment
 
     def compare_experiments(self, experiment_ids: List[str]) -> Dict[str, Any]:
@@ -382,9 +367,7 @@ class VersionTracker:
             raise VersionTrackingError("At least 2 experiments required for comparison")
 
         # Compare configurations
-        config_comparison = self._compare_configurations(
-            [exp.config for exp in experiments]
-        )
+        config_comparison = self._compare_configurations([exp.config for exp in experiments])
 
         # Compare results
         results_comparison = self._compare_results([exp.result for exp in experiments])
@@ -483,17 +466,13 @@ class VersionTracker:
 
         for artifact in experiment.artifacts:
             if artifact.file_path and Path(artifact.file_path).exists():
-                dest_path = (
-                    archive_dir / f"{artifact.id}_{Path(artifact.file_path).name}"
-                )
+                dest_path = archive_dir / f"{artifact.id}_{Path(artifact.file_path).name}"
                 shutil.copy2(artifact.file_path, dest_path)
 
                 # Update artifact path to archived location
                 artifact.file_path = str(dest_path)
 
-    def _compare_configurations(
-        self, configs: List[ExperimentConfig]
-    ) -> Dict[str, Any]:
+    def _compare_configurations(self, configs: List[ExperimentConfig]) -> Dict[str, Any]:
         """Compare experiment configurations."""
         if not configs:
             return {}

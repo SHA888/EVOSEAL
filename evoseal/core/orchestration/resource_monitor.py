@@ -242,12 +242,8 @@ class ResourceMonitor:
 
             # Convert to MB/s and then to MB for the interval
             if time_diff > 0:
-                sent_mb = (bytes_sent_diff / (1024**2)) * (
-                    self.monitoring_interval / time_diff
-                )
-                recv_mb = (bytes_recv_diff / (1024**2)) * (
-                    self.monitoring_interval / time_diff
-                )
+                sent_mb = (bytes_sent_diff / (1024**2)) * (self.monitoring_interval / time_diff)
+                recv_mb = (bytes_recv_diff / (1024**2)) * (self.monitoring_interval / time_diff)
             else:
                 sent_mb = recv_mb = 0.0
 
@@ -380,9 +376,7 @@ class ResourceMonitor:
 
         # Clean resource history
         self.resource_history = [
-            snapshot
-            for snapshot in self.resource_history
-            if snapshot.timestamp > cutoff_time
+            snapshot for snapshot in self.resource_history if snapshot.timestamp > cutoff_time
         ]
 
         # Clean alert history
@@ -411,9 +405,7 @@ class ResourceMonitor:
         cutoff_time = datetime.utcnow() - timedelta(hours=hours)
 
         history = [
-            snapshot
-            for snapshot in self.resource_history
-            if snapshot.timestamp > cutoff_time
+            snapshot for snapshot in self.resource_history if snapshot.timestamp > cutoff_time
         ]
 
         return history
@@ -487,9 +479,7 @@ class ResourceMonitor:
             "total_alerts": len(self.alert_history),
             "memory_stats": {
                 "current": memory_values[-1] if memory_values else 0,
-                "average": (
-                    sum(memory_values) / len(memory_values) if memory_values else 0
-                ),
+                "average": (sum(memory_values) / len(memory_values) if memory_values else 0),
                 "max": max(memory_values) if memory_values else 0,
                 "min": min(memory_values) if memory_values else 0,
             },

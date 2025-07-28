@@ -30,9 +30,7 @@ class AgenticSystem:
         self.groups: dict[str, list[str]] = {}  # group_name -> list of agent_ids
         self.logger = logger or Logger("AgenticSystem")
 
-    def create_agent(
-        self, agent_id: str, agent: Agent, group: Optional[str] = None
-    ) -> None:
+    def create_agent(self, agent_id: str, agent: Agent, group: Optional[str] = None) -> None:
         """Register a new agent. Optionally assign to a group."""
         if agent_id in self.agents:
             raise ValueError(f"Agent '{agent_id}' already exists.")
@@ -40,9 +38,7 @@ class AgenticSystem:
         self.performance[agent_id] = []
         if group:
             self.groups.setdefault(group, []).append(agent_id)
-        self.logger.info(
-            f"Created agent '{agent_id}'" + (f" in group '{group}'" if group else "")
-        )
+        self.logger.info(f"Created agent '{agent_id}'" + (f" in group '{group}'" if group else ""))
 
     def destroy_agent(self, agent_id: str) -> None:
         """Remove an agent from the system."""
@@ -83,9 +79,7 @@ class AgenticSystem:
             raise KeyError(f"Agent '{agent_id}' does not exist.")
         result = self.agents[agent_id].act(task)
         self.performance[agent_id].append(result)
-        self.logger.info(
-            f"Assigned task to agent '{agent_id}': {task} (result: {result})"
-        )
+        self.logger.info(f"Assigned task to agent '{agent_id}': {task} (result: {result})")
         return result
 
     async def assign_task_async(self, agent_id: str, task: Any) -> Any:
@@ -101,14 +95,10 @@ class AgenticSystem:
         else:
             result = act(task)
         self.performance[agent_id].append(result)
-        self.logger.info(
-            f"Assigned async task to agent '{agent_id}': {task} (result: {result})"
-        )
+        self.logger.info(f"Assigned async task to agent '{agent_id}': {task} (result: {result})")
         return result
 
-    def monitor_performance(
-        self, agent_id: Optional[str] = None
-    ) -> dict[str, list[Any]]:
+    def monitor_performance(self, agent_id: Optional[str] = None) -> dict[str, list[Any]]:
         """Return performance history for one or all agents."""
         if agent_id:
             if agent_id not in self.performance:
@@ -120,11 +110,7 @@ class AgenticSystem:
         """Return performance history for a group of agents."""
         if group not in self.groups:
             raise KeyError(f"Group '{group}' does not exist.")
-        return {
-            aid: self.performance[aid]
-            for aid in self.groups[group]
-            if aid in self.performance
-        }
+        return {aid: self.performance[aid] for aid in self.groups[group] if aid in self.performance}
 
     def get_agent_status(self, agent_id: str) -> dict[str, Any]:
         """Get status of a specific agent."""
@@ -137,25 +123,19 @@ class AgenticSystem:
         if group not in self.groups:
             raise KeyError(f"Group '{group}' does not exist.")
         return {
-            aid: self.agents[aid].get_status()
-            for aid in self.groups[group]
-            if aid in self.agents
+            aid: self.agents[aid].get_status() for aid in self.groups[group] if aid in self.agents
         }
 
     def list_agents(self) -> list[str]:
         """List all agent IDs in the system."""
         return list(self.agents.keys())
 
-    def create_group(
-        self, group_name: str, agent_ids: Optional[list[str]] = None
-    ) -> None:
+    def create_group(self, group_name: str, agent_ids: Optional[list[str]] = None) -> None:
         """Create a new agent group with optional initial members."""
         if group_name in self.groups:
             raise ValueError(f"Group '{group_name}' already exists.")
         self.groups[group_name] = agent_ids or []
-        self.logger.info(
-            f"Created group '{group_name}' with agents: {self.groups[group_name]}"
-        )
+        self.logger.info(f"Created group '{group_name}' with agents: {self.groups[group_name]}")
 
     def assign_agent_to_group(self, agent_id: str, group_name: str) -> None:
         """Assign an existing agent to a group."""

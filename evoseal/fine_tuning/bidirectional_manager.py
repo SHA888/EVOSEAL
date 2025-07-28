@@ -84,9 +84,7 @@ class BidirectionalEvolutionManager:
 
         status = {
             "is_running": self.is_running,
-            "last_check": (
-                self.last_check_time.isoformat() if self.last_check_time else None
-            ),
+            "last_check": (self.last_check_time.isoformat() if self.last_check_time else None),
             "evolution_stats": self.stats.copy(),
             "data_collector_stats": data_stats,
             "recent_cycles": len(self.evolution_history),
@@ -101,15 +99,13 @@ class BidirectionalEvolutionManager:
         # Calculate success rate
         if self.stats["total_evolution_cycles"] > 0:
             status["success_rate"] = (
-                self.stats["successful_training_cycles"]
-                / self.stats["total_evolution_cycles"]
+                self.stats["successful_training_cycles"] / self.stats["total_evolution_cycles"]
             )
 
         # Calculate improvement rate
         if self.stats["successful_training_cycles"] > 0:
             status["improvement_rate"] = (
-                self.stats["model_improvements"]
-                / self.stats["successful_training_cycles"]
+                self.stats["model_improvements"] / self.stats["successful_training_cycles"]
             )
 
         return status
@@ -146,8 +142,7 @@ class BidirectionalEvolutionManager:
                         / max(1, runtime.total_seconds() / 3600)
                     ),
                     "improvements_per_day": (
-                        self.stats["model_improvements"]
-                        / max(1, runtime.total_seconds() / 86400)
+                        self.stats["model_improvements"] / max(1, runtime.total_seconds() / 86400)
                     ),
                 }
 
@@ -190,9 +185,7 @@ class BidirectionalEvolutionManager:
 
         for cycle in self.evolution_history:
             if cycle["results"].get("success"):
-                score = (
-                    cycle["results"].get("validation_results", {}).get("overall_score")
-                )
+                score = cycle["results"].get("validation_results", {}).get("overall_score")
                 if score is not None:
                     scores.append(score)
                     timestamps.append(cycle["cycle_start"])
@@ -226,8 +219,7 @@ class BidirectionalEvolutionManager:
         # Check success rate
         if self.stats["total_evolution_cycles"] > 0:
             success_rate = (
-                self.stats["successful_training_cycles"]
-                / self.stats["total_evolution_cycles"]
+                self.stats["successful_training_cycles"] / self.stats["total_evolution_cycles"]
             )
             if success_rate < 0.5:
                 recommendations.append(
@@ -237,8 +229,7 @@ class BidirectionalEvolutionManager:
         # Check improvement rate
         if self.stats["successful_training_cycles"] > 0:
             improvement_rate = (
-                self.stats["model_improvements"]
-                / self.stats["successful_training_cycles"]
+                self.stats["model_improvements"] / self.stats["successful_training_cycles"]
             )
             if improvement_rate < 0.3:
                 recommendations.append(
@@ -260,8 +251,6 @@ class BidirectionalEvolutionManager:
             )
 
         if not recommendations:
-            recommendations.append(
-                "Evolution system appears to be functioning normally."
-            )
+            recommendations.append("Evolution system appears to be functioning normally.")
 
         return recommendations

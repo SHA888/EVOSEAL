@@ -220,11 +220,7 @@ class MockEvolutionPipeline(EvolutionPipeline):
 
     def _get_current_version_id(self) -> str:
         """Get current version ID for testing."""
-        return (
-            f"v1.{max(0, self.iteration_counter - 1)}"
-            if self.iteration_counter > 0
-            else "v1.0"
-        )
+        return f"v1.{max(0, self.iteration_counter - 1)}" if self.iteration_counter > 0 else "v1.0"
 
 
 async def test_evolution_pipeline_safety_integration():
@@ -256,9 +252,7 @@ async def test_evolution_pipeline_safety_integration():
 
         # Analyze results
         accepted_versions = sum(1 for r in results if r.get("version_accepted", False))
-        rollbacks_performed = sum(
-            1 for r in results if r.get("rollback_performed", False)
-        )
+        rollbacks_performed = sum(1 for r in results if r.get("rollback_performed", False))
         successful_iterations = sum(1 for r in results if r.get("success", False))
 
         print(f"   ✓ Successful iterations: {successful_iterations}/{len(results)}")
@@ -269,9 +263,7 @@ async def test_evolution_pipeline_safety_integration():
         print("\n3. Detailed iteration results:")
         for i, result in enumerate(results, 1):
             safety_result = result.get("safety_result", {})
-            safety_score = safety_result.get("safety_validation", {}).get(
-                "safety_score", 0.0
-            )
+            safety_score = safety_result.get("safety_validation", {}).get("safety_score", 0.0)
             version_accepted = result.get("version_accepted", False)
             rollback_performed = result.get("rollback_performed", False)
 
@@ -292,31 +284,20 @@ async def test_evolution_pipeline_safety_integration():
         print("\n4. Final safety system status:")
         safety_status = pipeline.safety_integration.get_safety_status()
 
-        print(
-            f"   Checkpoints created: {safety_status['checkpoint_manager']['total_checkpoints']}"
-        )
-        print(
-            f"   Rollbacks performed: {safety_status['rollback_manager']['total_rollbacks']}"
-        )
-        print(
-            f"   Rollback success rate: {safety_status['rollback_manager']['success_rate']:.1%}"
-        )
+        print(f"   Checkpoints created: {safety_status['checkpoint_manager']['total_checkpoints']}")
+        print(f"   Rollbacks performed: {safety_status['rollback_manager']['total_rollbacks']}")
+        print(f"   Rollback success rate: {safety_status['rollback_manager']['success_rate']:.1%}")
         print(
             f"   Regression detector threshold: {safety_status['regression_detector']['threshold']}"
         )
-        print(
-            f"   Metrics tracked: {safety_status['regression_detector']['metrics_tracked']}"
-        )
+        print(f"   Metrics tracked: {safety_status['regression_detector']['metrics_tracked']}")
 
         # Verify integration is working
         print("\n5. Integration verification:")
         integration_checks = [
             (
                 "Checkpoint creation",
-                any(
-                    r.get("safety_result", {}).get("checkpoint_created", False)
-                    for r in results
-                ),
+                any(r.get("safety_result", {}).get("checkpoint_created", False) for r in results),
             ),
             (
                 "Safety validation",
@@ -338,9 +319,7 @@ async def test_evolution_pipeline_safety_integration():
             (
                 "Safety scoring",
                 all(
-                    r.get("safety_result", {})
-                    .get("safety_validation", {})
-                    .get("safety_score", 0)
+                    r.get("safety_result", {}).get("safety_validation", {}).get("safety_score", 0)
                     > 0
                     for r in results
                 ),
@@ -357,9 +336,7 @@ async def test_evolution_pipeline_safety_integration():
         print("\n" + "=" * 80)
         if all_checks_passed:
             print("🎉 INTEGRATION TEST PASSED")
-            print(
-                "✓ All safety components are properly integrated with the evolution pipeline"
-            )
+            print("✓ All safety components are properly integrated with the evolution pipeline")
             print("✓ Checkpoint management working correctly")
             print("✓ Regression detection identifying issues")
             print("✓ Safety validation making correct decisions")
@@ -450,9 +427,7 @@ async def test_safety_component_coordination():
         print("     ✓ Safety validation completed")
         print(f"     - Is safe: {validation_result['is_safe']}")
         print(f"     - Safety score: {validation_result['safety_score']:.2f}")
-        print(
-            f"     - Rollback recommended: {validation_result['rollback_recommended']}"
-        )
+        print(f"     - Rollback recommended: {validation_result['rollback_recommended']}")
 
         # Test 3: Full evolution step
         print("\n   Test 3: Complete safe evolution step")
@@ -519,9 +494,7 @@ async def main():
         if pipeline_test_passed and coordination_test_passed:
             print("🎉 ALL TESTS PASSED")
             print("✅ Evolution Pipeline Safety Integration: COMPLETE")
-            print(
-                "✅ Safety components are fully integrated with the evolution pipeline"
-            )
+            print("✅ Safety components are fully integrated with the evolution pipeline")
             print("✅ Checkpoint creation at critical stages: WORKING")
             print("✅ Regression detection running automatically: WORKING")
             print("✅ Rollback triggers configured: WORKING")
@@ -531,15 +504,9 @@ async def main():
             return True
         else:
             print("❌ SOME TESTS FAILED")
-            print(
-                f"Evolution Pipeline Integration: {'PASS' if pipeline_test_passed else 'FAIL'}"
-            )
-            print(
-                f"Component Coordination: {'PASS' if coordination_test_passed else 'FAIL'}"
-            )
-            print(
-                "\n⚠️  Please review and fix the failing components before production use."
-            )
+            print(f"Evolution Pipeline Integration: {'PASS' if pipeline_test_passed else 'FAIL'}")
+            print(f"Component Coordination: {'PASS' if coordination_test_passed else 'FAIL'}")
+            print("\n⚠️  Please review and fix the failing components before production use.")
             return False
 
     except Exception as e:

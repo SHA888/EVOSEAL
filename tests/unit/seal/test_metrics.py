@@ -5,11 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from evoseal.integration.seal.exceptions import (
-    RateLimitError,
-    SEALError,
-    ValidationError,
-)
+from evoseal.integration.seal.exceptions import RateLimitError, SEALError, ValidationError
 from evoseal.integration.seal.metrics import Metrics
 
 

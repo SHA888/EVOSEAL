@@ -16,11 +16,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from evoseal.evolution import (
-    EvolutionDataCollector,
-    PatternAnalyzer,
-    TrainingDataBuilder,
-)
+from evoseal.evolution import EvolutionDataCollector, PatternAnalyzer, TrainingDataBuilder
 from evoseal.evolution.data_collector import create_evolution_result
 from evoseal.evolution.models import EvolutionStrategy, ImprovementType
 
@@ -108,7 +104,7 @@ def analyze_data(data):
         return None
     if not isinstance(data, list):
         return None
-    
+
     # Process data
     total = 0
     count = 0
@@ -116,10 +112,10 @@ def analyze_data(data):
         if isinstance(item, (int, float)):
             total += item
             count += 1
-    
+
     if count == 0:
         return None
-    
+
     average = total / count
     return average
 """
@@ -135,10 +131,10 @@ def validate_data(data):
 def calculate_average(data):
     \"\"\"Calculate average of numeric values in data.\"\"\"
     numeric_values = [item for item in data if isinstance(item, (int, float))]
-    
+
     if not numeric_values:
         raise ValueError("No numeric values found in data")
-    
+
     return sum(numeric_values) / len(numeric_values)
 
 def analyze_data(data):
@@ -168,14 +164,14 @@ def analyze_data(data):
 def process_file(filename):
     with open(filename, 'r') as f:
         content = f.read()
-    
+
     lines = content.split('\\n')
     processed_lines = []
-    
+
     for line in lines:
         if line.strip():
             processed_lines.append(line.upper())
-    
+
     return processed_lines
 """
 
@@ -188,25 +184,25 @@ logger = logging.getLogger(__name__)
 def process_file(filename):
     \"\"\"Process a text file by converting non-empty lines to uppercase.\"\"\"
     file_path = Path(filename)
-    
+
     if not file_path.exists():
         logger.error(f"File not found: {filename}")
         raise FileNotFoundError(f"File not found: {filename}")
-    
+
     try:
         logger.info(f"Processing file: {filename}")
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         processed_lines = [
-            line.upper() 
-            for line in content.split('\\n') 
+            line.upper()
+            for line in content.split('\\n')
             if line.strip()
         ]
-        
+
         logger.info(f"Processed {len(processed_lines)} lines")
         return processed_lines
-        
+
     except Exception as e:
         logger.error(f"Error processing file {filename}: {e}")
         raise
@@ -288,9 +284,7 @@ def test_pattern_analyzer(sample_results):
 
     # Analyze patterns
     analysis = analyzer.analyze_patterns(sample_results)
-    logger.info(
-        f"Pattern analysis results: {json.dumps(analysis, indent=2, default=str)}"
-    )
+    logger.info(f"Pattern analysis results: {json.dumps(analysis, indent=2, default=str)}")
 
     # Get training patterns
     training_patterns = analyzer.get_training_patterns()
@@ -349,9 +343,7 @@ async def main():
 
         # Test 3: Training Data Builder
         logger.info("TEST 3: Training Data Builder")
-        builder, training_examples = test_training_data_builder(
-            sample_results, analysis
-        )
+        builder, training_examples = test_training_data_builder(sample_results, analysis)
         logger.info("✅ Training Data Builder test passed")
         print()
 
@@ -361,9 +353,7 @@ async def main():
         logger.info(
             f"✅ Evolution Data Collector: {collector.stats['total_collected']} results collected"
         )
-        logger.info(
-            f"✅ Pattern Analyzer: {len(analyzer.detected_patterns)} patterns detected"
-        )
+        logger.info(f"✅ Pattern Analyzer: {len(analyzer.detected_patterns)} patterns detected")
         logger.info(
             f"✅ Training Data Builder: {len(training_examples)} training examples generated"
         )

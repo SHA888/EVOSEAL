@@ -8,11 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from evoseal.utils.version_control.file_operations import (
-    FileInfo,
-    FileOperations,
-    FileStatus,
-)
+from evoseal.utils.version_control.file_operations import FileInfo, FileOperations, FileStatus
 
 
 class TestFileOperations:
@@ -39,17 +35,13 @@ class TestFileOperations:
         # Test with multiple files
         mock_git.reset_mock()
         file_ops.stage_files("file1.txt", "file2.txt")
-        mock_git._run_git_command.assert_called_with(
-            ["add", "--", "file1.txt", "file2.txt"]
-        )
+        mock_git._run_git_command.assert_called_with(["add", "--", "file1.txt", "file2.txt"])
 
     def test_unstage_files(self, file_ops, mock_git):
         """Test unstaging files."""
         # Test with single file
         file_ops.unstage_files("test.txt")
-        mock_git._run_git_command.assert_called_with(
-            ["restore", "--staged", "--", "test.txt"]
-        )
+        mock_git._run_git_command.assert_called_with(["restore", "--staged", "--", "test.txt"])
 
         # Test with multiple files
         mock_git.reset_mock()
@@ -61,30 +53,22 @@ class TestFileOperations:
     def test_get_file_status(self, file_ops, mock_git):
         """Test getting status of a specific file."""
         # Mock the get_status method
-        expected_status = FileInfo(
-            path=Path("test.txt"), status=FileStatus.MODIFIED, staged=True
-        )
-        with patch.object(
-            file_ops, "get_status", return_value={Path("test.txt"): expected_status}
-        ):
+        expected_status = FileInfo(path=Path("test.txt"), status=FileStatus.MODIFIED, staged=True)
+        with patch.object(file_ops, "get_status", return_value={Path("test.txt"): expected_status}):
             status = file_ops.get_file_status("test.txt")
             assert status == expected_status
 
     def test_parse_status_output(self, file_ops):
         """Test parsing git status output."""
         # Test with a modified file
-        status_output = (
-            "1 M. N... 100644 100644 100644 1234567 1234567 1234567 test.txt"
-        )
+        status_output = "1 M. N... 100644 100644 100644 1234567 1234567 1234567 test.txt"
         result = file_ops._parse_status_output(status_output)
         assert Path("test.txt") in result
         assert result[Path("test.txt")].status == FileStatus.MODIFIED
         assert result[Path("test.txt")].staged is True
 
         # Test with a renamed file
-        status_output = (
-            "1 R. N... 100644 100644 100644 1234567 1234567 1234567 old.txt new.txt"
-        )
+        status_output = "1 R. N... 100644 100644 100644 1234567 1234567 1234567 old.txt new.txt"
         result = file_ops._parse_status_output(status_output)
         assert Path("new.txt") in result
         assert result[Path("new.txt")].status == FileStatus.RENAMED
@@ -92,9 +76,7 @@ class TestFileOperations:
         assert result[Path("new.txt")].original_path == Path("old.txt")
 
         # Test with a copied file
-        status_output = (
-            "1 C. N... 100644 100644 100644 1234567 1234567 1234567 source.txt dest.txt"
-        )
+        status_output = "1 C. N... 100644 100644 100644 1234567 1234567 1234567 source.txt dest.txt"
         result = file_ops._parse_status_output(status_output)
         assert Path("dest.txt") in result
         assert result[Path("dest.txt")].status == FileStatus.COPIED
@@ -130,9 +112,7 @@ class TestFileOperations:
         """Test getting file diff."""
         # Test with unstaged diff
         file_ops.get_file_diff("test.txt")
-        mock_git._run_git_command.assert_called_with(
-            ["diff", "--no-ext-diff", "--", "test.txt"]
-        )
+        mock_git._run_git_command.assert_called_with(["diff", "--no-ext-diff", "--", "test.txt"])
 
         # Test with staged diff
         mock_git.reset_mock()

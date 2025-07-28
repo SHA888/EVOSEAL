@@ -192,9 +192,7 @@ async def test_bidirectional_manager():
             temp_path = Path(temp_dir)
 
             # Create data collector
-            data_collector = EvolutionDataCollector(
-                data_dir=temp_path / "evolution_data"
-            )
+            data_collector = EvolutionDataCollector(data_dir=temp_path / "evolution_data")
 
             # Initialize bidirectional manager
             bidirectional_manager = BidirectionalEvolutionManager(
@@ -248,9 +246,7 @@ async def main():
     logger.info("=" * 60)
 
     total_tests = len(test_results)
-    passed_tests = sum(
-        1 for result in test_results.values() if result.get("success", False)
-    )
+    passed_tests = sum(1 for result in test_results.values() if result.get("success", False))
 
     for test_name, result in test_results.items():
         status = "✅ PASS" if result.get("success", False) else "❌ FAIL"
@@ -267,9 +263,7 @@ async def main():
     elif passed_tests >= total_tests * 0.8:
         logger.info("✅ Most Phase 2 components working. Minor issues to resolve.")
     else:
-        logger.warning(
-            f"⚠️  {total_tests - passed_tests} tests failed. Review errors above."
-        )
+        logger.warning(f"⚠️  {total_tests - passed_tests} tests failed. Review errors above.")
 
     # Save results
     results_file = Path("test_results_phase2_simplified.json")

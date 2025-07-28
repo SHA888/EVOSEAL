@@ -127,12 +127,8 @@ class SSHAuthenticationError(AuthenticationError):
     def __init__(self, message: str = "SSH authentication failed", **kwargs):
         super().__init__(message, **kwargs)
         self.add_recovery_suggestion("Verify your SSH key is correctly configured")
-        self.add_recovery_suggestion(
-            "Ensure your SSH agent is running and has the key loaded"
-        )
-        self.add_recovery_suggestion(
-            "Check if the remote repository accepts your SSH key"
-        )
+        self.add_recovery_suggestion("Ensure your SSH agent is running and has the key loaded")
+        self.add_recovery_suggestion("Check if the remote repository accepts your SSH key")
 
 
 class HTTPSAuthenticationError(AuthenticationError):
@@ -144,9 +140,7 @@ class HTTPSAuthenticationError(AuthenticationError):
         self.add_recovery_suggestion(
             "If using a personal access token, ensure it has the required scopes"
         )
-        self.add_recovery_suggestion(
-            "Check if your credentials are cached or need to be updated"
-        )
+        self.add_recovery_suggestion("Check if your credentials are cached or need to be updated")
 
 
 class NetworkError(GitError):
@@ -161,9 +155,7 @@ class NetworkError(GitError):
         )
         self.add_recovery_suggestion("Check your internet connection")
         self.add_recovery_suggestion("Verify the remote repository URL is correct")
-        self.add_recovery_suggestion(
-            "If using a proxy, ensure it's properly configured"
-        )
+        self.add_recovery_suggestion("If using a proxy, ensure it's properly configured")
 
 
 class RepositoryNotFoundError(GitError):
@@ -223,9 +215,7 @@ class PushRejectedError(GitError):
         )
         self.add_recovery_suggestion("Fetch and merge the remote changes first")
         self.add_recovery_suggestion("Use 'git pull --rebase' to rebase your changes")
-        self.add_recovery_suggestion(
-            "Check if you have push permissions to the repository"
-        )
+        self.add_recovery_suggestion("Check if you have push permissions to the repository")
 
 
 class InvalidGitRepositoryError(GitError):
@@ -283,19 +273,13 @@ class GitCommandError(GitError):
         if returncode == 128 and "Permission denied" in stderr:
             self.add_recovery_suggestion("Verify your SSH key is properly configured")
             self.add_recovery_suggestion("Check if your SSH agent is running")
-            self.add_recovery_suggestion(
-                "Ensure your public key is added to the remote service"
-            )
+            self.add_recovery_suggestion("Ensure your public key is added to the remote service")
         elif returncode == 128 and "Repository not found" in stderr:
             self.add_recovery_suggestion("Verify the repository URL is correct")
             self.add_recovery_suggestion("Check if you have access to the repository")
         elif returncode == 1 and "merge conflict" in stderr.lower():
-            self.add_recovery_suggestion(
-                "Resolve the merge conflicts in the affected files"
-            )
-            self.add_recovery_suggestion(
-                "Use 'git status' to see the list of conflicts"
-            )
+            self.add_recovery_suggestion("Resolve the merge conflicts in the affected files")
+            self.add_recovery_suggestion("Use 'git status' to see the list of conflicts")
 
     @staticmethod
     def _determine_severity(returncode: int, stderr: str) -> ErrorSeverity:
@@ -350,12 +334,8 @@ class GitConfigError(GitError):
             severity=ErrorSeverity.MEDIUM,
             **kwargs,
         )
-        self.add_recovery_suggestion(
-            "Check your Git configuration with 'git config --list'"
-        )
-        self.add_recovery_suggestion(
-            "Verify required Git settings are properly configured"
-        )
+        self.add_recovery_suggestion("Check your Git configuration with 'git config --list'")
+        self.add_recovery_suggestion("Verify required Git settings are properly configured")
 
 
 class GitIntegrityError(GitError):
@@ -369,9 +349,7 @@ class GitIntegrityError(GitError):
             **kwargs,
         )
         self.add_recovery_suggestion("Run 'git fsck' to check repository integrity")
-        self.add_recovery_suggestion(
-            "Consider cloning the repository again if the issue persists"
-        )
+        self.add_recovery_suggestion("Consider cloning the repository again if the issue persists")
 
 
 class GitPermissionError(GitError):
@@ -385,7 +363,5 @@ class GitPermissionError(GitError):
             **kwargs,
         )
         self.add_recovery_suggestion("Check file and directory permissions")
-        self.add_recovery_suggestion(
-            "Ensure the current user has the necessary permissions"
-        )
+        self.add_recovery_suggestion("Ensure the current user has the necessary permissions")
         self.add_recovery_suggestion("Run with elevated privileges if required")

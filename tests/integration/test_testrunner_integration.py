@@ -28,13 +28,13 @@ import unittest
 class TestSample(unittest.TestCase):
     def test_pass(self):
         self.assertTrue(True)
-    
+
     def test_fail(self):
         self.fail("Expected failure")
-    
+
     def test_error(self):
         raise ValueError("Test error")
-    
+
     @unittest.skip("Skipped test")
     def test_skip(self):
         pass
@@ -48,7 +48,7 @@ class TestPerformance(unittest.TestCase):
     def test_fast(self):
         time.sleep(0.1)
         self.assertTrue(True)
-    
+
     def test_slow(self):
         time.sleep(1.5)  # Should be caught by timeout
         self.assertTrue(True)
@@ -105,9 +105,7 @@ def test_discover_tests(test_environment):
 
 def test_run_unit_tests(test_environment):
     """Test running unit tests with the TestRunner."""
-    config = TestConfig(
-        test_dir=test_environment["test_dir"], timeout=10, max_workers=2
-    )
+    config = TestConfig(test_dir=test_environment["test_dir"], timeout=10, max_workers=2)
     runner = TestRunner(config)
 
     # Run unit tests
@@ -139,9 +137,7 @@ def test_run_performance_tests(test_environment):
     runner = TestRunner(config)
 
     # Run performance tests
-    results = runner.run_tests(
-        test_environment["module_path"], test_types=["performance"]
-    )
+    results = runner.run_tests(test_environment["module_path"], test_types=["performance"])
 
     # Verify results
     assert len(results) == 1
@@ -163,9 +159,7 @@ def test_parallel_test_execution(test_environment):
 
     # Run multiple test types in parallel
     start_time = time.time()
-    results = runner.run_tests(
-        test_environment["module_path"], test_types=["unit", "performance"]
-    )
+    results = runner.run_tests(test_environment["module_path"], test_types=["unit", "performance"])
     duration = time.time() - start_time
 
     # Verify we got results for both test types

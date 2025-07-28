@@ -47,9 +47,7 @@ class TestRollbackSafetyCritical:
             "max_rollback_attempts": 3,
             "rollback_history_file": str(self.temp_dir / "rollback_history.json"),
         }
-        self.rollback_manager = RollbackManager(
-            self.rollback_config, self.checkpoint_manager
-        )
+        self.rollback_manager = RollbackManager(self.rollback_config, self.checkpoint_manager)
 
         # Create a test checkpoint
         self.test_checkpoint_data = {
@@ -83,9 +81,7 @@ class TestRollbackSafetyCritical:
         self.rollback_manager.version_manager = mock_version_manager
 
         # This should succeed by using safe fallback directory
-        result = self.rollback_manager.rollback_to_version(
-            "test_checkpoint_v1.0", "dangerous_test"
-        )
+        result = self.rollback_manager.rollback_to_version("test_checkpoint_v1.0", "dangerous_test")
 
         # Verify rollback succeeded
         assert result is True
@@ -103,18 +99,14 @@ class TestRollbackSafetyCritical:
         self.rollback_manager.version_manager = mock_version_manager
 
         # Rollback should succeed by using safe fallback directory
-        result = self.rollback_manager.rollback_to_version(
-            "test_checkpoint_v1.0", "safety_test"
-        )
+        result = self.rollback_manager.rollback_to_version("test_checkpoint_v1.0", "safety_test")
 
         # Verify rollback succeeded with safe fallback
         assert result is True
 
         # Verify safe fallback directory was created
         safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
-        assert (
-            safe_dir.exists()
-        ), "Safe fallback directory should be created for parent directory"
+        assert safe_dir.exists(), "Safe fallback directory should be created for parent directory"
 
     def test_prevent_rollback_to_system_directories(self):
         """Test that rollback to dangerous system directories uses safe fallback."""
@@ -147,9 +139,7 @@ class TestRollbackSafetyCritical:
         self.rollback_manager.version_manager = None
 
         # Perform rollback - should use safe fallback directory
-        result = self.rollback_manager.rollback_to_version(
-            "test_checkpoint_v1.0", "fallback_test"
-        )
+        result = self.rollback_manager.rollback_to_version("test_checkpoint_v1.0", "fallback_test")
 
         # Verify rollback succeeded
         assert result is True
@@ -178,9 +168,7 @@ class TestRollbackSafetyCritical:
         self.rollback_manager.version_manager = mock_version_manager
 
         # Perform rollback - should succeed
-        result = self.rollback_manager.rollback_to_version(
-            "test_checkpoint_v1.0", "safe_test"
-        )
+        result = self.rollback_manager.rollback_to_version("test_checkpoint_v1.0", "safe_test")
 
         # Verify rollback succeeded
         assert result is True
@@ -234,9 +222,7 @@ class TestRollbackSafetyCritical:
         """Test that rollback history includes safety validation information."""
         # Perform a safe rollback
         self.rollback_manager.version_manager = None  # Use safe fallback
-        result = self.rollback_manager.rollback_to_version(
-            "test_checkpoint_v1.0", "history_test"
-        )
+        result = self.rollback_manager.rollback_to_version("test_checkpoint_v1.0", "history_test")
 
         assert result is True
 
@@ -288,9 +274,7 @@ class TestRollbackSafetyCritical:
             result = self.rollback_manager.rollback_to_version(
                 "test_checkpoint_v1.0", f"scenario_{i}_test"
             )
-            assert (
-                result is True
-            ), f"Scenario {i} ({scenario['description']}) should succeed"
+            assert result is True, f"Scenario {i} ({scenario['description']}) should succeed"
 
             # Verify safe fallback directory exists if expected
             if scenario["should_use_fallback"]:
@@ -403,9 +387,7 @@ class TestRollbackSafetyIntegration:
         rollback_manager.version_manager = mock_version_manager
 
         # Perform rollback - should succeed safely
-        result = rollback_manager.rollback_to_version(
-            "integration_test_v1.0", "integration_test"
-        )
+        result = rollback_manager.rollback_to_version("integration_test_v1.0", "integration_test")
 
         assert result is True
 
@@ -431,7 +413,8 @@ def run_safety_tests():
 
     result = subprocess.run(
         ["python", "-m", "pytest", __file__, "-v", "--tb=short"],
-        check=False, capture_output=True,
+        check=False,
+        capture_output=True,
         text=True,
     )
 

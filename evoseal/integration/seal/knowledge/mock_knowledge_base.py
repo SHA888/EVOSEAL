@@ -52,9 +52,7 @@ class MockKnowledgeBase:
         # Apply limit
         return filtered[:limit]
 
-    def add_document(
-        self, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def add_document(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """Mock implementation of add_document."""
         # In a real implementation, this would add a document to the knowledge base
         doc_id = f"doc_{len(self._get_mock_documents()) + 1}"

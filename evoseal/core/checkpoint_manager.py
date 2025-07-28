@@ -41,9 +41,7 @@ class CheckpointManager:
             config: Configuration dictionary with checkpoint settings
         """
         self.config = config or {}
-        self.checkpoint_dir = Path(
-            self.config.get("checkpoint_directory", "./checkpoints")
-        )
+        self.checkpoint_dir = Path(self.config.get("checkpoint_directory", "./checkpoints"))
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # Checkpoint registry: version_id -> checkpoint_path
@@ -57,9 +55,7 @@ class CheckpointManager:
         # Load existing checkpoints
         self._load_existing_checkpoints()
 
-        logger.info(
-            f"CheckpointManager initialized with directory: {self.checkpoint_dir}"
-        )
+        logger.info(f"CheckpointManager initialized with directory: {self.checkpoint_dir}")
 
     def create_checkpoint(
         self,
@@ -86,9 +82,7 @@ class CheckpointManager:
                 version_data = version.to_dict()
                 changes = version_data.get("artifacts", {})
                 parent_id = version_data.get("parent_id")
-                timestamp = version_data.get(
-                    "created_at", datetime.now(timezone.utc).isoformat()
-                )
+                timestamp = version_data.get("created_at", datetime.now(timezone.utc).isoformat())
                 config = version_data.get("config", {})
                 metrics = version_data.get("metrics", [])
                 result = version_data.get("result", {})
@@ -96,16 +90,12 @@ class CheckpointManager:
                 version_data = version
                 changes = version.get("changes", {})
                 parent_id = version.get("parent_id")
-                timestamp = version.get(
-                    "timestamp", datetime.now(timezone.utc).isoformat()
-                )
+                timestamp = version.get("timestamp", datetime.now(timezone.utc).isoformat())
                 config = version.get("config", {})
                 metrics = version.get("metrics", [])
                 result = version.get("result", {})
             else:
-                raise CheckpointError(
-                    f"Expected Experiment or dict, got {type(version)}"
-                )
+                raise CheckpointError(f"Expected Experiment or dict, got {type(version)}")
 
             # Create checkpoint directory
             checkpoint_path = self.checkpoint_dir / f"checkpoint_{version_id}"
@@ -114,9 +104,7 @@ class CheckpointManager:
             # Capture complete system state
             system_state = {}
             if capture_system_state:
-                system_state = self._capture_system_state(
-                    version_data, config, metrics, result
-                )
+                system_state = self._capture_system_state(version_data, config, metrics, result)
 
                 # Save system state with compression if enabled
                 state_file = checkpoint_path / "system_state.pkl"
@@ -142,9 +130,7 @@ class CheckpointManager:
                             ".py",
                             ".md",
                         ]:
-                            with gzip.open(
-                                f"{full_path}.gz", "wt", encoding="utf-8"
-                            ) as f:
+                            with gzip.open(f"{full_path}.gz", "wt", encoding="utf-8") as f:
                                 f.write(content)
                         else:
                             with open(full_path, "w", encoding="utf-8") as f:
@@ -179,9 +165,7 @@ class CheckpointManager:
             metadata = {
                 "version_id": version_id,
                 "parent_id": parent_id,
-                "timestamp": (
-                    timestamp if isinstance(timestamp, str) else timestamp.isoformat()
-                ),
+                "timestamp": (timestamp if isinstance(timestamp, str) else timestamp.isoformat()),
                 "checkpoint_time": datetime.now(timezone.utc).isoformat(),
                 "version_data": version_data,
                 "system_state_captured": capture_system_state,
@@ -252,9 +236,7 @@ class CheckpointManager:
             if version_id not in self.checkpoints:
                 checkpoint_path = self.checkpoint_dir / f"checkpoint_{version_id}"
                 if not checkpoint_path.exists():
-                    raise CheckpointError(
-                        f"Checkpoint for version {version_id} not found"
-                    )
+                    raise CheckpointError(f"Checkpoint for version {version_id} not found")
                 self.checkpoints[version_id] = str(checkpoint_path)
 
             checkpoint_path = Path(self.checkpoints[version_id])
@@ -262,9 +244,7 @@ class CheckpointManager:
             # Load and verify metadata
             metadata_path = checkpoint_path / "metadata.json"
             if not metadata_path.exists():
-                raise CheckpointError(
-                    f"Checkpoint metadata not found for version {version_id}"
-                )
+                raise CheckpointError(f"Checkpoint metadata not found for version {version_id}")
 
             with open(metadata_path, encoding="utf-8") as f:
                 metadata = json.load(f)
@@ -344,18 +324,14 @@ class CheckpointManager:
             if state_file_gz.exists():
                 try:
                     with gzip.open(state_file_gz, "rb") as f:
-                        system_state = pickle.load(
-                            f
-                        )  # nosec B301 - Internal checkpoint data only
+                        system_state = pickle.load(f)  # nosec B301 - Internal checkpoint data only
                     logger.info("Restored compressed system state")
                 except Exception as e:
                     logger.warning(f"Failed to restore compressed system state: {e}")
             elif state_file.exists():
                 try:
                     with open(state_file, "rb") as f:
-                        system_state = pickle.load(
-                            f
-                        )  # nosec B301 - Internal checkpoint data only
+                        system_state = pickle.load(f)  # nosec B301 - Internal checkpoint data only
                     logger.info("Restored system state")
                 except Exception as e:
                     logger.warning(f"Failed to restore system state: {e}")
@@ -371,9 +347,7 @@ class CheckpointManager:
                 "restoration_time": datetime.now(timezone.utc).isoformat(),
             }
 
-            logger.info(
-                f"Successfully restored checkpoint {version_id} to {target_dir}"
-            )
+            logger.info(f"Successfully restored checkpoint {version_id} to {target_dir}")
             logger.info(
                 f"Restored {restored_files} files, System state: {'Yes' if system_state else 'No'}"
             )
@@ -381,9 +355,7 @@ class CheckpointManager:
 
         except Exception as e:
             logger.error(f"Failed to restore checkpoint {version_id}: {e}")
-            raise CheckpointError(
-                f"Failed to restore checkpoint {version_id}: {e}"
-            ) from e
+            raise CheckpointError(f"Failed to restore checkpoint {version_id}: {e}") from e
 
     def list_checkpoints(self) -> List[Dict[str, Any]]:
         """List all available checkpoints.
@@ -402,9 +374,7 @@ class CheckpointManager:
                             metadata = json.load(f)
                             checkpoints.append(metadata)
                     except (json.JSONDecodeError, OSError) as e:
-                        logger.warning(
-                            f"Failed to read checkpoint metadata {metadata_path}: {e}"
-                        )
+                        logger.warning(f"Failed to read checkpoint metadata {metadata_path}: {e}")
 
         # Sort by checkpoint time
         return sorted(checkpoints, key=lambda x: x.get("checkpoint_time", ""))
@@ -554,8 +524,7 @@ class CheckpointManager:
         """
         checkpoints = self.list_checkpoints()
         total_size = sum(
-            self.get_checkpoint_size(cp.get("version_id", "")) or 0
-            for cp in checkpoints
+            self.get_checkpoint_size(cp.get("version_id", "")) or 0 for cp in checkpoints
         )
 
         return {
@@ -563,12 +532,8 @@ class CheckpointManager:
             "total_size_bytes": total_size,
             "total_size_mb": total_size / (1024 * 1024),
             "checkpoint_directory": str(self.checkpoint_dir),
-            "oldest_checkpoint": (
-                checkpoints[0].get("checkpoint_time") if checkpoints else None
-            ),
-            "newest_checkpoint": (
-                checkpoints[-1].get("checkpoint_time") if checkpoints else None
-            ),
+            "oldest_checkpoint": (checkpoints[0].get("checkpoint_time") if checkpoints else None),
+            "newest_checkpoint": (checkpoints[-1].get("checkpoint_time") if checkpoints else None),
             "auto_cleanup_enabled": self.auto_cleanup,
             "max_checkpoints": self.max_checkpoints,
         }
@@ -648,25 +613,17 @@ class CheckpointManager:
             if isinstance(metrics, list) and all(isinstance(m, dict) for m in metrics):
                 metrics_summary = {
                     "total_metrics": len(metrics),
-                    "metric_types": list(
-                        set(m.get("metric_type", "unknown") for m in metrics)
-                    ),
+                    "metric_types": list(set(m.get("metric_type", "unknown") for m in metrics)),
                     "latest_values": {
-                        m.get("name"): m.get("value")
-                        for m in metrics[-10:]
-                        if m.get("name")
+                        m.get("name"): m.get("value") for m in metrics[-10:] if m.get("name")
                     },
                     "timestamp_range": (
                         {
                             "earliest": min(
-                                m.get("timestamp", "")
-                                for m in metrics
-                                if m.get("timestamp")
+                                m.get("timestamp", "") for m in metrics if m.get("timestamp")
                             ),
                             "latest": max(
-                                m.get("timestamp", "")
-                                for m in metrics
-                                if m.get("timestamp")
+                                m.get("timestamp", "") for m in metrics if m.get("timestamp")
                             ),
                         }
                         if metrics
@@ -766,14 +723,10 @@ class CheckpointManager:
             current_hash = self._calculate_integrity_hash(checkpoint_path)
 
             if current_hash == stored_hash:
-                logger.info(
-                    f"Integrity verification passed for checkpoint {version_id}"
-                )
+                logger.info(f"Integrity verification passed for checkpoint {version_id}")
                 return True
             else:
-                logger.error(
-                    f"Integrity verification failed for checkpoint {version_id}"
-                )
+                logger.error(f"Integrity verification failed for checkpoint {version_id}")
                 logger.error(f"Expected: {stored_hash}")
                 logger.error(f"Actual: {current_hash}")
                 return False
@@ -842,17 +795,13 @@ class CheckpointManager:
                     "restoration_details": restoration_result,
                 }
 
-                logger.info(
-                    f"Successfully completed validated restoration of {version_id}"
-                )
+                logger.info(f"Successfully completed validated restoration of {version_id}")
                 return result
 
             except Exception as e:
                 # Restoration failed - restore backup if available
                 if backup_path and backup_path.exists():
-                    logger.warning(
-                        f"Restoration failed, attempting to restore backup: {e}"
-                    )
+                    logger.warning(f"Restoration failed, attempting to restore backup: {e}")
                     self._restore_from_backup(backup_path, target_dir)
                     logger.info("Successfully restored from backup")
                 raise
@@ -899,9 +848,7 @@ class CheckpointManager:
                     required_fields = ["version_id", "timestamp", "file_count"]
                     for field in required_fields:
                         if field not in metadata:
-                            validation_warnings.append(
-                                f"Missing metadata field: {field}"
-                            )
+                            validation_warnings.append(f"Missing metadata field: {field}")
 
                 except Exception as e:
                     validation_errors.append(f"Invalid metadata format: {e}")
@@ -911,9 +858,7 @@ class CheckpointManager:
                 try:
                     integrity_valid = self.verify_checkpoint_integrity(version_id)
                     if not integrity_valid:
-                        validation_errors.append(
-                            "Checkpoint integrity verification failed"
-                        )
+                        validation_errors.append("Checkpoint integrity verification failed")
                 except Exception as e:
                     validation_warnings.append(f"Could not verify integrity: {e}")
 
@@ -991,9 +936,7 @@ class CheckpointManager:
         if backup_metadata_path.exists():
             backup_metadata_path.unlink()
 
-    def _validate_restored_state(
-        self, target_dir: Path, version_id: str
-    ) -> Dict[str, Any]:
+    def _validate_restored_state(self, target_dir: Path, version_id: str) -> Dict[str, Any]:
         """Validate the state after restoration.
 
         Args:
@@ -1012,12 +955,8 @@ class CheckpointManager:
         if target_dir.exists():
             # Count restored files
             restored_files = list(target_dir.rglob("*"))
-            validation_results["file_count"] = len(
-                [f for f in restored_files if f.is_file()]
-            )
-            validation_results["directory_count"] = len(
-                [f for f in restored_files if f.is_dir()]
-            )
+            validation_results["file_count"] = len([f for f in restored_files if f.is_file()])
+            validation_results["directory_count"] = len([f for f in restored_files if f.is_dir()])
 
             # Check for key files
             key_files = ["main.py", "config.json", "README.md"]
@@ -1060,24 +999,18 @@ class CheckpointManager:
                                 "age_hours": (
                                     datetime.now(timezone.utc)
                                     - datetime.fromisoformat(
-                                        metadata.get("backup_time", "").replace(
-                                            "Z", "+00:00"
-                                        )
+                                        metadata.get("backup_time", "").replace("Z", "+00:00")
                                     )
                                 ).total_seconds()
                                 / 3600,
                             }
                             backups.append(backup_info)
                         except Exception as e:
-                            logger.warning(
-                                f"Could not read backup metadata for {backup_path}: {e}"
-                            )
+                            logger.warning(f"Could not read backup metadata for {backup_path}: {e}")
 
         return sorted(backups, key=lambda x: x.get("backup_time", ""), reverse=True)
 
-    def cleanup_restoration_backups(
-        self, keep_count: int = 5, max_age_days: int = 30
-    ) -> int:
+    def cleanup_restoration_backups(self, keep_count: int = 5, max_age_days: int = 30) -> int:
         """Clean up old restoration backups.
 
         Args:
@@ -1091,9 +1024,7 @@ class CheckpointManager:
         deleted_count = 0
 
         # Sort by backup time (newest first)
-        backups_by_time = sorted(
-            backups, key=lambda x: x.get("backup_time", ""), reverse=True
-        )
+        backups_by_time = sorted(backups, key=lambda x: x.get("backup_time", ""), reverse=True)
 
         for i, backup in enumerate(backups_by_time):
             should_delete = False
@@ -1101,9 +1032,7 @@ class CheckpointManager:
             # Delete if beyond keep count
             if i >= keep_count:
                 should_delete = True
-                logger.info(
-                    f"Deleting backup {backup['backup_name']} (beyond keep count)"
-                )
+                logger.info(f"Deleting backup {backup['backup_name']} (beyond keep count)")
 
             # Delete if too old
             elif backup.get("age_hours", 0) > max_age_days * 24:
@@ -1119,9 +1048,7 @@ class CheckpointManager:
                         shutil.rmtree(backup_path)
                         deleted_count += 1
                 except Exception as e:
-                    logger.error(
-                        f"Failed to delete backup {backup['backup_name']}: {e}"
-                    )
+                    logger.error(f"Failed to delete backup {backup['backup_name']}: {e}")
 
         logger.info(f"Cleaned up {deleted_count} restoration backups")
         return deleted_count

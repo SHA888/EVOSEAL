@@ -143,9 +143,7 @@ class EvolutionDataCollector:
                 with open(success_file, "w") as f:
                     json.dump(success_data, f, indent=2, default=str)
 
-                logger.info(
-                    f"Saved {len(success_data)} successful results to {success_file}"
-                )
+                logger.info(f"Saved {len(success_data)} successful results to {success_file}")
 
             # Save failed results (for analysis)
             if self.failed_results or force:
@@ -155,20 +153,14 @@ class EvolutionDataCollector:
                 with open(failed_file, "w") as f:
                     json.dump(failed_data, f, indent=2, default=str)
 
-                logger.debug(
-                    f"Saved {len(failed_data)} failed results to {failed_file}"
-                )
+                logger.debug(f"Saved {len(failed_data)} failed results to {failed_file}")
 
             # Save statistics and patterns
             stats_file = self.data_dir / f"collection_stats_{timestamp}.json"
             stats_data = {
                 "stats": self.stats.copy(),
-                "strategy_performance": {
-                    str(k): v for k, v in self.strategy_performance.items()
-                },
-                "improvement_patterns": {
-                    str(k): v for k, v in self.improvement_patterns.items()
-                },
+                "strategy_performance": {str(k): v for k, v in self.strategy_performance.items()},
+                "improvement_patterns": {str(k): v for k, v in self.improvement_patterns.items()},
             }
             stats_data["stats"]["last_save"] = datetime.now().isoformat()
 
@@ -280,14 +272,11 @@ class EvolutionDataCollector:
                     else 0
                 ),
                 "collection_rate_per_hour": (
-                    self.stats["total_collected"]
-                    / max(1, runtime.total_seconds() / 3600)
+                    self.stats["total_collected"] / max(1, runtime.total_seconds() / 3600)
                 ),
             },
             "strategy_performance": strategy_stats,
-            "improvement_patterns": {
-                str(k): v for k, v in self.improvement_patterns.items()
-            },
+            "improvement_patterns": {str(k): v for k, v in self.improvement_patterns.items()},
             "memory_usage": {
                 "successful_results": len(self.successful_results),
                 "failed_results": len(self.failed_results),
@@ -356,9 +345,7 @@ def create_evolution_result(
     if not improvement_types:
         improvement_types.append(ImprovementType.READABILITY)
 
-    improvement_percentage = (
-        (fitness_score - 0.5) / 0.5
-    ) * 100  # Simplified calculation
+    improvement_percentage = ((fitness_score - 0.5) / 0.5) * 100  # Simplified calculation
 
     return EvolutionResult(
         id=str(uuid.uuid4()),

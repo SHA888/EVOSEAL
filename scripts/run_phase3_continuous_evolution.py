@@ -178,9 +178,7 @@ async def run_health_check():
 
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get(
-                    "http://localhost:11434/api/tags", timeout=10
-                ) as response:
+                async with session.get("http://localhost:11434/api/tags", timeout=10) as response:
                     if response.status == 200:
                         data = await response.json()
                         models = [model["name"] for model in data.get("models", [])]
@@ -228,9 +226,7 @@ async def run_health_check():
 
 async def main():
     """Main entry point for Phase 3 system."""
-    parser = argparse.ArgumentParser(
-        description="EVOSEAL Phase 3: Continuous Evolution System"
-    )
+    parser = argparse.ArgumentParser(description="EVOSEAL Phase 3: Continuous Evolution System")
     parser.add_argument("--config", type=Path, help="Path to configuration file")
     parser.add_argument(
         "--host",
@@ -238,9 +234,7 @@ async def main():
         default="localhost",
         help="Dashboard host address (default: localhost)",
     )
-    parser.add_argument(
-        "--port", type=int, default=8081, help="Dashboard port (default: 8081)"
-    )
+    parser.add_argument("--port", type=int, default=8081, help="Dashboard port (default: 8081)")
     parser.add_argument(
         "--evolution-interval",
         type=int,
@@ -259,12 +253,8 @@ async def main():
         default=50,
         help="Minimum evolution samples for training (default: 50)",
     )
-    parser.add_argument(
-        "--health-check", action="store_true", help="Run health check only"
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Enable verbose logging"
-    )
+    parser.add_argument("--health-check", action="store_true", help="Run health check only")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 

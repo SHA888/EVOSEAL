@@ -4,14 +4,15 @@ EVOSEAL Automatic Release Notes Generator
 Generates comprehensive release notes from git history, changelog, and commits.
 """
 
+import argparse
+import json
 import os
-import sys
 import re
 import subprocess
-import argparse
+import sys
 from datetime import datetime
 from pathlib import Path
-import json
+
 
 def run_command(cmd, capture_output=True):
     """Run a shell command and return the output."""
@@ -22,28 +23,27 @@ def run_command(cmd, capture_output=True):
         print(f"Error running command '{cmd}': {e}")
         return ""
 
+
 def get_git_log_between_tags(from_tag, to_tag):
     """Get git commits between two tags."""
     if from_tag:
         cmd = f"git log --pretty=format:'%h|%s|%an|%ad' --date=short {from_tag}..{to_tag}"
     else:
         cmd = f"git log --pretty=format:'%h|%s|%an|%ad' --date=short {to_tag}"
-    
+
     output = run_command(cmd)
     commits = []
-    
+
     for line in output.split('\n'):
         if line.strip():
             parts = line.split('|')
             if len(parts) >= 4:
-                commits.append({
-                    'hash': parts[0],
-                    'message': parts[1],
-                    'author': parts[2],
-                    'date': parts[3]
-                })
-    
+                commits.append(
+                    {'hash': parts[0], 'message': parts[1], 'author': parts[2], 'date': parts[3]}
+                )
+
     return commits
+
 
 def categorize_commits(commits):
     """Categorize commits by type based on conventional commit patterns."""
@@ -55,9 +55,9 @@ def categorize_commits(commits):
         'docs': [],
         'ci': [],
         'refactor': [],
-        'other': []
+        'other': [],
     }
-    
+
     patterns = {
         'features': [r'^feat', r'^add', r'^implement', r'✨', r'🚀'],
         'fixes': [r'^fix', r'^bug', r'🐛', r'🔧'],
@@ -65,13 +65,13 @@ def categorize_commits(commits):
         'performance': [r'^perf', r'^optimize', r'⚡', r'🚀'],
         'docs': [r'^docs?', r'^documentation', r'📝', r'📚'],
         'ci': [r'^ci', r'^build', r'^deploy', r'👷', r'🔨'],
-        'refactor': [r'^refactor', r'^clean', r'^improve', r'♻️', r'🎨']
+        'refactor': [r'^refactor', r'^clean', r'^improve', r'♻️', r'🎨'],
     }
-    
+
     for commit in commits:
         message = commit['message'].lower()
         categorized = False
-        
+
         for category, pattern_list in patterns.items():
             for pattern in pattern_list:
                 if re.search(pattern, message, re.IGNORECASE):
@@ -80,42 +80,44 @@ def categorize_commits(commits):
                     break
             if categorized:
                 break
-        
+
         if not categorized:
             categories['other'].append(commit)
-    
+
     return categories
+
 
 def extract_changelog_section(version):
     """Extract the changelog section for a specific version."""
     changelog_path = Path("CHANGELOG.md")
     if not changelog_path.exists():
         return ""
-    
+
     content = changelog_path.read_text()
-    
+
     # Look for version section
     version_pattern = rf"## \[{re.escape(version)}\].*?(?=## \[|\Z)"
     match = re.search(version_pattern, content, re.DOTALL)
-    
+
     if match:
         section = match.group(0)
         # Clean up the section
         lines = section.split('\n')[1:]  # Skip the version header
         return '\n'.join(line for line in lines if line.strip())
-    
+
     return ""
+
 
 def generate_release_notes(version, previous_version=None):
     """Generate comprehensive release notes for a version."""
-    
+
     # Get commits between versions
     commits = get_git_log_between_tags(previous_version, f"v{version}")
     categorized = categorize_commits(commits)
-    
+
     # Get changelog content
     changelog_content = extract_changelog_section(version)
-    
+
     # Get release date
     tag_date = run_command(f"git log -1 --format=%ci v{version} 2>/dev/null")
     if tag_date and tag_date.strip():
@@ -127,7 +129,7 @@ def generate_release_notes(version, previous_version=None):
             release_date = datetime.now().strftime('%Y-%m-%d')
     else:
         release_date = datetime.now().strftime('%Y-%m-%d')
-    
+
     # Generate release notes content
     content = f"""# EVOSEAL v{version} Release Notes
 
@@ -206,7 +208,7 @@ def generate_release_notes(version, previous_version=None):
 Thanks to all contributors who made this release possible:
 
 """
-    
+
     # Add unique contributors
     contributors = set(commit['author'] for commit in commits)
     for contributor in sorted(contributors):
@@ -230,41 +232,44 @@ pip install --upgrade evoseal
 
     return content
 
+
 def main():
     parser = argparse.ArgumentParser(description='Generate EVOSEAL release notes')
     parser.add_argument('version', help='Version to generate notes for (e.g., 0.3.2)')
     parser.add_argument('--previous-version', help='Previous version for comparison')
-    parser.add_argument('--output-dir', default='releases', help='Output directory for release files')
+    parser.add_argument(
+        '--output-dir', default='releases', help='Output directory for release files'
+    )
     parser.add_argument('--commit', action='store_true', help='Commit the generated files to git')
-    
+
     args = parser.parse_args()
-    
+
     # Ensure we're in the project root
     if not Path('pyproject.toml').exists():
         print("Error: Must be run from the project root directory")
         sys.exit(1)
-    
+
     # Create output directory
     output_dir = Path(args.output_dir) / args.version
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Generate release notes
     print(f"Generating release notes for v{args.version}...")
-    
+
     release_notes = generate_release_notes(args.version, args.previous_version)
-    
+
     # Write release notes
     release_notes_path = output_dir / "RELEASE_NOTES.md"
     release_notes_path.write_text(release_notes)
-    
+
     print(f"✅ Release notes generated: {release_notes_path}")
-    
+
     # Generate release checklist
     checklist_content = f"""# EVOSEAL v{args.version} Release Checklist
 
 ## Pre-Release Checks
 - [x] All tests are passing
-- [x] Documentation is up to date  
+- [x] Documentation is up to date
 - [x] Version numbers updated in all relevant files
 - [x] Changelog is updated with all changes
 - [x] Dependencies are up to date
@@ -296,23 +301,27 @@ def main():
 
 *Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*
 """
-    
+
     checklist_path = output_dir / "RELEASE_CHECKLIST.md"
     checklist_path.write_text(checklist_content)
-    
+
     print(f"✅ Release checklist generated: {checklist_path}")
-    
+
     # Commit if requested
     if args.commit:
         print("Committing generated files...")
         run_command(f"git add {output_dir}", capture_output=False)
-        run_command(f"git commit -m 'docs: Generate release notes for v{args.version}'", capture_output=False)
+        run_command(
+            f"git commit -m 'docs: Generate release notes for v{args.version}'",
+            capture_output=False,
+        )
         print("✅ Files committed to git")
-    
+
     print(f"\n🎉 Release documentation ready for v{args.version}!")
     print(f"📁 Files created in: {output_dir}")
     print(f"📝 Release notes: {release_notes_path}")
     print(f"📋 Checklist: {checklist_path}")
+
 
 if __name__ == "__main__":
     main()

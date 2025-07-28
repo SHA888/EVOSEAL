@@ -120,12 +120,8 @@ async def test_basic_safety_integration():
 
         print("\n6. Final safety system status...")
         final_status = pipeline.safety_integration.get_safety_status()
-        print(
-            f"   Total checkpoints: {final_status['checkpoint_manager']['total_checkpoints']}"
-        )
-        print(
-            f"   Rollback success rate: {final_status['rollback_manager']['success_rate']:.1%}"
-        )
+        print(f"   Total checkpoints: {final_status['checkpoint_manager']['total_checkpoints']}")
+        print(f"   Rollback success rate: {final_status['rollback_manager']['success_rate']:.1%}")
 
         print("\n" + "=" * 60)
         print("🎉 BASIC SAFETY INTEGRATION TEST PASSED")
@@ -209,9 +205,7 @@ async def test_evolution_cycle_integration():
         # Test checkpoint manager
         try:
             checkpoint_manager = pipeline.safety_integration.checkpoint_manager
-            components_working.append(
-                ("CheckpointManager", checkpoint_manager is not None)
-            )
+            components_working.append(("CheckpointManager", checkpoint_manager is not None))
         except Exception:
             components_working.append(("CheckpointManager", False))
 
@@ -225,17 +219,13 @@ async def test_evolution_cycle_integration():
         # Test regression detector
         try:
             regression_detector = pipeline.safety_integration.regression_detector
-            components_working.append(
-                ("RegressionDetector", regression_detector is not None)
-            )
+            components_working.append(("RegressionDetector", regression_detector is not None))
         except Exception:
             components_working.append(("RegressionDetector", False))
 
         for component_name, is_working in components_working:
             status = "✓" if is_working else "✗"
-            print(
-                f"   {status} {component_name}: {'WORKING' if is_working else 'FAILED'}"
-            )
+            print(f"   {status} {component_name}: {'WORKING' if is_working else 'FAILED'}")
 
         all_components_working = all(working for _, working in components_working)
 
@@ -284,12 +274,8 @@ async def main():
             return True
         else:
             print("❌ SOME TESTS FAILED")
-            print(
-                f"Basic Safety Integration: {'PASS' if basic_test_passed else 'FAIL'}"
-            )
-            print(
-                f"Evolution Cycle Integration: {'PASS' if cycle_test_passed else 'FAIL'}"
-            )
+            print(f"Basic Safety Integration: {'PASS' if basic_test_passed else 'FAIL'}")
+            print(f"Evolution Cycle Integration: {'PASS' if cycle_test_passed else 'FAIL'}")
             return False
 
     except Exception as e:

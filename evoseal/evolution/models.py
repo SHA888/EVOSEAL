@@ -96,9 +96,7 @@ class EvolutionResult:
         """Create from dictionary."""
         # Convert string enums back
         data["strategy"] = EvolutionStrategy(data["strategy"])
-        data["improvement_types"] = [
-            ImprovementType(t) for t in data["improvement_types"]
-        ]
+        data["improvement_types"] = [ImprovementType(t) for t in data["improvement_types"]]
         data["timestamp"] = datetime.fromisoformat(data["timestamp"])
 
         # Convert metrics

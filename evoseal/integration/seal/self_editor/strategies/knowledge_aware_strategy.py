@@ -67,13 +67,9 @@ class KnowledgeAwareStrategy(EditStrategy):
             List of relevant context entries from the KnowledgeBase as dictionaries.
         """
         # Simple implementation - can be enhanced with more sophisticated search
-        entries = self.knowledge_base.search_entries(
-            query=content, limit=self.max_context_entries
-        )
+        entries = self.knowledge_base.search_entries(query=content, limit=self.max_context_entries)
         # Convert KnowledgeEntry objects to dictionaries
-        return [
-            entry.to_dict() if hasattr(entry, "to_dict") else entry for entry in entries
-        ]
+        return [entry.to_dict() if hasattr(entry, "to_dict") else entry for entry in entries]
 
     def _analyze_content_with_context(
         self, content: str, context_entries: list[dict[str, Any]]
@@ -211,9 +207,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             )
 
         # Check for missing docstrings
-        if line_num + 1 < len(lines) and not lines[line_num + 1].strip().startswith(
-            '"""'
-        ):
+        if line_num + 1 < len(lines) and not lines[line_num + 1].strip().startswith('"""'):
             self._add_docstring_suggestion(line, func_def, func_name, suggestions)
 
     def _infer_return_type(self, func_name: str) -> str:
@@ -222,9 +216,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             return "bool"
         elif func_name.startswith(("get_", "find_", "load_", "fetch_")):
             return "Any | None"
-        elif func_name.startswith(
-            ("process_", "handle_", "save_", "update_", "delete_")
-        ):
+        elif func_name.startswith(("process_", "handle_", "save_", "update_", "delete_")):
             return "None"
         elif func_name.startswith(("create_", "make_", "build_", "generate_")):
             return "Any"
@@ -282,9 +274,7 @@ class KnowledgeAwareStrategy(EditStrategy):
                     operation=EditOperation.REWRITE,
                     criteria=[EditCriteria.BEST_PRACTICE, EditCriteria.CLARITY],
                     original_text=content,
-                    suggested_text=content.replace(
-                        "import *", "import *  # noqa: F403, F401"
-                    ),
+                    suggested_text=content.replace("import *", "import *  # noqa: F403, F401"),
                     confidence=0.9,
                     explanation="Avoid wildcard imports as they can lead to namespace pollution",
                 )
@@ -332,9 +322,7 @@ class KnowledgeAwareStrategy(EditStrategy):
             if any(tag in e.get("tags", []) for tag in ["security", "best-practices"])
         ]
 
-        if security_context and any(
-            unsafe in content for unsafe in ["input(", "eval(", "exec("]
-        ):
+        if security_context and any(unsafe in content for unsafe in ["input(", "eval(", "exec("]):
             suggestions.append(
                 EditSuggestion(
                     operation=EditOperation.CLARIFY,
@@ -360,9 +348,7 @@ class KnowledgeAwareStrategy(EditStrategy):
         context_entries = self.get_relevant_context(content)
 
         # Get suggestions from the knowledge-aware analysis
-        knowledge_suggestions = self._analyze_content_with_context(
-            content, context_entries
-        )
+        knowledge_suggestions = self._analyze_content_with_context(content, context_entries)
 
         # Get suggestions from the default strategy
         default_suggestions = self._default_strategy.evaluate(content, **kwargs)
@@ -393,9 +379,7 @@ class KnowledgeAwareStrategy(EditStrategy):
                 all_suggestions[key] = suggestion
 
         # Sort suggestions by confidence (highest first)
-        return sorted(
-            all_suggestions.values(), key=lambda x: x.confidence, reverse=True
-        )
+        return sorted(all_suggestions.values(), key=lambda x: x.confidence, reverse=True)
 
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
         """Apply a suggested edit to the content.

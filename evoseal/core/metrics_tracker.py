@@ -153,9 +153,7 @@ class MetricsTracker:
         if self.storage_path:
             self._save_metrics()
 
-    def get_latest_metrics(
-        self, test_type: Optional[str] = None
-    ) -> Optional[TestMetrics]:
+    def get_latest_metrics(self, test_type: Optional[str] = None) -> Optional[TestMetrics]:
         """Get the most recent metrics for a test type.
 
         Args:
@@ -384,9 +382,7 @@ class MetricsTracker:
             if significant is not None:
                 if significant:
                     significance_str = (
-                        "✓"
-                        if status == "improvement"
-                        else "✗" if status == "regression" else "•"
+                        "✓" if status == "improvement" else "✗" if status == "regression" else "•"
                     )
                 else:
                     significance_str = "•"
@@ -406,9 +402,7 @@ class MetricsTracker:
                     if status == "improvement"
                     else "red" if status == "regression" else "white"
                 )
-                row.extend(
-                    [f"[{sig_style}]{significance_str}[/{sig_style}]", effect_str]
-                )
+                row.extend([f"[{sig_style}]{significance_str}[/{sig_style}]", effect_str])
 
             table.add_row(*row)
 
@@ -428,9 +422,7 @@ class MetricsTracker:
             if regressions:
                 console.print(f"[red]⚠️  Regressions: {', '.join(regressions)}[/red]")
             if improvements:
-                console.print(
-                    f"[green]✅ Improvements: {', '.join(improvements)}[/green]"
-                )
+                console.print(f"[green]✅ Improvements: {', '.join(improvements)}[/green]")
 
         # Print legend
         if show_statistics:
@@ -438,9 +430,7 @@ class MetricsTracker:
                 "\n[dim]Legend: ✓ = significant improvement, ✗ = significant regression, • = not significant[/dim]"
             )
 
-    def _filter_metrics_by_type(
-        self, test_type: Optional[str] = None
-    ) -> List[TestMetrics]:
+    def _filter_metrics_by_type(self, test_type: Optional[str] = None) -> List[TestMetrics]:
         """Filter metrics by test type."""
         if test_type is None:
             return sorted(self.metrics_history, key=lambda x: x.timestamp)
@@ -558,17 +548,11 @@ class MetricsTracker:
 
                     # Calculate effect size (Cohen's d)
                     pooled_std = np.sqrt(
-                        (
-                            np.var(recent_values[field], ddof=1)
-                            * (len(recent_values[field]) - 1)
-                            + 0
-                        )
+                        (np.var(recent_values[field], ddof=1) * (len(recent_values[field]) - 1) + 0)
                         / (len(recent_values[field]) + 1 - 2)
                     )
                     if pooled_std != 0:
-                        effect_size = (
-                            current_val - np.mean(recent_values[field])
-                        ) / pooled_std
+                        effect_size = (current_val - np.mean(recent_values[field])) / pooled_std
                 except (ValueError, RuntimeWarning):
                     # Handle cases where t-test can't be performed
                     pass
@@ -591,16 +575,12 @@ class MetricsTracker:
             "current": comparison.total_tests,
             "difference": comparison.total_tests - baseline.total_tests,
             "change_pct": (
-                (comparison.total_tests - baseline.total_tests)
-                / baseline.total_tests
-                * 100
+                (comparison.total_tests - baseline.total_tests) / baseline.total_tests * 100
                 if baseline.total_tests > 0
                 else 0.0
             ),
             "direction": (
-                "increase"
-                if comparison.total_tests >= baseline.total_tests
-                else "decrease"
+                "increase" if comparison.total_tests >= baseline.total_tests else "decrease"
             ),
         }
 
@@ -610,16 +590,12 @@ class MetricsTracker:
             "current": comparison.tests_passed,
             "difference": comparison.tests_passed - baseline.tests_passed,
             "change_pct": (
-                (comparison.tests_passed - baseline.tests_passed)
-                / baseline.tests_passed
-                * 100
+                (comparison.tests_passed - baseline.tests_passed) / baseline.tests_passed * 100
                 if baseline.tests_passed > 0
                 else 0.0
             ),
             "direction": (
-                "increase"
-                if comparison.tests_passed >= baseline.tests_passed
-                else "decrease"
+                "increase" if comparison.tests_passed >= baseline.tests_passed else "decrease"
             ),
         }
 
@@ -679,9 +655,7 @@ class MetricsTracker:
             if not values:
                 continue
 
-            percentiles_dict[field] = {
-                p: float(np.percentile(values, p)) for p in percentiles
-            }
+            percentiles_dict[field] = {p: float(np.percentile(values, p)) for p in percentiles}
 
         return percentiles_dict
 
@@ -785,11 +759,7 @@ class MetricsTracker:
                 "trend": (
                     "increasing"
                     if abs(slope) > threshold and slope > 0
-                    else (
-                        "decreasing"
-                        if abs(slope) > threshold and slope < 0
-                        else "stable"
-                    )
+                    else ("decreasing" if abs(slope) > threshold and slope < 0 else "stable")
                 ),
             }
 

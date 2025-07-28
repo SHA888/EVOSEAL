@@ -52,9 +52,7 @@ class TrainingManager:
 
         # Initialize components
         self.data_collector = data_collector
-        self.fine_tuner = fine_tuner or DevstralFineTuner(
-            output_dir=self.output_dir / "models"
-        )
+        self.fine_tuner = fine_tuner or DevstralFineTuner(output_dir=self.output_dir / "models")
         self.validator = validator or ModelValidator()
         self.version_manager = version_manager or ModelVersionManager(
             versions_dir=self.output_dir / "versions"
@@ -67,9 +65,7 @@ class TrainingManager:
         self.current_training = None
         self.last_training_time = None
 
-        logger.info(
-            f"TrainingManager initialized with {min_training_samples} min samples"
-        )
+        logger.info(f"TrainingManager initialized with {min_training_samples} min samples")
 
     async def check_training_readiness(self) -> Dict[str, Any]:
         """
@@ -103,9 +99,7 @@ class TrainingManager:
                 readiness["reason"] = (
                     f"Insufficient training samples: {training_candidates} < {self.min_training_samples}"
                 )
-                logger.info(
-                    f"Training readiness: False ({training_candidates} candidates)"
-                )
+                logger.info(f"Training readiness: False ({training_candidates} candidates)")
                 return readiness
 
             # Check if training is already in progress
@@ -121,9 +115,7 @@ class TrainingManager:
 
                 if time_since_last < min_interval:
                     remaining = min_interval - time_since_last
-                    readiness["reason"] = (
-                        f"Too soon since last training. Wait {remaining}"
-                    )
+                    readiness["reason"] = f"Too soon since last training. Wait {remaining}"
                     readiness["details"]["time_since_last"] = str(time_since_last)
                     return readiness
 
@@ -177,8 +169,7 @@ class TrainingManager:
 
             # Save training data
             data_file = (
-                self.output_dir
-                / f"training_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                self.output_dir / f"training_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
 
             with open(data_file, "w") as f:
@@ -318,9 +309,7 @@ class TrainingManager:
                 "start_time": self.current_training["start_time"].isoformat(),
                 "status": self.current_training["status"],
                 "phase": self.current_training["phase"],
-                "duration": (
-                    datetime.now() - self.current_training["start_time"]
-                ).total_seconds(),
+                "duration": (datetime.now() - self.current_training["start_time"]).total_seconds(),
             }
 
         # Add readiness check

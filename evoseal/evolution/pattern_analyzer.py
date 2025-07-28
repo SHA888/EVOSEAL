@@ -85,9 +85,7 @@ class PatternAnalyzer:
 
         analysis = {
             "summary": self._generate_summary(successful_results),
-            "transformation_patterns": self._analyze_transformations(
-                successful_results
-            ),
+            "transformation_patterns": self._analyze_transformations(successful_results),
             "strategy_effectiveness": self._analyze_strategies(successful_results),
             "improvement_types": self._analyze_improvement_types(successful_results),
             "code_patterns": self._analyze_code_patterns(successful_results),
@@ -95,9 +93,7 @@ class PatternAnalyzer:
             "detected_patterns": [p.to_dict() for p in self.detected_patterns],
         }
 
-        logger.info(
-            f"Pattern analysis complete. Found {len(self.detected_patterns)} patterns"
-        )
+        logger.info(f"Pattern analysis complete. Found {len(self.detected_patterns)} patterns")
         return analysis
 
     def _generate_summary(self, results: List[EvolutionResult]) -> Dict[str, Any]:
@@ -117,9 +113,7 @@ class PatternAnalyzer:
             ).days,
         }
 
-    def _analyze_transformations(
-        self, results: List[EvolutionResult]
-    ) -> Dict[str, int]:
+    def _analyze_transformations(self, results: List[EvolutionResult]) -> Dict[str, int]:
         """Analyze common code transformations."""
         transformations = Counter()
 
@@ -139,9 +133,7 @@ class PatternAnalyzer:
 
         return dict(transformations.most_common(20))
 
-    def _detect_transformation_patterns(
-        self, original: str, improved: str
-    ) -> List[str]:
+    def _detect_transformation_patterns(self, original: str, improved: str) -> List[str]:
         """Detect specific transformation patterns between code versions."""
         patterns = []
 
@@ -155,9 +147,7 @@ class PatternAnalyzer:
             patterns.append("significant_code_expansion")
 
         # Specific code patterns
-        if "for " in original and any(
-            comp in improved for comp in ["[", "comprehension"]
-        ):
+        if "for " in original and any(comp in improved for comp in ["[", "comprehension"]):
             patterns.append("for_loop_to_comprehension")
 
         if "if __name__" not in original and "if __name__" in improved:
@@ -208,9 +198,7 @@ class PatternAnalyzer:
             if pattern_name in self._detect_transformation_patterns(
                 result.original_code, result.improved_code
             ):
-                examples.append(
-                    (result.original_code[:200], result.improved_code[:200])
-                )
+                examples.append((result.original_code[:200], result.improved_code[:200]))
                 if len(examples) >= 5:  # Limit examples
                     break
 
@@ -244,13 +232,9 @@ class PatternAnalyzer:
             "string_concatenation_optimization": "Optimized string concatenation using join()",
             "use_enumerate": "Replaced range(len()) with enumerate()",
         }
-        return descriptions.get(
-            pattern_name, f"Pattern: {pattern_name.replace('_', ' ').title()}"
-        )
+        return descriptions.get(pattern_name, f"Pattern: {pattern_name.replace('_', ' ').title()}")
 
-    def _analyze_strategies(
-        self, results: List[EvolutionResult]
-    ) -> Dict[str, Dict[str, float]]:
+    def _analyze_strategies(self, results: List[EvolutionResult]) -> Dict[str, Dict[str, float]]:
         """Analyze effectiveness of different evolution strategies."""
         strategy_scores = defaultdict(list)
 
@@ -278,9 +262,7 @@ class PatternAnalyzer:
         variance = sum((x - mean) ** 2 for x in values) / len(values)
         return variance**0.5
 
-    def _analyze_improvement_types(
-        self, results: List[EvolutionResult]
-    ) -> Dict[str, int]:
+    def _analyze_improvement_types(self, results: List[EvolutionResult]) -> Dict[str, int]:
         """Analyze types of improvements made."""
         improvement_counts = Counter()
 
@@ -308,11 +290,7 @@ class PatternAnalyzer:
                 if orig_ast and imp_ast:
                     # Count functions
                     orig_funcs = len(
-                        [
-                            n
-                            for n in ast.walk(orig_ast)
-                            if isinstance(n, ast.FunctionDef)
-                        ]
+                        [n for n in ast.walk(orig_ast) if isinstance(n, ast.FunctionDef)]
                     )
                     imp_funcs = len(
                         [n for n in ast.walk(imp_ast) if isinstance(n, ast.FunctionDef)]
@@ -325,9 +303,7 @@ class PatternAnalyzer:
                     orig_classes = len(
                         [n for n in ast.walk(orig_ast) if isinstance(n, ast.ClassDef)]
                     )
-                    imp_classes = len(
-                        [n for n in ast.walk(imp_ast) if isinstance(n, ast.ClassDef)]
-                    )
+                    imp_classes = len([n for n in ast.walk(imp_ast) if isinstance(n, ast.ClassDef)])
 
                     if imp_classes > orig_classes:
                         patterns["class_introduction"] += 1
@@ -370,9 +346,7 @@ class PatternAnalyzer:
             self._ast_cache[code] = None
             return None
 
-    def _identify_common_fixes(
-        self, results: List[EvolutionResult]
-    ) -> List[Dict[str, Any]]:
+    def _identify_common_fixes(self, results: List[EvolutionResult]) -> List[Dict[str, Any]]:
         """Identify common fixes applied across results."""
         fixes = []
         fix_patterns = Counter()
@@ -429,9 +403,7 @@ class PatternAnalyzer:
             "add_logging": "Added logging statements for debugging",
             "add_validation": "Added assertion statements for input validation",
         }
-        return descriptions.get(
-            fix_type, f"Applied fix: {fix_type.replace('_', ' ').title()}"
-        )
+        return descriptions.get(fix_type, f"Applied fix: {fix_type.replace('_', ' ').title()}")
 
     def get_training_patterns(self) -> List[Dict[str, Any]]:
         """Get patterns suitable for training data generation."""

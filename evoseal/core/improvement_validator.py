@@ -161,8 +161,7 @@ class ValidationRule:
                 # Calculate pooled standard deviation
                 n1 = n2 = sample_size
                 pooled_std = np.sqrt(
-                    ((n1 - 1) * baseline_std**2 + (n2 - 1) * current_std**2)
-                    / (n1 + n2 - 2)
+                    ((n1 - 1) * baseline_std**2 + (n2 - 1) * current_std**2) / (n1 + n2 - 2)
                 )
 
                 # Calculate Cohen's d effect size
@@ -201,9 +200,7 @@ class ValidationRule:
 
                     # Calculate confidence interval
                     se = np.sqrt((baseline_std**2 / n1) + (current_std**2 / n2))
-                    t_crit = stats.t.ppf(
-                        (1 + self.confidence_level) / 2, df=min(n1, n2) - 1
-                    )
+                    t_crit = stats.t.ppf((1 + self.confidence_level) / 2, df=min(n1, n2) - 1)
                     margin = t_crit * se
                     result["confidence_interval"] = (
                         (current - baseline) - margin,
@@ -318,12 +315,8 @@ class ImprovementValidator:
             Dictionary containing validation results with statistical analysis
         """
         # Get the metrics for comparison
-        baseline_metrics = self.metrics_tracker.get_metrics_by_id(
-            baseline_id, test_type
-        )
-        comparison_metrics = self.metrics_tracker.get_metrics_by_id(
-            comparison_id, test_type
-        )
+        baseline_metrics = self.metrics_tracker.get_metrics_by_id(baseline_id, test_type)
+        comparison_metrics = self.metrics_tracker.get_metrics_by_id(comparison_id, test_type)
 
         if not baseline_metrics or not comparison_metrics:
             return {
@@ -380,10 +373,7 @@ class ImprovementValidator:
             # Track if any required rules failed
             rule_passed = (
                 rule_result["is_valid"]
-                and (
-                    not rule_result.get("is_significant")
-                    or rule_result["is_significant"]
-                )
+                and (not rule_result.get("is_significant") or rule_result["is_significant"])
                 and rule_result.get("meets_effect_size", True)
             )
 
@@ -496,13 +486,9 @@ class ImprovementValidator:
         # Display final verdict
         console.print("\n[bold]Verdict:[/bold]", end=" ")
         if validation_result["is_improvement"]:
-            console.print(
-                "[green]✅ These changes represent a valid improvement.[/green]"
-            )
+            console.print("[green]✅ These changes represent a valid improvement.[/green]")
         else:
-            console.print(
-                "[red]❌ These changes do not meet the improvement criteria.[/red]"
-            )
+            console.print("[red]❌ These changes do not meet the improvement criteria.[/red]")
 
     def save_validation_results(
         self, validation_result: ValidationResult, output_path: Union[str, Path]
@@ -552,19 +538,13 @@ class ImprovementValidator:
 
         std_values = {}
         for field in numeric_fields:
-            values = [
-                getattr(m, field, 0) for m in historical_metrics if hasattr(m, field)
-            ]
+            values = [getattr(m, field, 0) for m in historical_metrics if hasattr(m, field)]
             if len(values) >= 2:  # Need at least 2 values to calculate std
-                std_values[field] = float(
-                    np.std(values, ddof=1)
-                )  # Sample standard deviation
+                std_values[field] = float(np.std(values, ddof=1))  # Sample standard deviation
 
         return std_values
 
-    def _calculate_rule_score(
-        self, rule: ValidationRule, result: Dict[str, Any]
-    ) -> float:
+    def _calculate_rule_score(self, rule: ValidationRule, result: Dict[str, Any]) -> float:
         """Calculate a score (0-100) for a validation rule result.
 
         Args:
@@ -575,12 +555,8 @@ class ImprovementValidator:
             Score between 0 and 100
         """
         improvement_pct = result["improvement_pct"]
-        is_significant = result.get(
-            "is_significant", True
-        )  # Assume significant if not calculated
-        meets_effect_size = result.get(
-            "meets_effect_size", True
-        )  # Assume met if not calculated
+        is_significant = result.get("is_significant", True)  # Assume significant if not calculated
+        meets_effect_size = result.get("meets_effect_size", True)  # Assume met if not calculated
 
         # Base score based on improvement percentage
         if rule.direction == ImprovementDirection.INCREASE:
@@ -652,15 +628,11 @@ class ImprovementValidator:
         else:  # txt format
             with open(output_path, "w") as f:
                 f.write(f"Validation Report\n{'='*80}\n")
-                f.write(
-                    f"Result: {'PASSED' if result_to_save['is_improvement'] else 'FAILED'}\n"
-                )
+                f.write(f"Result: {'PASSED' if result_to_save['is_improvement'] else 'FAILED'}\n")
                 f.write(
                     f"Score: {result_to_save['score']:.1f}/100 (Threshold: {self.min_improvement_score})\n"
                 )
-                f.write(
-                    f"Confidence Level: {result_to_save['confidence_level']*100:.0f}%\n"
-                )
+                f.write(f"Confidence Level: {result_to_save['confidence_level']*100:.0f}%\n")
                 f.write(
                     f"Statistical Significance: {'Yes' if result_to_save.get('has_statistical_significance', True) else 'No'}\n"
                 )
@@ -690,19 +662,13 @@ class ImprovementValidator:
                             f"\n  Current: {detail['current_value']:.2f} ± {detail.get('current_std', 0):.2f}"
                         )
                         f.write(f"\n  Improvement: {detail['improvement_pct']:+.2f}%")
-                        if (
-                            "effect_size" in detail
-                            and detail["effect_size"] is not None
-                        ):
+                        if "effect_size" in detail and detail["effect_size"] is not None:
                             f.write(f" (Effect Size: {detail['effect_size']:.2f})")
                         if "p_value" in detail and detail["p_value"] is not None:
                             f.write(
                                 f"\n  p-value: {detail['p_value']:.4f} (Significant: {'Yes' if detail.get('is_significant') else 'No'})"
                             )
-                        if (
-                            "confidence_interval" in detail
-                            and detail["confidence_interval"]
-                        ):
+                        if "confidence_interval" in detail and detail["confidence_interval"]:
                             ci = detail["confidence_interval"]
                             f.write(
                                 f"\n  {self.confidence_level*100:.0f}% CI: [{ci[0]:.2f}, {ci[1]:.2f}]"
@@ -710,9 +676,7 @@ class ImprovementValidator:
                         f.write(
                             f"\n  Score: {detail['score']:.1f}/100 (Weight: {detail['weight']}x)"
                         )
-                        f.write(
-                            f"\n  Status: {'PASS' if detail['passed'] else 'FAIL'}\n"
-                        )
+                        f.write(f"\n  Status: {'PASS' if detail['passed'] else 'FAIL'}\n")
 
     def get_validation_summary_table(self, validation_result: Dict[str, Any]) -> Table:
         """Create a rich Table with a summary of validation results.
@@ -750,11 +714,7 @@ class ImprovementValidator:
         summary_table.add_row("Score", f"{validation_result['score']:.1f}/100")
         summary_table.add_row(
             "Required Rules Passed",
-            (
-                "[green]Yes[/green]"
-                if validation_result["passed_required"]
-                else "[red]No[/red]"
-            ),
+            ("[green]Yes[/green]" if validation_result["passed_required"] else "[red]No[/red]"),
         )
         summary_table.add_row(
             "Statistical Significance",

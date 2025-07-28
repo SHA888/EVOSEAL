@@ -8,12 +8,12 @@ mock_self_editor = &lt;evoseal.integration.seal.self_editor.mock_self_editor.Moc
         # Setup test data
         test_prompt = "What is the capital of France?"
         test_context = {"user_id": "test_user"}
-    
+
         # Process the prompt
 &gt;       result = await enhanced_seal_system.process_prompt(test_prompt, test_context)
 
-tests/unit/seal/test_enhanced_seal_system.py:107: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:107:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede12a0&gt;
 prompt_text = 'What is the capital of France?', context = {'user_id': 'test_user'}
@@ -28,16 +28,16 @@ template_name = None, kwargs = {}
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -47,7 +47,7 @@ template_name = None, kwargs = {}
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -59,18 +59,18 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
         """Test that caching works as expected."""
         # Clear any existing cache
         enhanced_seal_system.clear_cache()
-    
+
         # Enable caching for this test
         enhanced_seal_system.config.enable_caching = True
-    
+
         test_prompt = "What is the capital of France?"
         test_context = {"test": "caching_test"}
-    
+
         # First call - should miss cache
 &gt;       result1 = await enhanced_seal_system.process_prompt(test_prompt, test_context)
 
-tests/unit/seal/test_enhanced_seal_system.py:133: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:133:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf08e5f0&gt;
 prompt_text = 'What is the capital of France?', context = {'test': 'caching_test'}
@@ -85,16 +85,16 @@ template_name = None, kwargs = {}
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -104,7 +104,7 @@ template_name = None, kwargs = {}
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -119,8 +119,8 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
         for prompt in prompts:
 &gt;           await enhanced_seal_system.process_prompt(prompt)
 
-tests/unit/seal/test_enhanced_seal_system.py:157: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:157:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdefb8400&gt;
 prompt_text = 'Test 1', context = {}, template_name = None, kwargs = {}
@@ -134,16 +134,16 @@ prompt_text = 'Test 1', context = {}, template_name = None, kwargs = {}
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -153,7 +153,7 @@ prompt_text = 'Test 1', context = {}, template_name = None, kwargs = {}
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -165,12 +165,12 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
         """Test that conversation history is maintained correctly."""
         # Clear any existing history
         enhanced_seal_system.conversation_history.clear()
-    
+
         # Add some messages
 &gt;       await enhanced_seal_system.process_prompt("Hello")
 
-tests/unit/seal/test_enhanced_seal_system.py:176: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:176:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf08ce50&gt;
 prompt_text = 'Hello', context = {}, template_name = None, kwargs = {}
@@ -184,16 +184,16 @@ prompt_text = 'Hello', context = {}, template_name = None, kwargs = {}
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -203,7 +203,7 @@ prompt_text = 'Hello', context = {}, template_name = None, kwargs = {}
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -217,8 +217,8 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
         now_naive = datetime.now()
 &gt;       await enhanced_seal_system.process_prompt("Test timezone", {"timestamp": now_naive})
 
-tests/unit/seal/test_enhanced_seal_system.py:222: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:222:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdede2ad0&gt;
 prompt_text = 'Test timezone'
@@ -234,16 +234,16 @@ kwargs = {}
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -253,7 +253,7 @@ kwargs = {}
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -266,7 +266,7 @@ mock_self_editor = &lt;evoseal.integration.seal.self_editor.mock_self_editor.Moc
         """Test that self-editing can be disabled."""
         # Disable self-editing
         enhanced_seal_system.config.enable_self_editing = False
-    
+
         # Create a test suggestion
         test_suggestion = {
             "type": "fact_verification",
@@ -276,17 +276,17 @@ mock_self_editor = &lt;evoseal.integration.seal.self_editor.mock_self_editor.Moc
             "confidence": 0.9,
             "explanation": "Test edit",
         }
-    
+
         # Patch the suggest_edits method to return our test suggestion
         with patch.object(
             mock_self_editor, "suggest_edits", return_value=[test_suggestion]
         ) as mock_suggest:
-    
+
             # Process a prompt
 &gt;           await enhanced_seal_system.process_prompt("Test prompt", context={"test": "context"})
 
-tests/unit/seal/test_enhanced_seal_system.py:256: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:256:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdf051ab0&gt;
 prompt_text = 'Test prompt', context = {'test': 'context'}, template_name = None, kwargs = {}
@@ -300,16 +300,16 @@ prompt_text = 'Test prompt', context = {'test': 'context'}, template_name = None
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -319,7 +319,7 @@ prompt_text = 'Test prompt', context = {'test': 'context'}, template_name = None
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -336,25 +336,25 @@ mock_knowledge_base = &lt;evoseal.integration.seal.knowledge.mock_knowledge_base
             {"content": "Test knowledge 1", "score": 0.9, "metadata": {}},
             {"content": "Test knowledge 2", "score": 0.8, "metadata": {}},
         ]
-    
+
         # Configure mock to return test results on first call, empty on subsequent calls
         mock_knowledge_base.search.side_effect = [
             test_results,  # First call
             [],  # Second call (should use cache)
         ]
-    
+
         # First call - should query knowledge base
         results = await enhanced_seal_system.retrieve_relevant_knowledge(test_query, context={})
 &gt;       assert results == test_results
 E       AssertionError: assert [] == [{'content': ...'score': 0.8}]
-E         
+E
 E         Right contains 2 more items, first extra item: #x1B[0m{#x1B[33m'#x1B[39;49;00m#x1B[33mcontent#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: #x1B[33m'#x1B[39;49;00m#x1B[33mTest knowledge 1#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m, #x1B[33m'#x1B[39;49;00m#x1B[33mmetadata#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: {}, #x1B[33m'#x1B[39;49;00m#x1B[33mscore#x1B[39;49;00m#x1B[33m'#x1B[39;49;00m: #x1B[94m0.9#x1B[39;49;00m}#x1B[90m#x1B[39;49;00m
-E         
+E
 E         Full diff:
 E         #x1B[0m#x1B[92m+ []#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
 E         #x1B[91m- [#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
 E         #x1B[91m-     {#x1B[39;49;00m#x1B[90m#x1B[39;49;00m...
-E         
+E
 E         ...Full output truncated (10 lines hidden), use '-vv' to show
 
 tests/unit/seal/test_enhanced_seal_system.py:280: AssertionError</failure></testcase><testcase classname="tests.unit.seal.test_enhanced_seal_system" name="test_self_edit_process" time="0.003"><failure message="NameError: name 'time' is not defined">enhanced_seal_system = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdedc8670&gt;
@@ -366,17 +366,17 @@ mock_knowledge_base = &lt;evoseal.integration.seal.knowledge.mock_knowledge_base
         """Test the self-editing process."""
         # Enable self-editing for this test
         enhanced_seal_system.config.enable_self_editing = True
-    
+
         # Set up test data
         test_prompt = "Test prompt"
         test_context = {"user_id": "test_user"}
         test_knowledge = [
             {"content": "Test knowledge 1", "score": 0.9, "metadata": {}},
         ]
-    
+
         # Configure mock knowledge base
         mock_knowledge_base.search.return_value = test_knowledge
-    
+
         # Configure mock editor with a test suggestion
         test_suggestion = {
             "type": "clarity_improvement",
@@ -386,17 +386,17 @@ mock_knowledge_base = &lt;evoseal.integration.seal.knowledge.mock_knowledge_base
             "confidence": 0.9,
             "explanation": "Improved clarity",
         }
-    
+
         # Patch the suggest_edits method
         with patch.object(
             mock_self_editor, "suggest_edits", return_value=[test_suggestion]
         ) as mock_suggest:
-    
+
             # Process a prompt that will trigger self-editing
 &gt;           response = await enhanced_seal_system.process_prompt(test_prompt, context=test_context)
 
-tests/unit/seal/test_enhanced_seal_system.py:319: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_enhanced_seal_system.py:319:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdedc8670&gt;
 prompt_text = 'Test prompt', context = {'user_id': 'test_user'}, template_name = None, kwargs = {}
@@ -410,16 +410,16 @@ prompt_text = 'Test prompt', context = {'user_id': 'test_user'}, template_name =
     ) -&gt; Dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
-    
+
         Args:
             prompt_text: The input prompt text to process
             context: Optional context dictionary for the prompt
             template_name: Optional name of the template to use
             **kwargs: Additional arguments for prompt construction
-    
+
         Returns:
             Dictionary containing the response and metadata
-    
+
         Raises:
             ValueError: If prompt_text is empty or contains only whitespace
         """
@@ -429,7 +429,7 @@ prompt_text = 'Test prompt', context = {'user_id': 'test_user'}, template_name =
                 self.metrics.request_count += 1
                 self.metrics.record_error(ValueError("Empty prompt text"))
             raise ValueError("Prompt text cannot be empty")
-    
+
         context = context or {}
 &gt;       start_time = time.time()
 E       NameError: name 'time' is not defined
@@ -442,11 +442,11 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
         from evoseal.integration.seal.enhanced_seal_system import EnhancedSEALSystem, SEALConfig
         from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
         from evoseal.integration.seal.prompt.constructor import PromptTemplate
-    
+
         # Create a mock knowledge base
         mock_kb = MagicMock(spec=KnowledgeBase)
         mock_kb.search = AsyncMock(return_value=[])
-    
+
         # Create SEAL system with caching enabled
         config = SEALConfig(
             enable_caching=True,  # This enables all caching, including templates
@@ -457,7 +457,7 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
             config=config,
             knowledge_base=mock_kb,
         )
-    
+
         # Create a test template
         test_template = PromptTemplate(
             name="test_template",
@@ -466,18 +466,18 @@ evoseal/integration/seal/enhanced_seal_system.py:328: NameError</failure></testc
             description="A test template",
             required_fields={"user_input"},
         )
-    
+
         # Add the template to the system's prompt constructor
         system.prompt_constructor.add_template(test_template)
-    
+
         # Manually add the template to the cache
         system._template_cache["test_template"] = test_template
-    
+
         # Get the template - should be in cache
 &gt;       template1 = await system._get_cached_template("test_template")
 
-tests/unit/seal/test_prompt_templates.py:195: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/seal/test_prompt_templates.py:195:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.integration.seal.enhanced_seal_system.EnhancedSEALSystem object at 0x7fcbdefb1570&gt;
 template_name = 'test_template'
@@ -486,7 +486,7 @@ template_name = 'test_template'
         """Get a compiled template from cache or load it."""
         if not self.config.enable_caching:
             return None
-    
+
         if template_name in self._template_cache:
 &gt;           self._last_accessed[template_name] = time.time()
 E           NameError: name 'time' is not defined
@@ -501,11 +501,11 @@ handler = &lt;MagicMock spec='Callable' id='140513575876784'&gt;
     async def publish(self, event: Event | str, **kwargs: Any) -&gt; Event:
         """
         Publish an event to all subscribers.
-    
+
         Args:
             event: Event instance or event type string
             **kwargs: Additional data for the event
-    
+
         Returns:
             The event object after processing
         """
@@ -515,42 +515,42 @@ handler = &lt;MagicMock spec='Callable' id='140513575876784'&gt;
         elif kwargs:
             # Update event data with any additional kwargs
             event.data.update(kwargs)
-    
+
         # Get event type as string for handler lookup
         event_type = (
             event.event_type.value
             if isinstance(event.event_type, EventType)
             else str(event.event_type)
         )
-    
+
         # Get all relevant handlers
         handlers = self._default_handlers.copy()
         if event_type in self._handlers:
             handlers.extend(self._handlers[event_type])
-    
+
         # Sort by priority (highest first)
         handlers.sort(key=lambda x: cast(int, x["priority"]), reverse=True)
-    
+
         # Process handlers
         for handler_info in handlers:
             if event._stop_propagation:
                 break
-    
+
             # Skip if filter doesn't pass
             if handler_info.get("filter_fn") and not handler_info["filter_fn"](event):
                 continue
-    
+
             try:
                 handler = handler_info["handler"]
 &gt;               if asyncio.iscoroutinefunction(handler) or asyncio.iscoroutine(handler):
 
-evoseal/core/events.py:532: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+evoseal/core/events.py:532:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 /usr/lib/python3.10/asyncio/coroutines.py:182: in iscoroutine
     if isinstance(obj, _COROUTINE_TYPES):
 /usr/lib/python3.10/abc.py:119: in __instancecheck__
     return _abc_instancecheck(cls, instance)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 cls = &lt;class 'collections.abc.Coroutine'&gt;
 subclass = collections.abc.Callable[[evoseal.core.events.Event], None]
@@ -572,20 +572,20 @@ self = &lt;tests.unit.test_event_system.TestEventSystem object at 0x7fcbdf573100
         bus = EventBus()
         # Create a properly typed mock handler
         handler = MagicMock(spec=Callable[[Event], None])
-    
+
         # Subscribe handler
         bus.subscribe("test_event", handler)
-    
+
         # Publish event
         event_data = {"key": "value"}
         event = Event("test_event", "test_source", event_data)
 &gt;       await bus.publish(event)
 
-tests/unit/test_event_system.py:91: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_event_system.py:91:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 evoseal/core/events.py:538: in publish
     f"Error in {handler_info['handler'].__name__} "
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;MagicMock spec='Callable' id='140513575876784'&gt;, name = '__name__'
 
@@ -606,7 +606,7 @@ mock_repo = &lt;MagicMock name='Repo' id='140513596742416'&gt;
         # Setup
         branch_name = "feature-branch"
         mock_repo.return_value = self.mock_repo
-    
+
         # Test checkout existing branch
         result = self.manager.checkout_branch(self.repo_name, branch_name)
 &gt;       self.assertTrue(result)
@@ -621,30 +621,30 @@ mock_repo = &lt;MagicMock name='Repo' id='140513596994752'&gt;
         # Setup
         tag_name = "v1.0.0"
         mock_repo.return_value = self.mock_repo
-    
+
         # Test create tag
 &gt;       result = self.manager.create_tag(
             self.repo_name, tag_name, "Release 1.0.0", "abc123"
         )
 
-tests/unit/test_repository_manager.py:147: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_repository_manager.py:147:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbddbef880&gt;, repo_name = 'test-repo'
 tag_name = 'v1.0.0', message = 'Release 1.0.0', commit = 'abc123'
 
     def create_tag(self, repo_name: str, tag_name: str, message: str = '', commit: str = 'HEAD') -&gt; bool:
         """Create a tag at the specified commit.
-    
+
         Args:
             repo_name: Name of the repository
             tag_name: Name of the tag
             message: Tag message
             commit: Commit to tag (default: HEAD)
-    
+
         Returns:
             bool: True if tag was created successfully
-    
+
         Raises:
             RepositoryError: If tag creation fails
         """
@@ -662,29 +662,29 @@ mock_repo = &lt;MagicMock name='Repo' id='140513573198704'&gt;
         # Setup
         mock_repo.return_value = self.mock_repo
         self.mock_repo.git.diff.return_value = "diff output"
-    
+
         # Test get diff
 &gt;       result = self.manager.get_diff(
             self.repo_name, "main", "feature-branch"
         )
 
-tests/unit/test_repository_manager.py:165: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_repository_manager.py:165:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdda335e0&gt;, repo_name = 'test-repo'
 base = 'main', compare = 'feature-branch'
 
     def get_diff(self, repo_name: str, base: str = 'HEAD', compare: str = None) -&gt; str:
         """Get the diff between two commits or branches.
-    
+
         Args:
             repo_name: Name of the repository
             base: Base commit/branch
             compare: Compare commit/branch (default: working directory)
-    
+
         Returns:
             str: Diff output
-    
+
         Raises:
             RepositoryError: If diff cannot be generated
         """
@@ -702,31 +702,31 @@ mock_repo = &lt;MagicMock name='Repo' id='140513575986720'&gt;
         # Setup
         source_branch = "feature-branch"
         target_branch = "main"
-    
+
         # Make merge raise a conflict error
         self.mock_repo.git.merge.side_effect = GitCommandError("merge", "CONFLICT")
         self.mock_repo.index.unmerged = ["file1.txt", "file2.txt"]
         mock_repo.return_value = self.mock_repo
-    
+
         # Test merge with conflict
         with self.assertRaises(ConflictError) as cm:
 &gt;           self.manager.merge_branch(self.repo_name, source_branch, target_branch)
 
-tests/unit/test_repository_manager.py:112: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_repository_manager.py:112:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
     def merge_branch(self, repo_name: str, source_branch: str, target_branch: str, no_ff: bool = False) -&gt; Dict[str, Any]:
         """Merge changes from source branch into target branch.
-    
+
         Args:
             repo_name: Name of the repository
             source_branch: Branch to merge from
             target_branch: Branch to merge into
             no_ff: If True, create a merge commit even if fast-forward is possible
-    
+
         Returns:
             Dictionary with merge result
-    
+
         Raises:
             RepositoryError: For general repository errors
             MergeError: If merge fails
@@ -747,30 +747,30 @@ mock_repo = &lt;MagicMock name='Repo' id='140513575818752'&gt;
         source_branch = "feature-branch"
         target_branch = "main"
         mock_repo.return_value = self.mock_repo
-    
+
         # Test merge
 &gt;       result = self.manager.merge_branch(
             self.repo_name, source_branch, target_branch
         )
 
-tests/unit/test_repository_manager.py:89: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_repository_manager.py:89:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdd8bfdc0&gt;, repo_name = 'test-repo'
 source_branch = 'feature-branch', target_branch = 'main', no_ff = False
 
     def merge_branch(self, repo_name: str, source_branch: str, target_branch: str, no_ff: bool = False) -&gt; Dict[str, Any]:
         """Merge changes from source branch into target branch.
-    
+
         Args:
             repo_name: Name of the repository
             source_branch: Branch to merge from
             target_branch: Branch to merge into
             no_ff: If True, create a merge commit even if fast-forward is possible
-    
+
         Returns:
             Dictionary with merge result
-    
+
         Raises:
             RepositoryError: For general repository errors
             MergeError: If merge fails
@@ -793,27 +793,27 @@ mock_repo = &lt;MagicMock name='Repo' id='140513594468448'&gt;
             "file2.txt": "resolved content 2"
         }
         mock_repo.return_value = self.mock_repo
-    
+
         # Test resolve conflicts
         with patch('builtins.open', unittest.mock.mock_open()) as mock_file:
 &gt;           result = self.manager.resolve_conflicts(self.repo_name, resolution)
 
-tests/unit/test_repository_manager.py:130: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_repository_manager.py:130:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdf538fd0&gt;, repo_name = 'test-repo'
 resolution = {'file1.txt': 'resolved content 1', 'file2.txt': 'resolved content 2'}
 
     def resolve_conflicts(self, repo_name: str, resolution: Dict[str, str]) -&gt; bool:
         """Resolve merge conflicts by providing resolutions for conflicted files.
-    
+
         Args:
             repo_name: Name of the repository
             resolution: Dictionary mapping file paths to their resolved content
-    
+
         Returns:
             bool: True if conflicts were resolved successfully
-    
+
         Raises:
             RepositoryError: For general repository errors
         """
@@ -830,26 +830,26 @@ mock_repo = &lt;MagicMock name='Repo' id='140513594156912'&gt;
         """Test stash operations."""
         # Setup
         mock_repo.return_value = self.mock_repo
-    
+
         # Test stash changes
 &gt;       result = self.manager.stash_changes(self.repo_name, "WIP: Test stash")
 
-tests/unit/test_repository_manager.py:180: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/test_repository_manager.py:180:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = &lt;evoseal.core.repository.RepositoryManager object at 0x7fcbdd8c4a90&gt;, repo_name = 'test-repo'
 message = 'WIP: Test stash'
 
     def stash_changes(self, repo_name: str, message: str = '') -&gt; bool:
         """Stash changes in the working directory.
-    
+
         Args:
             repo_name: Name of the repository
             message: Optional stash message
-    
+
         Returns:
             bool: True if changes were stashed successfully
-    
+
         Raises:
             RepositoryError: If stash operation fails
         """
@@ -863,14 +863,14 @@ evoseal/core/repository.py:406: RepositoryNotFoundError</failure></testcase><tes
         with temp_environment(env_vars={"TEST_VAR": "test_value"}) as env:
             # Test environment variables
             assert os.environ["TEST_VAR"] == "test_value"
-    
+
             # Test directory creation
             test_dir = env.create_dir("test_dir")
             test_file = env.create_file("test_dir/file.txt", "content")
-    
+
             assert test_dir.exists()
             assert test_file.exists()
-    
+
         # Everything should be cleaned up
 &gt;       assert "TEST_VAR" not in os.environ
 E       AssertionError: assert 'TEST_VAR' not in environ({'SHELL': '/bin/bash', 'COLORTERM': 'truecolor', 'NVM_INC': '/home/kade/.nvm/versions/node/v18.20.8/include/node', 'TERM_PROGRAM_VERSION': '1.99.3', 'PWD': '/home/kade/EVOSEAL', 'LOGNAME': 'kade', 'XDG_SESSION_TYPE': 'tty', 'VSCODE_GIT_ASKPASS_NODE': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/node', 'MOTD_SHOWN': 'pam', 'HOME': '/home/kade', 'LANG': 'C.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35...: '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/extensions/git/dist/askpass-main.js', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'BROWSER': '/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/helpers/browser.sh', 'PATH': '/home/kade/EVOSEAL/.venv/bin:/home/kade/EVOSEAL/.venv/bin:/home/kade/.windsurf-server/bin/7ebe3c84f46e15cc83584023b53a4988df13f475/bin/remote-cli:/home/kade/.local/bin:/home/kade/.nvm/versions/node/v18.20.8/bin:/home/kade/.cargo/bin:/home/kade/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'NVM_BIN': '/home/kade/.nvm/versions/node/v18.20.8/bin', 'TERM_PROGRAM': 'vscode', 'VSCODE_IPC_HOOK_CLI': '/run/user/1000/vscode-ipc-121a1e6a-0156-4f39-833e-fc033f43efe7.sock', '_': '/home/kade/EVOSEAL/.venv/bin/python', 'PYTEST_VERSION': '8.4.1', 'COV_CORE_SOURCE': 'evoseal', 'COV_CORE_CONFIG': ':', 'COV_CORE_DATAFILE': '/home/kade/EVOSEAL/.coverage', 'TEST_VAR': 'initial_value', 'PYTEST_CURRENT_TEST': 'tests/unit/utils/test_testing_utils.py::test_temp_environment (call)'})

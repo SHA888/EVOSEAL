@@ -33,10 +33,8 @@ class Metrics:
         return {
             "request_count": self.request_count,
             "error_count": self.error_count,
-            "success_rate": (self.request_count - self.error_count)
-            / max(1, self.request_count),
-            "cache_hit_rate": self.cache_hits
-            / max(1, self.cache_hits + self.cache_misses),
+            "success_rate": (self.request_count - self.error_count) / max(1, self.request_count),
+            "cache_hit_rate": self.cache_hits / max(1, self.cache_hits + self.cache_misses),
             "avg_processing_time": (
                 sum(self.processing_times) / len(self.processing_times)
                 if self.processing_times

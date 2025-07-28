@@ -58,9 +58,7 @@ def worker_status(
     ] = None,
     worker_type: Annotated[
         str | None,
-        typer.Option(
-            "--type", "-t", help="Filter workers by type (seal, openevolve, dgm)."
-        ),
+        typer.Option("--type", "-t", help="Filter workers by type (seal, openevolve, dgm)."),
     ] = None,
 ) -> None:
     format: Annotated[
@@ -199,9 +197,7 @@ def system_status(
                 if component["status"] in ["running", "operational"]
                 else "🔴" if component["status"] in ["failed", "error"] else "🟡"
             )
-            typer.echo(
-                f"  {status_color} {component['name']}: {component['status'].upper()}"
-            )
+            typer.echo(f"  {status_color} {component['name']}: {component['status'].upper()}")
 
         typer.echo("\nResource Usage:")
         resources = status_info["resources"]

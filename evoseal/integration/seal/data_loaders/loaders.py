@@ -23,9 +23,7 @@ class DataLoader(ABC, Generic[T]):
     """Abstract base class for data loaders."""
 
     @classmethod
-    def from_file(
-        cls, file_path: Union[str, Path], model: Type[T], **kwargs: Any
-    ) -> List[T]:
+    def from_file(cls, file_path: Union[str, Path], model: Type[T], **kwargs: Any) -> List[T]:
         """Load data from a file.
 
         Args:

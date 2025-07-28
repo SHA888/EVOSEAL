@@ -84,9 +84,7 @@ class BatchLoader:
                     result = future.result()
                     results.extend(result)
                 except Exception as e:
-                    self.logger.warning(
-                        f"Error loading file {file_path}: {str(e)}", exc_info=True
-                    )
+                    self.logger.warning(f"Error loading file {file_path}: {str(e)}", exc_info=True)
                 finally:
                     if pbar is not None:
                         pbar.update(1)
@@ -96,9 +94,7 @@ class BatchLoader:
 
         return results
 
-    def _load_single_file(
-        self, file_path: Union[str, Path], model: Type[T], **kwargs
-    ) -> List[T]:
+    def _load_single_file(self, file_path: Union[str, Path], model: Type[T], **kwargs) -> List[T]:
         """Load a single file with error handling."""
         try:
             return load_data(file_path, model, **kwargs)

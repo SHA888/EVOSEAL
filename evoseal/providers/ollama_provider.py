@@ -109,15 +109,11 @@ class OllamaProvider(SEALProvider):
 
                     response_text = result.get("response", "")
 
-                    logger.debug(
-                        f"Received response from Ollama ({len(response_text)} chars)"
-                    )
+                    logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
                     return response_text
 
         except asyncio.TimeoutError as e:
-            logger.error(
-                f"Timeout error communicating with Ollama after {self.timeout}s: {e}"
-            )
+            logger.error(f"Timeout error communicating with Ollama after {self.timeout}s: {e}")
             raise Exception(f"Ollama request timed out after {self.timeout} seconds")
         except aiohttp.ClientError as e:
             logger.error(f"Network error communicating with Ollama: {e}")
@@ -189,9 +185,7 @@ class OllamaProvider(SEALProvider):
             True if healthy, False otherwise
         """
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
                 # Check if Ollama is running
                 async with session.get(f"{self.base_url}/api/tags") as response:
                     if response.status != 200:
@@ -207,9 +201,7 @@ class OllamaProvider(SEALProvider):
                         )
                         return False
 
-                    logger.info(
-                        f"Ollama health check passed. Model {self.model} is available."
-                    )
+                    logger.info(f"Ollama health check passed. Model {self.model} is available.")
                     return True
 
         except Exception as e:

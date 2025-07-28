@@ -22,11 +22,7 @@ from evoseal.core.error_recovery import (
 from evoseal.core.errors import BaseError, ErrorCategory, ErrorSeverity
 from evoseal.core.evolution_pipeline import EvolutionPipeline
 from evoseal.core.logging_system import get_logger, logging_manager
-from evoseal.core.resilience import (
-    CircuitBreakerConfig,
-    ComponentHealth,
-    resilience_manager,
-)
+from evoseal.core.resilience import CircuitBreakerConfig, ComponentHealth, resilience_manager
 from evoseal.core.resilience_integration import (
     get_resilience_status,
     initialize_resilience_system,
@@ -118,9 +114,7 @@ class ResilienceDemo:
         )
 
         # Register recovery strategies
-        resilience_manager.register_recovery_strategy(
-            "demo", self._demo_recovery_strategy
-        )
+        resilience_manager.register_recovery_strategy("demo", self._demo_recovery_strategy)
 
         logger.info("Resilience mechanisms configured")
 
@@ -134,18 +128,14 @@ class ResilienceDemo:
         logger.info("Using fallback for critical component")
         return "FALLBACK: Emergency response from critical component"
 
-    async def _demo_recovery_strategy(
-        self, component: str, operation: str, error: Exception
-    ):
+    async def _demo_recovery_strategy(self, component: str, operation: str, error: Exception):
         """Custom recovery strategy for demo."""
         logger.info(f"Executing custom recovery for {component}:{operation}")
         await asyncio.sleep(0.5)  # Simulate recovery time
         logger.info(f"Recovery completed for {component}")
 
     @with_error_recovery("demo", "run_with_resilience")
-    async def run_component_with_resilience(
-        self, component_name: str, data: str
-    ) -> str:
+    async def run_component_with_resilience(self, component_name: str, data: str) -> str:
         """Run a component operation with full resilience support."""
         component = self.components[component_name]
 
@@ -160,9 +150,7 @@ class ResilienceDemo:
         # Make multiple calls to trigger circuit breaker
         for i in range(10):
             try:
-                result = await self.run_component_with_resilience(
-                    "unreliable", f"request_{i}"
-                )
+                result = await self.run_component_with_resilience("unreliable", f"request_{i}")
                 logger.info(f"Call {i+1}: {result}")
             except Exception as e:
                 logger.warning(f"Call {i+1} failed: {e}")
@@ -182,17 +170,13 @@ class ResilienceDemo:
         for component_name in self.components.keys():
             for i in range(5):
                 try:
-                    await self.run_component_with_resilience(
-                        component_name, f"health_check_{i}"
-                    )
+                    await self.run_component_with_resilience(component_name, f"health_check_{i}")
                 except Exception:  # nosec B110
                     pass  # Expected failures for demo purposes
 
         # Show health metrics
         for component_name in self.components.keys():
-            health = resilience_manager.health_monitor.get_component_health(
-                component_name
-            )
+            health = resilience_manager.health_monitor.get_component_health(component_name)
             if health:
                 logger.info(
                     f"{component_name} health: {health.health_status.value} "
@@ -213,9 +197,7 @@ class ResilienceDemo:
         for component_name, description in scenarios:
             logger.info(f"Testing {component_name}: {description}")
             try:
-                result = await self.run_component_with_resilience(
-                    component_name, "recovery_test"
-                )
+                result = await self.run_component_with_resilience(component_name, "recovery_test")
                 logger.info(f"Result: {result}")
             except Exception as e:
                 logger.error(f"Final failure: {e}")
@@ -275,9 +257,7 @@ class ResilienceDemo:
         ]
 
         results = []
-        for step_num, (component_name, step_description) in enumerate(
-            pipeline_steps, 1
-        ):
+        for step_num, (component_name, step_description) in enumerate(pipeline_steps, 1):
             logger.log_pipeline_stage(
                 f"step_{step_num}",
                 "started",
@@ -305,9 +285,7 @@ class ResilienceDemo:
                 )
 
             except Exception as e:
-                logger.log_pipeline_stage(
-                    f"step_{step_num}", "failed", iteration=1, error=str(e)
-                )
+                logger.log_pipeline_stage(f"step_{step_num}", "failed", iteration=1, error=str(e))
                 logger.log_error_with_context(
                     error=e,
                     component=component_name,
@@ -339,9 +317,7 @@ class ResilienceDemo:
         recovery_stats = error_recovery_manager.get_recovery_statistics()
         if recovery_stats:
             logger.info(f"Recovery attempts: {recovery_stats.get('total_attempts', 0)}")
-            logger.info(
-                f"Recovery success rate: {recovery_stats.get('success_rate', 0):.2%}"
-            )
+            logger.info(f"Recovery success rate: {recovery_stats.get('success_rate', 0):.2%}")
 
         # Resilience status
         resilience_status = get_resilience_status()

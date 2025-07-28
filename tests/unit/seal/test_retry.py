@@ -97,9 +97,9 @@ class TestRetry(unittest.TestCase):
         self.mock_system_random.return_value.random.return_value = 0.5
 
         mock_func = MagicMock(side_effect=[Exception(), Exception(), "success"])
-        decorated = retry(
-            max_retries=3, initial_delay=0.1, backoff_factor=2, max_delay=1.0
-        )(mock_func)
+        decorated = retry(max_retries=3, initial_delay=0.1, backoff_factor=2, max_delay=1.0)(
+            mock_func
+        )
 
         result = decorated()
 
@@ -108,9 +108,7 @@ class TestRetry(unittest.TestCase):
         # First delay: min(0.1 * 2^0, 1.0) * 1.0 = 0.1 * 1.0 = 0.1
         # Second delay: min(0.1 * 2^1, 1.0) * 1.0 = 0.2 * 1.0 = 0.2
         expected_sleeps = [0.1, 0.2]
-        actual_sleeps = [
-            round(call[0][0], 10) for call in self.mock_sleep.call_args_list
-        ]
+        actual_sleeps = [round(call[0][0], 10) for call in self.mock_sleep.call_args_list]
         self.assertEqual(actual_sleeps, expected_sleeps)
 
     async def test_async_retry(self):
@@ -151,9 +149,7 @@ class TestRetry(unittest.TestCase):
             ]
         )
 
-        decorated = retry(exceptions=(ValidationError, TemplateError), max_retries=3)(
-            mock_func
-        )
+        decorated = retry(exceptions=(ValidationError, TemplateError), max_retries=3)(mock_func)
 
         result = decorated()
         self.assertEqual(result, "success")
@@ -161,9 +157,7 @@ class TestRetry(unittest.TestCase):
 
     def test_retry_with_retryable_error(self):
         """Test that RetryableError triggers a retry."""
-        mock_func = MagicMock(
-            side_effect=[RetryableError("Temporary failure"), "success"]
-        )
+        mock_func = MagicMock(side_effect=[RetryableError("Temporary failure"), "success"])
 
         decorated = retry(max_retries=1)(mock_func)
         result = decorated()
@@ -221,9 +215,7 @@ class TestRetry(unittest.TestCase):
             decorated()
 
         # The retry decorator with negative retries should fail immediately
-        self.assertEqual(
-            str(context.exception), "Retry failed but no exception was caught"
-        )
+        self.assertEqual(str(context.exception), "Retry failed but no exception was caught")
 
 
 if __name__ == "__main__":

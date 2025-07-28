@@ -101,9 +101,7 @@ class ExperimentIntegration:
         logger.info(f"Created evolution experiment {experiment.id}: {name}")
         return experiment
 
-    def start_evolution_experiment(
-        self, experiment_id: Optional[str] = None
-    ) -> Experiment:
+    def start_evolution_experiment(self, experiment_id: Optional[str] = None) -> Experiment:
         """Start an evolution experiment.
 
         Args:
@@ -113,9 +111,7 @@ class ExperimentIntegration:
             Started experiment
         """
         if experiment_id:
-            experiment = self.version_tracker.experiment_db.get_experiment(
-                experiment_id
-            )
+            experiment = self.version_tracker.experiment_db.get_experiment(experiment_id)
             if not experiment:
                 raise ValueError(f"Experiment {experiment_id} not found")
             self.current_experiment = experiment
@@ -151,9 +147,7 @@ class ExperimentIntegration:
             Completed experiment
         """
         if experiment_id:
-            experiment = self.version_tracker.experiment_db.get_experiment(
-                experiment_id
-            )
+            experiment = self.version_tracker.experiment_db.get_experiment(experiment_id)
             if not experiment:
                 raise ValueError(f"Experiment {experiment_id} not found")
         elif not self.current_experiment:
@@ -190,9 +184,7 @@ class ExperimentIntegration:
             Failed experiment
         """
         if experiment_id:
-            experiment = self.version_tracker.experiment_db.get_experiment(
-                experiment_id
-            )
+            experiment = self.version_tracker.experiment_db.get_experiment(experiment_id)
             if not experiment:
                 raise ValueError(f"Experiment {experiment_id} not found")
         elif not self.current_experiment:
@@ -201,9 +193,7 @@ class ExperimentIntegration:
             experiment = self.current_experiment
 
         # Mark as failed
-        experiment.fail(
-            error_message=str(error), error_traceback=traceback.format_exc()
-        )
+        experiment.fail(error_message=str(error), error_traceback=traceback.format_exc())
 
         # Save to database
         self.version_tracker.experiment_db.save_experiment(experiment)
@@ -438,9 +428,7 @@ class ExperimentIntegration:
 
         return artifact.id
 
-    def get_experiment_summary(
-        self, experiment_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def get_experiment_summary(self, experiment_id: Optional[str] = None) -> Dict[str, Any]:
         """Get a summary of an experiment.
 
         Args:
@@ -450,9 +438,7 @@ class ExperimentIntegration:
             Experiment summary
         """
         if experiment_id:
-            experiment = self.version_tracker.experiment_db.get_experiment(
-                experiment_id
-            )
+            experiment = self.version_tracker.experiment_db.get_experiment(experiment_id)
         elif self.current_experiment:
             experiment = self.current_experiment
         else:
@@ -462,9 +448,7 @@ class ExperimentIntegration:
             raise ValueError(f"Experiment {experiment_id} not found")
 
         # Get variant statistics
-        variant_stats = self.version_tracker.version_db.get_variant_statistics(
-            experiment.id
-        )
+        variant_stats = self.version_tracker.version_db.get_variant_statistics(experiment.id)
 
         # Get latest metrics
         latest_metrics = {}
@@ -487,9 +471,7 @@ class ExperimentIntegration:
                 "repository": experiment.git_repository,
             },
             "variant_statistics": variant_stats,
-            "latest_metrics": {
-                name: metric.value for name, metric in latest_metrics.items()
-            },
+            "latest_metrics": {name: metric.value for name, metric in latest_metrics.items()},
             "artifact_count": len(experiment.artifacts),
             "total_metrics": len(experiment.metrics),
         }
@@ -508,9 +490,7 @@ class ExperimentIntegration:
 
         # Map common parameters
         if "experiment_type" in config:
-            experiment_config.experiment_type = ExperimentType(
-                config["experiment_type"]
-            )
+            experiment_config.experiment_type = ExperimentType(config["experiment_type"])
 
         if "seed" in config:
             experiment_config.seed = config["seed"]

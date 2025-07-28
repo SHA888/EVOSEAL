@@ -30,14 +30,14 @@ function process_repository() {
   local branch=$2
   local subdir=$3
   local description=$4
-  
+
   # Extract repo name from URL
   local repo_name=$(basename "$repo_url" .git)
   local repo_dir="$CACHE_DIR/$repo_name"
   local target_subdir="$TARGET_DIR/$repo_name"
-  
+
   echo "Processing repository: $description ($repo_url)"
-  
+
   # Clone or update repository
   if [[ -d "$repo_dir" ]]; then
     echo "Updating existing repository..."
@@ -47,16 +47,16 @@ function process_repository() {
     echo "Cloning new repository..."
     git clone --depth=1 --branch "$branch" "$repo_url" "$repo_dir"
   fi
-  
+
   # Create target directory for this repo
   mkdir -p "$target_subdir"
-  
+
   # Copy relevant files (exclude git, large binaries, etc.)
   echo "Extracting relevant knowledge from $subdir..."
   rsync -av --exclude=".git" --exclude="*.bin" --exclude="*.pt" \
     --exclude="*.pth" --exclude="*.onnx" --exclude="*.h5" \
     "$repo_dir/$subdir/" "$target_subdir/"
-  
+
   # Generate a summary file
   echo "# $repo_name - $description" > "$target_subdir/SOURCE_INFO.md"
   echo "Source: $repo_url" >> "$target_subdir/SOURCE_INFO.md"
@@ -65,7 +65,7 @@ function process_repository() {
   echo "" >> "$target_subdir/SOURCE_INFO.md"
   echo "## Directory Structure" >> "$target_subdir/SOURCE_INFO.md"
   find "$target_subdir" -type f -name "*.py" | sort | sed 's|'"$target_subdir"'|.|g' >> "$target_subdir/SOURCE_INFO.md"
-  
+
   echo "Finished processing $repo_name"
 }
 
@@ -77,7 +77,7 @@ while IFS=',' read -r repo branch subdir description || [[ -n "$repo" ]]; do
   if [[ -z "$repo" || "$repo" =~ ^# ]]; then
     continue
   fi
-  
+
   # Process this repository
   process_repository "$repo" "$branch" "$subdir" "$description"
 done < "$REPOS_FILE"
