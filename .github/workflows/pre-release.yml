@@ -97,7 +97,7 @@ jobs:
           echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> $GITHUB_ENV
 
       - name: Create Release Candidate
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         id: create_release
         with:
           tag_name: v${{ steps.version.outputs.version }}-rc.${{ github.run_number }}
