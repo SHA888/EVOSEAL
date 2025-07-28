@@ -83,6 +83,28 @@ repos:
             tests/
           )$
 
+  # Run tests with pytest using our custom script
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: Run unit tests
+        entry: ./scripts/run_tests.sh
+        language: script
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        additional_dependencies: []
+        exclude: |
+          (?x)^(
+            dgm/|
+            openevolve/|
+            SEAL (Self-Adapting Language Models)/|
+            .*venv/|
+            .*__pycache__/|
+            scripts/run_tests.sh
+          )$
+
   # Detect secrets in code
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0  # Using the installed version
