@@ -12,20 +12,17 @@ on:
 
 jobs:
   cleanup:
-    # Only run if the CI workflow was successful or on schedule/workflow_dispatch
+    # Only run on schedule or manual dispatch (avoid excessive runs from CI triggers)
     if: >
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       (github.event.workflow_run.head_branch == 'main' ||
-        startsWith(github.event.workflow_run.head_branch, 'release/')))
+      github.event_name == 'schedule'
 
     # Use the production environment
     environment: production
 
     # Required permissions
     permissions:
-      contents: read
+      contents: write  # Required for git push operations
       actions: read
       packages: write  # For cleaning up old packages
     runs-on: ubuntu-latest
@@ -55,10 +52,15 @@ jobs:
         git config --global user.name 'EVOSEAL Cleanup Bot'
         git config --global user.email 'bot@evoseal.ai'
 
-        # Only commit if there are changes
-        git diff --quiet && git diff --staged --quiet || \
-          (git add . && \
-           git commit -m "chore: run automated cleanup [skip ci]" && \
-           git push)
+        # Check if there are any changes
+        if ! git diff --quiet || ! git diff --staged --quiet; then
+          echo "Changes detected, committing and pushing..."
+          git add .
+          git commit -m "chore: run automated cleanup [skip ci]"
+          git push
+          echo "✅ Changes committed and pushed successfully"
+        else
+          echo "ℹ️ No changes detected, skipping commit"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
