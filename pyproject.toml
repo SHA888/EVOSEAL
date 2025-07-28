@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "evoseal"
-version = "0.3.4"
+version = "0.3.5"
 description = "EVOSEAL: An advanced AI system integrating DGM, OpenEvolve, and SEAL"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -131,7 +131,7 @@ skip_glob = [".venv*", "venv*", "env*", ".env*", ".semgrep-venv/*", "dgm/*", "op
 [tool.ruff]
 # Basic settings
 line-length = 100
-target-version = "py39"
+target-version = "0.3.5"
 exclude = [".venv*", "venv*", "env*", ".env*", ".semgrep-venv/*", "dgm/*", "openevolve/*", "SEAL*/*"]
 
 [tool.ruff.lint]
