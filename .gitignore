@@ -98,6 +98,17 @@ coverage/
 *.log
 logs/
 *.sqlite
+
+# Evolution and runtime data
+data/continuous_evolution/
+data/evolution_data/
+data/training_data/
+data/model_versions/
+data/checkpoints/
+# Keep example/template data
+!data/examples/
+!data/templates/
+!data/sample_*
 *.sqlite3
 *.sql
 *.sql.gz
