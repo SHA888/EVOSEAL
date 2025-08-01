@@ -7,47 +7,47 @@ All notable changes to the EVOSEAL project are documented here.
 ### 🔧 Fixes
 
 #### Port Standardization
-- **Consistent Default Port**: Standardized all components to use port **8081** by default
+- **Consistent Default Port**: Standardized all components to use port **9613** by default
 - **Eliminated Confusion**: Removed mixed references between ports 8080 and 8081
-- **Universal Configuration**: All code, documentation, and deployment scenarios now use 8081
+- **Universal Configuration**: All code, documentation, and deployment scenarios now use 9613
 
 #### Code Updates
-- **MonitoringDashboard**: Updated default port from 8080 to 8081
-- **Phase3Orchestrator**: Updated default port from 8080 to 8081
-- **Argument Parser**: Updated default port help text and value to 8081
-- **SEALConfig**: Updated dashboard_port default from 8080 to 8081
+- **MonitoringDashboard**: Updated default port from 8080 to 9613
+- **Phase3Orchestrator**: Updated default port from 8080 to 9613
+- **Argument Parser**: Updated default port help text and value to 9613
+- **SEALConfig**: Updated dashboard_port default from 8080 to 9613
 
 #### Documentation Updates
-- **Deployment Guide**: Updated development URLs from 8080 to 8081
+- **Deployment Guide**: Updated development URLs from 8080 to 9613
 - **API Reference**: Updated base URLs for consistency
-- **systemd Template**: Already using 8081 (no change needed)
+- **systemd Template**: Updated to use port 9613
 - **README**: Already consistent (no change needed)
 
 ### 🎯 Benefits
 
 - ✅ **Consistent Experience**: Same port across all deployment scenarios
-- ✅ **Reduced Conflicts**: Port 8081 has fewer conflicts than 8080
+- ✅ **Reduced Conflicts**: Port 9613 has fewer conflicts than 8081
 - ✅ **Clear Documentation**: No more confusion about which port to use
 - ✅ **Simplified Deployment**: Single port configuration for all environments
 
 ### 🔄 Migration Notes
 
 #### For Existing Users
-- No action required - systemd service already uses port 8081
-- Dashboard remains accessible at current Tailscale IP on port 8081
+- Systemd service now uses port 9613
+- Dashboard remains accessible at current Tailscale IP on port 9613
 - All existing functionality preserved
 
 #### For New Deployments
-- All components now default to port 8081
-- Documentation consistently references port 8081
+- All components now default to port 9613
+- Documentation consistently references port 9613
 - Simplified configuration with single standard port
 
 ### 📊 Port Configuration
 
-- **Development**: `http://localhost:8081`
-- **Production**: `http://<tailscale-ip>:8081`
-- **systemd Service**: Configured for port 8081
-- **Default Settings**: All defaults set to 8081
+- **Development**: `http://localhost:9613`
+- **Production**: `http://<tailscale-ip>:9613`
+- **systemd Service**: Configured for port 9613
+- **Default Settings**: All defaults set to 9613
 
 ## [0.3.1] - 2025-07-27 - Portable systemd Service Configuration
 
@@ -193,7 +193,7 @@ All notable changes to the EVOSEAL project are documented here.
 - Extensive logging and monitoring
 
 ### 🐛 Bug Fixes
-- Fixed port conflicts by changing default dashboard port to 8081
+- Fixed port conflicts by changing default dashboard port to 9613
 - Resolved transformers dependency issues with fallback modes
 - Fixed test failures in Phase 2 components
 - Corrected data model integration issues
@@ -203,13 +203,13 @@ All notable changes to the EVOSEAL project are documented here.
 
 #### From Previous Versions
 - Legacy `evoseal.service` replaced with Phase 3 system
-- New dashboard accessible on port 8081 (configurable)
+- New dashboard accessible on port 9613 (configurable)
 - Updated service management commands
 - New data directory structure
 
 #### Breaking Changes
 - systemd service now runs Phase 3 system instead of legacy runner
-- Dashboard port changed from 8080 to 8081 by default
+- Dashboard port changed from 8081 to 9613 by default
 - New configuration structure with pydantic v2
 
 ### 📊 Performance

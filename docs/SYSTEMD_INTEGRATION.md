@@ -37,7 +37,7 @@ Environment="EVOSEAL_USER_HOME=%h"
 
 # Phase 3 Continuous Evolution System - Accessible via Tailscale
 # Use %h for home directory and dynamic Tailscale IP detection
-ExecStart=/bin/bash -c 'source %h/.profile && cd %h/EVOSEAL && TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "localhost") && python3 scripts/run_phase3_continuous_evolution.py --host="$TAILSCALE_IP" --port=8081 --verbose'
+ExecStart=/bin/bash -c 'source %h/.profile && cd %h/EVOSEAL && TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "localhost") && python3 scripts/run_phase3_continuous_evolution.py --host="$TAILSCALE_IP" --port=9613 --verbose'
 
 # Restart configuration
 Restart=always
@@ -189,7 +189,7 @@ journalctl --user -u evoseal.service > evoseal_service_logs.txt
 
 ### Dashboard Access
 When the service is running, the monitoring dashboard is available at:
-- **URL**: http://localhost:8081
+- **URL**: http://localhost:9613
 - **Features**: Real-time monitoring, WebSocket updates, system metrics
 - **Access**: Local access only for security
 
@@ -236,7 +236,7 @@ python3 scripts/run_phase3_continuous_evolution.py --health-check
 journalctl --user -u evoseal.service --priority=err
 
 # Check if port is already in use
-netstat -tlnp | grep :8081
+netstat -tlnp | grep :9613
 
 # Verify Ollama is running
 curl http://localhost:11434/api/tags
@@ -315,9 +315,9 @@ The Phase 3 service replaces the legacy `evoseal-unified-runner.sh` script:
 
 ### Changes Made
 - **Old**: `ExecStart=.../evoseal-unified-runner.sh --mode=service`
-- **New**: `ExecStart=...python3 scripts/run_phase3_continuous_evolution.py --port=8081 --verbose`
+- **New**: `ExecStart=...python3 scripts/run_phase3_continuous_evolution.py --port=9613 --verbose`
 - **Description**: Updated to "EVOSEAL Phase 3 Bidirectional Continuous Evolution Service"
-- **Port**: Changed from 8080 to 8081 to avoid conflicts
+- **Port**: Changed from 8081 to 9613 to avoid conflicts
 
 ### Migration Benefits
 - **Real-time Dashboard**: Live monitoring with WebSocket updates

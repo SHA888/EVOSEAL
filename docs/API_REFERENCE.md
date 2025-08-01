@@ -6,8 +6,8 @@ EVOSEAL Phase 3 provides a comprehensive REST API and WebSocket interface throug
 
 ## Base URL
 
-- **Development**: `http://localhost:8081`
-- **Production**: `http://localhost:8081`
+- **Development**: `http://localhost:9613`
+- **Production**: `http://localhost:9613`
 
 ## REST API Endpoints
 
@@ -134,7 +134,7 @@ Returns a detailed evolution report with trends, recommendations, and historical
 #### WS /ws
 Establishes a WebSocket connection for real-time updates.
 
-**URL**: `ws://localhost:8081/ws`
+**URL**: `ws://localhost:9613/ws`
 
 ### Message Types
 
@@ -344,7 +344,7 @@ async function getServiceStatus() {
 
 #### WebSocket Connection
 ```javascript
-const ws = new WebSocket('ws://localhost:8081/ws');
+const ws = new WebSocket('ws://localhost:9613/ws');
 
 ws.onopen = function() {
   console.log('WebSocket connected');
@@ -374,7 +374,7 @@ import asyncio
 
 async def get_metrics():
     async with aiohttp.ClientSession() as session:
-        async with session.get('http://localhost:8081/api/metrics') as response:
+        async with session.get('http://localhost:9613/api/metrics') as response:
             if response.status == 200:
                 metrics = await response.json()
                 return metrics
@@ -394,7 +394,7 @@ import websockets
 import json
 
 async def websocket_client():
-    uri = "ws://localhost:8081/ws"
+    uri = "ws://localhost:9613/ws"
 
     async with websockets.connect(uri) as websocket:
         async for message in websocket:
@@ -413,18 +413,18 @@ asyncio.run(websocket_client())
 
 #### Get Service Status
 ```bash
-curl -X GET http://localhost:8081/api/status | jq .
+curl -X GET http://localhost:9613/api/status | jq .
 ```
 
 #### Get Comprehensive Report
 ```bash
-curl -X GET http://localhost:8081/api/report | jq .recommendations
+curl -X GET http://localhost:9613/api/report | jq .recommendations
 ```
 
 #### Health Check
 ```bash
 # Check if service is responding
-curl -f http://localhost:8081/api/status > /dev/null && echo "Service OK" || echo "Service Down"
+curl -f http://localhost:9613/api/status > /dev/null && echo "Service OK" || echo "Service Down"
 ```
 
 ## Monitoring Integration

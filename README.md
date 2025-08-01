@@ -32,7 +32,7 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 ### 🚀 Phase 3: Bidirectional Continuous Evolution
 - 🧬 **Bidirectional Evolution**: EVOSEAL ↔ Devstral mutual improvement loop
-- 🌐 **Real-time Dashboard**: Live monitoring at http://localhost:8081
+- 🌐 **Real-time Dashboard**: Live monitoring at http://localhost:9613
 - 🔄 **Continuous Operation**: Automated evolution cycles and training
 - 🎯 **Fine-tuning Infrastructure**: LoRA/QLoRA with comprehensive validation
 - 📊 **Model Versioning**: Automatic version tracking and rollback
@@ -96,7 +96,7 @@ systemctl --user status evoseal.service
 journalctl --user -fu evoseal.service
 
 # Access monitoring dashboard
-open http://localhost:8081
+open http://localhost:9613
 ```
 
 ## Project Templates
@@ -198,7 +198,7 @@ EVOSEAL Phase 3 implements a complete bidirectional evolution system where EVOSE
 
 ### 🌐 Real-time Monitoring Dashboard
 
-Access the live monitoring dashboard at **http://localhost:8081**:
+Access the live monitoring dashboard at **http://localhost:9613**:
 
 - **Service Status**: Real-time system health, uptime, and operational state
 - **Evolution Metrics**: Cycle counts, training progress, model improvements
