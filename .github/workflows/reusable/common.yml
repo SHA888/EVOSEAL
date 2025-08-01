@@ -1,0 +1,52 @@
+# Reusable workflow for common CI/CD tasks
+name: Common CI Tasks
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: true
+        type: string
+      test-command:
+        required: false
+        type: string
+        default: 'pytest --cov=evoseal --cov-report=xml --cov-report=term-missing'
+      needs-setup:
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  setup-and-test:
+    name: Setup and Test (Python ${{ inputs.python-version }})
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python ${{ inputs.python-version }}
+        if: inputs.needs-setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
+
+      - name: Install system dependencies
+        if: inputs.needs-setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs install
+
+      - name: Install Python dependencies
+        if: inputs.needs-setup
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test,dev]"
+
+      - name: Run tests
+        run: ${{ inputs.test-command }}
