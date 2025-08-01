@@ -1,9 +1,14 @@
 name: Release
 
+# Only allow one deployment to run at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
-  # Trigger when pre-release workflow completes successfully
+  # Trigger when CI workflow completes successfully on main or release/* branches
   workflow_run:
-    workflows: ["Pre-Release (RC)"]
+    workflows: ["CI/CD Pipeline"]
     branches: [main, 'release/*']
     types: [completed]
 
@@ -13,43 +18,59 @@ on:
       version:
         description: 'Version to release (e.g., 1.2.3)'
         required: false
+        default: 'patch'  # Can be 'major', 'minor', 'patch', or specific version
+      publish:
+        description: 'Publish to package registry?'
+        required: false
+        default: 'true'
 
   # Trigger when version tags are pushed (manual releases)
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'  # Only match proper version tags
 
+# Control concurrency to prevent multiple releases
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+# Environment variables available to all jobs
+env:
+  PYTHON_VERSION: '3.10'
+  POETRY_VERSION: '1.8.0'
 
 jobs:
   release:
-    # Always run for workflow_dispatch or tag pushes
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (startsWith(github.ref, 'refs/tags/v') &&
-       !contains(github.ref, '-'))  # Skip release candidates (vX.Y.Z-rc.N)
+    # Only run for successful workflow runs or manual triggers
+    if: >
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.workflow_run.conclusion == 'success' && 
+       (github.event.workflow_run.head_branch == 'main' || 
+        startsWith(github.event.workflow_run.head_branch, 'release/')))
 
-    # Use the production environment
+    # Use the production environment for protection
     environment: production
 
     # Required permissions
     permissions:
-      contents: write
-      id-token: write
+      contents: write  # For creating releases and tags
+      id-token: write  # For OIDC token for package publishing
       actions: read
       checks: write
       statuses: write
       packages: write
       deployments: write
+      pull-requests: write  # For updating PRs
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Needed for git history
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: 'recursive'
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,6 +83,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install build twine pyyaml tomli
+
+      - name: Bump version and update changelog
+        id: bump_version
+        run: |
+          # Install dependencies for the version bump script
+          pip install tomli pyyaml
+          
+          # Determine the version bump type or specific version
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            if [[ "${{ github.event.inputs.version }}" =~ ^(major|minor|patch)$ ]]; then
+              # It's a bump type (major, minor, patch)
+              echo "Bumping ${{ github.event.inputs.version }} version..."
+              python scripts/bump_version.py ${{ github.event.inputs.version }} --no-push --no-commit
+              BUMP_TYPE="${{ github.event.inputs.version }}"
+            else
+              # It's a specific version
+              echo "Setting version to ${{ github.event.inputs.version }}..."
+              python scripts/bump_version.py ${{ github.event.inputs.version }} --no-push --no-commit
+              BUMP_TYPE="specific"
+            fi
+          else
+            # Default to patch version bump
+            echo "Bumping patch version by default..."
+            python scripts/bump_version.py patch --no-push --no-commit
+            BUMP_TYPE="patch"
+          fi
+          
+          # Get the new version
+          NEW_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "New version: $NEW_VERSION"
+          
+          # Set outputs for subsequent steps
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
 
       - name: Verify version consistency
         id: verify_version
@@ -138,72 +194,97 @@ jobs:
         id: verify_artifacts
         run: |
           set -e
-
+          
           # Ensure releases directory exists
-          mkdir -p "releases/${{ steps.set_version.outputs.version }}"
-
-          # Check for release notes
-          RELEASE_NOTES_PATH="releases/${{ steps.set_version.outputs.version }}/RELEASE_NOTES.md"
+          mkdir -p "releases/${{ steps.bump_version.outputs.version }}"
+          
+          # Check for release notes or generate them
+          RELEASE_NOTES_PATH="releases/${{ steps.bump_version.outputs.version }}/RELEASE_NOTES.md"
           if [ ! -f "$RELEASE_NOTES_PATH" ]; then
-            echo "⚠️ Release notes not found at $RELEASE_NOTES_PATH"
-            echo "Generating release notes as fallback..."
-            python3 scripts/auto_generate_release_notes.py \
-              ${{ steps.set_version.outputs.version }} \
-              --output-dir releases
-          else
-            echo "✅ Release notes found at $RELEASE_NOTES_PATH"
+            echo "ℹ️ No release notes found at $RELEASE_NOTES_PATH"
+            echo "Using CHANGELOG.md as fallback..."
+            # Extract the relevant section from CHANGELOG.md
+            awk -v version="${{ steps.bump_version.outputs.version }}" '
+              $0 ~ "^## [" version "]" {print; found=1; next}
+              found && /^## / {exit}
+              found {print}
+            ' CHANGELOG.md > "$RELEASE_NOTES_PATH" || true
+            
+            if [ ! -s "$RELEASE_NOTES_PATH" ]; then
+              echo "⚠️ Could not extract release notes from CHANGELOG.md"
+              echo "# Release ${{ steps.bump_version.outputs.version }}\n\nNo release notes available." > "$RELEASE_NOTES_PATH"
+            fi
           fi
-
-          # Verify package files
-          if [ ! -f "dist/evoseal-${{ steps.set_version.outputs.version }}.tar.gz" ]; then
+          
+          # Verify the built package files
+          if [ ! -f "dist/evoseal-${{ steps.bump_version.outputs.version }}.tar.gz" ]; then
             echo "::error::Source distribution not found"
             exit 1
           fi
-
-          if [ ! -f "dist/evoseal-${{ steps.set_version.outputs.version }}-py3-none-any.whl" ]; then
+          
+          if [ ! -f "dist/evoseal-${{ steps.bump_version.outputs.version }}-py3-none-any.whl" ]; then
             echo "::error::Wheel distribution not found"
             exit 1
           fi
-
+          
           echo "✅ All release artifacts verified"
 
       - name: Publish to PyPI
         if: >
           (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           set -e
-          echo "📦 Publishing version: ${{ steps.set_version.outputs.version }} to PyPI"
-
+          echo "📦 Publishing version ${{ steps.bump_version.outputs.version }} to PyPI..."
+          
           # Verify PyPI token is set
           if [ -z "$TWINE_PASSWORD" ]; then
             echo "::error::PYPI_API_TOKEN secret is not set"
             exit 1
           fi
-
+          
           # Upload to PyPI
           twine upload --non-interactive \
-            --username __token__ \
+            --username "$TWINE_USERNAME" \
             --password "$TWINE_PASSWORD" \
             dist/*
-
+            
           echo "✅ Successfully published to PyPI"
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          
+          # Create a git tag and push if this was a workflow dispatch
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "🏷 Creating git tag v${{ steps.bump_version.outputs.version }}..."
+            git config --global user.name 'GitHub Actions'
+            git config --global user.email 'actions@github.com'
+            
+            # Commit the version bump and changelog updates
+            git add pyproject.toml CHANGELOG.md
+            git commit -m "chore: release v${{ steps.bump_version.outputs.version }}" || echo "No changes to commit"
+            
+            # Create and push the tag
+            git tag -a "v${{ steps.bump_version.outputs.version }}" -m "Release v${{ steps.bump_version.outputs.version }}"
+            git push origin "v${{ steps.bump_version.outputs.version }}"
+            
+            # Push the commit if there were changes
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.set_version.outputs.version }}
-          name: "v${{ steps.set_version.outputs.version }}"
-          body_path: releases/${{ steps.set_version.outputs.version }}/RELEASE_NOTES.md
+          tag_name: v${{ steps.bump_version.outputs.version }}
+          name: "v${{ steps.bump_version.outputs.version }}"
+          body_path: releases/${{ steps.bump_version.outputs.version }}/RELEASE_NOTES.md
           draft: false
           prerelease: false
+          generate_release_notes: true
           files: |
             dist/*
-            releases/${{ steps.set_version.outputs.version }}/*
+            releases/${{ steps.bump_version.outputs.version }}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

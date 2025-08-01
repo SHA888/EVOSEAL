@@ -2,6 +2,25 @@
 
 All notable changes to the EVOSEAL project are documented here.
 
+## [0.3.7] - 2025-08-01 - CI/CD Workflow Improvements
+
+### 🚀 CI/CD Enhancements
+
+#### Workflow Improvements
+- **Automated Versioning**: Added script for semantic versioning and changelog updates
+- **Testing Matrix**: Expanded test coverage across Python 3.9-3.11 and multiple OS platforms
+- **Security Scanning**: Integrated Bandit, Safety, detect-secrets, and Semgrep
+- **Release Automation**: Streamlined release process with GitHub Actions
+
+#### Documentation
+- **CI/CD Guide**: Added comprehensive documentation for the development workflow
+- **Quick Start**: Created a quick reference guide for common tasks
+- **Security**: Documented security scanning and best practices
+
+### 🔧 Fixes
+- **Workflow Reliability**: Improved error handling and logging in GitHub Actions
+- **Dependency Management**: Updated and pinned dependencies for security
+
 ## [0.3.6] - 2025-08-01 - Port Conflict Resolution and Documentation Updates
 
 ### 🔧 Fixes

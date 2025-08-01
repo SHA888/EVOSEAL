@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,6 +8,8 @@ on:
   pull_request:
     branches: [main, 'release/*']
   workflow_dispatch:  # Allow manual triggering
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly security scans
 
 # Set default permissions for the workflow
 permissions:
@@ -15,28 +17,35 @@ permissions:
   pull-requests: read
   checks: write
   statuses: write
+  security-events: write
 
 # Control concurrency to prevent multiple runs for the same ref
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false  # Changed to false to prevent canceling in-progress runs
+
+# Environment variables available to all jobs
+env:
+  PYTHON_VERSION: '3.10'
+  POETRY_VERSION: '1.8.0'
 
 jobs:
+  # First job: Validate code and configuration
   validate:
     name: Validate
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout code with submodules
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        submodules: 'recursive'  # This will initialize and update submodules
+        submodules: 'recursive'
 
-    - name: Set up Python
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
 
     - name: Install dependencies
@@ -44,43 +53,60 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[test,dev]"
 
-    - name: Validate pyproject.toml
+    - name: Validate configuration files
       run: |
+        # Validate pyproject.toml
         python -c "import tomli; tomli.load(open('pyproject.toml', 'rb'))"
         echo "✅ pyproject.toml is valid"
-
-    - name: Check for version consistency
-      id: check_version
-      run: |
-        # Get version from pyproject.toml
-        PYPROJECT_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
-
-        # Check if this is a tag push
+        
+        # Check for version consistency if this is a tag push
         if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+          PYPROJECT_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
           if [[ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]]; then
             echo "::error::Version mismatch! pyproject.toml ($PYPROJECT_VERSION) does not match tag ($TAG_VERSION)"
             exit 1
           fi
+          echo "✅ Version consistency check passed"
         fi
 
-        echo "✅ Version consistency check passed"
-
+  # Comprehensive testing matrix
   test:
-    name: Run Tests
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }}, ${{ matrix.test-type }})
     needs: validate
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.9', '3.10', '3.11']
+        test-type: [unit, integration]
+        include:
+          # Run all tests on Ubuntu with Python 3.10
+          - os: ubuntu-latest
+            python-version: '3.10'
+            test-type: all
+            coverage: true
+          # Run unit tests on all OS/Python combinations
+          - test-type: unit
+            coverage: false
+          # Run integration tests only on Ubuntu
+          - os: ubuntu-latest
+            test-type: integration
+            coverage: false
+        exclude:
+          # Don't run integration tests on Windows/macOS (they're more resource-intensive)
+          - os: windows-latest
+            test-type: integration
+          - os: macos-latest
+            test-type: integration
 
     steps:
-    - name: Checkout code with submodules
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: 'recursive'  # Initialize and update submodules
         fetch-depth: 0
+        submodules: 'recursive'
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -89,6 +115,7 @@ jobs:
         cache: 'pip'
 
     - name: Install system dependencies
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y git-lfs
@@ -98,6 +125,186 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[test]"
+        
+        # Install test dependencies
+        if [ "${{ matrix.coverage }}" = "true" ]; then
+          pip install pytest-cov codecov pytest-xdist
+        else
+          pip install pytest pytest-xdist
+        fi
+
+    - name: Run tests
+      id: tests
+      run: |
+        # Set up test command based on test type
+        TEST_CMD="pytest -n auto --dist=loadfile -v"
+        
+        # Add coverage if enabled
+        if [ "${{ matrix.coverage }}" = "true" ]; then
+          TEST_CMD="$TEST_CMD --cov=evoseal --cov-report=xml --cov-report=term-missing"
+        fi
+        
+        # Add test paths based on test type
+        if [ "${{ matrix.test-type }}" = "unit" ]; then
+          TEST_CMD="$TEST_CMD tests/unit/"
+        elif [ "${{ matrix.test-type }}" = "integration" ]; then
+          TEST_CMD="$TEST_CMD tests/integration/"
+        else  # all tests
+          TEST_CMD="$TEST_CMD tests/"
+        fi
+        
+        echo "Running: $TEST_CMD"
+        eval $TEST_CMD
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+        # Add any additional test environment variables here
+        TEST_ENV: github-actions
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.test-type }}
+        path: |
+          test-results/**/*.xml
+          .coverage*
+        retention-days: 7
+
+    - name: Upload coverage to Codecov
+      if: matrix.coverage == 'true' && (success() || failure())
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        verbose: true
+
+    - name: Check test results
+      if: always() && steps.tests.outcome != 'success'
+      run: |
+        echo "Tests failed - please check the test logs"
+        exit 1
+
+  # Security scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run Bandit security linter
+      uses: PyCQA/bandit@main
+      with:
+        args: -r evoseal/ -n 1 --skip B101,B104
+
+    - name: Run Safety check
+      run: |
+        pip install safety
+        safety check --full-report
+
+  # Documentation build
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: 'recursive'
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install documentation dependencies
+      run: |
+        pip install -e ".[docs]"
+        pip install sphinx sphinx-rtd-theme
+
+    - name: Build documentation
+      run: |
+        cd docs
+        make html
+
+    - name: Upload documentation artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: docs/_build/html/
+        retention-days: 5
+
+  # Pre-release checks (runs on main and release/* branches)
+  pre-release:
+    name: Pre-release Checks
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+    needs: [test, security, docs]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: 'recursive'
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test,dev]"
+
+    - name: Run pre-release checks
+      run: |
+        # Check for TODO/FIXME comments
+        ! grep -r "TODO\|FIXME" evoseal/ --include="*.py"
+        
+        # Check for print statements
+        ! grep -r "^\s*print\s*(" evoseal/ --include="*.py"
+        
+        # Check for debug code
+        ! grep -r "import\s+pdb\|pdb.set_trace()" evoseal/ --include="*.py"
+
+    - name: Check CHANGELOG.md
+      run: |
+        # Check if CHANGELOG.md has been updated
+        if [ "$(git diff --name-only HEAD^ HEAD | grep CHANGELOG.md)" == "" ]; then
+          echo "::warning::CHANGELOG.md has not been updated"
+        fi
+
+    - name: Create Release PR (if not on main)
+      if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: prepare release"
+        title: "Release $(date +%Y-%m-%d)"
+        body: |
+          This is an automated release PR.
+          
+          Changes since last release:
+          ```
+          $ git log --oneline $(git describe --tags --abbrev=0)..HEAD
+          ```
+        branch: "release/$(date +%Y-%m-%d)"
+        base: main
+        delete-branch: true
 
     - name: Run unit tests
       run: |
@@ -173,42 +380,6 @@ jobs:
   security:
     name: Security Checks
     needs: [validate, test]  # Run after validate and test
-    runs-on: ubuntu-latest
-
-    # Only run security checks on main and release branches or pull requests
-    if: |
-      github.ref == 'refs/heads/main' ||
-      startsWith(github.ref, 'refs/heads/release/') ||
-      github.event_name == 'pull_request'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
-
-    - name: Install security tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install safety bandit
-
-    - name: Check for known security vulnerabilities
-      run: |
-        # Try new scan command first, fallback to deprecated check if auth fails
-        echo "Running security vulnerability scan..."
-        safety scan --policy-file .safety-policy.json 2>/dev/null || \
-        safety check --ignore 67895 --ignore 65647 --ignore 62556 --ignore 59473 --ignore 65278 --ignore 53048 --ignore 54843 --ignore 42203 --ignore 51499 --ignore 50959 --ignore 74429 --ignore 48542 --ignore 77744 --ignore 77745 --short-report || \
-        echo "Security scan completed - some non-critical vulnerabilities found in system packages"
-      continue-on-error: true
-
-    - name: Run Bandit for security issues
-      run: |
-        bandit -r evoseal/ -f json -o bandit-report.json || echo "Bandit scan completed"
-        bandit -r evoseal/ || echo "Bandit scan completed with findings"
       continue-on-error: true
 
   build:
