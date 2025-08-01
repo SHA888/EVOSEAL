@@ -2,6 +2,25 @@
 
 All notable changes to the EVOSEAL project are documented here.
 
+## [0.3.6] - 2025-08-01 - Port Conflict Resolution and Documentation Updates
+
+### 🔧 Fixes
+
+#### Port Configuration
+- **Port Conflict Resolution**: Changed default port from 8081 to 9613 to resolve conflicts
+- **Documentation Updates**: Ensured all documentation reflects the new port number
+- **Systemd Service**: Updated service template to use the new port
+
+### 📚 Documentation
+- **API Reference**: Updated all API endpoint URLs to use port 9613
+- **Deployment Guide**: Updated port references in deployment instructions
+- **README**: Updated quick start and monitoring sections with new port
+
+### 🚀 Deployment
+- **Systemd Service**: Updated template with new port configuration
+- **Configuration**: Ensured backward compatibility with existing deployments
+
+
 ## [0.3.2] - 2025-07-27 - Port Consistency and Configuration Standardization
 
 ### 🔧 Fixes
