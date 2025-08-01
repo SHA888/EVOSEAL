@@ -38,7 +38,7 @@ class Phase3Orchestrator:
         self,
         config_file: Optional[Path] = None,
         dashboard_host: str = "localhost",
-        dashboard_port: int = 8081,
+        dashboard_port: int = 9613,
         evolution_interval: int = 3600,  # 1 hour
         training_check_interval: int = 1800,  # 30 minutes
         min_evolution_samples: int = 50,
@@ -234,7 +234,7 @@ async def main():
         default="localhost",
         help="Dashboard host address (default: localhost)",
     )
-    parser.add_argument("--port", type=int, default=8081, help="Dashboard port (default: 8081)")
+    parser.add_argument("--port", type=int, default=9613, help="Dashboard port (default: 9613)")
     parser.add_argument(
         "--evolution-interval",
         type=int,

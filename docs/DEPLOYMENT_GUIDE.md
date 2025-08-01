@@ -84,7 +84,7 @@ For development and testing purposes:
 python3 scripts/run_phase3_continuous_evolution.py --verbose
 
 # Access dashboard
-open http://localhost:8081
+open http://localhost:9613
 ```
 
 ### Option 2: Production Deployment with systemd
@@ -116,7 +116,7 @@ systemctl --user start evoseal.service
 systemctl --user status evoseal.service
 
 # Access production dashboard
-open http://localhost:8081
+open http://localhost:9613
 ```
 
 ## Configuration
@@ -132,7 +132,7 @@ export EVOSEAL_LOGS="/home/kade/EVOSEAL/logs"
 export PYTHONPATH="/home/kade/EVOSEAL:/home/kade/EVOSEAL/SEAL"
 
 # Phase 3 Specific
-export EVOSEAL_DASHBOARD_PORT="8081"
+export EVOSEAL_DASHBOARD_PORT="9613"
 export EVOSEAL_EVOLUTION_INTERVAL="3600"  # 1 hour
 export EVOSEAL_TRAINING_INTERVAL="1800"   # 30 minutes
 export EVOSEAL_MIN_SAMPLES="50"
@@ -148,7 +148,7 @@ Phase 3 system supports extensive configuration:
 
 ```bash
 python3 scripts/run_phase3_continuous_evolution.py \
-  --port=8081 \                        # Dashboard port
+  --port=9613 \                        # Dashboard port
   --evolution-interval=3600 \          # Evolution check interval (seconds)
   --training-interval=1800 \           # Training check interval (seconds)
   --min-samples=50 \                   # Minimum samples for training

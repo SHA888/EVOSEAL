@@ -41,7 +41,7 @@ The `ContinuousEvolutionService` is the heart of Phase 3, orchestrating:
 
 ### Real-time Monitoring Dashboard
 
-Access at **http://localhost:8081** (when running via systemd):
+Access at **http://localhost:9613** (when running via systemd):
 
 #### Dashboard Features
 - **Service Status**: Real-time system health, uptime, and operational state
@@ -136,7 +136,7 @@ The system is already configured for production deployment via systemd:
 systemctl --user status evoseal.service
 
 # Access monitoring dashboard
-open http://localhost:8081
+open http://localhost:9613
 ```
 
 ### Configuration Options
@@ -146,7 +146,7 @@ Phase 3 supports extensive configuration:
 ```bash
 # Command line options
 python3 scripts/run_phase3_continuous_evolution.py \
-  --port=8081 \
+  --port=9613 \
   --evolution-interval=3600 \
   --training-interval=1800 \
   --min-samples=50 \
@@ -225,9 +225,9 @@ Improved Devstral → Better EVOSEAL Performance → More Evolution Data
 
 ### Common Issues
 
-1. **Port 8080/8081 in use**
+1. **Port 9613 in use**
    - Solution: Use `--port` flag to specify different port
-   - Check: `netstat -tlnp | grep :8081`
+   - Check: `netstat -tlnp | grep :9613`
 
 2. **Ollama not running**
    - Solution: Start Ollama with `ollama serve &`
