@@ -629,3 +629,6 @@ node_modules/
 
 # IDE and tooling configuration
 .windsurf/
+
+# Semgrep virtual environment
+.semgrep-venv/
