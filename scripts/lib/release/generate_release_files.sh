@@ -4,7 +4,9 @@
 # Function to create release files for a version
 create_release_files() {
     local version=$1
-    local version_dir="/home/kade/EVOSEAL/releases/$version"
+    # Use EVOSEAL_HOME if set, otherwise default to current directory
+    local base_dir="${EVOSEAL_HOME:-.}"
+    local version_dir="$base_dir/releases/$version"
     local timestamp=$(date -d "@$(git show -s --format=%ct $(git rev-parse $version) 2>/dev/null || date +%s)" "+%Y-%m-%d" 2>/dev/null || date "+%Y-%m-%d")
 
     echo "Creating release files for $version in $version_dir..."

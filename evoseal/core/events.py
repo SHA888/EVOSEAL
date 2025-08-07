@@ -529,14 +529,23 @@ class EventBus:
 
             try:
                 handler = handler_info["handler"]
-                if asyncio.iscoroutinefunction(handler) or asyncio.iscoroutine(handler):
+                # More robust coroutine check that handles mocks and edge cases
+                try:
+                    is_coro = asyncio.iscoroutinefunction(handler) or asyncio.iscoroutine(handler)
+                except (TypeError, AttributeError):
+                    # Handle cases where the check fails (e.g., with mocks)
+                    is_coro = False
+
+                if is_coro:
                     await handler(event)
                 else:
                     handler(event)
             except Exception as e:
+                handler_name = getattr(
+                    handler_info['handler'], "__name__", str(handler_info['handler'])
+                )
                 logger.error(
-                    f"Error in {handler_info['handler'].__name__} "
-                    f"for event {event.event_type}: {str(e)}",
+                    f"Error in {handler_name} " f"for event {event.event_type}: {str(e)}",
                     exc_info=True,
                 )
 

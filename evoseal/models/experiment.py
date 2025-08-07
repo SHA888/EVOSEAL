@@ -9,10 +9,71 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    AnyStr,
+    AsyncGenerator,
+    AsyncIterable,
+    AsyncIterator,
+    Awaitable,
+    BinaryIO,
+    Callable,
+    ChainMap,
+    ClassVar,
+    Coroutine,
+    Counter,
+    DefaultDict,
+    Deque,
+    Dict,
+    Final,
+    FrozenSet,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Mapping,
+    Match,
+    MutableMapping,
+    MutableSequence,
+    MutableSet,
+    Optional,
+    Pattern,
+    Protocol,
+    Sequence,
+    Set,
+    TextIO,
+    Tuple,
+    Type,
+    TypeAlias,
+    TypeGuard,
+    TypeVar,
+    Union,
+    cast,
+    final,
+    get_args,
+    get_origin,
+    get_type_hints,
+    no_type_check,
+    no_type_check_decorator,
+    overload,
+    runtime_checkable,
+)
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    field_validator,
+    model_serializer,
+    model_validator,
+    root_validator,
+    validator,
+)
 
 
 class ExperimentStatus(str, Enum):
@@ -57,40 +118,31 @@ class MetricType(str, Enum):
 class ExperimentConfig(BaseModel):
     """Configuration for an experiment."""
 
-    # Core configuration
+    model_config = ConfigDict(extra="forbid")
+
     experiment_type: ExperimentType = ExperimentType.EVOLUTION
     seed: Optional[int] = None
     max_iterations: int = 100
     population_size: int = 50
-
-    # Component configurations
     dgm_config: Dict[str, Any] = Field(default_factory=dict)
     openevolve_config: Dict[str, Any] = Field(default_factory=dict)
     seal_config: Dict[str, Any] = Field(default_factory=dict)
-
-    # Evolution parameters
     mutation_rate: float = Field(default=0.1, ge=0.0, le=1.0)
     crossover_rate: float = Field(default=0.8, ge=0.0, le=1.0)
     selection_pressure: float = Field(default=2.0, ge=1.0)
-
-    # Evaluation parameters
     fitness_function: str = "default"
-    evaluation_timeout: int = 300  # seconds
-
-    # Environment settings
+    evaluation_timeout: int = 300
     environment: Dict[str, Any] = Field(default_factory=dict)
     resources: Dict[str, Any] = Field(default_factory=dict)
-
-    # Custom parameters
     custom_params: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("mutation_rate", "crossover_rate")
     @classmethod
     def validate_rates(cls, v: float) -> float:
         """Validate that rates are between 0 and 1."""
-        if not 0.0 <= v <= 1.0:
-            raise ValueError("Rate must be between 0.0 and 1.0")
-        return v
+        if not 0 <= v <= 1:
+            raise ValueError("Rate must be between 0 and 1")
+        return round(v, 4)  # Round to avoid floating point precision issues
 
     @field_validator("selection_pressure")
     @classmethod
@@ -103,6 +155,8 @@ class ExperimentConfig(BaseModel):
 
 class ExperimentMetric(BaseModel):
     """A metric recorded during an experiment."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str
     value: Union[float, int, str, bool]
@@ -118,17 +172,19 @@ class ExperimentMetric(BaseModel):
         """Ensure timestamp is timezone-aware."""
         if v.tzinfo is None:
             return v.replace(tzinfo=timezone.utc)
-        return v
+        return v.astimezone(timezone.utc)  # Convert to UTC if in different timezone
 
 
 class ExperimentArtifact(BaseModel):
     """An artifact produced during an experiment."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
-    artifact_type: str  # e.g., "model", "code", "plot", "log"
+    artifact_type: str
     file_path: Optional[str] = None
-    content: Optional[str] = None  # For small artifacts
+    content: Optional[str] = None
     size_bytes: Optional[int] = None
     checksum: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -140,91 +196,135 @@ class ExperimentArtifact(BaseModel):
         """Ensure timestamp is timezone-aware."""
         if v.tzinfo is None:
             return v.replace(tzinfo=timezone.utc)
-        return v
+        return v.astimezone(timezone.utc)  # Convert to UTC if in different timezone
 
 
 class ExperimentResult(BaseModel):
     """Results of an experiment."""
 
-    # Final metrics
+    model_config = ConfigDict(extra="forbid")
+
     final_metrics: Dict[str, Union[float, int, str, bool]] = Field(default_factory=dict)
     best_individual: Optional[Dict[str, Any]] = None
     best_fitness: Optional[float] = None
-
-    # Evolution statistics
     generations_completed: int = 0
     total_evaluations: int = 0
     convergence_iteration: Optional[int] = None
-
-    # Performance metrics
-    execution_time: Optional[float] = None  # seconds
-    memory_peak: Optional[float] = None  # MB
-    cpu_usage: Optional[float] = None  # percentage
-
-    # Quality metrics
-    code_quality_score: Optional[float] = None
-    test_coverage: Optional[float] = None
-
-    # Summary statistics
-    summary: Dict[str, Any] = Field(default_factory=dict)
-
-    # Error information (if failed)
-    error_message: Optional[str] = None
-    error_traceback: Optional[str] = None
+    execution_time: Optional[float] = Field(
+        default=None, description="Execution time in seconds", json_schema_extra={"example": 123.45}
+    )
+    memory_peak: Optional[float] = Field(
+        default=None, description="Peak memory usage in MB", json_schema_extra={"example": 1024.5}
+    )
+    cpu_usage: Optional[float] = Field(
+        default=None,
+        description="Average CPU usage as a percentage",
+        ge=0.0,
+        le=100.0,
+        json_schema_extra={"example": 85.5},
+    )
+    code_quality_score: Optional[float] = Field(
+        default=None,
+        description="Code quality score (0-100)",
+        ge=0.0,
+        le=100.0,
+        json_schema_extra={"example": 92.3},
+    )
+    test_coverage: Optional[float] = Field(
+        default=None,
+        description="Test coverage percentage (0-100)",
+        ge=0.0,
+        le=100.0,
+        json_schema_extra={"example": 78.5},
+    )
+    summary: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional summary statistics and metrics"
+    )
+    error_message: Optional[str] = Field(
+        default=None, description="Error message if the experiment failed"
+    )
+    error_traceback: Optional[str] = Field(
+        default=None, description="Full error traceback if the experiment failed"
+    )
 
 
 class Experiment(BaseModel):
     """A complete experiment record."""
 
-    # Basic information
-    id: str = Field(default_factory=lambda: str(uuid4()))
-    name: str
-    description: str = ""
-    tags: List[str] = Field(default_factory=list)
+    model_config = ConfigDict(extra="forbid")
 
-    # Status and timing
-    status: ExperimentStatus = ExperimentStatus.CREATED
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    id: str = Field(
+        default_factory=lambda: str(uuid4()), description="Unique identifier for the experiment"
+    )
+    name: str = Field(..., description="Name of the experiment")
+    description: str = Field(default="", description="Description of the experiment")
+    tags: List[str] = Field(
+        default_factory=list, description="Tags for categorizing the experiment"
+    )
+    status: ExperimentStatus = Field(
+        default=ExperimentStatus.CREATED, description="Current status of the experiment"
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the experiment was created",
+    )
+    started_at: Optional[datetime] = Field(
+        default=None, description="When the experiment was started"
+    )
+    completed_at: Optional[datetime] = Field(
+        default=None, description="When the experiment was completed"
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the experiment was last updated",
+    )
+    config: ExperimentConfig = Field(..., description="Configuration for the experiment")
+    result: Optional[ExperimentResult] = Field(
+        default=None, description="Results of the experiment"
+    )
+    metrics: List[ExperimentMetric] = Field(
+        default_factory=list, description="Metrics recorded during the experiment"
+    )
+    artifacts: List[ExperimentArtifact] = Field(
+        default_factory=list, description="Artifacts produced by the experiment"
+    )
+    git_commit: Optional[str] = Field(
+        default=None, description="Git commit hash when the experiment was created"
+    )
+    git_branch: Optional[str] = Field(
+        default=None, description="Git branch when the experiment was created"
+    )
+    git_repository: Optional[str] = Field(default=None, description="URL of the git repository")
+    code_version: Optional[str] = Field(
+        default=None, description="Version of the code used for the experiment"
+    )
+    parent_experiment_id: Optional[str] = Field(
+        default=None, description="ID of the parent experiment if this is a continuation"
+    )
+    child_experiment_ids: List[str] = Field(
+        default_factory=list, description="IDs of child experiments that continue from this one"
+    )
+    created_by: Optional[str] = Field(
+        default=None, description="User or system that created the experiment"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata for the experiment"
+    )
 
-    # Configuration and results
-    config: ExperimentConfig
-    result: Optional[ExperimentResult] = None
-
-    # Tracking information
-    metrics: List[ExperimentMetric] = Field(default_factory=list)
-    artifacts: List[ExperimentArtifact] = Field(default_factory=list)
-
-    # Version control
-    git_commit: Optional[str] = None
-    git_branch: Optional[str] = None
-    git_repository: Optional[str] = None
-    code_version: Optional[str] = None
-
-    # Relationships
-    parent_experiment_id: Optional[str] = None
-    child_experiment_ids: List[str] = Field(default_factory=list)
-
-    # User information
-    created_by: Optional[str] = None
-
-    # Additional metadata
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-    @field_validator("created_at", "started_at", "completed_at", "updated_at")
+    @field_validator("created_at", "started_at", "completed_at", "updated_at", mode='before')
     @classmethod
-    def ensure_timezone_aware(cls, v: Optional[datetime]) -> Optional[datetime]:
+    def ensure_timezone_aware(
+        cls, v: Optional[datetime], info: FieldValidationInfo
+    ) -> Optional[datetime]:
         """Ensure datetime fields are timezone-aware."""
         if v is None:
-            return v
+            return None
         if v.tzinfo is None:
             return v.replace(tzinfo=timezone.utc)
-        return v
+        return v.astimezone(timezone.utc)  # Convert to UTC if in different timezone
 
-    @model_validator(mode="after")
-    def validate_timing(self) -> Experiment:
+    @model_validator(mode='after')
+    def validate_timing(self) -> 'Experiment':
         """Validate timing constraints."""
         if self.started_at and self.started_at < self.created_at:
             raise ValueError("started_at cannot be before created_at")

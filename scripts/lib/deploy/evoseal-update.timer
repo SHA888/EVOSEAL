@@ -1,0 +1,23 @@
+[Unit]
+Description=EVOSEAL Auto-Update Timer
+Documentation=https://github.com/yourusername/evoseal
+After=network-online.target
+Requires=network-online.target
+
+[Timer]
+# Run daily at 4:00 AM in the system's timezone
+OnCalendar=*-*-* 04:00:00
+# Add a random delay of up to 1 hour to distribute load
+RandomizedDelaySec=1h
+# Run missed timers when the system comes back online
+Persistent=true
+# Allow the timer to be started immediately if missed
+OnBootSec=15min
+OnUnitActiveSec=1d
+AccuracySec=1h
+
+# Run the update service when triggered
+Unit=evoseal-update.service
+
+[Install]
+WantedBy=timers.target

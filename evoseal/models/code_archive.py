@@ -106,11 +106,26 @@ class CodeArchive(BaseModel):
     dependencies: list[str] = Field(default_factory=list)
     is_archived: bool = False
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(
+    model_config = ConfigDict(
         json_encoders={
             datetime: lambda v: v.isoformat(),
             Enum: lambda v: v.value,
-        }
+        },
+        json_schema_extra={
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "content": "def hello_world():\n    print('Hello, World!')",
+                "language": "python",
+                "title": "Hello World Example",
+                "description": "A simple hello world example",
+                "author_id": "user123",
+                "version": "1.0.0",
+                "tags": ["example", "hello-world"],
+                "visibility": "public",
+            }
+        },
+        use_enum_values=True,
+        validate_assignment=True,
     )
 
     def __init__(self, **data: Any) -> None:

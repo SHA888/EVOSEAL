@@ -7,7 +7,7 @@ set -e
 
 # Source the logging utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/_logging.sh"
+source "$SCRIPT_DIR/lib/utils/_logging.sh"
 
 # Set up environment
 EVOSEAL_ROOT="${EVOSEAL_ROOT:-$(dirname "$SCRIPT_DIR")}"

@@ -1,32 +1,28 @@
 #!/bin/bash
-# EVOSEAL Version Update Script
-# Updates version numbers across all project files consistently
+#
+# DEPRECATED: This script has been replaced by scripts/version.py
+#
+# Usage example with the new script:
+#   python scripts/version.py update X.Y.Z [--dry-run] [--push] [--message "Commit message"]
+#   python scripts/version.py bump [major|minor|patch] [--dry-run] [--push] [--message "Commit message"]
+#
+# This script will be removed in a future release. Please update your workflows.
 
-set -e
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+print_error() {
+    echo -e "\033[0;31m[ERROR] $1\033[0m"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "\033[1;33m[WARNING] $1\033[0m"
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+# Show deprecation notice
+print_warning "This script is deprecated. Please use 'python scripts/version.py' instead."
+echo ""
+cat "$0" | head -n 10 | tail -n +2
+echo ""
+
+exit 1
 
 # Check if version is provided
 if [ $# -eq 0 ]; then

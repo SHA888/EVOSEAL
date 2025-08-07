@@ -37,11 +37,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from evoseal.integration.seal.exceptions import SelfEditingError, ValidationError
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 from evoseal.integration.seal.knowledge.mock_knowledge_base import MockKnowledgeBase
-from evoseal.integration.seal.prompt import (
-    PromptConstructor,
-    PromptStyle,
+from evoseal.integration.seal.prompt import PromptConstructor, PromptStyle
+
+# Import formatters
+from evoseal.integration.seal.prompt.formatters import (
     format_context,
     format_knowledge,
+    format_prompt,
 )
 
 # Import mock implementations
@@ -519,16 +521,12 @@ class EnhancedSEALSystem:
             if template_name:
                 template = await self._get_cached_template(template_name)
 
-            # Format knowledge and context
-            formatted_knowledge = format_knowledge(knowledge)
-            formatted_context = format_context(context)
-
-            # Construct the prompt - ensure prompt_text is passed as 'text' parameter
+            # Format the prompt using the format_prompt function
             prompt = format_prompt(
                 template=template if template else "{text}",
                 text=prompt_text,
-                knowledge=formatted_knowledge,
-                context=formatted_context,
+                knowledge=knowledge,
+                context=context,
                 **{
                     k: v for k, v in kwargs.items() if k != "template"
                 },  # Avoid duplicate 'template' parameter

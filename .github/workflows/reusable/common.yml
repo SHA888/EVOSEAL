@@ -20,7 +20,7 @@ jobs:
   setup-and-test:
     name: Setup and Test (Python ${{ inputs.python-version }})
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

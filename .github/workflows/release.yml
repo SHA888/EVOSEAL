@@ -44,8 +44,8 @@ jobs:
     # Only run for successful workflow runs or manual triggers
     if: >
       (github.event_name == 'workflow_dispatch') ||
-      (github.event.workflow_run.conclusion == 'success' && 
-       (github.event.workflow_run.head_branch == 'main' || 
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.head_branch == 'main' ||
         startsWith(github.event.workflow_run.head_branch, 'release/')))
 
     # Use the production environment for protection
@@ -89,7 +89,7 @@ jobs:
         run: |
           # Install dependencies for the version bump script
           pip install tomli pyyaml
-          
+
           # Determine the version bump type or specific version
           if [[ -n "${{ github.event.inputs.version }}" ]]; then
             if [[ "${{ github.event.inputs.version }}" =~ ^(major|minor|patch)$ ]]; then
@@ -109,11 +109,11 @@ jobs:
             python scripts/bump_version.py patch --no-push --no-commit
             BUMP_TYPE="patch"
           fi
-          
+
           # Get the new version
           NEW_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "New version: $NEW_VERSION"
-          
+
           # Set outputs for subsequent steps
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
@@ -194,10 +194,10 @@ jobs:
         id: verify_artifacts
         run: |
           set -e
-          
+
           # Ensure releases directory exists
           mkdir -p "releases/${{ steps.bump_version.outputs.version }}"
-          
+
           # Check for release notes or generate them
           RELEASE_NOTES_PATH="releases/${{ steps.bump_version.outputs.version }}/RELEASE_NOTES.md"
           if [ ! -f "$RELEASE_NOTES_PATH" ]; then
@@ -209,24 +209,24 @@ jobs:
               found && /^## / {exit}
               found {print}
             ' CHANGELOG.md > "$RELEASE_NOTES_PATH" || true
-            
+
             if [ ! -s "$RELEASE_NOTES_PATH" ]; then
               echo "⚠️ Could not extract release notes from CHANGELOG.md"
               echo "# Release ${{ steps.bump_version.outputs.version }}\n\nNo release notes available." > "$RELEASE_NOTES_PATH"
             fi
           fi
-          
+
           # Verify the built package files
           if [ ! -f "dist/evoseal-${{ steps.bump_version.outputs.version }}.tar.gz" ]; then
             echo "::error::Source distribution not found"
             exit 1
           fi
-          
+
           if [ ! -f "dist/evoseal-${{ steps.bump_version.outputs.version }}-py3-none-any.whl" ]; then
             echo "::error::Wheel distribution not found"
             exit 1
           fi
-          
+
           echo "✅ All release artifacts verified"
 
       - name: Publish to PyPI
@@ -239,35 +239,35 @@ jobs:
         run: |
           set -e
           echo "📦 Publishing version ${{ steps.bump_version.outputs.version }} to PyPI..."
-          
+
           # Verify PyPI token is set
           if [ -z "$TWINE_PASSWORD" ]; then
             echo "::error::PYPI_API_TOKEN secret is not set"
             exit 1
           fi
-          
+
           # Upload to PyPI
           twine upload --non-interactive \
             --username "$TWINE_USERNAME" \
             --password "$TWINE_PASSWORD" \
             dist/*
-            
+
           echo "✅ Successfully published to PyPI"
-          
+
           # Create a git tag and push if this was a workflow dispatch
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "🏷 Creating git tag v${{ steps.bump_version.outputs.version }}..."
             git config --global user.name 'GitHub Actions'
             git config --global user.email 'actions@github.com'
-            
+
             # Commit the version bump and changelog updates
             git add pyproject.toml CHANGELOG.md
             git commit -m "chore: release v${{ steps.bump_version.outputs.version }}" || echo "No changes to commit"
-            
+
             # Create and push the tag
             git tag -a "v${{ steps.bump_version.outputs.version }}" -m "Release v${{ steps.bump_version.outputs.version }}"
             git push origin "v${{ steps.bump_version.outputs.version }}"
-            
+
             # Push the commit if there were changes
             git push origin HEAD:${{ github.ref_name }}
           fi

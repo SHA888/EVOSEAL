@@ -576,23 +576,24 @@ class WorkflowValidator:
 # Cache for non-strict schema to avoid reloading on every call
 _NON_STRICT_SCHEMA = None
 
+
 def _make_schema_non_strict(schema: Any, processed_refs: set[str] | None = None) -> Any:
     """Recursively modify a schema to allow additional properties.
-    
+
     Args:
         schema: The schema to modify (can be a dict, list, or primitive)
         processed_refs: Set of already processed references to avoid cycles
-        
+
     Returns:
         A new schema with additionalProperties=True at all levels
     """
     if processed_refs is None:
         processed_refs = set()
-    
+
     # Base case: if it's not a dict, return as is
     if not isinstance(schema, dict):
         return schema
-    
+
     # Handle JSON references to avoid infinite recursion
     if "$ref" in schema:
         ref = schema["$ref"]
@@ -600,16 +601,18 @@ def _make_schema_non_strict(schema: Any, processed_refs: set[str] | None = None)
             # Skip already processed references to prevent cycles
             return schema
         processed_refs.add(ref)
-    
+
     # Create a shallow copy to avoid modifying the original
     new_schema = schema.copy()
-    
+
     # Allow additional properties at this level for object types
-    if "type" in new_schema and (new_schema["type"] == "object" or 
-                               (isinstance(new_schema["type"], list) and "object" in new_schema["type"])):
+    if "type" in new_schema and (
+        new_schema["type"] == "object"
+        or (isinstance(new_schema["type"], list) and "object" in new_schema["type"])
+    ):
         if "additionalProperties" not in new_schema:
             new_schema["additionalProperties"] = True
-    
+
     # Recursively process all schema properties that can contain subschemas
     for key, value in new_schema.items():
         if key in ("properties", "patternProperties", "definitions", "allOf", "anyOf", "oneOf"):
@@ -632,35 +635,42 @@ def _make_schema_non_strict(schema: Any, processed_refs: set[str] | None = None)
                 for def_name, def_schema in value.items():
                     new_value[def_name] = _make_schema_non_strict(def_schema, processed_refs)
                 new_schema[key] = new_value
-    
+
     return new_schema
+
 
 def _get_non_strict_validator() -> Draft7Validator:
     """Get a validator with a non-strict schema (allows additional properties)."""
     global _NON_STRICT_SCHEMA
-    
+
     if _NON_STRICT_SCHEMA is None:
         # Load the default schema
         validator = WorkflowValidator()
         with open(validator.schema_path) as f:
             schema = json.load(f)
-        
+
         # Make a non-strict copy of the schema
         _NON_STRICT_SCHEMA = _make_schema_non_strict(schema)
-        
+
         # Ensure the root schema allows additional properties
-        if "additionalProperties" in _NON_STRICT_SCHEMA and _NON_STRICT_SCHEMA["additionalProperties"] is False:
+        if (
+            "additionalProperties" in _NON_STRICT_SCHEMA
+            and _NON_STRICT_SCHEMA["additionalProperties"] is False
+        ):
             _NON_STRICT_SCHEMA["additionalProperties"] = True
-        
+
         # Also check for any nested schemas that might have additionalProperties: false
         def update_nested_schemas(schema_part):
             if not isinstance(schema_part, dict):
                 return
-                
+
             # Check if this is a schema object with additionalProperties
-            if "additionalProperties" in schema_part and schema_part["additionalProperties"] is False:
+            if (
+                "additionalProperties" in schema_part
+                and schema_part["additionalProperties"] is False
+            ):
                 schema_part["additionalProperties"] = True
-                
+
             # Recursively process all values in the schema
             for value in schema_part.values():
                 if isinstance(value, dict):
@@ -669,11 +679,12 @@ def _get_non_strict_validator() -> Draft7Validator:
                     for item in value:
                         if isinstance(item, dict):
                             update_nested_schemas(item)
-        
+
         # Apply the update to the entire schema
         update_nested_schemas(_NON_STRICT_SCHEMA)
-    
+
     return Draft7Validator(_NON_STRICT_SCHEMA)
+
 
 def validate_workflow(
     workflow_definition: dict[str, Any] | str | Path,
@@ -703,29 +714,29 @@ def validate_workflow(
         # For non-strict validation, use a validator that allows additional properties
         validator = WorkflowValidator(load_schema=False)
         validator.validator = _get_non_strict_validator()
-    
+
     try:
         # Parse the workflow definition if it's a string/Path
         if isinstance(workflow_definition, (str, Path)):
             workflow_definition = validator._parse_workflow_definition(workflow_definition)
-        
+
         # Perform the validation
         result = validator.validate(workflow_definition, level, partial)
-        
+
         if strict and not result.is_valid:
             raise WorkflowValidationError(
                 "Workflow validation failed",
                 validation_result=result,
             )
-            
+
         return result.is_valid if strict else result
-        
+
     except Exception as e:
         if strict:
             if isinstance(e, WorkflowValidationError):
                 raise
             raise WorkflowValidationError(str(e)) from e
-            
+
         # In non-strict mode, return a validation result with the error
         result = ValidationResult()
         result.add_error(
@@ -765,31 +776,31 @@ async def validate_workflow_async(
         # For non-strict validation, use a validator that allows additional properties
         validator = WorkflowValidator(load_schema=False)
         validator.validator = _get_non_strict_validator()
-    
+
     try:
         # Parse the workflow definition if it's a string/Path
         if isinstance(workflow_definition, (str, Path)):
             workflow_definition = await asyncio.to_thread(
                 validator._parse_workflow_definition, workflow_definition
             )
-        
+
         # Perform the validation asynchronously
         result = await validator.validate_async(workflow_definition, level, partial)
-        
+
         if strict and not result.is_valid:
             raise WorkflowValidationError(
                 "Workflow validation failed",
                 validation_result=result,
             )
-            
+
         return result.is_valid if strict else result
-        
+
     except Exception as e:
         if strict:
             if isinstance(e, WorkflowValidationError):
                 raise
             raise WorkflowValidationError(str(e)) from e
-            
+
         # In non-strict mode, return a validation result with the error
         result = ValidationResult()
         result.add_error(

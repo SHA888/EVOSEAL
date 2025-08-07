@@ -6,7 +6,7 @@ set -euo pipefail
 # Load configuration and logging
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/evoseal-config.sh"
-source "$SCRIPT_DIR/_logging.sh"
+source "$SCRIPT_DIR/lib/utils/_logging.sh"
 
 log_info "Testing EVOSEAL service auto-update functionality"
 

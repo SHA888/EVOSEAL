@@ -167,7 +167,7 @@ def valid_workflow() -> dict[str, Any]:
                     "on_success": [{"next": "end"}],
                     "on_failure": [{"next": "end"}],
                 }
-            }
+            },
         }
         # Add assertions here to validate the workflow
         assert workflow is not None
@@ -176,7 +176,9 @@ def valid_workflow() -> dict[str, Any]:
 class TestWorkflowValidator:
     """Test cases for the WorkflowValidator class."""
 
-    def test_validate_workflow(self, validator: WorkflowValidator, valid_workflow: dict[str, Any]) -> None:
+    def test_validate_workflow(
+        self, validator: WorkflowValidator, valid_workflow: dict[str, Any]
+    ) -> None:
         """Test workflow validation with a valid workflow."""
         result = validator.validate(valid_workflow)
         if not result.is_valid:
@@ -186,11 +188,13 @@ class TestWorkflowValidator:
         assert result.is_valid
         assert not result.issues
 
-    def test_validate_workflow_invalid(self, validator: WorkflowValidator, valid_workflow: dict[str, Any]) -> None:
+    def test_validate_workflow_invalid(
+        self, validator: WorkflowValidator, valid_workflow: dict[str, Any]
+    ) -> None:
         """Test workflow validation with an invalid workflow."""
         invalid_workflow = valid_workflow.copy()
         del invalid_workflow["name"]  # Make it invalid by removing required field
-        
+
         result = validator.validate(invalid_workflow)
         assert not result.is_valid
         assert result.issues
@@ -255,7 +259,9 @@ class TestWorkflowValidator:
         result = validator.validate(workflow, level=ValidationLevel.SCHEMA_ONLY)
         assert result.is_valid
 
-    def test_validate_partial(self, validator: WorkflowValidator, valid_workflow: dict[str, Any]) -> None:
+    def test_validate_partial(
+        self, validator: WorkflowValidator, valid_workflow: dict[str, Any]
+    ) -> None:
         """Test partial validation skips some checks."""
         # This workflow has an undefined task reference but we're doing partial validation
         workflow: dict[str, Any] = {
@@ -278,7 +284,9 @@ class TestWorkflowValidator:
         assert result.is_valid
 
     @async_test
-    async def test_validate_async(self, validator: WorkflowValidator, valid_workflow: dict[str, Any]) -> None:
+    async def test_validate_async(
+        self, validator: WorkflowValidator, valid_workflow: dict[str, Any]
+    ) -> None:
         """Test async validation."""
         result = await validator.validate_async(valid_workflow)
         assert result.is_valid
@@ -313,36 +321,45 @@ class TestConvenienceFunctions:
         # Create a workflow with extra fields that would be invalid in strict mode
         workflow = valid_workflow.copy()
         workflow["extra_field"] = "should be allowed in non-strict mode"
-        
+
         # Enable debug output
         import logging
+
         logging.basicConfig(level=logging.DEBUG)
         logger = logging.getLogger(__name__)
-        
+
         logger.debug("Original workflow: %s", workflow)
-        
+
         # First validate in strict mode (should fail due to extra field)
         with pytest.raises(WorkflowValidationError) as exc_info:
             validate_workflow(workflow, strict=True)
         logger.debug("Strict validation failed as expected: %s", str(exc_info.value))
-        
+
         # Now test non-strict mode
         result = validate_workflow(workflow, strict=False)
-        
+
         # Print detailed validation errors if any
         if not result.is_valid:
             logger.error("\nValidation failed with errors:")
             for i, issue in enumerate(result.issues, 1):
-                logger.error("%d. %s (code: %s, path: %s, exception: %s)", 
-                           i, issue.message, issue.code, getattr(issue, 'path', 'N/A'), 
-                           str(issue.exception) if hasattr(issue, 'exception') else 'None')
-        
+                logger.error(
+                    "%d. %s (code: %s, path: %s, exception: %s)",
+                    i,
+                    issue.message,
+                    issue.code,
+                    getattr(issue, 'path', 'N/A'),
+                    str(issue.exception) if hasattr(issue, 'exception') else 'None',
+                )
+
         # Debug: Print the schema being used
         from evoseal.utils.validator import _get_non_strict_validator
+
         validator = _get_non_strict_validator()
-        logger.debug("Schema additionalProperties: %s", 
-                    validator.schema.get('additionalProperties', 'Not set'))
-        
+        logger.debug(
+            "Schema additionalProperties: %s",
+            validator.schema.get('additionalProperties', 'Not set'),
+        )
+
         assert result.is_valid, f"Validation failed with {len(result.issues)} issues"
         assert not result.issues, f"Expected no validation issues, but got {len(result.issues)}"
 

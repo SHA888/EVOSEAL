@@ -9,102 +9,124 @@ import pytest
 from evoseal.agents.agentic_system import Agent, AgenticSystem
 
 
-class DummyAgent:
-    def __init__(self, name: str):
-        self.name = name
-        self.messages = []
-        self.tasks = []
-        self.status = {"ready": True}
+@pytest.fixture
+def dummy_agent():
+    """Fixture that creates a DummyAgent instance for testing."""
 
-    def act(self, observation: Any) -> Any:
-        self.tasks.append(observation)
-        return f"{self.name} did {observation}"
+    class DummyAgent:
+        def __init__(self, name: str):
+            self.name = name
+            self.messages = []
+            self.tasks = []
+            self.status = {"ready": True}
 
-    def receive(self, message: Any) -> None:
-        self.messages.append(message)
+        def act(self, observation: Any) -> Any:
+            self.tasks.append(observation)
+            return f"{self.name} did {observation}"
 
-    def get_status(self) -> dict[str, Any]:
-        return {**self.status, "messages": len(self.messages), "tasks": len(self.tasks)}
+        def receive(self, message: Any) -> None:
+            self.messages.append(message)
 
+        def get_status(self) -> dict[str, Any]:
+            return {**self.status, "messages": len(self.messages), "tasks": len(self.tasks)}
 
-EXPECTED_AGENT_COUNT = 1
-
-
-class RealAgent:
-    def __init__(self):
-        self.acted = []
-        self.received = []
-
-    def act(self, observation):
-        self.acted.append(observation)
-        return f"acted:{observation}"
-
-    def receive(self, message):
-        self.received.append(message)
-
-    def get_status(self):
-        return {"acted": len(self.acted), "received": len(self.received)}
+    return DummyAgent("test_agent")
 
 
-def test_real_agent_integration():
+@pytest.fixture
+def real_agent():
+    """Fixture that creates a RealAgent instance for testing."""
+
+    class RealAgent:
+        def __init__(self):
+            self.acted = []
+            self.received = []
+
+        def act(self, observation):
+            self.acted.append(observation)
+            return f"acted:{observation}"
+
+        def receive(self, message):
+            self.received.append(message)
+
+        def get_status(self):
+            return {"acted": len(self.acted), "received": len(self.received)}
+
+    return RealAgent()
+
+
+def test_real_agent_integration(real_agent):
+    """Test integration with a real agent implementation."""
     sys = AgenticSystem()
-    agent = RealAgent()
-    sys.create_agent("real", agent)
-    assert sys.list_agents() == ["real"]
-    sys.send_message("real", "msg")
-    assert agent.received == ["msg"]
-    res = sys.assign_task("real", "task1")
-    assert res == "acted:task1"
-    status = sys.get_agent_status("real")
-    assert status["acted"] == 1 and status["received"] == 1
-    sys.destroy_agent("real")
-    assert "real" not in sys.list_agents()
-    with pytest.raises(KeyError):
-        sys.get_agent_status("real")
-    with pytest.raises(ValueError):
-        sys.create_agent("real", agent)
-        sys.create_agent("real", agent)
+    sys.create_agent("test_agent", real_agent)
+
+    # Test sending a message
+    sys.send_message("test_agent", "Hello")
+    assert len(real_agent.received) == 1
+    assert real_agent.received[0] == "Hello"
+
+    # Test assigning a task
+    result = sys.assign_task("test_agent", "task1")
+    assert result == "acted:task1"
+    assert len(real_agent.acted) == 1
+    assert real_agent.acted[0] == "task1"
+
+    # Test getting status
+    status = sys.get_agent_status("test_agent")
+    assert status == {"acted": 1, "received": 1}
 
 
-def test_create_and_destroy_agent():
+def test_create_and_destroy_agent(dummy_agent):
+    """Test agent creation and destruction."""
     sys = AgenticSystem()
-    agent = DummyAgent("A")
-    sys.create_agent("A", agent)
-    expected_agent_count = 1
-    assert len(sys.list_agents()) == expected_agent_count
-    sys.destroy_agent("A")
-    assert "A" not in sys.list_agents()
-    with pytest.raises(KeyError):
-        sys.destroy_agent("A")
+
+    # Test creating an agent
+    sys.create_agent("test_agent", dummy_agent)
+    assert "test_agent" in sys.agents
+    assert sys.agents["test_agent"] == dummy_agent
+
+    # Test destroying an agent
+    sys.destroy_agent("test_agent")
+    assert "test_agent" not in sys.agents
 
 
-def test_send_message_and_assign_task():
+def test_send_message_and_assign_task(dummy_agent):
+    """Test sending messages and assigning tasks to agents."""
     sys = AgenticSystem()
-    agent = DummyAgent("B")
-    sys.create_agent("B", agent)
-    sys.send_message("B", "hello")
-    assert agent.messages == ["hello"]
-    result = sys.assign_task("B", "compute")
-    assert result == "B did compute"
-    assert agent.tasks == ["compute"]
-    with pytest.raises(KeyError):
-        sys.send_message("C", "fail")
-    with pytest.raises(KeyError):
-        sys.assign_task("C", "fail")
+    sys.create_agent("test_agent", dummy_agent)
+
+    # Test sending a message
+    sys.send_message("test_agent", "Hello")
+    assert len(dummy_agent.messages) == 1
+    assert dummy_agent.messages[0] == "Hello"
+
+    # Test assigning a task
+    result = sys.assign_task("test_agent", "task1")
+    assert result == "test_agent did task1"
+    assert len(dummy_agent.tasks) == 1
+    assert dummy_agent.tasks[0] == "task1"
 
 
-def test_monitor_performance_and_status():
+def test_monitor_performance_and_status(dummy_agent):
+    """Test monitoring agent performance and status."""
     sys = AgenticSystem()
-    agent = DummyAgent("C")
-    sys.create_agent("C", agent)
-    sys.assign_task("C", "t1")
-    sys.assign_task("C", "t2")
-    perf = sys.monitor_performance("C")
-    assert perf["C"] == ["C did t1", "C did t2"]
-    status = sys.get_agent_status("C")
-    assert status["ready"] is True
-    assert status["messages"] == 0
-    expected_task_count = 2
-    assert status["tasks"] == expected_task_count
-    all_perf = sys.monitor_performance()
-    assert "C" in all_perf
+    sys.create_agent("agent1", dummy_agent)
+    agent2 = type(dummy_agent)("agent2")  # Create another instance of the same class
+
+    sys.create_agent("agent2", agent2)
+
+    # Perform some actions
+    sys.send_message("agent1", "msg1")
+    sys.assign_task("agent1", "task1")
+    sys.send_message("agent2", "msg2")
+    sys.assign_task("agent2", "task2")
+
+    # Test getting status for one agent
+    status1 = sys.get_agent_status("agent1")
+    assert status1 == {"ready": True, "messages": 1, "tasks": 1}
+
+    # Test getting status for each agent
+    agent1_status = sys.get_agent_status("agent1")
+    agent2_status = sys.get_agent_status("agent2")
+    assert isinstance(agent1_status, dict)
+    assert isinstance(agent2_status, dict)

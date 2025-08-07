@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional, cast
+from typing import Any, ClassVar, Optional, cast
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TestCaseResult(BaseModel):
@@ -34,7 +34,7 @@ class EvaluationResult(BaseModel):
         default=None, description="User or system that created this evaluation"
     )
 
-    @validator("metrics")
+    @field_validator("metrics")
     @classmethod
     def validate_metrics(cls, v: dict[str, float]) -> dict[str, float]:
         # Example: enforce 0 <= value <= 1 for common metrics

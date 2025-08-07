@@ -37,7 +37,13 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 - 🎯 **Fine-tuning Infrastructure**: LoRA/QLoRA with comprehensive validation
 - 📊 **Model Versioning**: Automatic version tracking and rollback
 - 🛡️ **Safety Controls**: Model validation with alignment testing
-- 🔧 **systemd Integration**: Production-ready service management
+- 🔧 **systemd Integration**: Production-ready service management with enhanced security
+
+### 🛠️ Script Organization & CLI
+- 🗂 **Modular Scripts**: Organized into functional directories under `scripts/lib/`
+- 📜 **Unified CLI**: Single entry point through `scripts/evoseal`
+- 🚀 **Service Management**: Easy deployment with systemd service and timers
+- 📊 **Logging**: Centralized logging with rotation and verbosity controls
 
 ### 🏗️ Core Architecture
 - 🧬 Evolutionary algorithm for code improvement
@@ -54,70 +60,114 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 ### 🚀 Phase 3: Bidirectional Continuous Evolution
 
-Get the complete EVOSEAL bidirectional evolution system running in minutes:
+## Getting Started
+
+### Prerequisites
+- Python 3.10+
+- Git
+- systemd (for service management)
+- [Optional] CUDA-compatible GPU for accelerated training
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/EVOSEAL.git
+   cd EVOSEAL
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### CLI Usage
+
+The main entry point for EVOSEAL is the `scripts/evoseal` script. Make it executable and run it with the `--help` flag to see available commands:
 
 ```bash
-# Clone the repository
-git clone https://github.com/SHA888/EVOSEAL
-cd EVOSEAL
+# Make the script executable
+chmod +x scripts/evoseal
 
-# Set up virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Show help
+./scripts/evoseal --help
 
-# Install dependencies
-pip install -r requirements.txt
-pip install aiohttp aiohttp-cors pydantic-settings
+# Run tests
+./scripts/evoseal test
 
-# Install in development mode
-pip install -e .
+# Start evolution cycle
+./scripts/evoseal evolve
 
-# Install and start Ollama with Devstral
-curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull devstral:latest
-ollama serve &
-
-# Run Phase 3 health check
-python3 scripts/run_phase3_continuous_evolution.py --health-check
-
-# Start the complete bidirectional evolution system
-python3 scripts/run_phase3_continuous_evolution.py --verbose
+# Manage versions
+./scripts/evoseal version --help
 ```
 
-### 🔧 Production Deployment with systemd
+### Service Management
 
-For production deployment, integrate with systemd:
+To run EVOSEAL as a systemd service:
 
-```bash
-# The systemd service is already configured
-systemctl --user status evoseal.service
+1. Install the service (run as your user):
+   ```bash
+   ./scripts/evoseal deploy install-service
+   ```
 
-# View real-time logs
-journalctl --user -fu evoseal.service
+2. Enable and start the service:
+   ```bash
+   systemctl --user enable evoseal.service
+   systemctl --user start evoseal.service
+   ```
 
-# Access monitoring dashboard
-open http://localhost:9613
-```
+3. View logs:
+   ```bash
+   journalctl --user -u evoseal -f
+   ```
 
-## Project Templates
+4. Install the update timer (runs daily at 4 AM):
+   ```bash
+   ./scripts/evoseal deploy install-timer
+   ```
 
-Start a new project using our template:
+### Environment Variables
 
-```bash
-# Copy the template to a new directory
-cp -r evoseal/examples/templates/basic my_project
-cd my_project
+Key environment variables can be set in `.env` or passed to the service:
 
-# Install dependencies
-pip install -r requirements.txt
+```env
+# Core settings
+EVOSEAL_ROOT=/path/to/evoseal
+EVOSEAL_VENV=/path/to/venv
+EVOSEAL_LOGS=/path/to/logs
+
+# Provider configuration
+OLLAMA_API_BASE=http://localhost:11434
+OLLAMA_MODEL=devstral:latest
+
+# Logging
+LOG_LEVEL=INFO
+LOG_FORMAT=json
 ```
 
 ## Project Structure
 
-### 🏗️ Phase 3: Bidirectional Evolution Architecture
-
+### Main Directories
 ```
-evoseal/
+EVOSEAL/
+├── scripts/                 # Scripts and utilities
+│   ├── lib/                 # Library of modular scripts
+│   │   ├── cli/             # Command-line interface tools
+│   │   ├── deploy/          # Deployment and service management
+│   │   ├── evolution/       # Evolution cycle management
+│   │   ├── release/         # Release automation
+│   │   ├── test/            # Test runners and utilities
+│   │   ├── utils/           # Shared utilities and helpers
+│   │   └── version/         # Version management
+│   └── evoseal              # Main CLI entry point
+│
 ├── core/                    # Core framework components
 │   ├── __init__.py          # Package initialization
 │   ├── controller.py        # Main orchestration logic

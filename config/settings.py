@@ -10,18 +10,10 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Protocol, Type, TypeVar, cast
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-# Define a Protocol for type checking
-class SettingsSourceCallableProtocol(Protocol):
-    def __call__(self, settings: BaseSettings) -> dict[str, Any]: ...
-
-
-SettingsSourceCallable = SettingsSourceCallableProtocol
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 # Type variable for generic model typing
 T = TypeVar("T", bound=BaseModel)
@@ -37,6 +29,8 @@ CONFIG_DIR = BASE_DIR / "config"
 
 class DGMConfig(BaseModel):
     """Configuration for the Darwin Godel Machine component."""
+
+    model_config = ConfigDict(extra="forbid")
 
     enabled: bool = Field(True, description="Whether DGM is enabled")
     module_path: str = Field("dgm", description="Path to the DGM module (relative or absolute)")
@@ -60,6 +54,8 @@ class OpenEvolveConfig(BaseModel):
 
 class SEALProviderConfig(BaseModel):
     """Configuration for a SEAL provider."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(..., description="Provider name")
     enabled: bool = Field(True, description="Whether this provider is enabled")
@@ -109,6 +105,8 @@ class SEALConfig(BaseModel):
 class LoggingConfig(BaseModel):
     """Logging configuration."""
 
+    model_config = ConfigDict(extra="forbid")
+
     level: str = Field("INFO", description="Logging level")
     file: str | None = Field("logs/evoseal.log", description="Log file path")
     max_size_mb: int = Field(10, description="Maximum log file size in MB")
@@ -121,6 +119,8 @@ class LoggingConfig(BaseModel):
 
 class DatabaseConfig(BaseModel):
     """Database configuration."""
+
+    model_config = ConfigDict(extra="forbid")
 
     database_url: str | None = Field(
         default="sqlite:///./evoseal.db",
@@ -137,33 +137,48 @@ class Settings(BaseSettings):
 
     env: str = Field(ENV, description="Current environment")
     debug: bool = Field(ENV == "development", description="Debug mode")
-
-    # Application settings
     app_name: str = "EVOSEAL"
     secret_key: str = Field(
         default="dev-secret-key-change-in-production",
         description="Secret key for cryptographic operations",
     )
-
-    # Component configurations
     dgm: DGMConfig = Field(default_factory=DGMConfig)
     openevolve: OpenEvolveConfig = Field(default_factory=OpenEvolveConfig)
     seal: SEALConfig = Field(default_factory=SEALConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
 
-    model_config = SettingsConfigDict(
+    model_config = ConfigDict(
         extra="allow",
         validate_assignment=True,
         env_nested_delimiter="__",
         env_file=".env",
         env_file_encoding="utf-8",
+        env_prefix="evoseal_",
+        from_attributes=True,
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
     )
 
-    # Note: Custom settings sources disabled for now
-    # Can be re-enabled later with proper Pydantic v2 implementation
-
     @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Customize settings sources to include JSON config."""
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+            JsonConfigSettingsSource(settings_cls),
+        )
+
+    @model_validator(mode="before")
     def validate_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Validate settings after loading.
 
@@ -173,39 +188,42 @@ class Settings(BaseSettings):
         Returns:
             Validated dictionary of field values
         """
+        # Ensure secret key is set in production
         env = values.get("env", "development")
-        if isinstance(env, str):
-            env = env.lower()
-        values["env"] = env
-        values["debug"] = values.get("debug", env == "development")
+        if (
+            env == "production"
+            and values.get("secret_key") == "dev-secret-key-change-in-production"
+        ):
+            raise ValueError("SECRET_KEY must be set in production")
 
-        # Ensure required directories exist
-        os.makedirs(BASE_DIR / "logs", exist_ok=True)
-        os.makedirs(BASE_DIR / "data/knowledge", exist_ok=True)
-        os.makedirs(BASE_DIR / "checkpoints/openevolve", exist_ok=True)
+        # Ensure database URL is set in production
+        if env == "production" and not values.get("database", {}).get("database_url"):
+            raise ValueError("DATABASE_URL must be set in production")
 
         return values
 
-    # Add model_validator to the class after method definition
-    _validate_settings = model_validator(mode="before")(validate_settings)
 
-    @classmethod
-    def model_validate(cls, *args: Any, **kwargs: Any) -> Any:
-        """Override model_validate to provide type information."""
-        return super().model_validate(*args, **kwargs)
+class JsonConfigSettingsSource(PydanticBaseSettingsSource):
+    """Load settings from JSON config file if it exists."""
 
+    def get_field_value(self, field: Field, field_name: str) -> tuple[Any, str, bool]:
+        """Get a field value from the JSON config."""
+        config_path = CONFIG_DIR / f"settings.{ENV}.json"
+        if config_path.exists():
+            with open(config_path, encoding="utf-8") as f:
+                config_data = json.load(f)
+                field_value = config_data.get(field_name)
+                if field_value is not None:
+                    return field_value, field_name, True
+        return None, field_name, False
 
-def json_config_settings_source() -> dict[str, Any]:
-    """Load settings from JSON config file if it exists.
-
-    Returns:
-        Dictionary containing the loaded settings
-    """
-    config_path = CONFIG_DIR / f"{ENV}.json"
-    if config_path.exists():
-        with open(config_path, encoding="utf-8") as f:
-            return cast(dict[str, Any], json.load(f))
-    return {}
+    def __call__(self) -> dict[str, Any]:
+        """Load settings from JSON config file if it exists."""
+        config_path = CONFIG_DIR / f"settings.{ENV}.json"
+        if config_path.exists():
+            with open(config_path, encoding="utf-8") as f:
+                return json.load(f)
+        return {}
 
 
 # Create settings instance

@@ -1,0 +1,53 @@
+[Unit]
+Description=EVOSEAL Auto-Update Service
+Documentation=https://github.com/yourusername/evoseal
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=oneshot
+User=__EVOSEAL_USER__
+WorkingDirectory=__EVOSEAL_ROOT__
+
+# Environment configuration
+EnvironmentFile=-__EVOSEAL_ROOT__/.env
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONPATH=__EVOSEAL_ROOT__:__EVOSEAL_ROOT__/SEAL"
+Environment="EVOSEAL_ROOT=__EVOSEAL_ROOT__"
+Environment="EVOSEAL_VENV=__EVOSEAL_ROOT__/.venv"
+Environment="EVOSEAL_LOGS=__EVOSEAL_ROOT__/logs"
+
+# Security options (similar to main service)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+PrivateUsers=true
+PrivateMounts=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @file-system @network-io @process
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=65536
+LimitMEMLOCK=64M
+LimitSTACK=8M
+LimitRTPRIO=0
+LimitRTTIME=7000000
+
+# Execute the update script
+ExecStart=__EVOSEAL_ROOT__/scripts/lib/deploy/update_evoseal.sh
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=evoseal-update

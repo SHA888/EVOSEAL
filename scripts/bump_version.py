@@ -1,140 +1,114 @@
 #!/usr/bin/env python3
 """
-Script to handle version bumping and changelog updates.
+DEPRECATED: This script has been replaced by scripts/lib/version/version.py
+Please update your workflows to use the new version management system:
+  ./scripts/evoseal version --help
 
-This script automates the process of:
-1. Bumping the version in pyproject.toml
-2. Updating the CHANGELOG.md with the new version
-3. Creating a git tag
-4. Pushing changes to the remote repository
+This script is kept for backward compatibility and will be removed in a future release.
 """
 
-import re
 import sys
-import subprocess
-from pathlib import Path
-from datetime import datetime
-from typing import Optional, Tuple
-import tomli
-import click
-
-# Paths
-ROOT_DIR = Path(__file__).parent.parent
-PYPROJECT_PATH = ROOT_DIR / "pyproject.toml"
-CHANGELOG_PATH = ROOT_DIR / "CHANGELOG.md"
 
 
-def get_current_version() -> str:
-    """Get the current version from pyproject.toml."""
-    with open(PYPROJECT_PATH, "rb") as f:
-        pyproject = tomli.load(f)
-    return pyproject["project"]["version"]
+def main():
+    print("\n" + "=" * 80)
+    print("DEPRECATION WARNING: This script has been replaced by scripts/lib/version/version.py")
+    print("Please update your workflows to use the new version management system:")
+    print("  ./scripts/evoseal version --help\n")
+    print("To continue using this script, you can run:")
+    print(f"  python3 {__file__} --force <major|minor|patch|version>")
+    print("=" * 80 + "\n")
 
+    if "--force" not in sys.argv:
+        sys.exit(1)
 
-def bump_version(version: str, bump_type: str) -> str:
-    """Bump the version number based on the bump type."""
-    major, minor, patch = map(int, version.split("."))
-    
-    if bump_type == "major":
-        return f"{major + 1}.0.0"
-    elif bump_type == "minor":
-        return f"{major}.{minor + 1}.0"
-    elif bump_type == "patch":
-        return f"{major}.{minor}.{patch + 1}"
-    else:
-        # Assume it's a specific version
-        if not re.match(r"^\d+\.\d+\.\d+$", bump_type):
-            raise ValueError(f"Invalid version format: {bump_type}")
-        return bump_type
+    # Remove --force flag and continue with original script
+    sys.argv.remove("--force")
 
+    # Original script functionality follows...
+    import re
+    import subprocess
+    from pathlib import Path
+    from typing import Optional, Tuple
 
-def update_pyproject_version(version: str) -> None:
-    """Update the version in pyproject.toml."""
-    with open(PYPROJECT_PATH, "r") as f:
-        content = f.read()
-    
-    # Update the version using a regex that matches the version line
-    content = re.sub(
-        r'^version\s*=\s*"[\d.]+[\w.-]*"',
-        f'version = "{version}"',
-        content,
-        flags=re.MULTILINE
-    )
-    
-    with open(PYPROJECT_PATH, "w") as f:
-        f.write(content)
+    def get_current_version() -> str:
+        """Get the current version from pyproject.toml."""
+        pyproject = Path("pyproject.toml")
+        if not pyproject.exists():
+            print("Error: pyproject.toml not found", file=sys.stderr)
+            sys.exit(1)
 
+        version_pattern = re.compile(r'^version\s*=\s*["\'](\d+\.\d+\.\d+)["\']\s*$', re.MULTILINE)
+        content = pyproject.read_text()
 
-def update_changelog(version: str) -> None:
-    """Update the CHANGELOG.md with the new version section."""
-    if not CHANGELOG_PATH.exists():
-        return
-    
-    with open(CHANGELOG_PATH, "r") as f:
-        content = f.read()
-    
-    today = datetime.now().strftime("%Y-%m-%d")
-    version_header = f"## [{version}] - {today}"
-    
-    # Insert the new version section after the changelog header
-    if "# Changelog" in content:
-        new_content = content.replace(
-            "# Changelog\n\n",
-            f"# Changelog\n\n{version_header}\n\n### 🚀 Features\n\n### 🐛 Bug Fixes\n\n### 📚 Documentation\n\n### 🛠 Maintenance\n\n"
+        match = version_pattern.search(content)
+        if not match:
+            print("Error: Could not find version in pyproject.toml", file=sys.stderr)
+            sys.exit(1)
+
+        return match.group(1)
+
+    def bump_version(version: str, bump_type: str) -> str:
+        """Bump the version number based on the bump type."""
+        major, minor, patch = map(int, version.split("."))
+
+        if bump_type == "major":
+            return f"{major + 1}.0.0"
+        elif bump_type == "minor":
+            return f"{major}.{minor + 1}.0"
+        elif bump_type == "patch":
+            return f"{major}.{minor}.{patch + 1}"
+        else:
+            # Assume it's a specific version
+            if not re.match(r'^\d+\.\d+\.\d+$', bump_type):
+                print(f"Error: Invalid version format: {bump_type}", file=sys.stderr)
+                print("Version must be in format MAJOR.MINOR.PATCH or one of: major, minor, patch", file=sys.stderr)
+                sys.exit(1)
+            return bump_type
+
+    def update_pyproject(version: str) -> None:
+        """Update the version in pyproject.toml."""
+        pyproject = Path("pyproject.toml")
+        content = pyproject.read_text()
+
+        # Update version in pyproject.toml
+        new_content = re.sub(
+            r'^(version\s*=\s*["\']).*?(["\']\s*)$',
+            f'\\g<1>{version}\\g<2>',
+            content,
+            flags=re.MULTILINE,
+            count=1
         )
-    else:
-        new_content = f"# Changelog\n\n{version_header}\n\n### 🚀 Features\n\n### 🐛 Bug Fixes\n\n### 📚 Documentation\n\n### 🛠 Maintenance\n\n\n{content}"
-    
-    with open(CHANGELOG_PATH, "w") as f:
-        f.write(new_content)
 
+        if new_content == content:
+            print("Warning: Version not updated in pyproject.toml - version string not found", file=sys.stderr)
+        else:
+            pyproject.write_text(new_content)
+            print(f"Updated pyproject.toml to version {version}")
 
-def git_commit_and_tag(version: str) -> None:
-    """Commit changes and create a git tag."""
-    subprocess.run(["git", "add", str(PYPROJECT_PATH), str(CHANGELOG_PATH)], check=True)
-    subprocess.run(
-        ["git", "commit", "-m", f"chore: bump version to {version}"],
-        check=True
-    )
-    subprocess.run(["git", "tag", f"v{version}", "-m", f"Release {version}"], check=True)
-
-
-def push_changes() -> None:
-    """Push changes and tags to the remote repository."""
-    subprocess.run(["git", "push", "origin", "HEAD"], check=True)
-    subprocess.run(["git", "push", "origin", "--tags"], check=True)
-
-
-@click.command()
-@click.argument("bump_type", type=click.Choice(["major", "minor", "patch"]), default="patch")
-@click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
-@click.option("--no-commit", is_flag=True, help="Skip git commit and tag")
-@click.option("--no-push", is_flag=True, help="Skip pushing to remote")
-def main(bump_type: str, dry_run: bool, no_commit: bool, no_push: bool) -> None:
-    """Bump the version and update changelog."""
-    try:
-        current_version = get_current_version()
-        new_version = bump_version(current_version, bump_type)
-        
-        print(f"Current version: {current_version}")
+    def update_changelog(version: str) -> None:
+        """Update the changelog with the new version."""
+        changelog = Path("CHANGELOG.md")
+        if not changelog.exists():
+            print("Warning: CHANGELOG.md not found - skipping changelog update", file=sys.stderr)
         print(f"New version: {new_version}")
-        
+
         if dry_run:
             print("\nThis is a dry run. No changes will be made.")
             return
-        
+
         # Update files
         update_pyproject_version(new_version)
         update_changelog(new_version)
-        
+
         if not no_commit:
             git_commit_and_tag(new_version)
-            
+
             if not no_push:
                 push_changes()
-        
+
         print(f"\n✅ Successfully bumped version to {new_version}")
-        
+
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)
         sys.exit(1)

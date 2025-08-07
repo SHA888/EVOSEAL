@@ -1,0 +1,121 @@
+#!/bin/bash
+# EVOSEAL Script Runner
+# Main entry point for all EVOSEAL scripts
+
+set -euo pipefail
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/lib"
+BIN_DIR="$SCRIPT_DIR/bin"
+
+# Source logging functions
+if [ -f "$LIB_DIR/utils/_logging.sh" ]; then
+    source "$LIB_DIR/utils/_logging.sh"
+else
+    echo "Error: _logging.sh not found in $LIB_DIR/utils/"
+    exit 1
+fi
+
+# Check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Print usage information
+print_usage() {
+    echo "EVOSEAL Script Runner"
+    echo "Usage: $0 <command> [options]"
+    echo ""
+    echo "Available commands:"
+    echo "  version    Manage EVOSEAL version"
+    echo "  test       Run tests"
+    echo "  evolve     Run evolution cycles"
+    echo "  deploy     Deployment utilities"
+    echo "  utils      Utility scripts"
+    echo "  help       Show this help message"
+    echo ""
+    echo "Run '$0 <command> --help' for command-specific help"
+}
+
+# Main script execution
+main() {
+    local command="${1:-}"
+
+    case "$command" in
+        version|v)
+            shift
+            if [ -f "$LIB_DIR/version/version.py" ]; then
+                python "$LIB_DIR/version/version.py" "$@"
+            else
+                echo "Error: Version management not found. Please check your installation."
+                print_usage
+                exit 1
+            fi
+            ;;
+
+        test|t)
+            shift
+            if [ -f "$LIB_DIR/test/run_tests.sh" ]; then
+                "$LIB_DIR/test/run_tests.sh" "$@"
+            else
+                echo "Error: Test runner not found. Please check your installation."
+                print_usage
+                exit 1
+            fi
+            ;;
+
+        evolve|e|evolution)
+            shift
+            if [ -f "$LIB_DIR/evolution/run_evolution.sh" ]; then
+                "$LIB_DIR/evolution/run_evolution.sh" "$@"
+            else
+                echo "Error: Evolution runner not found. Please check your installation."
+                print_usage
+                exit 1
+            fi
+            ;;
+
+        deploy|d|deployment)
+            shift
+            if [ -f "$LIB_DIR/deploy/deploy.sh" ]; then
+                "$LIB_DIR/deploy/deploy.sh" "$@"
+            else
+                echo "Error: Deployment script not found. Please check your installation."
+                print_usage
+                exit 1
+            fi
+            ;;
+
+        utils|u|utilities)
+            shift
+            if [ -f "$LIB_DIR/utils/utils.sh" ]; then
+                "$LIB_DIR/utils/utils.sh" "$@"
+            else
+                echo "Error: Utilities script not found. Please check your installation."
+                print_usage
+                exit 1
+            fi
+            ;;
+
+        help|--help|-h|'')
+            print_usage
+            ;;
+
+        *)
+            if [ -f "$BIN_DIR/$command" ]; then
+                shift
+                "$BIN_DIR/$command" "$@"
+            else
+                echo "Error: Unknown command '$command'"
+                print_usage
+                exit 1
+            fi
+            ;;
+    esac
+}
+
+# Only run main if this file is being executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

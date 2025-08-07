@@ -29,13 +29,13 @@ pytest --cov=evoseal --cov-report=term-missing
    ```bash
    # For a patch release (1.0.0 -> 1.0.1)
    python scripts/bump_version.py patch
-   
+
    # For a minor release (1.0.0 -> 1.1.0)
    python scripts/bump_version.py minor
-   
+
    # For a major release (1.0.0 -> 2.0.0)
    python scripts/bump_version.py major
-   
+
    # For a specific version
    python scripts/bump_version.py 2.1.0
    ```

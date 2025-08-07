@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Import logging functions
-source "$SCRIPT_DIR/_logging.sh"
+source "$SCRIPT_DIR/lib/utils/_logging.sh"
 
 # Configuration
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/logs}"

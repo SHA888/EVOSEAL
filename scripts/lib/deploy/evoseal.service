@@ -1,0 +1,130 @@
+# EVOSEAL Systemd Service Template
+# This template uses placeholders that are replaced during installation:
+#   __EVOSEAL_ROOT__ - Full path to EVOSEAL installation directory
+#   __EVOSEAL_USER__ - User account that will run the service
+# Use install_evoseal_service.sh to install with proper substitutions
+
+[Unit]
+Description=EVOSEAL Evolution Service with Auto-Update
+Documentation=https://github.com/yourusername/evoseal
+After=network.target
+Requires=network.target
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=__EVOSEAL_USER__
+WorkingDirectory=__EVOSEAL_ROOT__
+
+# Environment configuration
+EnvironmentFile=-__EVOSEAL_ROOT__/.env
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONPATH=__EVOSEAL_ROOT__:__EVOSEAL_ROOT__/SEAL"
+Environment="EVOSEAL_ROOT=__EVOSEAL_ROOT__"
+Environment="EVOSEAL_VENV=__EVOSEAL_ROOT__/.venv"
+Environment="EVOSEAL_LOGS=__EVOSEAL_ROOT__/logs"
+Environment="PYTHONHASHSEED=random"
+
+# Process management
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Logging configuration
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=evoseal
+SyslogLevel=info
+LogLevelMax=warning
+LogRateLimitIntervalSec=5s
+LogRateLimitBurst=1000
+
+# Core dumps (for debugging if needed)
+LimitCORE=0
+ProcessAccounting=yes
+
+# Security options (strict)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateUsers=true
+PrivateMounts=true
+ProtectClock=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+MemoryDenyWriteExecute=true
+LockPersonality=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @file-system @network-io @process @signal @ipc @timer
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+NoNewPrivileges=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=65536
+LimitMEMLOCK=64M
+LimitSTACK=8M
+LimitRTPRIO=0
+LimitRTTIME=7000000
+LimitAS=infinity
+LimitFSIZE=infinity
+LimitDATA=infinity
+LimitRSS=infinity
+LimitCPU=infinity
+TasksMax=infinity
+
+# Sandboxing
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+MemoryDenyWriteExecute=true
+LockPersonality=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateUsers=true
+PrivateMounts=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @file-system @network-io @process @signal @ipc @timer
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+NoNewPrivileges=true
+LimitNPROC=65535
+
+# Main execution command
+ExecStart=/bin/bash -c './scripts/evoseal-unified-runner.sh --mode=service'
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+StartLimitInterval=300s
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target
