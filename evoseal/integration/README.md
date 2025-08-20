@@ -4,6 +4,8 @@ This module provides a comprehensive integration system for orchestrating extern
 
 ## Overview
 
+See also: `docs/integration/adapters.md` for detailed adapter configuration (DGM remote, OpenEvolve package/remote) and orchestrator factory usage examples.
+
 The integration system consists of several key components:
 
 - **Base Adapter**: Abstract base class for all component adapters

@@ -16,7 +16,7 @@ from .base_adapter import (
 
 # Import adapters with optional dependencies
 try:
-    from .dgm.dgm_adapter import DGMAdapter, create_dgm_adapter
+    from .dgmr.dgm_adapter import DGMAdapter, create_dgm_adapter
 
     _DGM_AVAILABLE = True
 except ImportError as e:
@@ -28,7 +28,7 @@ except ImportError as e:
     warnings.warn(f"DGM adapter not available: {e}", ImportWarning)
 
 try:
-    from .openevolve.openevolve_adapter import OpenEvolveAdapter, create_openevolve_adapter
+    from .oe.openevolve_adapter import OpenEvolveAdapter, create_openevolve_adapter
 
     _OPENEVOLVE_AVAILABLE = True
 except ImportError as e:

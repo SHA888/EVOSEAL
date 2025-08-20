@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  dgm-mock:
+    build:
+      context: ./examples/mock_services/dgm_mock
+    ports:
+      - "8080:8080"
+
+  openevolve-mock:
+    build:
+      context: ./examples/mock_services/openevolve_mock
+    ports:
+      - "8081:8081"
