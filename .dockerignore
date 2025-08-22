@@ -1,0 +1,34 @@
+# VCS and tooling
+.git
+.github
+.venv
+.ruff_cache
+.mypy_cache
+.pytest_cache
+.taskmaster
+coverage.*
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Local env and secrets
+.env
+*.env
+.evoseal*
+
+# Large or dev-only content
+benchmarks/
+docs/
+assets/
+reports/tests/
+
+# Test suites (built image shouldn’t need them)
+tests/
+
+# Runtime data (mounted as volumes)
+checkpoints/
+data/
+reports/

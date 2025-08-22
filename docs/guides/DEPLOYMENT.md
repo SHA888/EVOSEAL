@@ -191,45 +191,89 @@ python -m evoseal.cli
 
 ## Docker Deployment
 
-### 1. Build the Docker Image
+EVOSEAL ships with a production-ready Dockerfile and Compose setup.
+
+### 1) Build the image
 
 ```bash
-docker build -t evoseal:latest .
+docker build -t evoseal:local .
 ```
 
-### 2. Run the Container
+### 2) Prepare environment and volumes
 
 ```bash
-docker run -d \
-  --name evoseal \
-  -p 8000:8000 \
-  --env-file .env \
-  evoseal:latest
+# Copy and edit environment (optional)
+cp .evoseal.env.template .evoseal.env
+
+# Create persistent data volumes (optional but recommended)
+mkdir -p checkpoints data reports
 ```
 
-### 3. Using Docker Compose
+Common environment settings (examples):
 
-Create a `docker-compose.yml` file:
+```ini
+# ./.evoseal.env
+# If using a host Ollama on Linux, point to the host bridge IP
+# OLLAMA_BASE_URL=http://172.17.0.1:11434
 
-```yaml
-version: '3.8'
-
-services:
-  evoseal:
-    build: .
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    volumes:
-      - ./cache:/app/.cache
-    restart: unless-stopped
+# Dashboard port (container exposes 9613)
+EV_DASHBOARD_PORT=9613
 ```
 
-Then run:
+### 3) Run with Docker Compose
+
+We provide `docker-compose.evoseal.yml` for local/dev runs:
 
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.evoseal.yml up -d
+# then open http://localhost:9613 in your browser
+```
+
+This maps:
+
+- Port `9613:9613` for the dashboard at `/`
+- Volumes `./checkpoints`, `./data`, `./reports` into the container
+- `./.evoseal.env` into the container environment
+
+Notes for Ollama connectivity:
+
+- Linux: Use `OLLAMA_BASE_URL=http://172.17.0.1:11434`
+- Mac/Windows: set `extra_hosts: ["host.docker.internal:host-gateway"]` and use `http://host.docker.internal:11434`
+
+### 4) Health and logs
+
+- The container has an internal HEALTHCHECK against `http://127.0.0.1:9613/`
+- Check status: `docker ps` (healthy/unhealthy) or `docker inspect --format='{{json .State.Health}}' evoseal`
+- View logs: `docker logs -f evoseal`
+
+### 5) Publish & Pull from GHCR (GitHub Container Registry)
+
+CI is configured to build and push images to GHCR on pushes to `main` and tagged releases (see `.github/workflows/container-build.yml`). Images are published to:
+
+- `ghcr.io/<owner>/<repo>:<tag>` (e.g., `ghcr.io/ORG/EVOSEAL:latest`)
+
+Steps to make the package public once:
+
+1. Open the repository on GitHub → Packages (left sidebar) → select the container package.
+2. Open Package settings → Change visibility → Public.
+
+Pull examples:
+
+```bash
+# Latest
+docker pull ghcr.io/<owner>/<repo>:latest
+# Specific release
+docker pull ghcr.io/<owner>/<repo>:v0.3.4
+```
+
+Manual push from your machine (optional):
+
+```bash
+echo "$GITHUB_PAT" | docker login ghcr.io -u <github-username> --password-stdin
+# PAT must have: write:packages and read:packages scopes
+
+docker tag evoseal:local ghcr.io/<owner>/<repo>:dev
+docker push ghcr.io/<owner>/<repo>:dev
 ```
 
 ## Kubernetes Deployment

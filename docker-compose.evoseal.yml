@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  evoseal:
+    build: .
+    image: evoseal:local
+    container_name: evoseal
+    restart: unless-stopped
+    env_file:
+      - ./.evoseal.env
+    environment:
+      - EV_DASHBOARD_PORT=9613
+      # Optionally set EV_DASHBOARD_HOST if you need to override (entrypoint defaults to 0.0.0.0)
+      # - EV_DASHBOARD_HOST=0.0.0.0
+      # If connecting to a host Ollama service on Linux, set base URL to the host IP
+      # - OLLAMA_BASE_URL=http://172.17.0.1:11434
+    ports:
+      - "9613:9613"
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./data:/app/data
+      - ./reports:/app/reports
+      # Mount a custom config if desired
+      # - ./config/development.json:/app/config/development.json:ro
+    # For accessing host services easily on Mac/Windows, you might use extra_hosts:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+# Usage:
+#   docker compose -f docker-compose.evoseal.yml build
+#   docker compose -f docker-compose.evoseal.yml up -d
+#   open http://localhost:9613
