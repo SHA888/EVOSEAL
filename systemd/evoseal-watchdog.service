@@ -1,0 +1,11 @@
+[Unit]
+Description=EVOSEAL Watchdog Health Checker (user)
+After=default.target
+
+[Service]
+Type=oneshot
+# Run the watchdog script from the repo
+ExecStart=/bin/bash -lc '%h/EVOSEAL/scripts/evoseal_watchdog.sh'
+
+[Install]
+WantedBy=default.target

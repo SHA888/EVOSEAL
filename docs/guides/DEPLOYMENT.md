@@ -25,30 +25,33 @@ This guide provides instructions for deploying EVOSEAL in various environments.
 
 ## Systemd Service Setup
 
-EVOSEAL can be run as a systemd service for continuous operation. Here's how to set it up:
+EVOSEAL can be run as a systemd service for continuous operation. Recommended: user-mode service (no sudo), which integrates with your user session and journald.
 
 ### 1. Create Environment File
 
-Copy the template environment file and customize it if needed:
+Copy the template environment file to your home and customize it if needed:
 
 ```bash
-cp .evoseal.env.template .evoseal.env
-# Edit .evoseal.env to customize settings
+cp .evoseal.env.template ~/.evoseal.env
+# Edit ~/.evoseal.env to customize settings
 ```
 
-### 2. Install the Service
+### 2. Install the Service (User Mode - Recommended)
 
-Copy the service file to the systemd directory and enable it:
+Copy the service template into your user systemd directory and enable lingering to start at boot:
 
 ```bash
-# Copy service file
-sudo cp scripts/evoseal.service /etc/systemd/system/
+mkdir -p ~/.config/systemd/user
+cp systemd/evoseal.service.template ~/.config/systemd/user/evoseal.service
 
-# Reload systemd
-sudo systemctl daemon-reload
+# Allow user services to start at boot (one-time)
+loginctl enable-linger "$USER"
+
+# Reload user systemd
+systemctl --user daemon-reload
 
 # Enable and start the service
-sudo systemctl enable --now evoseal.service
+systemctl --user enable --now evoseal.service
 ```
 
 ### 3. Verify Service Status
@@ -56,19 +59,92 @@ sudo systemctl enable --now evoseal.service
 Check if the service is running:
 
 ```bash
-sudo systemctl status evoseal.service
+systemctl --user status evoseal.service
 ```
 
 ### 4. View Logs
 
-To view the logs:
+To view the logs (journald):
 
 ```bash
 # Follow logs in real-time
-sudo journalctl -u evoseal.service -f
+journalctl --user-unit evoseal.service -f
 
 # View full logs
-sudo journalctl -u evoseal.service --no-pager
+journalctl --user-unit evoseal.service --no-pager
+```
+
+### Optional: System-wide Service (root)
+
+If you need a system-wide service, copy the template to `/etc/systemd/system/` and use `sudo`:
+
+```bash
+sudo cp systemd/evoseal.service.template /etc/systemd/system/evoseal.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now evoseal.service
+sudo systemctl status evoseal.service
+sudo journalctl -u evoseal.service -f
+```
+
+## Operations Runbook (systemd)
+
+- **Start/Stop/Restart**
+
+  ```bash
+  systemctl --user start evoseal.service
+  systemctl --user stop evoseal.service
+  systemctl --user restart evoseal.service
+  systemctl --user status evoseal.service
+  ```
+
+- **Logs**
+
+  ```bash
+  journalctl --user-unit evoseal.service -f
+  journalctl --user-unit evoseal.service --since "-1h"
+  ```
+
+- **Update config/env**
+
+  ```bash
+  # After editing ~/.evoseal.env or updating code
+  systemctl --user daemon-reload
+  systemctl --user restart evoseal.service
+  ```
+
+- **Enable on boot**
+
+  ```bash
+  loginctl enable-linger "$USER"
+  ```
+
+- **Health watchdog (optional)**
+
+  Install a periodic watchdog to ensure the service is running:
+
+  ```bash
+  chmod +x scripts/evoseal_watchdog.sh
+  cp systemd/evoseal-watchdog.service ~/.config/systemd/user/
+  cp systemd/evoseal-watchdog.timer ~/.config/systemd/user/
+  systemctl --user daemon-reload
+  systemctl --user enable --now evoseal-watchdog.timer
+  systemctl --user list-timers | grep evoseal
+  ```
+
+  Optional: set an HTTP health endpoint in your env file to enable HTTP checks (otherwise only service state is checked):
+
+  ```ini
+  # In ~/.evoseal.env
+  HEALTH_URL=http://127.0.0.1:9613/health
+  ```
+
+## Systemd Smoke Test
+
+Run a quick verification after enabling the service:
+
+```bash
+chmod +x scripts/smoke_test_systemd.sh
+scripts/smoke_test_systemd.sh
 ```
 
 ## Local Development

@@ -6,9 +6,38 @@ services:
       context: ./examples/mock_services/dgm_mock
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys,urllib.request; req=urllib.request.Request('http://127.0.0.1:8080/dgm/jobs/advance', data=b'{}', headers={'Content-Type':'application/json'}, method='POST'); sys.exit(0 if 200<=urllib.request.urlopen(req, timeout=2).getcode()<300 else 1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   openevolve-mock:
     build:
       context: ./examples/mock_services/openevolve_mock
     ports:
       - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys,urllib.request,json; payload=json.dumps({'prompt':'ok'}).encode(); req=urllib.request.Request('http://127.0.0.1:8081/openevolve/jobs/evolve', data=payload, headers={'Content-Type':'application/json'}, method='POST'); sys.exit(0 if 200<=urllib.request.urlopen(req, timeout=2).getcode()<300 else 1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  e2e-runner:
+    image: python:3.10-slim
+    working_dir: /app
+    volumes:
+      - ./:/app:delegated
+    environment:
+      - DGM_BASE_URL=http://dgm-mock:8080
+      - OPENE_BASE_URL=http://openevolve-mock:8081
+    depends_on:
+      dgm-mock:
+        condition: service_healthy
+      openevolve-mock:
+        condition: service_healthy
+    command: >
+      bash -lc "pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -e .[test] && pytest -v -m e2e tests/e2e"
+    profiles: ["ci"]

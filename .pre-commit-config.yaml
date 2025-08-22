@@ -87,8 +87,8 @@ repos:
   - repo: local
     hooks:
       - id: pytest-check
-        name: Run unit tests
-        entry: ./scripts/run_tests.sh
+        name: Run unit tests (fast)
+        entry: ./scripts/evoseal test
         language: script
         types: [python]
         pass_filenames: false

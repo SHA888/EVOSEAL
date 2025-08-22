@@ -1,0 +1,10 @@
+[Unit]
+Description=EVOSEAL Watchdog Timer (user)
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=1m
+Unit=evoseal-watchdog.service
+
+[Install]
+WantedBy=timers.target

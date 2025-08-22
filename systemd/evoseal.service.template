@@ -1,6 +1,7 @@
 [Unit]
 Description=EVOSEAL Phase 3 Bidirectional Continuous Evolution Service
-After=network.target
+After=network-online.target
+Wants=network-online.target
 StartLimitIntervalSec=500
 StartLimitBurst=5
 
@@ -8,11 +9,11 @@ StartLimitBurst=5
 Type=simple
 # User mode service - no User/Group needed
 
-# Working directory - using /tmp to avoid permission issues
-WorkingDirectory=/tmp
+# Working directory - run from project directory
+WorkingDirectory=%h/EVOSEAL
 
-# Environment file from the project root (optional)
-EnvironmentFile=-%h/EVOSEAL/.env
+# Environment file in home (optional)
+EnvironmentFile=-%h/.evoseal.env
 
 # Set up environment variables using systemd specifiers
 Environment="PYTHONPATH=%h/EVOSEAL:%h/EVOSEAL/SEAL"
@@ -20,21 +21,26 @@ Environment="EVOSEAL_ROOT=%h/EVOSEAL"
 Environment="EVOSEAL_VENV=%h/EVOSEAL/.venv"
 Environment="EVOSEAL_LOGS=%h/EVOSEAL/logs"
 Environment="EVOSEAL_USER_HOME=%h"
+Environment="PYTHONUNBUFFERED=1"
 
 # Phase 3 Continuous Evolution System - Accessible via Tailscale
 # Use %h for home directory and dynamic Tailscale IP detection
-ExecStart=/bin/bash -c 'source %h/.profile && cd %h/EVOSEAL && TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "localhost") && python3 scripts/run_phase3_continuous_evolution.py --host="$TAILSCALE_IP" --port=9613 --verbose'
+ExecStart=/bin/bash -c 'source %h/.profile && TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "localhost") && python3 scripts/lib/evolution/run_phase3_continuous_evolution.py --host="$TAILSCALE_IP" --port=9613 --verbose'
 
 # Restart configuration
 Restart=always
 RestartSec=5s
+TimeoutStartSec=120
 
-# Logging
-StandardOutput=append:%h/EVOSEAL/logs/evoseal.log
-StandardError=append:%h/EVOSEAL/logs/evoseal-error.log
-
-# Minimal security settings for user service
+# Resource and security settings
+LimitNOFILE=65535
 NoNewPrivileges=true
+PrivateTmp=true
+TasksMax=infinity
+
+# Logging to journald (recommended)
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=default.target
