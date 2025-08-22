@@ -1,11 +1,9 @@
-name: Container Build & Scan
+name: Container Build & Scan (reusable)
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ main ]
+  # Reusable workflow or manual trigger only (no automatic push/PR triggers)
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -78,20 +76,22 @@ jobs:
           # Use first tag if multiple
           if [[ "$IMG_REF" == *$'\n'* ]]; then IMG_REF="$(echo "$IMG_REF" | head -n1)"; fi
           echo "Testing image: $IMG_REF"
-          docker run --rm "$IMG_REF" python - <<'PY'
-import sys
-print('Python OK:', sys.version)
-import evoseal
-import evoseal.services
-import evoseal.services.monitoring_dashboard as md
-print('Imports OK')
-PY
+          docker run --rm "$IMG_REF" python -c "import sys; import evoseal; import evoseal.services; import evoseal.services.monitoring_dashboard as md; print('Python OK:', sys.version); print('Imports OK')"
+
+      - name: Set image ref for scanning
+        if: github.event_name != 'pull_request'
+        id: imgref
+        shell: bash
+        run: |
+          FIRST_TAG="$(echo "${{ steps.meta.outputs.tags }}" | head -n1)"
+          echo "Using first tag: $FIRST_TAG"
+          echo "first=$FIRST_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Run Trivy vulnerability scan (image)
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: ${{ fromJSON('[''' + join(steps.meta.outputs.tags, '\n') + ''']')[0] }}
+          image-ref: ${{ steps.imgref.outputs.first }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH

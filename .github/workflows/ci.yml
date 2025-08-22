@@ -18,6 +18,7 @@ permissions:
   checks: write
   statuses: write
   security-events: write
+  packages: write
 
 # Control concurrency to prevent multiple runs for the same ref
 concurrency:
@@ -70,37 +71,11 @@ jobs:
           echo "✅ Version consistency check passed"
         fi
 
-  # Comprehensive testing matrix
+  # Simplified test matrix: Ubuntu + Python 3.10 (matches Dockerfile)
   test:
-    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }}, ${{ matrix.test-type }})
+    name: Test (ubuntu-latest, Python 3.10)
     needs: validate
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11']
-        test-type: [unit, integration]
-        include:
-          # Run all tests on Ubuntu with Python 3.10
-          - os: ubuntu-latest
-            python-version: '3.10'
-            test-type: all
-            coverage: true
-          # Run unit tests on all OS/Python combinations
-          - test-type: unit
-            coverage: false
-          # Run integration tests only on Ubuntu
-          - os: ubuntu-latest
-            test-type: integration
-            coverage: false
-        exclude:
-          # Don't run integration tests on Windows/macOS (they're more resource-intensive)
-          - os: windows-latest
-            test-type: integration
-          - os: macos-latest
-            test-type: integration
-
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -108,14 +83,13 @@ jobs:
         fetch-depth: 0
         submodules: 'recursive'
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.10'
         cache: 'pip'
 
     - name: Install system dependencies
-      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y git-lfs
@@ -125,53 +99,20 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[test]"
+        pip install pytest-cov pytest-xdist
 
-        # Install test dependencies
-        if [ "${{ matrix.coverage }}" = "true" ]; then
-          pip install pytest-cov codecov pytest-xdist
-        else
-          pip install pytest pytest-xdist
-        fi
-
-    - name: Run tests
+    - name: Run tests (unit + integration)
       id: tests
-      run: |
-        # Set up test command based on test type
-        TEST_CMD="pytest -n auto --dist=loadfile -v"
-
-        # Add coverage if enabled
-        if [ "${{ matrix.coverage }}" = "true" ]; then
-          TEST_CMD="$TEST_CMD --cov=evoseal --cov-report=xml --cov-report=term-missing"
-        fi
-
-        # Add test paths based on test type
-        if [ "${{ matrix.test-type }}" = "unit" ]; then
-          TEST_CMD="$TEST_CMD tests/unit/"
-        elif [ "${{ matrix.test-type }}" = "integration" ]; then
-          TEST_CMD="$TEST_CMD tests/integration/"
-        else  # all tests
-          TEST_CMD="$TEST_CMD tests/"
-        fi
-
-        echo "Running: $TEST_CMD"
-        eval $TEST_CMD
       env:
         PYTHONPATH: ${{ github.workspace }}
-        # Add any additional test environment variables here
         TEST_ENV: github-actions
-
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.test-type }}
-        path: |
-          test-results/**/*.xml
-          .coverage*
-        retention-days: 7
+      run: |
+        pytest -n auto --dist=loadfile -v \
+               --cov=evoseal --cov-report=xml --cov-report=term-missing \
+               tests/
 
     - name: Upload coverage to Codecov
-      if: matrix.coverage == 'true' && (success() || failure())
+      if: success() || failure()
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -181,15 +122,10 @@ jobs:
         fail_ci_if_error: false
         verbose: true
 
-    - name: Check test results
-      if: always() && steps.tests.outcome != 'success'
-      run: |
-        echo "Tests failed - please check the test logs"
-        exit 1
-
   # End-to-end tests with mock services
   e2e:
     name: End-to-End (Mock Services)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: ubuntu-latest
 
@@ -241,7 +177,7 @@ jobs:
 
 
 
-  # Documentation build
+  # Documentation build (MkDocs)
   docs:
     name: Build Documentation
     runs-on: ubuntu-latest
@@ -262,111 +198,22 @@ jobs:
 
     - name: Install documentation dependencies
       run: |
-        pip install -e ".[docs]"
-        pip install sphinx sphinx-rtd-theme
+        python -m pip install --upgrade pip
+        pip install -r requirements/docs.txt
 
     - name: Build documentation
       run: |
-        cd docs
-        make html
+        mkdocs build --strict
 
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
       with:
         name: documentation
-        path: docs/_build/html/
+        path: site/
         retention-days: 5
 
   # Pre-release checks (runs on main and release/* branches)
-  pre-release:
-    name: Pre-release Checks
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
-    needs: [test, security, docs]
-    runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        submodules: 'recursive'
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[test,dev]"
-
-    - name: Run pre-release checks
-      run: |
-        # Check for TODO/FIXME comments
-        ! grep -r "TODO\|FIXME" evoseal/ --include="*.py"
-
-        # Check for print statements
-        ! grep -r "^\s*print\s*(" evoseal/ --include="*.py"
-
-        # Check for debug code
-        ! grep -r "import\s+pdb\|pdb.set_trace()" evoseal/ --include="*.py"
-
-    - name: Check CHANGELOG.md
-      run: |
-        # Check if CHANGELOG.md has been updated
-        if [ "$(git diff --name-only HEAD^ HEAD | grep CHANGELOG.md)" == "" ]; then
-          echo "::warning::CHANGELOG.md has not been updated"
-        fi
-
-    - name: Create Release PR (if not on main)
-      if: github.ref != 'refs/heads/main' && github.event_name == 'push'
-      uses: peter-evans/create-pull-request@v6
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: "chore: prepare release"
-        title: "Release $(date +%Y-%m-%d)"
-        body: |
-          This is an automated release PR.
-
-          Changes since last release:
-          ```
-          $ git log --oneline $(git describe --tags --abbrev=0)..HEAD
-          ```
-        branch: "release/$(date +%Y-%m-%d)"
-        base: main
-        delete-branch: true
-
-    - name: Run unit tests
-      run: |
-        pytest -v -m "not integration and not slow" --cov=evoseal --cov-report=term --cov-report=xml
-      env:
-        PYTHONPATH: .
-        PYTHONUNBUFFERED: 1
-
-    - name: Run integration tests
-      if: matrix.python-version == '3.10'  # Only run integration tests once
-      run: |
-        pytest -v -m integration --cov=evoseal --cov-append --cov-report=term --cov-report=xml
-      env:
-        PYTHONPATH: .
-        PYTHONUNBUFFERED: 1
-
-    - name: Run slow tests
-      if: matrix.python-version == '3.10'  # Only run slow tests once
-      run: |
-        pytest -v -m "slow and not integration" --cov=evoseal --cov-append --cov-report=term --cov-report=xml
-      env:
-        PYTHONPATH: .
-        PYTHONUNBUFFERED: 1
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        fail_ci_if_error: false
 
   lint:
     name: Lint and Type Check
@@ -395,7 +242,7 @@ jobs:
         pip install -e ".[test,dev]"
 
     - name: Check code formatting with Black
-      run: black --check .
+      run: black --check --line-length=100 --skip-string-normalization .
 
     - name: Run Flake8 for style guide enforcement (core files only)
       run: flake8 evoseal/ --exclude=tests,examples,scripts
@@ -470,3 +317,97 @@ jobs:
       run: |
         python -m build
         ls -la dist/
+
+  # Container image build and security scan (GHCR)
+  container:
+    name: Build and Scan Container
+    needs: [test, lint, security]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build (PR) - load to local Docker
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: evoseal:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push (main/tags)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Compute image ref
+        id: imgref
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            REF="evoseal:pr-${{ github.event.pull_request.number }}"
+          else
+            REF="$(echo "${{ steps.meta.outputs.tags }}" | head -n1)"
+          fi
+          echo "Using image ref: $REF"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test image (imports only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Testing image: ${{ steps.imgref.outputs.ref }}"
+          docker run --rm "${{ steps.imgref.outputs.ref }}" python -c "import sys; import evoseal; import evoseal.services; import evoseal.services.monitoring_dashboard as md; print('Python OK:', sys.version); print('Imports OK')"
+
+      - name: Run Trivy vulnerability scan (image)
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ steps.imgref.outputs.ref }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif

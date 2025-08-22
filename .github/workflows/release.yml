@@ -29,10 +29,7 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'  # Only match proper version tags
 
-# Control concurrency to prevent multiple releases
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+
 
 # Environment variables available to all jobs
 env:
