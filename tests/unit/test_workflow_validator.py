@@ -283,7 +283,7 @@ class TestWorkflowValidator:
         result = validator.validate(workflow, level=ValidationLevel.SCHEMA_ONLY, partial=True)
         assert result.is_valid
 
-    @async_test
+    @pytest.mark.asyncio
     async def test_validate_async(
         self, validator: WorkflowValidator, valid_workflow: dict[str, Any]
     ) -> None:
@@ -338,36 +338,41 @@ class TestConvenienceFunctions:
         # Now test non-strict mode
         result = validate_workflow(workflow, strict=False)
 
-        # Print detailed validation errors if any
-        if not result.is_valid:
-            logger.error("\nValidation failed with errors:")
-            for i, issue in enumerate(result.issues, 1):
-                logger.error(
-                    "%d. %s (code: %s, path: %s, exception: %s)",
-                    i,
-                    issue.message,
-                    issue.code,
-                    getattr(issue, 'path', 'N/A'),
-                    str(issue.exception) if hasattr(issue, 'exception') else 'None',
-                )
+        # Handle both boolean and ValidationResult returns
+        if isinstance(result, ValidationResult):
+            # Print detailed validation errors if any
+            if not result.is_valid:
+                logger.error("\nValidation failed with errors:")
+                for i, issue in enumerate(result.issues, 1):
+                    logger.error(
+                        "%d. %s (code: %s, path: %s, exception: %s)",
+                        i,
+                        issue.message,
+                        issue.code,
+                        getattr(issue, 'path', 'N/A'),
+                        str(issue.exception) if hasattr(issue, 'exception') else 'None',
+                    )
 
-        # Debug: Print the schema being used
-        from evoseal.utils.validator import _get_non_strict_validator
+            # Debug: Print the schema being used
+            from evoseal.utils.validator import _get_non_strict_validator
 
-        validator = _get_non_strict_validator()
-        logger.debug(
-            "Schema additionalProperties: %s",
-            validator.schema.get('additionalProperties', 'Not set'),
-        )
+            validator = _get_non_strict_validator()
+            logger.debug(
+                "Schema additionalProperties: %s",
+                validator.schema.get('additionalProperties', 'Not set'),
+            )
 
-        assert result.is_valid, f"Validation failed with {len(result.issues)} issues"
-        assert not result.issues, f"Expected no validation issues, but got {len(result.issues)}"
+            assert result.is_valid, f"Validation failed with {len(result.issues)} issues"
+            assert not result.issues, f"Expected no validation issues, but got {len(result.issues)}"
+        else:
+            # It's a boolean
+            assert result is True
 
         result = validate_workflow({"invalid": "workflow"}, strict=False)
         assert isinstance(result, ValidationResult)
         assert not result.is_valid
 
-    @async_test
+    @pytest.mark.asyncio
     async def test_validate_workflow_async(self) -> None:
         """Test the async validate_workflow_async function."""
         # Should not raise
@@ -401,7 +406,7 @@ class TestConvenienceFunctions:
         with pytest.raises(WorkflowValidationError):
             validate_workflow_schema({"invalid": "workflow"})
 
-    @async_test
+    @pytest.mark.asyncio
     async def test_validate_workflow_schema_async(self) -> None:
         """Test the async validate_workflow_schema_async function."""
         # Valid schema

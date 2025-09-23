@@ -6,11 +6,13 @@ import tempfile
 from collections.abc import Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Tuple
+from unittest.mock import MagicMock
 
 import pytest
 
 if TYPE_CHECKING:
     import git
+    from evoseal.core.repository import RepositoryManager
 
 # Add the project root to the Python path
 import sys
@@ -27,7 +29,7 @@ def temp_workdir() -> Generator[Path, None, None]:
 
 
 @pytest.fixture(scope="function")
-def test_repo(temp_workdir: Path) -> Generator[Path, None, None]:
+def test_repo(temp_workdir: Path) -> Generator[Tuple[Path, "git.Repo", str], None, None]:
     """Create a test git repository with sample files."""
     import git
 
@@ -95,11 +97,11 @@ if __name__ == "__main__":
     repo.create_tag("v1.0.0", message="Test tag")
 
     # Return both the path and the repository object for more flexible testing
-    return repo_path, repo, head_commit
+    yield repo_path, repo, head_commit
 
 
 @pytest.fixture(scope="function")
-def bare_test_repo(test_repo: Tuple[Path, "git.Repo", str]) -> Path:
+def bare_test_repo(test_repo: Tuple[Path, "git.Repo", str]) -> Generator[Path, None, None]:
     """Create a bare clone of the test repository for testing remote operations."""
     import git
 

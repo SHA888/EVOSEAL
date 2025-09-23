@@ -29,18 +29,21 @@ class TestEnvironment:
             base_dir: Base directory for the test environment. If None, a temporary
                      directory will be created and automatically cleaned up.
         """
-        self._base_dir = Path(base_dir) if base_dir else None
         self._temp_dir = None
         self._original_env = {}
         self._created_paths = []
 
-        if not base_dir:
+        if base_dir:
+            self._base_dir = Path(base_dir)
+        else:
             self._temp_dir = tempfile.TemporaryDirectory()
             self._base_dir = Path(self._temp_dir.name)
 
     @property
     def root(self) -> Path:
         """Get the root directory of the test environment."""
+        if self._base_dir is None:
+            raise RuntimeError("Test environment not properly initialized")
         return self._base_dir
 
     def create_dir(self, path: Union[str, Path], exist_ok: bool = True) -> Path:
@@ -53,6 +56,8 @@ class TestEnvironment:
         Returns:
             Path to the created directory
         """
+        if self._base_dir is None:
+            raise RuntimeError("Test environment not properly initialized")
         full_path = self._base_dir / path
         full_path.mkdir(parents=True, exist_ok=exist_ok)
         self._created_paths.append(full_path)
@@ -68,6 +73,8 @@ class TestEnvironment:
         Returns:
             Path to the created file
         """
+        if self._base_dir is None:
+            raise RuntimeError("Test environment not properly initialized")
         full_path = self._base_dir / path
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(content)
@@ -154,7 +161,7 @@ def temp_dir() -> Generator[Path, None, None]:
 
 
 @contextmanager
-def temp_file(content: str = "", suffix: str = None) -> Generator[Path, None, None]:
+def temp_file(content: str = "", suffix: Optional[str] = None) -> Generator[Path, None, None]:
     """Context manager for creating a temporary file.
 
     The file will be automatically removed when the context exits.
@@ -252,6 +259,15 @@ class TestDataManager:
         if self.base_dir.exists():
             shutil.rmtree(self.base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
+
+    def __enter__(self) -> "TestDataManager":
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit - clean up test data."""
+        if self.base_dir.exists():
+            shutil.rmtree(self.base_dir)
 
 
 def create_test_data_manager() -> TestDataManager:
