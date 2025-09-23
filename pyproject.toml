@@ -150,7 +150,7 @@ skip_glob = [".venv*", "venv*", "env*", ".env*", ".semgrep-venv/*", "dgm/*", "op
 [tool.ruff]
 # Basic settings
 line-length = 100
-target-version = "0.3.5"
+target-version = "py39"
 exclude = [".venv*", "venv*", "env*", ".env*", ".semgrep-venv/*", "dgm/*", "openevolve/*", "SEAL*/*"]
 
 [tool.ruff.lint]
