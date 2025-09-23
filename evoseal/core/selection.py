@@ -91,47 +91,76 @@ class SelectionAlgorithm:
     ) -> list[dict[str, Any]]:
         """
         Select individuals via roulette wheel (fitness-proportionate) selection.
+        Optimized version with O(n log n) complexity using binary search.
         """
         selected: list[dict[str, Any]] = []
         pop = population[:]
+        
         # Elitism: always select top N first
         if elitism > 0:
             sorted_pop = sorted(pop, key=lambda x: x.get(fitness_key, 0), reverse=True)
             elites = sorted_pop[:elitism]
             selected.extend(elites)
-            pop = [ind for ind in pop if ind not in elites]
-        fitnesses = [max(0.0, x.get(fitness_key, 0)) for x in pop]
-        total_fitness = sum(fitnesses)
-        if total_fitness == 0 and pop:
-            # Using secrets for secure random sampling
-            sample_size = min(num_selected - len(selected), len(pop))
-            selected.extend(
-                [
-                    pop[i]
-                    for i in sorted(secrets.SystemRandom().sample(range(len(pop)), sample_size))
-                ]
-            )
-            # If still not enough, fill with randoms from selected
+            # Remove elites from pool for further selection using set for O(1) lookup
+            elite_ids = {id(elite) for elite in elites}
+            pop = [ind for ind in pop if id(ind) not in elite_ids]
+
+        if not pop:
             while len(selected) < num_selected:
                 selected.append(secrets.SystemRandom().choice(selected))
             return list(selected[:num_selected])
-        for _ in range(num_selected - len(selected)):
-            # Using secrets for secure random number generation
+
+        fitnesses = [max(0.0, x.get(fitness_key, 0)) for x in pop]
+        total_fitness = sum(fitnesses)
+        
+        if total_fitness == 0:
+            # All fitness values are zero, use random selection
+            sample_size = min(num_selected - len(selected), len(pop))
+            selected.extend(
+                [pop[i] for i in sorted(secrets.SystemRandom().sample(range(len(pop)), sample_size))]
+            )
+            while len(selected) < num_selected:
+                selected.append(secrets.SystemRandom().choice(selected))
+            return list(selected[:num_selected])
+
+        # Create cumulative fitness distribution for efficient selection
+        cumulative_fitness = []
+        cumsum = 0
+        for fitness in fitnesses:
+            cumsum += fitness
+            cumulative_fitness.append(cumsum)
+
+        # Select individuals using binary search on cumulative distribution
+        remaining_selections = num_selected - len(selected)
+        selected_indices = set()
+        
+        for _ in range(remaining_selections):
+            if len(selected_indices) >= len(pop):
+                break
+                
             pick = secrets.SystemRandom().uniform(0, total_fitness)
-            current = 0
-            for ind, fit in zip(pop, fitnesses):
-                current += fit
-                if current >= pick:
-                    selected.append(ind)
-                    pop.remove(ind)
-                    fitnesses = [max(0.0, x.get(fitness_key, 0)) for x in pop]
-                    total_fitness = sum(fitnesses)
-                    break
-            else:
-                # fallback in case of rounding errors
-                if pop:
-                    selected.append(pop[-1])
-                    pop.pop()
+            
+            left, right = 0, len(cumulative_fitness) - 1
+            while left < right:
+                mid = (left + right) // 2
+                if cumulative_fitness[mid] < pick:
+                    left = mid + 1
+                else:
+                    right = mid
+            
+            original_left = left
+            while left in selected_indices and left < len(pop) - 1:
+                left += 1
+            if left in selected_indices:
+                left = 0
+                while left in selected_indices and left < original_left:
+                    left += 1
+            
+            if left < len(pop) and left not in selected_indices:
+                selected.append(pop[left])
+                selected_indices.add(left)
+
         while len(selected) < num_selected:
             selected.append(secrets.SystemRandom().choice(selected))
+            
         return list(selected[:num_selected])
