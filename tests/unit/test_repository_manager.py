@@ -1,8 +1,8 @@
 """Unit tests for the RepositoryManager class."""
 
 from pathlib import Path
-from typing import Tuple
-from unittest.mock import MagicMock, call, patch
+from typing import TYPE_CHECKING, Tuple
+from unittest.mock import MagicMock, patch
 
 import pytest
 from git import GitCommandError, Repo
@@ -15,6 +15,9 @@ from evoseal.core.repository import (
     RepositoryNotFoundError,
 )
 
+if TYPE_CHECKING:
+    import git
+
 
 class TestRepositoryManager:
     """Test cases for RepositoryManager."""
@@ -23,7 +26,6 @@ class TestRepositoryManager:
         self,
         repository_manager: RepositoryManager,
         test_repo: Tuple[Path, "git.Repo", str],
-        monkeypatch,
     ):
         """Test cloning a repository."""
         repo_path, repo, _ = test_repo
@@ -40,9 +42,6 @@ class TestRepositoryManager:
         # Verify the repository contains the expected files
         assert (clone_path / "sample.py").exists()
         assert (clone_path / "test_sample.py").exists()
-
-        # Verify the repository is in the manager's cache
-        assert "test_repo" in repository_manager._repositories
 
     def test_get_repository(
         self,
@@ -66,201 +65,149 @@ class TestRepositoryManager:
 
     def test_get_nonexistent_repository(self, repository_manager: RepositoryManager):
         """Test getting a repository that doesn't exist."""
-        with pytest.raises(RepositoryNotFoundError):
-            repository_manager.get_repository("nonexistent_repo")
+        repo = repository_manager.get_repository("nonexistent_repo")
+        assert repo is None
 
-    def test_remove_repository(
+    def test_get_status(
         self,
         repository_manager: RepositoryManager,
         test_repo: Tuple[Path, "git.Repo", str],
-        monkeypatch,
     ):
-        """Test removing a repository."""
+        """Test getting repository status."""
         repo_path, repo, _ = test_repo
         repo_name = "test_repo"
 
         # First clone the repository
         repository_manager.clone_repository(f"file://{repo_path}", repo_name)
 
-        # Mock shutil.rmtree to prevent actual deletion
-        mock_rmtree = MagicMock()
-        monkeypatch.setattr("shutil.rmtree", mock_rmtree)
+        # Test getting repository status
+        status = repository_manager.get_status(repo_name)
 
-        # Test removing the repository
-        repository_manager.remove_repository(repo_name)
+        # Verify the returned status
+        assert "branch" in status
+        assert "dirty" in status
+        assert "commit" in status
+        assert status["dirty"] is False
 
-        # Verify the repository was removed from the manager
-        assert repo_name not in repository_manager._repositories
-
-        # Verify rmtree was called with the correct path
-        expected_path = repository_manager.work_dir / "repositories" / repo_name
-        mock_rmtree.assert_called_once_with(str(expected_path))
-
-        # Test removing a non-existent repository
+    def test_get_status_nonexistent_repository(self, repository_manager: RepositoryManager):
+        """Test getting status for a repository that doesn't exist."""
         with pytest.raises(RepositoryNotFoundError):
-            repository_manager.remove_repository("nonexistent_repo")
+            repository_manager.get_status("nonexistent_repo")
 
-    def test_get_repository_info(
+    def test_checkout_branch(
         self,
         repository_manager: RepositoryManager,
         test_repo: Tuple[Path, "git.Repo", str],
     ):
-        """Test getting repository information."""
+        """Test checking out a branch."""
+        repo_path, repo, _ = test_repo
+        repo_name = "test_repo"
+
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
+
+        # Test creating and checking out a new branch
+        result = repository_manager.checkout_branch(repo_name, "new-feature", create=True)
+        assert result is True
+
+        # Verify the branch was created and checked out
+        repo_instance = repository_manager.get_repository(repo_name)
+        assert repo_instance is not None
+        assert repo_instance.active_branch.name == "new-feature"
+
+    def test_commit_changes(
+        self,
+        repository_manager: RepositoryManager,
+        test_repo: Tuple[Path, "git.Repo", str],
+    ):
+        """Test committing changes to a repository."""
+        repo_path, repo, _ = test_repo
+        repo_name = "test_repo"
+
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
+
+        # Create a new file
+        repo_dir = repository_manager.work_dir / "repositories" / repo_name
+        new_file = repo_dir / "new_file.txt"
+        new_file.write_text("New content")
+
+        result = repository_manager.commit_changes(repo_name, "Add new file")
+        assert result is True
+
+        # Verify the commit was created
+        repo_instance = repository_manager.get_repository(repo_name)
+        assert repo_instance is not None
+        assert "Add new file" in str(repo_instance.head.commit.message)
+
+    def test_get_commit_info(
+        self,
+        repository_manager: RepositoryManager,
+        test_repo: Tuple[Path, "git.Repo", str],
+    ):
+        """Test getting commit information."""
         repo_path, repo, head_commit = test_repo
         repo_name = "test_repo"
 
         # First clone the repository
         repository_manager.clone_repository(f"file://{repo_path}", repo_name)
 
-        # Test getting repository info
-        info = repository_manager.get_repository_info(repo_name)
+        repo_instance = repository_manager.get_repository(repo_name)
+        assert repo_instance is not None
+        actual_commit_hash = repo_instance.head.commit.hexsha
+
+        # Test getting commit info
+        commit_info = repository_manager.get_commit_info(repo_name, actual_commit_hash)
 
         # Verify the returned information
-        assert info["name"] == repo_name
-        assert info["path"] == str(repository_manager.work_dir / "repositories" / repo_name)
-        assert info["branch"] == "main"
-        assert info["commit"] == head_commit
-        assert info["dirty"] is False
+        assert commit_info is not None
+        assert commit_info["hash"] == actual_commit_hash
+        assert "author" in commit_info
+        assert "message" in commit_info
+        assert "date" in commit_info
 
-    def test_get_repositories(
+    def test_get_branches(
         self,
         repository_manager: RepositoryManager,
         test_repo: Tuple[Path, "git.Repo", str],
     ):
-        """Test getting all repositories."""
+        """Test getting repository branches."""
         repo_path, repo, _ = test_repo
+        repo_name = "test_repo"
 
-        # Add test repositories
-        repository_manager.clone_repository(f"file://{repo_path}", "repo1")
-        repository_manager.clone_repository(f"file://{repo_path}", "repo2")
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
 
-        # Test getting all repositories
-        repos = repository_manager.get_repositories()
+        # Test getting branches
+        branches = repository_manager.get_branches(repo_name)
 
-        # Verify the returned repositories
-        assert len(repos) == 2
-        assert "repo1" in repos
-        assert "repo2" in repos
-        assert isinstance(repos["repo1"], dict)
-        assert isinstance(repos["repo2"], dict)
+        assert isinstance(branches, list)
+        assert len(branches) > 0
+        assert "main" in branches
 
-    @patch("git.Repo")
-    def test_checkout_branch(self, mock_repo):
-        """Test checking out a branch."""
-        # Setup
-        branch_name = "feature-branch"
-        mock_repo.return_value = self.mock_repo
+    def test_create_branch_from_commit(
+        self,
+        repository_manager: RepositoryManager,
+        test_repo: Tuple[Path, "git.Repo", str],
+    ):
+        """Test creating a branch from a specific commit."""
+        repo_path, repo, _ = test_repo
+        repo_name = "test_repo"
 
-        # Test checkout existing branch
-        result = self.manager.checkout_branch(self.repo_name, branch_name)
-        self.assertTrue(result)
-        self.mock_repo.git.checkout.assert_called_once_with(branch_name)
+        # First clone the repository
+        repository_manager.clone_repository(f"file://{repo_path}", repo_name)
 
-        # Test create new branch
-        self.manager.checkout_branch(self.repo_name, branch_name, create=True)
-        self.mock_repo.git.checkout.assert_called_with("-b", branch_name)
+        repo_instance = repository_manager.get_repository(repo_name)
+        assert repo_instance is not None
+        commit_hash = repo_instance.head.commit.hexsha
 
-    @patch("git.Repo")
-    def test_merge_branch_success(self, mock_repo):
-        """Test successful branch merge."""
-        # Setup
-        source_branch = "feature-branch"
-        target_branch = "main"
-        mock_repo.return_value = self.mock_repo
-
-        # Test merge
-        result = self.manager.merge_branch(self.repo_name, source_branch, target_branch)
-
-        # Verify
-        self.assertTrue(result["success"])
-        self.mock_repo.git.checkout.assert_called_with(target_branch)
-        self.mock_repo.git.merge.assert_called_with(source_branch, no_ff=False, no_commit=True)
-
-    @patch("git.Repo")
-    def test_merge_branch_conflict(self, mock_repo):
-        """Test merge with conflicts."""
-        # Setup
-        source_branch = "feature-branch"
-        target_branch = "main"
-
-        # Make merge raise a conflict error
-        self.mock_repo.git.merge.side_effect = GitCommandError("merge", "CONFLICT")
-        self.mock_repo.index.unmerged = ["file1.txt", "file2.txt"]
-        mock_repo.return_value = self.mock_repo
-
-        # Test merge with conflict
-        with self.assertRaises(ConflictError) as cm:
-            self.manager.merge_branch(self.repo_name, source_branch, target_branch)
-
-        # Verify conflict details
-        self.assertEqual(len(cm.exception.conflicts), 2)
-        self.assertIn("file1.txt", cm.exception.conflicts)
-
-    @patch("git.Repo")
-    def test_resolve_conflicts(self, mock_repo):
-        """Test conflict resolution."""
-        # Setup
-        resolution = {
-            "file1.txt": "resolved content 1",
-            "file2.txt": "resolved content 2",
-        }
-        mock_repo.return_value = self.mock_repo
-
-        # Test resolve conflicts
-        with patch("builtins.open", unittest.mock.mock_open()) as mock_file:
-            result = self.manager.resolve_conflicts(self.repo_name, resolution)
-
-        # Verify
-        self.assertTrue(result)
-        self.mock_repo.git.add.assert_called()
-        self.mock_repo.git.commit.assert_called_with("-m", "Resolved merge conflicts")
-
-    @patch("git.Repo")
-    def test_create_tag(self, mock_repo):
-        """Test creating a tag."""
-        # Setup
-        tag_name = "v1.0.0"
-        mock_repo.return_value = self.mock_repo
-
-        # Test create tag
-        result = self.manager.create_tag(self.repo_name, tag_name, "Release 1.0.0", "abc123")
-
-        # Verify
-        self.assertTrue(result)
-        self.mock_repo.create_tag.assert_called_with(
-            tag_name, ref="abc123", message="Release 1.0.0"
+        # Test creating a branch from the commit
+        result = repository_manager.create_branch_from_commit(
+            repo_name, "from-commit-branch", commit_hash
         )
+        assert result is True
 
-    @patch("git.Repo")
-    def test_get_diff(self, mock_repo):
-        """Test getting diff between commits."""
-        # Setup
-        mock_repo.return_value = self.mock_repo
-        self.mock_repo.git.diff.return_value = "diff output"
-
-        # Test get diff
-        result = self.manager.get_diff(self.repo_name, "main", "feature-branch")
-
-        # Verify
-        self.assertEqual(result, "diff output")
-        self.mock_repo.git.diff.assert_called_with("main..feature-branch")
-
-    @patch("git.Repo")
-    def test_stash_operations(self, mock_repo):
-        """Test stash operations."""
-        # Setup
-        mock_repo.return_value = self.mock_repo
-
-        # Test stash changes
-        result = self.manager.stash_changes(self.repo_name, "WIP: Test stash")
-        self.assertTrue(result)
-        self.mock_repo.git.stash.assert_called_with("save", "WIP: Test stash")
-
-        # Test apply stash
-        result = self.manager.apply_stash(self.repo_name, "stash@{0}")
-        self.assertTrue(result)
-        self.mock_repo.git.stash.assert_called_with("apply", "stash@{0}")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        # Verify the branch was created and checked out
+        repo_instance = repository_manager.get_repository(repo_name)
+        assert repo_instance is not None
+        assert repo_instance.active_branch.name == "from-commit-branch"

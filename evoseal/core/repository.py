@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
+import git
 from git import GitCommandError, Head, RemoteReference, Repo
 
 # Configure logging
@@ -45,7 +46,7 @@ class MergeError(RepositoryError):
 class ConflictError(RepositoryError):
     """Raised when there are merge conflicts."""
 
-    def __init__(self, message: str, conflicts: List[str] = None):
+    def __init__(self, message: str, conflicts: Optional[List[str]] = None):
         super().__init__(message)
         self.conflicts = conflicts or []
 
@@ -347,7 +348,7 @@ class RepositoryManager:
         try:
             # Write resolved content to files
             for file_path, content in resolution.items():
-                full_path = repo.working_dir / file_path
+                full_path = Path(repo.working_dir) / file_path
                 with open(full_path, "w") as f:
                     f.write(content)
                 repo.git.add(file_path)
@@ -388,7 +389,7 @@ class RepositoryManager:
             logger.error(f"Error creating tag '{tag_name}': {e}")
             raise RepositoryError(f"Failed to create tag: {e}")
 
-    def get_diff(self, repo_name: str, base: str = "HEAD", compare: str = None) -> str:
+    def get_diff(self, repo_name: str, base: str = "HEAD", compare: Optional[str] = None) -> str:
         """Get the diff between two commits or branches.
 
         Args:
@@ -696,22 +697,3 @@ class RepositoryManager:
             error_msg = f"Unexpected error during pull: {e}"
             logger.error(error_msg, exc_info=True)
             raise RepositoryError(error_msg)
-
-    def get_repository(self, repo_name: str) -> Optional[Repo]:
-        """Get a repository object by name.
-
-        Args:
-            repo_name: Name of the repository
-
-        Returns:
-            git.Repo object if found, None otherwise
-        """
-        repo_path = self.repos_dir / repo_name
-        if not repo_path.exists() or not (repo_path / ".git").exists():
-            return None
-
-        try:
-            return Repo(repo_path)
-        except Exception as e:
-            logger.error(f"Error accessing repository {repo_name}: {e}")
-            return None

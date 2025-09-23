@@ -88,13 +88,17 @@ def test_temp_env_vars():
     # Set an initial value
     os.environ["TEST_VAR"] = "initial_value"
 
-    with temp_env_vars({"TEST_VAR": "new_value", "ANOTHER_VAR": "test"}):
-        assert os.environ["TEST_VAR"] == "new_value"
-        assert os.environ["ANOTHER_VAR"] == "test"
+    try:
+        with temp_env_vars({"TEST_VAR": "new_value", "ANOTHER_VAR": "test"}):
+            assert os.environ["TEST_VAR"] == "new_value"
+            assert os.environ["ANOTHER_VAR"] == "test"
 
-    # Original environment should be restored
-    assert os.environ["TEST_VAR"] == "initial_value"
-    assert "ANOTHER_VAR" not in os.environ
+        # Original environment should be restored
+        assert os.environ["TEST_VAR"] == "initial_value"
+        assert "ANOTHER_VAR" not in os.environ
+    finally:
+        if "TEST_VAR" in os.environ:
+            del os.environ["TEST_VAR"]
 
 
 def test_temp_environment():
