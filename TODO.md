@@ -1,7 +1,12 @@
 # EVOSEAL — Improvement TODO
 
-> Structured improvement plan based on project review (Feb 2026).
+> Structured improvement plan based on project review + OpenClaw comparative analysis (Mar 2026).
 > Prioritized by impact. Check items off as you go.
+>
+> **Reference project**: [OpenClaw](https://github.com/openclaw/openclaw) — 310k★, 18k+ commits, 20+ channel integrations.
+> Parallels: self-modification loops, composable capability systems, always-on daemons.
+> Key difference: OpenClaw's self-modification is user-driven; EVOSEAL's is autonomous and scheduled.
+> EVOSEAL explores what happens when the self-modification loop is autonomous and systematic — a research direction OpenClaw's architecture doesn't attempt.
 
 ---
 
@@ -25,6 +30,13 @@
 
 - [ ] **Fix clone URL inconsistency** — README says `git clone https://github.com/Continual-Intelligence/SEAL` then `cd EVOSEAL`; this should be `git clone https://github.com/SHA888/EVOSEAL.git`
 
+### Positioning & Framing
+
+- [ ] **Tighten public-facing claims about self-modification maturity**
+  - Avoid comparative language that implies superiority over battle-tested projects (e.g., OpenClaw: 310k★, 18k+ commits, production-hardened across 20+ channels)
+  - Defensible framing: "EVOSEAL explores autonomous, scheduled self-modification — a research direction that user-driven systems like OpenClaw don't attempt"
+  - Distinguish research ambition from production validation in README and docs
+
 ---
 
 ## 🟠 P1 — High Priority
@@ -41,6 +53,10 @@
   - What can go wrong with a self-modifying agent?
   - What does EVOSEAL protect against, and what is explicitly out of scope?
   - Add as `docs/safety/threat_model.md`
+- [ ] **Sandbox self-modifications** _(inspired by OpenClaw's Docker sandbox model)_
+  - OpenClaw sandboxes non-main sessions in per-session Docker containers to contain untrusted execution
+  - Apply similar principle: DGM-generated pipeline variants should execute in isolated environments before touching the main codebase
+  - Evaluate whether the current Git-based rollback is sufficient or whether a container-based isolation layer is needed
 
 ### Integration Testing
 
@@ -50,6 +66,12 @@
 - [ ] **Add a `--dry-run` mode**
   - Simulate the evolution loop with deterministic mock responses
   - Useful for CI, demos, and exploring architecture without API costs
+- [ ] **Add `evoseal doctor` command** _(inspired by OpenClaw's `openclaw doctor`)_
+  - Validate API keys are set and reachable
+  - Check `configs/safety.yaml` is present and well-formed
+  - Verify the evolution loop can start (dependencies, permissions, Git state)
+  - Flag budget/cost risks (no token limit configured, expensive model selected)
+  - Surface risky configurations (e.g., immutable core protections disabled)
 
 ### Cost Management
 
@@ -93,6 +115,19 @@
 - [ ] **Add test for checkpoint save/restore**
   - Interrupt mid-evolution, restore from checkpoint, verify state consistency
 
+### Evolution Archive & Rollout _(inspired by OpenClaw patterns)_
+
+- [ ] **Structured improvement units in the evolution archive**
+  - Each successful self-modification should be a self-contained, documented unit (not just a Git diff)
+  - Include: description of change, metrics before/after, rollback instructions, and relevant config snapshot
+  - Pattern: similar to OpenClaw's per-skill `SKILL.md` files — one doc per improvement that stands alone
+- [ ] **Progressive rollout gating for self-modifications**
+  - Evolution candidates go through `candidate → beta → stable` stages before permanent adoption
+  - `candidate`: passes regression tests
+  - `beta`: survives N additional evolution cycles without regression
+  - `stable`: promoted to the main architecture
+  - Pattern: analogous to OpenClaw's development channels (stable/beta/dev with npm dist-tags)
+
 ---
 
 ## 🟢 P3 — Nice to Have
@@ -107,6 +142,9 @@
 - [ ] **Docker support**
   - `Dockerfile` + `docker-compose.yml` for zero-setup local development
   - Include dashboard, worker, and API server as services
+- [ ] **Adopt workspace prompt file conventions** _(inspired by OpenClaw's AGENTS.md/SOUL.md/TOOLS.md)_
+  - Create a standard file layout for the evolution workspace: e.g., `AGENT.md` (agent identity/constraints), `EVOLUTION.md` (current evolution goals/state), `SAFETY.md` (safety invariants)
+  - Makes the system self-documenting and easier for contributors to understand agent behavior at any point
 
 ### Documentation Polish
 
@@ -138,12 +176,15 @@
 
 ## 📋 Tracking
 
-| Priority | Total | Done |
-|----------|-------|------|
-| 🔴 P0    | 4     | 0    |
-| 🟠 P1    | 7     | 0    |
-| 🟡 P2    | 7     | 0    |
-| 🟢 P3    | 9     | 0    |
-| **Total** | **27** | **0** |
+| Priority | Total | Done | Notes |
+|----------|-------|------|-------|
+| 🔴 P0    | 5     | 0    | +1 positioning/framing |
+| 🟠 P1    | 9     | 0    | +1 sandbox isolation, +1 `evoseal doctor` |
+| 🟡 P2    | 9     | 0    | +2 evolution archive & progressive rollout |
+| 🟢 P3    | 10    | 0    | +1 workspace conventions |
+| **Total** | **33** | **0** | **+6 from OpenClaw analysis** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
+>
+> Items marked _(inspired by OpenClaw)_ are patterns borrowed from the OpenClaw project.
+> See comparative analysis for full context on what to adopt vs. what to avoid.
