@@ -646,3 +646,6 @@ checkpoints/
 # Stray/generated artifacts that must not be committed
 :memory:
 test_results_phase2_simplified.json
+
+# Harness-generated output
+out/
