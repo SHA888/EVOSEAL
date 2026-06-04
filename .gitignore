@@ -205,3 +205,4 @@ hooks/
 # Generated artifacts that must not be committed
 :memory:
 test_results_phase2_simplified.json
+requirements/
