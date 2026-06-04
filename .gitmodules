@@ -1,14 +1,14 @@
 [submodule "dgm"]
 	path = dgm
-	url = https://github.com/SHA888/dgm
+	url = https://github.com/jennyzzt/dgm
 	branch = main
 
 [submodule "openevolve"]
 	path = openevolve
-	url = https://github.com/SHA888/openevolve
+	url = https://github.com/algorithmicsuperintelligence/openevolve
 	branch = main
 
 [submodule "SEAL"]
 	path = SEAL
-	url = git@github.com:SHA888/SEAL.git
+	url = https://github.com/Continual-Intelligence/SEAL
 	branch = main
