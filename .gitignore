@@ -196,6 +196,8 @@ openevolve/
 SEAL/
 
 # Local tooling state
+.claude-plugin/
+hooks/
 .claude/
 !.claude/settings.json
 .harness-mem/state

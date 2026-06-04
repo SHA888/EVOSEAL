@@ -7,6 +7,8 @@
 .pytest_cache
 .taskmaster
 coverage.*
+.claude-plugin
+hooks
 
 # Python caches
 __pycache__

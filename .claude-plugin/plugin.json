@@ -1,8 +1,0 @@
-{
-  "name": "EVOSEAL",
-  "version": "0.3.7",
-  "description": "Evolutionary Self-Improving AI Agent integrating DGM, OpenEvolve, and SEAL",
-  "skills": [
-    "./skills/"
-  ]
-}
