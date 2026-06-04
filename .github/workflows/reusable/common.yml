@@ -30,7 +30,7 @@ jobs:
 
       - name: Set up Python ${{ inputs.python-version }}
         if: inputs.needs-setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
           cache: 'pip'
