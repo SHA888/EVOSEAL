@@ -633,6 +633,9 @@ node_modules/
 # Semgrep virtual environment
 .semgrep-venv/
 
+# Runtime-generated directories (mounted as Docker volumes; never commit)
+checkpoints/
+
 # Local runtime env file (use .evoseal.env.template as the committed reference)
 .evoseal.env
 
