@@ -7,7 +7,7 @@ services:
     container_name: evoseal
     restart: unless-stopped
     env_file:
-      - ./.evoseal.env
+      - ./.env
     environment:
       - EV_DASHBOARD_PORT=9613
       # Optionally set EV_DASHBOARD_HOST if you need to override (entrypoint defaults to 0.0.0.0)

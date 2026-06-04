@@ -72,4 +72,4 @@ Note: the `make lint` target has a shell typo in the Makefile; if it fails, run 
 - **Conventional Commits** are required (`feat:`, `fix:`, `docs:`, …); `commitizen` is configured. PRs target `main`.
 - **Do not include `Co-Authored-By:` trailers in commit messages.** This applies to all assistant-generated commits, including those produced by Claude Code or any other AI tool. Commit attribution stays with the human author. Boilerplate trailers add noise to the history without conveying meaningful authorship and have been retroactively stripped from past commits.
 - **English-only:** all `Plans.md` content (headers, table columns, task descriptions, status markers) must be in English — use `cc:done` / `cc:wip`, never `cc:完了` / `cc:WIP`. All harness output and documentation must be in English. This applies strictly to tracked files.
-- The local runtime env file is `.evoseal.env` (gitignored); `.evoseal.env.template` is the committed reference.
+- The local env file is `.env` (gitignored) — put API keys and `EVOSEAL_*` settings there. Do not commit it.

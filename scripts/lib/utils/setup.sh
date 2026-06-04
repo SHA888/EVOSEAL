@@ -32,8 +32,8 @@ mkdir -p logs data/knowledge checkpoints/openevolve
 
 # Create .env file if it doesn't exist
 if [ ! -f .env ]; then
-    echo "📝 Creating .env file from .env.example..."
-    cp .env.example .env
+    echo "📝 Creating .env file from .env..."
+    cp .env .env
     echo ""
     echo "⚠️  IMPORTANT: Please edit the .env file with your configuration"
     echo "   You can generate a secure SECRET_KEY with: openssl rand -hex 32"

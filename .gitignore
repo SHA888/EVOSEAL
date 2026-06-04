@@ -636,8 +636,8 @@ node_modules/
 # Runtime-generated directories (mounted as Docker volumes; never commit)
 checkpoints/
 
-# Local runtime env file (use .evoseal.env.template as the committed reference)
-.evoseal.env
+# Local env file with API keys — never commit
+.env
 
 # Claude Code and harness tooling (local state, not committed)
 .claude/

@@ -32,8 +32,8 @@ EVOSEAL can be run as a systemd service for continuous operation. Recommended: u
 Copy the template environment file to your home and customize it if needed:
 
 ```bash
-cp .evoseal.env.template ~/.evoseal.env
-# Edit ~/.evoseal.env to customize settings
+cp .env.example .env  # or create .env directly
+# Edit ~/.env to customize settings
 ```
 
 ### 2. Install the Service (User Mode - Recommended)
@@ -107,7 +107,7 @@ sudo journalctl -u evoseal.service -f
 - **Update config/env**
 
   ```bash
-  # After editing ~/.evoseal.env or updating code
+  # After editing ~/.env or updating code
   systemctl --user daemon-reload
   systemctl --user restart evoseal.service
   ```
@@ -134,7 +134,7 @@ sudo journalctl -u evoseal.service -f
   Optional: set an HTTP health endpoint in your env file to enable HTTP checks (otherwise only service state is checked):
 
   ```ini
-  # In ~/.evoseal.env
+  # In ~/.env
   HEALTH_URL=http://127.0.0.1:9613/health
   ```
 
@@ -203,7 +203,7 @@ docker build -t evoseal:local .
 
 ```bash
 # Copy and edit environment (optional)
-cp .evoseal.env.template .evoseal.env
+cp .env.example .env  # or create .env directly
 
 # Create persistent data volumes (optional but recommended)
 mkdir -p checkpoints data reports
@@ -212,7 +212,7 @@ mkdir -p checkpoints data reports
 Common environment settings (examples):
 
 ```ini
-# ./.evoseal.env
+# ./.env
 # If using a host Ollama on Linux, point to the host bridge IP
 # OLLAMA_BASE_URL=http://172.17.0.1:11434
 
@@ -233,7 +233,7 @@ This maps:
 
 - Port `9613:9613` for the dashboard at `/`
 - Volumes `./checkpoints`, `./data`, `./reports` into the container
-- `./.evoseal.env` into the container environment
+- `./.env` into the container environment
 
 Notes for Ollama connectivity:
 
