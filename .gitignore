@@ -636,6 +636,10 @@ node_modules/
 # Local runtime env file (use .evoseal.env.template as the committed reference)
 .evoseal.env
 
+# Claude Code and harness tooling (local state, not committed)
+.claude/
+.harness-mem/state
+
 # Stray/generated artifacts that must not be committed
 :memory:
 test_results_phase2_simplified.json
