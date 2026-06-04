@@ -22,7 +22,6 @@ __pycache__
 .evoseal*
 
 # Large or dev-only content
-benchmarks/
 docs/
 assets/
 reports/tests/

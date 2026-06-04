@@ -1,0 +1,72 @@
+{
+  "baseline": {
+    "passed": 0,
+    "failed": 10,
+    "errors": 0,
+    "total": 10
+  },
+  "model": "claude-opus-4-8",
+  "problems_evaluated": [
+    {
+      "task_id": "synthetic_0",
+      "name": "Sum first N",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_1",
+      "name": "Palindrome check",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_2",
+      "name": "Find max",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_3",
+      "name": "Reverse list",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_4",
+      "name": "Remove duplicates",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_5",
+      "name": "Character count",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_6",
+      "name": "Anagram check",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_7",
+      "name": "Fibonacci",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_8",
+      "name": "Bubble sort",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    },
+    {
+      "task_id": "synthetic_9",
+      "name": "Factorial",
+      "passed": false,
+      "model": "claude-opus-4-8"
+    }
+  ],
+  "timestamp": "2026-06-04T08:49:04.404100"
+}

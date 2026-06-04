@@ -17,6 +17,7 @@ services:
     ports:
       - "9613:9613"
     volumes:
+      - ./benchmarks:/app/benchmarks
       - ./checkpoints:/app/checkpoints
       - ./data:/app/data
       - ./reports:/app/reports

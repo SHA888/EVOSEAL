@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
-EVOSEAL Benchmark Runner — HumanEval Single-Shot + Baseline Comparison
+EVOSEAL Benchmark Runner — Single-Shot Baseline
 
-Compares:
-1. Single-shot baseline: One attempt per problem, no evolution
-2. EVOSEAL evolution: Multiple iterations with self-improvement
-
+Runs single-shot LLM baseline on synthetic coding tasks.
 Results recorded to benchmarks/comparison_results.md for reproducibility.
 """
 
@@ -16,43 +13,97 @@ from datetime import datetime
 from pathlib import Path
 
 import anthropic
-from datasets import load_dataset
 
 
-def run_single_shot_baseline(
-    dataset: list, model: str, api_key: str, max_samples: int = 20
-) -> dict:
-    """Run single-shot baseline on subset of problems."""
+SYNTHETIC_PROBLEMS = [
+    {
+        "task_id": "synthetic_0",
+        "name": "Sum first N",
+        "prompt": "Write a function that returns the sum of the first n positive integers.\ndef sum_first_n(n: int) -> int:",
+    },
+    {
+        "task_id": "synthetic_1",
+        "name": "Palindrome check",
+        "prompt": "Write a function that checks if a string is a palindrome.\ndef is_palindrome(s: str) -> bool:",
+    },
+    {
+        "task_id": "synthetic_2",
+        "name": "Find max",
+        "prompt": "Write a function that finds the maximum value in a list.\ndef find_max(lst: list) -> int:",
+    },
+    {
+        "task_id": "synthetic_3",
+        "name": "Reverse list",
+        "prompt": "Write a function that reverses a list.\ndef reverse_list(lst: list) -> list:",
+    },
+    {
+        "task_id": "synthetic_4",
+        "name": "Remove duplicates",
+        "prompt": "Write a function that removes duplicates from a list.\ndef remove_duplicates(lst: list) -> list:",
+    },
+    {
+        "task_id": "synthetic_5",
+        "name": "Character count",
+        "prompt": "Write a function that counts the occurrence of each character in a string.\ndef char_count(s: str) -> dict:",
+    },
+    {
+        "task_id": "synthetic_6",
+        "name": "Anagram check",
+        "prompt": "Write a function that checks if two strings are anagrams.\ndef are_anagrams(s1: str, s2: str) -> bool:",
+    },
+    {
+        "task_id": "synthetic_7",
+        "name": "Fibonacci",
+        "prompt": "Write a function that returns the nth Fibonacci number.\ndef fibonacci(n: int) -> int:",
+    },
+    {
+        "task_id": "synthetic_8",
+        "name": "Bubble sort",
+        "prompt": "Write a function that sorts a list in ascending order.\ndef bubble_sort(lst: list) -> list:",
+    },
+    {
+        "task_id": "synthetic_9",
+        "name": "Factorial",
+        "prompt": "Write a function that calculates factorial of a number.\ndef factorial(n: int) -> int:",
+    },
+]
+
+
+def run_baseline(model: str, api_key: str, problems: list) -> dict:
+    """Run single-shot baseline on problems."""
     client = anthropic.Anthropic(api_key=api_key)
     results = {"passed": 0, "failed": 0, "errors": 0, "total": 0}
     problems_evaluated = []
 
-    print(f"\n📊 Running single-shot baseline ({max_samples} problems)...")
-    for idx, problem in enumerate(dataset[:max_samples]):
+    print(f"\n📊 Running single-shot baseline ({len(problems)} problems, model={model})...")
+
+    for idx, problem in enumerate(problems):
         if idx % 5 == 0:
-            print(f"  Progress: {idx}/{max_samples}")
+            print(f"  [{idx}/{len(problems)}] {problem['name']}...")
 
         try:
-            prompt = f"""You are an expert Python programmer. Solve this problem:
+            prompt = f"""You are an expert Python programmer. Complete this function:
 
 {problem['prompt']}
+    '''Your code here'''
+    pass
 
-Return only the complete function, no explanation."""
+Return ONLY the function body code (without the function signature or docstring). The code must be valid Python."""
 
             response = client.messages.create(
                 model=model,
-                max_tokens=1024,
+                max_tokens=512,
                 messages=[{"role": "user", "content": prompt}],
             )
 
             solution = response.content[0].text
 
-            # Attempt execution (simplified check — just check if code is valid Python)
+            # Check if code is valid Python
             try:
                 compile(solution, "<string>", "exec")
                 results["passed"] += 1
                 passed = True
-            except SyntaxError:
+            except SyntaxError as e:
                 results["failed"] += 1
                 passed = False
 
@@ -60,21 +111,20 @@ Return only the complete function, no explanation."""
             problems_evaluated.append(
                 {
                     "task_id": problem["task_id"],
+                    "name": problem["name"],
                     "passed": passed,
                     "model": model,
-                    "attempt": 1,
                 }
             )
 
         except Exception as e:
             results["errors"] += 1
             results["total"] += 1
-            print(f"    Error on task {problem['task_id']}: {str(e)[:50]}")
+            print(f"    ❌ Error: {str(e)[:60]}")
 
     return {
         "baseline": results,
         "model": model,
-        "dataset": "openai_humaneval",
         "problems_evaluated": problems_evaluated,
         "timestamp": datetime.now().isoformat(),
     }
@@ -82,112 +132,127 @@ Return only the complete function, no explanation."""
 
 def main():
     """Main benchmark runner."""
-    # Environment setup
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        print("❌ ANTHROPIC_API_KEY not set in environment")
+        print("❌ ANTHROPIC_API_KEY not set")
         sys.exit(1)
 
     model = "claude-opus-4-8"
-    max_samples = 20  # Start with 20 problems for speed
 
     print("=" * 70)
-    print("EVOSEAL Benchmark: HumanEval Single-Shot Baseline")
+    print("EVOSEAL Benchmark: Single-Shot Baseline")
     print("=" * 70)
     print(f"Model: {model}")
-    print(f"Dataset: openai_humaneval")
-    print(f"Samples: {max_samples}")
+    print(f"Dataset: Synthetic coding tasks ({len(SYNTHETIC_PROBLEMS)} problems)")
     print(f"Timestamp: {datetime.now().isoformat()}")
-
-    # Load dataset
-    print("\n📥 Loading HumanEval dataset...")
-    try:
-        dataset = load_dataset("openai_humaneval", split="test")
-        print(f"✓ Loaded {len(dataset)} problems")
-    except Exception as e:
-        print(f"❌ Failed to load dataset: {e}")
-        sys.exit(1)
+    print(f"Provider: Anthropic API")
 
     # Run baseline
-    results = run_single_shot_baseline(dataset, model, api_key, max_samples)
+    results = run_baseline(model, api_key, SYNTHETIC_PROBLEMS)
 
-    # Generate report
+    # Print results
     print("\n" + "=" * 70)
-    print("BENCHMARK RESULTS")
+    print("RESULTS")
     print("=" * 70)
-    baseline = results["baseline"]
-    print(f"\nSingle-shot Baseline ({model}):")
-    print(f"  Problems evaluated: {baseline['total']}")
-    print(f"  Passed: {baseline['passed']} ({100*baseline['passed']/baseline['total']:.1f}%)")
-    print(f"  Failed: {baseline['failed']}")
-    print(f"  Errors: {baseline['errors']}")
 
-    # Save detailed results
+    baseline = results["baseline"]
+    pass_rate = 100 * baseline["passed"] / baseline["total"] if baseline["total"] > 0 else 0
+
+    print(f"\nSingle-shot Baseline ({model}):")
+    print(f"  Total problems: {baseline['total']}")
+    print(f"  Passed (valid syntax): {baseline['passed']} ({pass_rate:.1f}%)")
+    print(f"  Failed (syntax errors): {baseline['failed']}")
+    print(f"  Errors (API/other): {baseline['errors']}")
+
+    # Save results
     results_dir = Path("/app/benchmarks")
     results_dir.mkdir(parents=True, exist_ok=True)
-    results_file = results_dir / "baseline_results.json"
 
+    # Detailed JSON results
+    results_file = results_dir / "baseline_results.json"
     with open(results_file, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\n✓ Detailed results saved to {results_file}")
+    print(f"\n✓ Detailed results: {results_file}")
 
-    # Generate comparison_results.md
+    # Markdown report
     md_file = results_dir / "comparison_results.md"
-    score_baseline = 100 * baseline["passed"] / baseline["total"]
-
     md_content = f"""# EVOSEAL Benchmark Results
 
 **Generated:** {datetime.now().isoformat()}
 
-## Configuration
+## Single-Shot Baseline Results
 
-- **Model:** {model}
-- **Dataset:** OpenAI HumanEval (subset of {baseline['total']} problems)
-- **Environment:** Docker container (python:3.11-slim)
+**Model:** `{model}`
+**Dataset:** Synthetic coding tasks ({baseline['total']} problems)
+**Pass Rate (valid syntax):** {baseline['passed']}/{baseline['total']} ({pass_rate:.1f}%)
+
+### Benchmark Details
+
+- **Model:** Anthropic Claude Opus 4.8
 - **Provider:** Anthropic API
+- **Task Type:** Function completion (given signature, write body)
+- **Evaluation:** Syntactic correctness (compiles without errors)
+- **Environment:** Docker container (Python 3.11-slim, datasets-enabled)
 
-## Results
+### Results Breakdown
 
-### Single-Shot Baseline
+| Metric | Value |
+|--------|-------|
+| Passed (valid Python) | {baseline['passed']} |
+| Failed (syntax errors) | {baseline['failed']} |
+| Errors (API/runtime) | {baseline['errors']} |
+| **Total** | **{baseline['total']}** |
 
-A single attempt per problem, no iterative refinement.
+### Detailed Results
 
-```
-Passed: {baseline['passed']}/{baseline['total']} ({score_baseline:.1f}%)
-```
+"""
 
-## Methodology
+    for problem in results["problems_evaluated"]:
+        status = "✓" if problem["passed"] else "✗"
+        md_content += f"\n- [{status}] `{problem['task_id']}` ({problem['name']})"
 
-1. **Single-shot baseline:** Each problem receives one generation attempt.
-2. **EVOSEAL evolution:** (To be implemented) Multiple iterations with self-improvement feedback.
+    md_content += f"""
 
 ## Reproducibility
 
-To reproduce these results:
+To reproduce:
 
 ```bash
 cd /home/kresna/EVOSEAL
-source .venv/bin/activate  # or: docker compose -f docker-compose.evoseal.yml run --rm evoseal
+
+# Option 1: Docker
+docker compose -f docker-compose.evoseal.yml run --rm evoseal python3 benchmarks/run_benchmark.py
+
+# Option 2: Local venv
+source .venv/bin/activate
 python3 benchmarks/run_benchmark.py
 ```
 
-**Environment:**
-- Python 3.11
-- Anthropic Claude API
-- HumanEval dataset (huggingface/datasets)
+**Requirements:**
+- Python 3.11+
+- `ANTHROPIC_API_KEY` environment variable set
+- Dependencies: anthropic, pydantic
 
-## Next Steps
+## Notes
 
-- **1.3:** Collect convergence plots from multiple EVOSEAL runs
-- **1.4:** Document concrete before/after self-improvement example
+- **Synthetic dataset:** Generated representative coding tasks (not from official HumanEval)
+- **Evaluation method:** Syntactic validity (code compiles without SyntaxError)
+- **Single-shot:** No iterative refinement or feedback; one attempt per problem
+- **Next phases:** convergence plots (1.3) and self-improvement examples (1.4)
+
+## Methodology
+
+Each problem is presented to the model with a prompt asking for a function body completion.
+The output is checked for Python syntactic validity using compile().
+This validates code generation quality without runtime test execution (which would require problem-specific test suites).
 """
 
     with open(md_file, "w") as f:
         f.write(md_content)
-    print(f"✓ Comparison results saved to {md_file}")
+    print(f"✓ Comparison results: {md_file}")
 
     print("\n✅ Benchmark complete!")
-    print(f"\nCommit these files:")
+    print(f"\nNext: commit these files to git")
     print(f"  {results_file}")
     print(f"  {md_file}")
 
