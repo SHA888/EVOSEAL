@@ -197,6 +197,7 @@ SEAL/
 
 # Local tooling state
 .claude/
+!.claude/settings.json
 .harness-mem/state
 
 # Generated artifacts that must not be committed

@@ -1,0 +1,30 @@
+# Harness v4 Configuration
+# Edit this file, then run `harness sync` to generate CC plugin files.
+
+[project]
+name = "EVOSEAL"
+version = "0.3.7"
+description = "Evolutionary Self-Improving AI Agent integrating DGM, OpenEvolve, and SEAL"
+
+[agent]
+# default = "security-reviewer"
+
+[env]
+# CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = "1"
+
+[safety.permissions]
+deny = [
+  "Bash(sudo:*)",
+]
+ask = [
+  "Bash(rm -r:*)",
+  "Bash(git push --force:*)",
+]
+
+[safety.sandbox]
+failIfUnavailable = false
+
+[safety.sandbox.filesystem]
+# denyRead = [".env", "secrets/**"]
+# allowRead = [".env.example"]
+

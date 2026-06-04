@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(sudo:*)"
+    ],
+    "ask": [
+      "Bash(rm -r:*)",
+      "Bash(git push --force:*)"
+    ]
+  }
+}
