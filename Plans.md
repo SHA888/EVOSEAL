@@ -7,18 +7,24 @@ Source: TODO.md
 
 ## Phase 2: P1 — Safety Hardening & Integration
 
-Scope: Harden the self-modification loop against unsafe edits, add end-to-end
-testability, and establish cost visibility. P0 is complete; all items below
-are prerequisites before P2 (architecture docs, dashboard) work begins.
+Scope: Establish threat model, decide on isolation strategy, build testable infrastructure,
+and establish cost visibility. P0 is complete; all items below are prerequisites before P2
+(architecture docs, dashboard) work begins.
+
+**Execution strategy:** 2.1–2.2 first (establish ground truth for safety decisions).
+Then 2.3–2.7 (safety tests + testability infrastructure) in parallel with 2.8–2.11
+(cost tracking + doctor). All tasks unblock P2 work.
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 2.1 | Write adversarial self-modification tests [tdd:required] | Test suite in `tests/safety/` covers: DGM loop attempting to modify immutable-core components is blocked by `configs/safety.yaml`; rollback triggers on regression; all tests pass in CI | - | cc:TODO |
-| 2.2 | Add safety test CI job [tdd:skip:ci-config-only] | `.github/workflows/ci.yml` has a `safety` job that runs adversarial tests on every PR; job is not skippable without label | 2.1 | cc:TODO |
-| 2.3 | Document threat model [tdd:skip:docs-only] | `docs/safety/threat_model.md` committed to main; covers what can go wrong, what EVOSEAL protects against, and explicit out-of-scope risks | - | cc:TODO |
-| 2.4 | Sandbox self-modifications [tdd:required] | DGM-generated pipeline variants execute in isolated Docker containers before touching main codebase; design doc in `docs/safety/sandbox_design.md`; at minimum a decision record on Git-rollback vs container isolation | - | cc:TODO |
-| 2.5 | End-to-end loop integration test [tdd:required] | `tests/integration/test_evolution_loop.py` exercises full cycle (generate → evaluate → select → self-modify → regression check) with mock LLM responses; no API keys required; runs in CI | - | cc:TODO |
-| 2.6 | Add `--dry-run` mode [tdd:required] | `evoseal pipeline start --dry-run` runs the loop with deterministic mock responses; output is deterministic for same seed; documented in CLI help | 2.5 | cc:TODO |
-| 2.7 | Add `evoseal doctor` command [tdd:required] | `evoseal doctor` validates: API keys reachable, `configs/safety.yaml` well-formed, dependencies installed, Git state clean, budget/cost risks flagged; exits non-zero on critical failures | - | cc:TODO |
-| 2.8 | Add token/cost estimation [tdd:required] | Token usage logged per evolution cycle; `evoseal estimate-cost --iterations N` outputs estimated tokens and cost for configured model; rough cost table added to README | - | cc:TODO |
-| 2.9 | Add configurable token budget [tdd:required] | `max_tokens_per_run` and `max_cost_per_run` config options respected; evolution loop stops gracefully when budget is exhausted; warning emitted at 80% | 2.8 | cc:TODO |
+| 2.1 | Write threat model [tdd:skip:docs-only] | `docs/safety/threat_model.md` documents: (1) what edits DGM can make (scope of immutable-core), (2) what happens when edits fail tests (catch-and-revert behavior), (3) Git state risks (corruption scenarios), (4) infinite-loop risks, (5) explicit out-of-scope risks (e.g., network calls in edits). Reviewed by project lead. | - | cc:TODO |
+| 2.2 | Decide: sandbox isolation vs rollback [tdd:skip:design-doc] | `docs/safety/sandbox_design.md` is a decision record (ADR) covering: threat model (2.1) implications, trade-off matrix (cost/complexity/blast-radius for containers vs Git rollback), chosen approach + justification. If decision is "Git rollback sufficient," explain why threat model doesn't require isolation. | 2.1 | cc:TODO |
+| 2.3 | Mock LLM/component infrastructure [tdd:required] | `evoseal/testing/mock_components.py` provides mocks for DGM (fake variant generator), OpenEvolve (fake evaluator), SEAL (fake fine-tuner). Mocks wired via env var `EVOSEAL_MOCK_MODE=true` (all-or-nothing). Deterministic output for same seed. Used by 2.6 and 2.7. | - | cc:TODO |
+| 2.4 | Write adversarial self-modification tests [tdd:required] | `tests/safety/test_adversarial_edits.py` covers: DGM attempts to modify out-of-scope files (`safety.yaml`, `Makefile`, `.env`); attempts are blocked per threat model (2.1); rollback triggers on violations per sandbox decision (2.2); all tests pass. | 2.1, 2.2 | cc:TODO |
+| 2.5 | Add safety test CI job [tdd:skip:ci-config-only] | `.github/workflows/ci.yml` has `safety` job that runs 2.4 on every PR; job is not skippable without label; required check enabled. | 2.4 | cc:TODO |
+| 2.6 | End-to-end loop integration test [tdd:required] | `tests/integration/test_evolution_loop.py` exercises full cycle (generate → evaluate → select → self-modify → regression check) using mocks from 2.3; generates 2 variants, selects winner, simulates self-edit; no API calls; passes with `EVOSEAL_MOCK_MODE=true`. | 2.3 | cc:TODO |
+| 2.7 | Add `--dry-run` mode [tdd:required] | `evoseal pipeline start --dry-run` sets `EVOSEAL_MOCK_MODE=true` + `EVOSEAL_DRY_RUN=true` (mocks respond, no actual edits to disk). Output deterministic for same seed. Documented in CLI help. Works with 2.6 test. | 2.3, 2.6 | cc:TODO |
+| 2.8 | Document cost/budget spec [tdd:skip:design-doc] | `docs/safety/cost_and_budget_spec.md` covers: (1) cost model (tokens per cycle), (2) budget config schema, (3) graceful-stop behavior on exhaustion, (4) critical/major/minor failure modes for cost violations. Defines what 2.9–2.11 validate. | - | cc:TODO |
+| 2.9 | Add token/cost estimation [tdd:required] | Token usage logged per evolution cycle; `evoseal estimate-cost --iterations N` outputs tokens + cost for configured model; cost expectations table added to README. Passes schema validation per 2.8. | 2.8 | cc:TODO |
+| 2.10 | Add configurable token budget [tdd:required] | `max_tokens_per_run` and `max_cost_per_run` config options; loop stops gracefully when budget exhausted; warning at 80%. Validated against spec from 2.8. 2.6 integration test covers budget-exhaustion scenario. | 2.8, 2.9 | cc:TODO |
+| 2.11 | Add `evoseal doctor` command [tdd:required] | `evoseal doctor` validates: API keys reachable, `configs/safety.yaml` well-formed, dependencies installed, Git state clean, budget/cost risks flagged (per threat model 2.1 + spec 2.8). Exits non-zero **only on critical failures** (defined by 2.1 + 2.8, not ad-hoc). | 2.1, 2.8 | cc:TODO |
