@@ -14,7 +14,6 @@ from pathlib import Path
 
 import anthropic
 
-
 SYNTHETIC_PROBLEMS = [
     {
         "task_id": "synthetic_0",
@@ -103,7 +102,7 @@ Return ONLY the function body code (without the function signature or docstring)
                 compile(solution, "<string>", "exec")
                 results["passed"] += 1
                 passed = True
-            except SyntaxError as e:
+            except SyntaxError:
                 results["failed"] += 1
                 passed = False
 
@@ -145,7 +144,7 @@ def main():
     print(f"Model: {model}")
     print(f"Dataset: Synthetic coding tasks ({len(SYNTHETIC_PROBLEMS)} problems)")
     print(f"Timestamp: {datetime.now().isoformat()}")
-    print(f"Provider: Anthropic API")
+    print("Provider: Anthropic API")
 
     # Run baseline
     results = run_baseline(model, api_key, SYNTHETIC_PROBLEMS)
@@ -164,12 +163,18 @@ def main():
     print(f"  Failed (syntax errors): {baseline['failed']}")
     print(f"  Errors (API/other): {baseline['errors']}")
 
-    # Save results
-    results_dir = Path("/app/benchmarks")
+    # Save results — resolve relative to this script so both Docker and local runs
+    # write into the repo's benchmarks/ directory, not /app/benchmarks.
+    results_dir = Path(os.environ.get("BENCHMARK_DIR", Path(__file__).parent)).resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    # Detailed JSON results
+    # Detailed JSON results — never overwrite a committed baseline; use --overwrite flag.
     results_file = results_dir / "baseline_results.json"
+    if results_file.exists() and "--overwrite" not in sys.argv:
+        ts = datetime.now().strftime("%Y%m%dT%H%M%S")
+        results_file = results_dir / f"baseline_results_{ts}.json"
+        print(f"\n⚠️  Existing baseline_results.json preserved. Writing to {results_file.name}")
+        print("   Pass --overwrite to replace the committed baseline.")
     with open(results_file, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\n✓ Detailed results: {results_file}")
@@ -211,7 +216,7 @@ def main():
         status = "✓" if problem["passed"] else "✗"
         md_content += f"\n- [{status}] `{problem['task_id']}` ({problem['name']})"
 
-    md_content += f"""
+    md_content += """
 
 ## Reproducibility
 
@@ -231,7 +236,7 @@ python3 benchmarks/run_benchmark.py
 **Requirements:**
 - Python 3.11+
 - `ANTHROPIC_API_KEY` environment variable set
-- Dependencies: anthropic, pydantic
+- Dependencies: `uv pip install -e ".[benchmarks]"` (adds datasets, matplotlib)
 
 ## Notes
 
@@ -252,7 +257,7 @@ This validates code generation quality without runtime test execution (which wou
     print(f"✓ Comparison results: {md_file}")
 
     print("\n✅ Benchmark complete!")
-    print(f"\nNext: commit these files to git")
+    print("\nNext: commit these files to git")
     print(f"  {results_file}")
     print(f"  {md_file}")
 

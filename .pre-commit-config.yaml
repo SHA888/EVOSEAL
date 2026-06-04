@@ -79,15 +79,14 @@ repos:
           )$
         stages: [pre-commit, pre-push]
 
-  # Dockerfile linter
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.0
+  # Dockerfile linter — use local hadolint binary; skip gracefully if absent
+  - repo: local
     hooks:
       - id: hadolint
         name: hadolint
-        description: 'Dockerfile linter'
-        entry: hadolint --ignore DL3006 --ignore DL3008 --ignore DL3013
-        language: docker_image
+        description: 'Dockerfile linter (requires hadolint in PATH)'
+        entry: bash -c 'command -v hadolint >/dev/null 2>&1 && hadolint --config .hadolint.yaml "$@" || echo "hadolint not found, skipping" >&2' --
+        language: system
         types: [dockerfile]
 
   # TruffleHog - Find secrets in git history

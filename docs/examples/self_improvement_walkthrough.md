@@ -39,7 +39,7 @@ class CandidateSelector:
     def select_candidates(self, k: int, strategy: str = "greedy") -> List[int]:
         """
         Main selection logic.
-        
+
         Generation 0: Always use greedy (top-k by fitness).
         Ignores diversity, causing premature convergence.
         """
@@ -87,20 +87,21 @@ class CandidateSelector:
     def select_diverse(self, k: int, variance_weight: float = 0.3) -> List[int]:
         """
         Select candidates balancing fitness + variance.
-        
-        Score = fitness * (1 - variance_weight) + 
+
+        Score = fitness * (1 - variance_weight) +
                 (1 - norm_distance_to_mean) * variance_weight
-        
+
         Prefers candidates that are fit AND different from the mean.
         """
         fitness_norm = (self.fitness_scores - self.fitness_scores.min()) / (
             self.fitness_scores.max() - self.fitness_scores.min() + 1e-8
         )
+        fitness_range = self.fitness_scores.max() - self.fitness_scores.min() + 1e-8
         mean_fitness = self.fitness_scores.mean()
         variance_bonus = 1.0 - np.abs(self.fitness_scores - mean_fitness) / (
-            mean_fitness + 1e-8
+            fitness_range
         )
-        
+
         composite_score = (
             fitness_norm * (1 - variance_weight) +
             variance_bonus * variance_weight
@@ -111,7 +112,7 @@ class CandidateSelector:
     def select_candidates(self, k: int, strategy: str = "adaptive") -> List[int]:
         """
         Main selection logic.
-        
+
         Generation N: Adaptive strategy based on population diversity.
         - If diversity is high: exploit fitness (greedy)
         - If diversity is low: explore by preferring variance
@@ -119,10 +120,10 @@ class CandidateSelector:
         if strategy == "adaptive":
             fitness_std = self.fitness_scores.std()
             fitness_mean = self.fitness_scores.mean()
-            
+
             # Diversity ratio: high std relative to mean means healthy population
             diversity_ratio = fitness_std / (fitness_mean + 1e-8)
-            
+
             if diversity_ratio > 0.5:
                 # Diverse population: exploit
                 return self.select_top_k(k)
@@ -137,7 +138,7 @@ class CandidateSelector:
     def next_generation(self, candidates: List[int]) -> List[int]:
         """
         Select next generation variants for evolution.
-        
+
         Gen N: Adaptive selection preserves diversity longer,
         enabling the loop to explore more of the search space.
         """
@@ -180,10 +181,10 @@ class CandidateSelector:
 -        return list(np.random.choice(len(self.fitness_scores), k, replace=False))
 +        """
 +        Select candidates balancing fitness + variance.
-+        
-+        Score = fitness * (1 - variance_weight) + 
++
++        Score = fitness * (1 - variance_weight) +
 +                (1 - norm_distance_to_mean) * variance_weight
-+        
++
 +        Prefers candidates that are fit AND different from the mean.
 +        """
 +        fitness_norm = (self.fitness_scores - self.fitness_scores.min()) / (
@@ -193,7 +194,7 @@ class CandidateSelector:
 +        variance_bonus = 1.0 - np.abs(self.fitness_scores - mean_fitness) / (
 +            mean_fitness + 1e-8
 +        )
-+        
++
 +        composite_score = (
 +            fitness_norm * (1 - variance_weight) +
 +            variance_bonus * variance_weight
@@ -204,7 +205,7 @@ class CandidateSelector:
      def select_candidates(self, k: int, strategy: str = "greedy") -> List[int]:
          """
          Main selection logic.
-         
+
 -        Generation 0: Always use greedy (top-k by fitness).
 -        Ignores diversity, causing premature convergence.
 +        Generation N: Adaptive strategy based on population diversity.
@@ -218,10 +219,10 @@ class CandidateSelector:
 +        if strategy == "adaptive":
 +            fitness_std = self.fitness_scores.std()
 +            fitness_mean = self.fitness_scores.mean()
-+            
++
 +            # Diversity ratio: high std relative to mean means healthy population
 +            diversity_ratio = fitness_std / (fitness_mean + 1e-8)
-+            
++
 +            if diversity_ratio > 0.5:
 +                # Diverse population: exploit
 +                return self.select_top_k(k)
@@ -275,7 +276,7 @@ The key insight: **Variance itself is useful**. Gen N scores candidates by:
 
 ```
 score = fitness_weight * normalized_fitness +
-        variance_weight * distance_from_mean
+        variance_weight * (1 - |deviation_from_mean| / fitness_range)
 ```
 
 This creates a feedback loop:

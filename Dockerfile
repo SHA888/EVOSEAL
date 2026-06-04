@@ -27,8 +27,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 # Copy pyproject.toml first for better layer caching
 COPY pyproject.toml ./
 
-# Install Python deps from pyproject.toml
-RUN uv pip install -e .
+# Install Python deps from pyproject.toml (include benchmarks extra for scripts)
+RUN uv pip install -e ".[benchmarks]"
 
 # Copy source
 COPY . .
@@ -44,7 +44,7 @@ EXPOSE 9613
 
 # Healthcheck: dashboard HTTP (override EV_DASHBOARD_PORT as needed)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD python -c "import os, sys, urllib.request; port = os.environ.get('EV_DASHBOARD_PORT','9613'); url = f'http://127.0.0.1:{port}/'; sys.exit(0 if (200 <= urllib.request.urlopen(url, timeout=3).getcode() < 400) else 1)" || true
+    CMD python -c "import os, sys, urllib.request; port = os.environ.get('EV_DASHBOARD_PORT','9613'); url = f'http://127.0.0.1:{port}/'; sys.exit(0 if (200 <= urllib.request.urlopen(url, timeout=3).getcode() < 400) else 1)"
 
 VOLUME ["/app/checkpoints", "/app/data", "/app/reports"]
 

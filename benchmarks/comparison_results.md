@@ -57,7 +57,7 @@ python3 benchmarks/run_benchmark.py
 **Requirements:**
 - Python 3.11+
 - `ANTHROPIC_API_KEY` environment variable set
-- Dependencies: anthropic, pydantic
+- Dependencies: `uv pip install -e ".[benchmarks]"` (adds datasets, matplotlib)
 
 ## Notes
 
