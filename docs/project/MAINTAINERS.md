@@ -115,7 +115,7 @@ As a maintainer, you are expected to:
 1. Add to appropriate requirements file:
    - `requirements/base.txt` for core deps
    - `requirements/dev.txt` for dev tools
-   - `requirements/requirements.txt` for pinned versions
+   - `requirements/pinned_requirements.txt` for pinned versions
 
 2. Justify the addition
 3. Consider security implications

@@ -68,17 +68,9 @@ install_dependencies() {
 
     source .venv/bin/activate
 
-    # Install dependencies
-    if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
-        log_info "Installed Python dependencies"
-    elif [ -f "requirements/pinned_requirements.txt" ]; then
-        pip install -r requirements/pinned_requirements.txt
-        log_info "Installed pinned Python dependencies"
-    else
-        pip install -e .
-        log_info "Installed package in development mode"
-    fi
+    # Install dependencies from pyproject.toml
+    pip install -e .
+    log_info "Installed Python dependencies"
 }
 
 # Function to set up the service

@@ -273,7 +273,7 @@ safety check
 
 ### Requirements Files
 
-- `requirements.txt` - Base runtime dependencies
+- Dependencies are declared in `pyproject.toml`
 - `requirements/dev.txt` - Development dependencies
 - `requirements/test.txt` - Testing dependencies
 - `requirements/docs.txt` - Documentation dependencies
@@ -282,7 +282,7 @@ safety check
 
 1. Add to appropriate requirements file
 2. Pin versions for stability
-3. Update `requirements/requirements.txt` with `pip freeze`
+3. Update `requirements/pinned_requirements.txt` with `pip freeze > requirements/pinned_requirements.txt`
 4. Test with new dependencies
 5. Update documentation if needed
 
@@ -296,7 +296,7 @@ pip list --outdated
 pip install --upgrade package_name
 
 # Regenerate frozen requirements
-pip freeze > requirements/requirements.txt
+pip freeze > requirements/pinned_requirements.txt
 ```
 
 ## Debugging

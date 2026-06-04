@@ -25,14 +25,14 @@ This guide provides solutions to common issues you might encounter while using o
    ```bash
    python -m venv venv
    source .venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 2. If using conda:
    ```bash
    conda create -n evoseal python=3.10
    conda activate evoseal
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 ### 2. Missing System Dependencies

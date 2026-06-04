@@ -14,8 +14,8 @@
 EVOSEAL uses a comprehensive approach to dependency management to ensure security and stability:
 
 1. **Pinned Dependencies**: All dependencies are pinned to specific versions in:
-   - `requirements/pinned_requirements.txt` (core dependencies)
-   - `requirements/pinned_dev_requirements.txt` (development dependencies)
+   - `requirements/pinned_requirements/pinned_requirements.txt` (core dependencies)
+   - `requirements/pinned_dev_requirements/pinned_requirements.txt` (development dependencies)
    - `requirements/security.txt` (security tools)
 
 2. **Update Process**:

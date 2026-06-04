@@ -33,7 +33,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install core dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Install Phase 3 specific dependencies
 pip install aiohttp aiohttp-cors pydantic-settings
@@ -436,7 +436,7 @@ tar -czf evoseal_backup_$(date +%Y%m%d).tar.gz data/ logs/ .env
 git pull origin main
 
 # Update dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Run health check
 python3 scripts/run_phase3_continuous_evolution.py --health-check

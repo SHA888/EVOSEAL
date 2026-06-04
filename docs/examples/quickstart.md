@@ -24,7 +24,7 @@ This guide will help you get started with EVOSEAL quickly.
 
 3. Install the required packages:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 ## Basic Usage

@@ -101,7 +101,7 @@ deploy_api() {
 
     # Install dependencies
     print_status "Installing dependencies..."
-    pip install -r "$ROOT_DIR/requirements.txt"
+    pip install -e "$ROOT_DIR"
 
     # Run database migrations if needed
     if [ -f "$ROOT_DIR/manage.py" ]; then

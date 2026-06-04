@@ -5,7 +5,7 @@ FROM ${BASE_IMAGE}
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
+    UV_SYSTEM_PYTHON=1 \
     EV_DASHBOARD_PORT=9613
 
 # System deps
@@ -22,14 +22,15 @@ RUN groupadd -g 10001 evoseal \
 
 WORKDIR /app
 
-# Copy requirements first for better layer caching
-COPY requirements/ requirements/
-COPY requirements.txt ./
+# Install uv for fast dependency resolution
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+ && mv /root/.local/bin/uv /usr/local/bin/uv
 
-# Install Python deps (use constraints if available)
-RUN python -m pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt -c requirements/constraints.txt || \
-    pip install --no-cache-dir -r requirements.txt
+# Copy pyproject.toml first for better layer caching
+COPY pyproject.toml ./
+
+# Install Python deps from pyproject.toml
+RUN uv pip install -e .
 
 # Copy source
 COPY . .

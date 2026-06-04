@@ -34,7 +34,7 @@ Welcome to the EVOSEAL User Manual. This document provides comprehensive informa
 
 3. **Install Dependencies**
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 4. **Install in Development Mode**
@@ -91,7 +91,7 @@ cp -r evoseal/examples/templates/basic my_project
 cd my_project
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### Configuration
