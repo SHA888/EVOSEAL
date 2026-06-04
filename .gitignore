@@ -90,8 +90,6 @@ coverage/
 # Environment files
 .env
 .env.*
-!.env.example
-!.env.template
 .env.local
 .env.development.local
 .env.test.local
@@ -327,8 +325,6 @@ cover/
 # Project specific - environment files
 .env
 .env.*
-!.env.example
-!.env.template
 .env.local
 .env.development.local
 .env.test.local
