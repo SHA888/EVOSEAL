@@ -206,3 +206,4 @@ hooks/
 :memory:
 test_results_phase2_simplified.json
 requirements/
+tasks/
