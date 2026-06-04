@@ -1,5 +1,0 @@
-# Security tools
-bandit>=1.7.0
-safety>=2.0.0
-semgrep>=1.0.0
-detect-secrets>=1.4.0

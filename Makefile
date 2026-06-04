@@ -5,11 +5,8 @@ PYTHON = python3
 PIP = pip3
 PYTEST = pytest
 COVERAGE = coverage
-FLAKE8 = flake8
-BLACK = black
-ISORT = isort
+RUFF = ruff
 MYPY = mypy
-PYLINT = pylint
 PRECOMMIT = pre-commit
 
 # Default target
@@ -30,9 +27,9 @@ help:
 	@echo "  install-precommit  Install pre-commit hooks"
 	@echo "  test           Run tests"
 	@echo "  test-cov       Run tests with coverage"
-	@echo "  lint           Run all linters"
-	@echo "  format         Format code with black and isort"
-	@echo "  check-format   Check code formatting without making changes"
+	@echo "  lint           Run ruff linter"
+	@echo "  format         Format code with ruff"
+	@echo "  check-format   Check formatting without making changes"
 	@echo "  type-check     Run type checking with mypy"
 	@echo "  check          Run all checks (format, lint, type-check, test)"
 	@echo "  clean          Clean build artifacts"
@@ -65,18 +62,16 @@ test-cov:
 # Linting and Formatting
 .PHONY: lint
 lint:
-	$(FLAKE8 evoseal tests/
-	$(PYLINT) evoseal/
+	$(RUFF) check evoseal/ tests/
 
 .PHONY: format
 format:
-	$(BLACK) .
-	$(ISORT) .
+	$(RUFF) format .
+	$(RUFF) check --fix .
 
 .PHONY: check-format
 check-format:
-	$(BLACK) --check .
-	$(ISORT) --check-only .
+	$(RUFF) format --check .
 
 .PHONY: type-check
 type-check:
@@ -113,7 +108,7 @@ precommit-all:
 # Show dependency tree
 .PHONY: deps
 deps:
-	$(PIP)deptree
+	$(PIP) deptree
 
 # Show outdated packages
 .PHONY: outdated

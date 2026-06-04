@@ -27,8 +27,7 @@ concurrency:
 
 # Environment variables available to all jobs
 env:
-  PYTHON_VERSION: '3.10'
-  POETRY_VERSION: '1.8.0'
+  PYTHON_VERSION: '3.11'
 
 jobs:
   # First job: Validate code and configuration
@@ -47,17 +46,17 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[test,dev]"
+      run: uv pip install --system -e ".[test,dev]"
 
     - name: Validate configuration files
       run: |
-        # Validate pyproject.toml
-        python -c "import tomli; tomli.load(open('pyproject.toml', 'rb'))"
+        # Validate pyproject.toml (tomllib is stdlib in Python 3.11+)
+        python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"
         echo "✅ pyproject.toml is valid"
 
         # Check for version consistency if this is a tag push
@@ -73,7 +72,7 @@ jobs:
 
   # Simplified test matrix: Ubuntu + Python 3.10 (matches Dockerfile)
   test:
-    name: Test (ubuntu-latest, Python 3.10)
+    name: Test (ubuntu-latest, Python 3.11)
     needs: validate
     runs-on: ubuntu-latest
     steps:
@@ -83,11 +82,10 @@ jobs:
         fetch-depth: 0
         submodules: 'recursive'
 
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-        cache: 'pip'
+        python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install system dependencies
       run: |
@@ -95,11 +93,11 @@ jobs:
         sudo apt-get install -y git-lfs
         git lfs install
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[test]"
-        pip install pytest-cov pytest-xdist
+      run: uv pip install --system -e ".[test]"
 
     - name: Run tests (unit + integration)
       id: tests
@@ -140,12 +138,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[test]"
+      run: uv pip install --system -e ".[test]"
 
     - name: Build and start mock services
       run: |
@@ -194,12 +192,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Install documentation dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements/docs.txt
+      run: uv pip install --system -r requirements/docs.txt
 
     - name: Build documentation
       run: |
@@ -230,30 +228,25 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-        cache: 'pip'
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Install development dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[test,dev]"
+      run: uv pip install --system -e ".[test,dev]"
 
-    - name: Check code formatting with Black
-      run: black --check --line-length=100 --skip-string-normalization .
+    - name: Check formatting with ruff
+      run: ruff format --check .
 
-    - name: Run Flake8 for style guide enforcement (core files only)
-      run: flake8 evoseal/ --exclude=tests,examples,scripts
-      continue-on-error: true
+    - name: Lint with ruff
+      run: ruff check evoseal/ tests/
 
-    - name: Run MyPy for static type checking (core files only)
+    - name: Type check with mypy
       run: mypy --install-types --non-interactive evoseal/ --ignore-missing-imports
-      continue-on-error: true
-
-    - name: Run Ruff for additional linting (auto-fix enabled)
-      run: ruff check . --fix
       continue-on-error: true
 
   security:
@@ -272,12 +265,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Install safety
-      run: |
-        python -m pip install --upgrade pip
-        pip install safety
+      run: uv pip install --system safety
 
     - name: Run Bandit security linter
       uses: PyCQA/bandit@main
@@ -303,15 +296,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Install build tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install build
+      run: uv pip install --system build
 
     - name: Build package
       run: |

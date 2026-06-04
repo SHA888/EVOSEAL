@@ -7,7 +7,7 @@ name = "evoseal"
 version = "0.3.7"
 description = "EVOSEAL: An advanced AI system integrating DGM, OpenEvolve, and SEAL"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Kresna Sucandra"}
@@ -17,8 +17,8 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
@@ -86,8 +86,6 @@ test = [
     "psutil>=5.9.0",
     "aiohttp>=3.8.0",
     "httpx>=0.24.0",
-    "tomli>=2.0.0 ; python_version < '3.11'",
-    "eval-type-backport>=0.0.1 ; python_version < '3.10'",
 
     # Optional dependencies for specific tests
     "torch>=2.0.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",
@@ -120,7 +118,7 @@ exclude = ["tests", "tests.*"]
 # Formatting
 [tool.black]
 line-length = 100
-target-version = ["py39"]
+target-version = ["py311"]
 include = '\.pyi?$'
 skip-string-normalization = true
 exclude = '''
@@ -150,7 +148,7 @@ skip_glob = [".venv*", "venv*", "env*", ".env*", ".semgrep-venv/*", "dgm/*", "op
 [tool.ruff]
 # Basic settings
 line-length = 100
-target-version = "0.3.5"
+target-version = "py311"
 exclude = [".venv*", "venv*", "env*", ".env*", ".semgrep-venv/*", "dgm/*", "openevolve/*", "SEAL*/*"]
 
 [tool.ruff.lint]

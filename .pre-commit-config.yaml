@@ -1,18 +1,18 @@
 # Global exclude patterns - applies to all hooks
 exclude: |
   (?x)^(
-    dgm/|            # DGM submodule
-    openevolve/|     # OpenEvolve submodule
-    SEAL (Self-Adapting Language Models)/|           # SEAL (Self-Adapting Language Models) submodule
-    .*\.git/.*|      # Git internals
-    .*venv/.*|       # Virtual environments
-    .*__pycache__/.* # Python cache
+    dgm/|
+    openevolve/|
+    SEAL/|
+    .*\.git/.*|
+    .*venv/.*|
+    .*__pycache__/.*
   )$
 
 repos:
   # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -21,51 +21,13 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
 
-  # Python formatting
-  - repo: https://github.com/psf/black
-    rev: 24.4.0
+  # Ruff: replaces black, isort, flake8, and pylint
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
     hooks:
-      - id: black
-        language_version: python3
-        args: [--line-length=100, --skip-string-normalization]
-        exclude: |
-          (?x)^(
-            dgm/|
-            openevolve/|
-            SEAL (Self-Adapting Language Models)/|
-            .*venv/|
-            .*__pycache__/
-          )$
-
-  # Python imports sorting
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: [--profile=black, --line-length=100]
-        exclude: |
-          (?x)^(
-            dgm/|
-            openevolve/|
-            SEAL (Self-Adapting Language Models)/|
-            .*venv/|
-            .*__pycache__/
-          )$
-
-  # Security - Python vulnerability scanner using safety (removed due to policy file issues)
-  # Note: Safety checks can be run manually with: safety check --short-report
-  # - repo: local
-  #   hooks:
-  #     - id: safety
-  #       name: safety
-  #       description: 'Check Python dependencies for known security vulnerabilities'
-  #       entry: safety check --short-report
-  #       language: python
-  #       language_version: python3
-  #       pass_filenames: false
-  #       types: [python]
-  #       require_serial: true
-  #       additional_dependencies: [safety]
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
 
   # Security - Python code analysis
   - repo: https://github.com/PyCQA/bandit
@@ -77,7 +39,7 @@ repos:
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL (Self-Adapting Language Models)/|
+            SEAL/|
             .*venv/|
             .*__pycache__/|
             tests/
@@ -94,20 +56,10 @@ repos:
         pass_filenames: false
         always_run: true
         verbose: true
-        additional_dependencies: []
-        exclude: |
-          (?x)^(
-            dgm/|
-            openevolve/|
-            SEAL (Self-Adapting Language Models)/|
-            .*venv/|
-            .*__pycache__/|
-            scripts/run_tests.sh
-          )$
 
   # Detect secrets in code
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0  # Using the installed version
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline', '--exclude-files', 'checkpoints/.*\.json$']
@@ -115,15 +67,15 @@ repos:
           (?x)^(
             dgm/|
             openevolve/|
-            SEAL (Self-Adapting Language Models)/|
+            SEAL/|
             .*venv/|
             .*__pycache__/|
             .*node_modules/|
-            .*\\.min\\.js$|
-            .*\\.svg$|
-            .*\\.jpg$|
-            .*\\.png$|
-            .*\\.gif$
+            .*\.min\.js$|
+            .*\.svg$|
+            .*\.jpg$|
+            .*\.png$|
+            .*\.gif$
           )$
         stages: [pre-commit, pre-push]
 
@@ -140,7 +92,7 @@ repos:
 
   # TruffleHog - Find secrets in git history
   - repo: https://github.com/trufflesecurity/trufflehog
-    rev: v3.66.0  # Using the latest stable release
+    rev: v3.66.0
     hooks:
       - id: trufflehog
         name: trufflehog
