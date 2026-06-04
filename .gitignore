@@ -632,3 +632,10 @@ node_modules/
 
 # Semgrep virtual environment
 .semgrep-venv/
+
+# Local runtime env file (use .evoseal.env.template as the committed reference)
+.evoseal.env
+
+# Stray/generated artifacts that must not be committed
+:memory:
+test_results_phase2_simplified.json

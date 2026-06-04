@@ -9,13 +9,15 @@
 
 **Latest Version**: 0.3.2 (July 27, 2025)
 
+> **Research status**: EVOSEAL is an active **research project** exploring *autonomous, scheduled* self-modification. It is not yet production-validated, and benchmark results are not yet published (see [TODO.md](TODO.md) for the current roadmap and known gaps). Capabilities below describe the implemented Phase 3 system; treat maturity claims as research-stage rather than battle-tested.
+
 ![Dashboard](./assets/evoseal-dashboard.png)
 
-**🎉 Phase 3 Release - Bidirectional Continuous Evolution**:
-- ✅ Complete bidirectional evolution system between EVOSEAL and Devstral
+**🎉 Phase 3 - Bidirectional Continuous Evolution**:
+- ✅ Bidirectional evolution loop between EVOSEAL and Devstral
 - ✅ Real-time monitoring dashboard with WebSocket updates
-- ✅ Production-ready systemd service integration
-- ✅ Comprehensive fine-tuning infrastructure with LoRA/QLoRA
+- ✅ systemd service integration
+- ✅ Fine-tuning infrastructure with LoRA/QLoRA
 - ✅ Model validation, versioning, and rollback capabilities
 - ✅ Ollama integration with Mistral AI's Devstral coding model
 - ✅ Continuous improvement loop with automated training cycles
@@ -37,7 +39,7 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 - 🎯 **Fine-tuning Infrastructure**: LoRA/QLoRA with comprehensive validation
 - 📊 **Model Versioning**: Automatic version tracking and rollback
 - 🛡️ **Safety Controls**: Model validation with alignment testing
-- 🔧 **systemd Integration**: Production-ready service management with enhanced security
+- 🔧 **systemd Integration**: systemd service management with hardened security settings
 
 ### 🛠️ Script Organization & CLI
 - 🗂 **Modular Scripts**: Organized into functional directories under `scripts/lib/`
@@ -56,10 +58,6 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 - 🏢 Modular architecture with clear separation of concerns
 - 🛡️ **Rollback safety protection** - Prevents accidental codebase deletion
 
-## Quick Start
-
-### 🚀 Phase 3: Bidirectional Continuous Evolution
-
 ## Getting Started
 
 ### Prerequisites
@@ -72,7 +70,7 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/EVOSEAL.git
+   git clone https://github.com/SHA888/EVOSEAL.git
    cd EVOSEAL
    ```
 
@@ -243,7 +241,7 @@ EVOSEAL Phase 3 implements a complete bidirectional evolution system where EVOSE
 3. **Phase 3**: Continuous Improvement Loop
    - Automated evolution cycles and training orchestration
    - Real-time monitoring dashboard with WebSocket updates
-   - Production-ready systemd service integration
+   - systemd service integration for long-running operation
    - Bidirectional feedback loop: EVOSEAL ↔ Devstral
 
 ### 🌐 Real-time Monitoring Dashboard
@@ -343,10 +341,10 @@ evoseal config unset seal.model
 
 #### Component Management
 
-Manage SEAL (Self-Adapting Language Models), OpenEvolve, and DGM components:
+Manage SEAL, OpenEvolve, and DGM components:
 
 ```bash
-# SEAL (Self-Adapting Language Models) model operations
+# SEAL model operations
 evoseal seal --help
 
 # OpenEvolve processes
@@ -493,7 +491,7 @@ For detailed documentation, please visit [https://sha888.github.io/EVOSEAL/](htt
 ### Key Components
 
 - **Core**: Contains the main evolutionary algorithms and orchestration logic
-- **Integration**: Modules for integrating with external systems (DGM, OpenEvolve, SEAL (Self-Adapting Language Models))
+- **Integration**: Modules for integrating with external systems (DGM, OpenEvolve, SEAL)
 - **Agents**: Implements different agent behaviors and workflows
 - **Providers**: Interfaces to various AI/ML model providers
 - **Models**: Data structures and schemas used throughout the system
@@ -515,10 +513,6 @@ We welcome contributions from the community! Please read our [Contributing Guide
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
-
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
-
 ## Contact
 
 Project Link: [https://github.com/SHA888/EVOSEAL](https://github.com/SHA888/EVOSEAL)
@@ -529,9 +523,11 @@ Project Link: [https://github.com/SHA888/EVOSEAL](https://github.com/SHA888/EVOS
 - [Anthropic](https://www.anthropic.com/)
 - [MkDocs](https://www.mkdocs.org/)
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
-- [SEAL (Self-Adapting Language Models)](https://github.com/SHA888/SEAL (Self-Adapting Language Models))
+- [SEAL (Self-Adapting Language Models)](https://arxiv.org/abs/2506.10943)
 
-## Installation
+## Dependencies & Requirements
+
+> For basic setup, see [Getting Started → Installation](#installation) above. This section details the full requirements structure for development and production.
 
 EVOSEAL uses a structured requirements system to manage dependencies across different environments:
 
@@ -631,12 +627,12 @@ DGM is implemented through a collection of Python modules that work together to 
   - Interfaces with Git repositories for version control
   - Manages code edits and improvement processes
   - Runs regression tests to verify improvements
-  - Handles communication with SEAL (Self-Adapting Language Models) models
+  - Handles communication with SEAL models
 
 - `llm_withtools.py`: Provides sophisticated SEAL integration:
   - Supports both Claude and OpenAI models
   - Implements tool-calling capabilities for code manipulation
-  - Handles message history conversion between different SEAL (Self-Adapting Language Models) formats
+  - Handles message history conversion between different SEAL formats
   - Manages backoff and retry mechanisms for API stability
 
 #### OpenEvolve Implementation Details
@@ -645,14 +641,14 @@ OpenEvolve provides a robust framework for program evolution with several key co
 
 - `controller.py`: The central orchestration module containing the `OpenEvolve` class that:
   - Manages the entire evolution process from initialization to completion
-  - Coordinates between the prompt sampler, SEAL (Self-Adapting Language Models) ensemble, evaluator, and program database
+  - Coordinates between the prompt sampler, SEAL ensemble, evaluator, and program database
   - Implements checkpoint saving and loading mechanisms
   - Tracks the best program across evolution steps
 
 - `evaluator.py`: Handles program evaluation through:
   - Integration with external evaluation scripts
   - Collection and normalization of performance metrics
-  - Support for SEAL (Self-Adapting Language Models)-based evaluation when needed
+  - Support for SEAL-based evaluation when needed
 
 - `database.py`: Sophisticated program version management system for:
   - Storing and retrieving program variants
@@ -660,9 +656,9 @@ OpenEvolve provides a robust framework for program evolution with several key co
   - Implementing selection strategies (MAP-Elites process)
   - Maintaining diversity in the solution space
 
-#### SEAL (Self-Adapting Language Models) Implementation Details
+#### SEAL Implementation Details
 
-SEAL (Self-Adapting Language Models) provides the theoretical foundation and implementation for self-adapting language models:
+SEAL provides the theoretical foundation and implementation for self-adapting language models:
 
 - `few-shot/`: Contains implementations for adapting models to new tasks with minimal examples:
   - Training procedures for meta-learning capabilities
@@ -678,11 +674,11 @@ SEAL (Self-Adapting Language Models) provides the theoretical foundation and imp
 
 #### Evolve Task Solution
 
-In this phase, EVOSEAL leverages SEAL (Self-Adapting Language Models) to generate and refine code variants. These variants are then evaluated and the best one is selected using OpenEvolve's evolutionary mechanisms.
+In this phase, EVOSEAL leverages SEAL to generate and refine code variants. These variants are then evaluated and the best one is selected using OpenEvolve's evolutionary mechanisms.
 
 ```mermaid
 graph LR
-    A[Start] --> B[Generate code variants with SEAL (Self-Adapting Language Models)]
+    A[Start] --> B[Generate code variants with SEAL]
     B --> C[Evaluate variants with OpenEvolve]
     C --> D[Select best variant]
     D --> E[End]
@@ -690,7 +686,7 @@ graph LR
 
 The evolution process involves:
 
-1. **Variant Generation**: Using SEAL (Self-Adapting Language Models)'s self-adapting capabilities to generate diverse code solutions
+1. **Variant Generation**: Using SEAL's self-adapting capabilities to generate diverse code solutions
 2. **Evaluation**: Assessing each variant based on multiple metrics including correctness, efficiency, and readability
 3. **Selection**: Applying OpenEvolve's MAP-Elites process to maintain both quality and diversity
 4. **Refinement**: Iterative improvement of promising solutions
@@ -720,12 +716,12 @@ The self-improvement process includes:
 
 The three core technologies of EVOSEAL are tightly integrated through well-defined interfaces and data flows:
 
-### SEAL (Self-Adapting Language Models) Integration
+### SEAL Integration
 
-- **Code Generation Interface**: SEAL (Self-Adapting Language Models)'s self-adapting capabilities are exposed through a structured API that allows OpenEvolve to request code variants
-- **Knowledge Incorporation Pipeline**: New knowledge is continuously fed into SEAL (Self-Adapting Language Models) models during the evolution process
-- **Few-shot Learning Activation**: Task-specific examples are used to prime SEAL (Self-Adapting Language Models) for generating contextually relevant code
-- **Model Selection**: Different SEAL (Self-Adapting Language Models) model configurations are selected based on task complexity and domain
+- **Code Generation Interface**: SEAL's self-adapting capabilities are exposed through a structured API that allows OpenEvolve to request code variants
+- **Knowledge Incorporation Pipeline**: New knowledge is continuously fed into SEAL models during the evolution process
+- **Few-shot Learning Activation**: Task-specific examples are used to prime SEAL for generating contextually relevant code
+- **Model Selection**: Different SEAL model configurations are selected based on task complexity and domain
 
 ### OpenEvolve Integration
 
@@ -745,7 +741,7 @@ The three core technologies of EVOSEAL are tightly integrated through well-defin
 
 ### Self-Refinement
 
-- **Self-Editing Capabilities**: SEAL (Self-Adapting Language Models) models can identify and correct their own errors, leading to progressively higher quality code
+- **Self-Editing Capabilities**: SEAL models can identify and correct their own errors, leading to progressively higher quality code
 - **Knowledge Integration**: New information is continuously incorporated into the system's knowledge base
 - **Contextual Adaptation**: Models automatically adjust their output style and approach based on task requirements
 - **Error Reduction**: Analysis of previous generation errors informs improvements in subsequent generations
@@ -768,7 +764,7 @@ The three core technologies of EVOSEAL are tightly integrated through well-defin
 
 ### Current Development
 
-- **Automated Pipeline Integration**: Streamlining the connections between SEAL (Self-Adapting Language Models), OpenEvolve, and DGM components
+- **Automated Pipeline Integration**: Streamlining the connections between SEAL, OpenEvolve, and DGM components
 - **Performance Benchmarking**: Establishing baseline metrics across a variety of programming tasks
 - **Documentation Expansion**: Developing comprehensive API references and integration guides
 
@@ -812,11 +808,11 @@ python -m openevolve.openevolve-run ./program.py ./evaluation.py \
                                --iterations 50 --output ./output
 ```
 
-#### SEAL (Self-Adapting Language Models) Experiments
+#### SEAL Experiments
 
 ```bash
-# Run SEAL (Self-Adapting Language Models) few-shot learning experiment
-cd SEAL (Self-Adapting Language Models)/few-shot
+# Run SEAL few-shot learning experiment
+cd SEAL/few-shot
 python run_experiment.py --config configs/default.yaml
 ```
 
@@ -833,7 +829,9 @@ When EVOSEAL completes a run, it produces several output artifacts:
 
 ## Design Considerations and Challenges
 
-EVOSEAL's sophisticated architecture presents several important design considerations and challenges that are actively being addressed in the implementation:
+> **Research scope note**: EVOSEAL is a research project exploring *autonomous, scheduled* self-modification — a direction that user-driven systems do not attempt. This section describes the **target design and intended safeguards**. Several configuration and metrics files referenced below (e.g., under `configs/` and `metrics/`) describe planned mechanisms and may not yet exist in the repository. Treat this section as design intent, not a description of shipped, production-validated behavior.
+
+EVOSEAL's architecture presents several important design considerations and challenges that are actively being worked on:
 
 ### Complexity Management
 
@@ -897,7 +895,7 @@ EVOSEAL's sophisticated architecture presents several important design considera
 
 ### Open Research Questions
 
-- **Baseline Comparisons**: Ongoing benchmarking against static approaches shows a 15-45% improvement over non-evolutionary methods across standard programming tasks, with results published in `benchmarks/comparison_results.md`.
+- **Baseline Comparisons**: Reproducible benchmarking against non-evolutionary baselines (e.g., single-shot generation) is planned but not yet published. Results will be recorded in `benchmarks/comparison_results.md` once available. No verified improvement figures are claimed at this time. See [TODO.md](TODO.md) (P0 — Benchmarks & Empirical Validation).
 
 - **Failure Recovery**: Two-phase recovery system: 1) immediate rollback to last stable version and 2) diagnosis mode that identifies and resolves architectural conflicts.
 
@@ -961,6 +959,6 @@ This project incorporates components from multiple sources with different licens
 
 - **DGM**: Copyright (2025) Jenny Zhang and Shengran Hu - Apache License 2.0
 - **OpenEvolve**: Copyright (c) 2025 Asankhaya Sharma - Apache License 2.0
-- **SEAL (Self-Adapting Language Models)**: Copyright (c) 2025 Adam Zweiger - MIT License
+- **SEAL**: Copyright (c) 2025 Adam Zweiger - MIT License
 
 See the [LICENSE](./LICENSE) file for the complete text of the Apache License 2.0 and the [NOTICE](./NOTICE) file for detailed attribution information.

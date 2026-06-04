@@ -441,10 +441,10 @@ git commit --no-verify
 #### Performance Issues
 ```bash
 # Profile the application
-python -m cProfile -o profile.stats main.py
+python -m cProfile -o profile.stats -m evoseal.cli.main
 
 # Check memory usage
-python -m memory_profiler main.py
+python -m memory_profiler -m evoseal.cli.main
 ```
 
 ### Getting Help
