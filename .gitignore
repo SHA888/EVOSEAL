@@ -189,6 +189,8 @@ data/checkpoints/
 # Runtime directories (Docker volumes; generated at runtime)
 checkpoints/
 out/
+# EVOSEAL runtime state (pipeline state, rollback targets, logs)
+.evoseal/
 
 # Submodule directories (tracked as gitlinks — listed here for tooling clarity)
 dgm/
