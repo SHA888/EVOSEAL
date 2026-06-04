@@ -1,647 +1,204 @@
-# Python
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-*.pyc
-*.pyo
 *.pyd
+.Python
 .python-version
-.python-version.*
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.env
-.venv/
-.env/
-.venv*
-.venv.*
-.evoseal/
-
-# Distribution / packaging
+# ── Build & packaging ─────────────────────────────────────────────────────────
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
 lib64/
-
-# Allow our scripts/lib directory
-!/scripts/lib/
 parts/
 sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
 *.egg
+.installed.cfg
 MANIFEST
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-
-# Metrics and release files
-/metrics/evolution_*.json
-!/metrics/evolution_v*.json  # Keep versioned files
-/metrics/release_notes_*.md
-!/releases/*/RELEASE_NOTES.md  # Keep versioned release notes
-/archived_metrics/
-.hypothesis/
-.pytest_cache/
-cover/
-.pytest_cache/
-.pytest-xdist/
-coverage/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-*/.ipynb_checkpoints/*
-
-# IDE specific files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.swp
-*.swo
-*~
-.project
-.pydevproject
-.settings/
-.ropeproject/
-*.code-workspace
-.history
-
-# Environment files
-.env
-.env.*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs and databases
-*.log
-logs/
-*.sqlite
-
-# Evolution and runtime data
-data/continuous_evolution/
-data/evolution_data/
-data/training_data/
-data/model_versions/
-data/checkpoints/
-# Keep example/template data
-!data/examples/
-!data/templates/
-!data/sample_*
-*.sqlite3
-*.sql
-*.sql.gz
-*.sqlite3-*
-*.db
-*.db-journal
-*.sqlite3-journal
-
-# Security files
-secrets.*
-*.pem
-*.key
-*.crt
-*.cer
-*.p12
-*.pfx
-*.p7b
-*.p7c
-*.p7s
-*.p8
-*.p10
-*.p12
-*.pfx
-*.p7b
-*.p7c
-*.p7s
-*.p8
-*.p10
-*.p12
-*.pfx
-*.p7b
-*.p7c
-*.p7s
-*.p8
-*.p10
-*.p12
-*.pfx
-
-# Bandit
-.bandit
-
-# Safety
-.safety-policy.yml
-
-# Detect Secrets
-# .secrets.baseline  # Track this file in version control
-
-# TruffleHog
-.trufflehog/
-
-# Local development
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Documentation
-docs/_build/
-docs/api/
-
-# Translations
-*.mo
-*.pot
-
-# Django
-*.log
-local_settings.py
-db.sqlite3
-
-# Flask
-instance/
-.webassets-cache
-
-# Scrapy
-.scrapy
-
-# Sphinx
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# IPython
-profile_default/
-ipython_config.py
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# PyCharm
-.idea/
-.idea_modules/
-*.iml
-*.ipr
-*.iws
-
-# VS Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
-
-# Temporary files
-*.swp
-*.swo
-*~
-*.bak
-*.tmp
-*.temp
-*.log
-*.pid
-*.seed
-*.pid.lock
-
-# Project specific
-local_settings.py
-db.sqlite3
-instance/
-.webassets-cache
-
-# Project specific (customize as needed)
-secrets.py
-config/secrets.py
-config/*.key
-config/*.pem
-config/*.crt
-config/*.key
-config/*.p12
-
-# Project specific - logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Project specific - coverage
-.coverage
-coverage.xml
-*.cover
-htmlcov/
-
-# Project specific - virtual environment
-venv/
-env/
-.venv/
-ENV/
-
-# Project specific - build
-dist/
-build/
-*.egg-info/
-.eggs/
-
-# Project specific - testing
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Project specific - Jupyter Notebook
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
-
-# Project specific - IDE
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.swp
-*.swo
-*~
-.project
-.pydevproject
-.settings/
-.ropeproject/
-*.code-workspace
-.history
-
-# Project specific - environment files
-.env
-.env.*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Project specific - logs and databases
-*.log
-logs/
-*.sqlite
-*.sqlite3
-*.sql
-*.sql.gz
-*.sqlite3-*
-*.db
-*.db-journal
-*.sqlite3-journal
-
-# Project specific - security files
-secrets.*
-*.pem
-*.key
-*.crt
-*.cer
-*.p12
-*.pfx
-*.p7b
-*.p7c
-*.p7s
-*.p8
-*.p10
-*.p12
-*.pfx
-*.p7b
-*.p7c
-*.p7s
-*.p8
-*.p10
-*.p12
-*.pfx
-*.p7b
-*.p7c
-*.p7s
-*.p8
-*.p10
-*.p12
-*.pfx
-
-# Project specific - Bandit
-.bandit
-
-# Project specific - Safety
-.safety-policy.yml
-
-# Project specific - Detect Secrets
-
-# Project specific - TruffleHog
-.trufflehog/
-#Pipfile.lock
-
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly not needed for library packages.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
-
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/#use-with-ide
-.pdm.toml
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
 __pypackages__/
+.pybuilder/
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+# Allow scripts/lib (would otherwise be shadowed by lib64/ glob)
+!/scripts/lib/
 
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+.venv*
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+htmlcov/
+nosetests.xml
+.pytest_cache/
+.pytest-xdist/
+.hypothesis/
+.cache
+cover/
+coverage/
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
+# ── Type checkers ─────────────────────────────────────────────────────────────
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre type checker
 .pyre/
-
-# pytype static type analyzer
 .pytype/
-
-# Cython debug symbols
 cython_debug/
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-.idea/
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
 
-# VS Code
+# ── Docs build ────────────────────────────────────────────────────────────────
+docs/_build/
+/site
+.mkdocs-touch
+
+# ── Logs & databases ──────────────────────────────────────────────────────────
+*.log
+logs
+dev-debug.log
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-journal
+*.sqlite3-journal
+
+# ── Environment & secrets ─────────────────────────────────────────────────────
+# .env is the live config file (API keys, EVOSEAL_* settings) — never commit
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+secrets.*
+secrets.py
+config/secrets.py
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.p7b
+*.p7c
+*.p7s
+*.p8
+*.p10
+
+# ── IDE & editors ─────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
-
-# Local History for Visual Studio Code
 .history/
-
-# Windows Installer files from build outputs
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# JetBrains
-.idea/
-*.iml
-*.ipr
-*.iws
-.idea_modules/
-
-# Vim
-*.swp
-*.swo
-*~
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-# .nfs files are created when an open file is removed but is still being accessed
-.nfs*
-
-# Editor directories and files
-.idea/
-.vscode/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+.ropeproject/
+.spyderproject
+.spyproject
+.project
+.pydevproject
+.settings/
+*.code-workspace
+.windsurf/
+.semgrep-venv/
 
-# OS specific
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
+.AppleDouble
+.LSOverride
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
-# Project specific
+# ── Misc tooling ─────────────────────────────────────────────────────────────
+.pdm.toml
+.bandit
+.safety-policy.yml
+.trufflehog/
+node_modules/
 .taskmaster/tasks/tasks.json
 .taskmaster/reports/
 
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-.tox/
-.nox/
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
+# ── Metrics & release artifacts ───────────────────────────────────────────────
+/metrics/evolution_*.json
+!/metrics/evolution_v*.json
+/metrics/release_notes_*.md
+!/releases/*/RELEASE_NOTES.md
+/archived_metrics/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# ── Evolution & runtime data ──────────────────────────────────────────────────
+data/continuous_evolution/
+data/evolution_data/
+data/training_data/
+data/model_versions/
+data/checkpoints/
+!data/examples/
+!data/templates/
+!data/sample_*
 
-# Local development
-local_settings.py
-db.sqlite3
+# ── Project-specific ──────────────────────────────────────────────────────────
+# Runtime directories (Docker volumes; generated at runtime)
+checkpoints/
+out/
 
-# Distribution / packaging
-*.manifest
-*.spec
-*.egg-info/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Translations
-*.mo
-
-# Scrapy
-.scrapy
-
-# Sphinx
-docs/_build/
-
-# PyBuilder
-target/
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# celery
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath
-.sage/
-
-# Spyder
-.spyderproject
-.spyproject
-
-# Rope
-.ropeproject
-
-# mypy
-.mypy_cache/
-
-# Pyre
-.pyre/
-
-# pytype
-.pytype/
-
-# Cython
-*.c
-
-# MkDocs build output
-site/
-
-# MkDocs documentation
-!.nojekyll
-
-# Local development
-.cache/
-.mkdocs-touch
-
-# Exclude submodules
+# Submodule directories (tracked as gitlinks — listed here for tooling clarity)
 dgm/
 openevolve/
 SEAL/
 
-# Logs
-logs
-dev-debug.log
-# Dependency directories
-node_modules/
-# Environment variables
-.idea
-.vscode
-
-# Task files
-# tasks.json
-# tasks/
-
-# IDE and tooling configuration
-.windsurf/
-
-# Semgrep virtual environment
-.semgrep-venv/
-
-# Runtime-generated directories (mounted as Docker volumes; never commit)
-checkpoints/
-
-# Local env file with API keys — never commit
-.env
-
-# Claude Code and harness tooling (local state, not committed)
+# Local tooling state
 .claude/
 .harness-mem/state
 
-# Stray/generated artifacts that must not be committed
+# Generated artifacts that must not be committed
 :memory:
 test_results_phase2_simplified.json
-
-# Harness-generated output
-out/
