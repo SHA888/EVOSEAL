@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+
+from evoseal.testing.mock_components import create_mock_adapter, is_mock_mode
 
 from .base_adapter import (
     BaseComponentAdapter,
@@ -58,7 +60,7 @@ class IntegrationOrchestrator:
     (DGM, OpenEvolve, SEAL (Self-Adapting Language Models)) within the evolution pipeline.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self.component_manager = ComponentManager()
         self.logger = logging.getLogger(f"{__name__}.IntegrationOrchestrator")
@@ -66,7 +68,7 @@ class IntegrationOrchestrator:
         self._running = False
 
     async def initialize(
-        self, component_configs: Optional[Dict[ComponentType, Dict[str, Any]]] = None
+        self, component_configs: dict[ComponentType, dict[str, Any]] | None = None
     ) -> bool:
         """
         Initialize all components with their configurations.
@@ -82,6 +84,12 @@ class IntegrationOrchestrator:
 
         try:
             component_configs = component_configs or {}
+
+            # Mock mode (EVOSEAL_MOCK_MODE): register deterministic mock adapters
+            # for *every* configured component (all-or-nothing). Used by
+            # integration tests and `--dry-run` (Plans.md 2.3).
+            if is_mock_mode():
+                return await self._initialize_mock_mode(component_configs)
 
             # Initialize DGM if configured and available
             if ComponentType.DGM in component_configs and _DGM_AVAILABLE:
@@ -129,6 +137,30 @@ class IntegrationOrchestrator:
         except Exception:
             self.logger.exception("Error initializing integration orchestrator")
             return False
+
+    async def _initialize_mock_mode(
+        self, component_configs: dict[ComponentType, dict[str, Any]]
+    ) -> bool:
+        """Register deterministic mock adapters for every configured component.
+
+        All-or-nothing: never mixes real and mock adapters. Emits a loud warning
+        so a mock run is never mistaken for a real one.
+        """
+        self.logger.warning(
+            "EVOSEAL_MOCK_MODE is enabled — registering MOCK adapters for %s. "
+            "Results are synthetic and must not be treated as real.",
+            [ct.value for ct in component_configs],
+        )
+        for component_type, cfg in component_configs.items():
+            self.component_manager.register_component(
+                create_mock_adapter(component_type, **(cfg or {}))
+            )
+        results = await self.component_manager.initialize_all()
+        success = all(results.values()) if results else True
+        if success:
+            self._initialized = True
+            self.logger.info("Integration orchestrator initialized in MOCK mode")
+        return success
 
     async def start(self) -> bool:
         """Start all components."""
@@ -178,15 +210,15 @@ class IntegrationOrchestrator:
             self.logger.exception("Error stopping components")
             return False
 
-    def get_component(self, component_type: ComponentType) -> Optional[BaseComponentAdapter]:
+    def get_component(self, component_type: ComponentType) -> BaseComponentAdapter | None:
         """Get a specific component adapter."""
         return self.component_manager.get_component(component_type)
 
-    def get_all_status(self) -> Dict[ComponentType, ComponentStatus]:
+    def get_all_status(self) -> dict[ComponentType, ComponentStatus]:
         """Get status of all components."""
         return self.component_manager.get_all_status()
 
-    async def get_all_metrics(self) -> Dict[ComponentType, Dict[str, Any]]:
+    async def get_all_metrics(self) -> dict[ComponentType, dict[str, Any]]:
         """Get metrics from all components."""
         return await self.component_manager.get_all_metrics()
 
@@ -214,7 +246,7 @@ class IntegrationOrchestrator:
 
         return await component.execute(operation, data, **kwargs)
 
-    async def execute_evolution_workflow(self, workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_evolution_workflow(self, workflow_config: dict[str, Any]) -> dict[str, Any]:
         """
         Execute a complete evolution workflow coordinating all components.
 
@@ -351,8 +383,8 @@ class IntegrationOrchestrator:
             return workflow_results
 
     async def execute_parallel_operations(
-        self, operations: List[Dict[str, Any]]
-    ) -> List[ComponentResult]:
+        self, operations: list[dict[str, Any]]
+    ) -> list[ComponentResult]:
         """
         Execute multiple component operations in parallel.
 
@@ -397,15 +429,15 @@ class IntegrationOrchestrator:
         """Check if the orchestrator is running."""
         return self._running
 
-    def get_available_components(self) -> List[ComponentType]:
+    def get_available_components(self) -> list[ComponentType]:
         """Get list of available/registered components."""
         return list(self.component_manager.components.keys())
 
 
 def create_integration_orchestrator(
-    dgm_config: Optional[Dict[str, Any]] = None,
-    openevolve_config: Optional[Dict[str, Any]] = None,
-    seal_config: Optional[Dict[str, Any]] = None,
+    dgm_config: dict[str, Any] | None = None,
+    openevolve_config: dict[str, Any] | None = None,
+    seal_config: dict[str, Any] | None = None,
     **kwargs,
 ) -> IntegrationOrchestrator:
     """
