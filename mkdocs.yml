@@ -74,15 +74,15 @@ nav:
       - Safety Validation: safety/safety_validation.md
       - Pipeline Safety Integration: safety/evolution_pipeline_safety_integration.md
   - Core Systems:
-      - Core Overview: core/index.md
-      - Event System: core/event_system.md
-      - Error Handling: core/error_handling.md
-      - Error Handling & Resilience: core/error_handling_resilience.md
-      - Workflow Orchestration: core/workflow_orchestration.md
-      - Version Control & Experiment Tracking: core/version_control_experiment_tracking.md
-      - Agentic System: core/agentic_system.md
-      - Prompt Template System: core/prompt_template_system.md
-      - Knowledge Base: core/knowledge_base.md
+      - Core Overview: architecture/core/index.md
+      - Event System: architecture/core/event_system.md
+      - Error Handling: architecture/core/error_handling.md
+      - Error Handling & Resilience: architecture/core/error_handling_resilience.md
+      - Workflow Orchestration: architecture/core/workflow_orchestration.md
+      - Version Control & Experiment Tracking: architecture/core/version_control_experiment_tracking.md
+      - Agentic System: architecture/core/agentic_system.md
+      - Prompt Template System: architecture/core/prompt_template_system.md
+      - Knowledge Base: architecture/core/knowledge_base.md
   - Architecture:
       - Overview: architecture/overview.md
   - API Reference:

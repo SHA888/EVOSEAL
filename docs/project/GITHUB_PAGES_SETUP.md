@@ -101,7 +101,7 @@ mkdocs build --clean --strict
 ### Organizing Content
 
 - **Safety docs**: `docs/safety/`
-- **Core systems**: `docs/core/`
+- **Core systems**: `docs/architecture/core/`
 - **User guides**: `docs/guides/`
 - **Project info**: `docs/project/`
 - **API docs**: `docs/api/`

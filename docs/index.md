@@ -44,15 +44,15 @@ Welcome to the EVOSEAL documentation! This comprehensive guide will help you get
 - [Evolution Pipeline Safety Integration](safety/evolution_pipeline_safety_integration.md) - Pipeline safety features
 
 ### Core Systems
-- [Core Systems Overview](core/index.md) - Complete core systems documentation
-- [Event System](core/event_system.md) - Enhanced event system for component communication
-- [Error Handling](core/error_handling.md) - Error handling mechanisms
-- [Error Handling & Resilience](core/error_handling_resilience.md) - Advanced resilience and recovery
-- [Workflow Orchestration](core/workflow_orchestration.md) - End-to-end workflow coordination
-- [Version Control & Experiment Tracking](core/version_control_experiment_tracking.md) - Comprehensive versioning
-- [Agentic System](core/agentic_system.md) - AI agent implementations and workflows
-- [Prompt Template System](core/prompt_template_system.md) - Template management for AI interactions
-- [Knowledge Base](core/knowledge_base.md) - Knowledge management and storage
+- [Core Systems Overview](architecture/core/index.md) - Complete core systems documentation
+- [Event System](architecture/core/event_system.md) - Enhanced event system for component communication
+- [Error Handling](architecture/core/error_handling.md) - Error handling mechanisms
+- [Error Handling & Resilience](architecture/core/error_handling_resilience.md) - Advanced resilience and recovery
+- [Workflow Orchestration](architecture/core/workflow_orchestration.md) - End-to-end workflow coordination
+- [Version Control & Experiment Tracking](architecture/core/version_control_experiment_tracking.md) - Comprehensive versioning
+- [Agentic System](architecture/core/agentic_system.md) - AI agent implementations and workflows
+- [Prompt Template System](architecture/core/prompt_template_system.md) - Template management for AI interactions
+- [Knowledge Base](architecture/core/knowledge_base.md) - Knowledge management and storage
 
 ## Project Information
 
