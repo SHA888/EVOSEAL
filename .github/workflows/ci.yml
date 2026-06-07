@@ -120,6 +120,56 @@ jobs:
         fail_ci_if_error: false
         verbose: true
 
+  # Safety tests: adversarial self-modification and rollback validation
+  safety:
+    name: Safety Tests
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        submodules: 'recursive'
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git-lfs
+        git lfs install
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: uv pip install --system -e ".[test]"
+
+    - name: Run safety tests
+      id: safety-tests
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+        TEST_ENV: github-actions
+      run: |
+        pytest -v tests/safety/ \
+               --cov=evoseal --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      if: success() || failure()
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: safety
+        name: safety-checks
+        fail_ci_if_error: false
+        verbose: true
+
   # End-to-end tests with mock services
   e2e:
     name: End-to-End (Mock Services)
@@ -283,7 +333,7 @@ jobs:
 
   build:
     name: Build Package
-    needs: [test, lint, security]  # Run after all other jobs
+    needs: [test, lint, security, safety]  # Run after all other jobs
     runs-on: ubuntu-latest
 
     # Only build on main and release branches or tags
@@ -315,7 +365,7 @@ jobs:
   # Container image build and security scan (GHCR)
   container:
     name: Build and Scan Container
-    needs: [test, lint, security]
+    needs: [test, lint, security, safety]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
