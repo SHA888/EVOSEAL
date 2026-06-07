@@ -90,6 +90,7 @@ dev-debug.log
 # .env is the live config file (API keys, EVOSEAL_* settings) — never commit
 .env
 .env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
