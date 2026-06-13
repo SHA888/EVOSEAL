@@ -406,6 +406,38 @@ evoseal stop all
 evoseal status
 ```
 
+#### Cost Estimation
+
+Estimate token consumption and costs for evolution runs:
+
+```bash
+# Estimate costs for 100 iterations with default settings
+evoseal estimate-cost --iterations 100
+
+# Estimate with custom DGM token rate
+evoseal estimate-cost --iterations 50 --dgm-tokens-per-call 5000
+
+# Estimate with custom cost per 1k tokens (e.g., Anthropic Claude)
+evoseal estimate-cost --iterations 200 --cost-per-1k-tokens 0.003
+```
+
+**Cost Expectations Table** (default settings, per iteration):
+
+| Model Provider | Cost per 1k tokens | Tokens/Iteration* | Cost/Iteration |
+|---|---|---|---|
+| OpenAI GPT-4 | $0.015 | ~4,100 | ~$0.062 |
+| Anthropic Claude | $0.008 | ~4,100 | ~$0.033 |
+| Ollama/Local | $0.000 | ~4,100 | $0.000 |
+
+*Tokens per iteration = DGM tokens (4,000) + SEAL tokens (100)
+
+**Example Budget Calculations**:
+- 100 iterations with GPT-4: ~6,200 tokens, ~$0.062
+- 1,000 iterations with Claude: ~41,000 tokens, ~$0.328
+- 10,000 iterations with Ollama: 0 cost (local model)
+
+For detailed cost tracking and budget enforcement, see the [cost and budget specification](docs/safety/cost_and_budget_spec.md).
+
 #### Exporting Results
 
 Export evolution results and code variants:

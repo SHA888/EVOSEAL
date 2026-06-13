@@ -15,6 +15,7 @@ import typer
 from evoseal.cli.commands import (
     config,
     dgm,
+    estimate_cost,
     export,
     init,
     openevolve,
@@ -59,6 +60,7 @@ app.add_typer(dgm.app, name="dgm", help="DGM code improvement workflows")
 app.add_typer(start.app, name="start", help="Start background processes")
 app.add_typer(stop.app, name="stop", help="Stop background processes")
 app.add_typer(status.app, name="status", help="Show system status")
+app.add_typer(estimate_cost.app, name="estimate-cost", help="Estimate evolution costs")
 app.add_typer(export.app, name="export", help="Export results/variants")
 
 
@@ -83,7 +85,7 @@ def main(
         help="Show version and exit.",
         callback=version_callback,
         is_eager=True,
-    )
+    ),
 ) -> None:
     """EVOSEAL: Evolutionary Self-Improving AI Agent
 
