@@ -10,26 +10,31 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import shutil
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from rich.console import Console
 
-from evoseal.core.controller import Controller as EvolutionController
+from config.settings import Settings
+from evoseal.core.budget_tracker import BudgetTracker
 from evoseal.core.error_recovery import error_recovery_manager, with_error_recovery
 from evoseal.core.improvement_validator import ImprovementValidator
 from evoseal.core.logging_system import get_logger
 from evoseal.core.metrics_tracker import MetricsTracker
-from evoseal.core.resilience import resilience_manager
+from evoseal.core.repository import ConflictError, RepositoryError
+from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
 from evoseal.core.safety_integration import SafetyIntegration
 from evoseal.core.testrunner import TestRunner
 from evoseal.core.version_database import VersionDatabase
 from evoseal.core.workflow import WorkflowEngine
+from evoseal.integration.base_adapter import ComponentType
+from evoseal.integration.orchestrator import IntegrationOrchestrator
+from evoseal.utils.version_control.exceptions import GitCommandError
 
 from .events import (
     Event,
@@ -37,15 +42,13 @@ from .events import (
     EventType,
     create_error_event,
     create_progress_event,
-    create_state_change_event,
     event_bus,
-    publish_component_lifecycle_event,
     publish_pipeline_stage_event,
 )
 from .repository import RepositoryManager
 
 # Type aliases
-VersionID = Union[int, str]
+VersionID = int | str
 
 # Enhanced logger with monitoring
 logger = get_logger("evolution_pipeline")
@@ -56,25 +59,25 @@ class EvolutionConfig:
     """Configuration for the EvolutionPipeline."""
 
     # DGM Configuration
-    dgm_config: Dict[str, Any] = field(default_factory=dict)
+    dgm_config: dict[str, Any] = field(default_factory=dict)
 
     # OpenEvolve Configuration
-    openevolve_config: Dict[str, Any] = field(default_factory=dict)
+    openevolve_config: dict[str, Any] = field(default_factory=dict)
 
     # SEAL (Self-Adapting Language Models) Configuration
-    seal_config: Dict[str, Any] = field(default_factory=dict)
+    seal_config: dict[str, Any] = field(default_factory=dict)
 
     # Testing Configuration
-    test_config: Dict[str, Any] = field(default_factory=dict)
+    test_config: dict[str, Any] = field(default_factory=dict)
 
     # Metrics Configuration
-    metrics_config: Dict[str, Any] = field(default_factory=dict)
+    metrics_config: dict[str, Any] = field(default_factory=dict)
 
     # Validation Configuration
-    validation_config: Dict[str, Any] = field(default_factory=dict)
+    validation_config: dict[str, Any] = field(default_factory=dict)
 
     # Version Control Configuration
-    version_control_config: Dict[str, Any] = field(default_factory=dict)
+    version_control_config: dict[str, Any] = field(default_factory=dict)
 
 
 class EvolutionPipeline:
@@ -85,7 +88,7 @@ class EvolutionPipeline:
     the complete code evolution workflow.
     """
 
-    def __init__(self, config: Optional[Union[Dict[str, Any], EvolutionConfig]] = None):
+    def __init__(self, config: dict[str, Any] | EvolutionConfig | None = None):
         """Initialize the EvolutionPipeline.
 
         Args:
@@ -114,6 +117,11 @@ class EvolutionPipeline:
         )
         thresholds = metrics_config.get("thresholds") if isinstance(metrics_config, dict) else None
         self.metrics_tracker = MetricsTracker(storage_path, thresholds)
+
+        # Initialize BudgetTracker for token/cost tracking
+        self.budget_tracker = BudgetTracker()
+        self._settings = Settings()
+        self._run_start_time = datetime.utcnow()
 
         self.test_runner = TestRunner(self.config.test_config)
 
@@ -155,9 +163,6 @@ class EvolutionPipeline:
 
     def _init_component_connectors(self) -> None:
         """Initialize connectors to external components."""
-        from ..integration.base_adapter import ComponentType
-        from ..integration.orchestrator import IntegrationOrchestrator
-
         # Initialize the integration orchestrator
         self.integration_orchestrator = IntegrationOrchestrator()
 
@@ -355,7 +360,7 @@ class EvolutionPipeline:
         self.event_bus.subscribe(EventType.STEP_STARTED, self._on_step_started)
         self.event_bus.subscribe(EventType.STEP_COMPLETED, self._on_step_completed)
 
-    async def run_evolution_cycle(self, iterations: int = 1) -> List[Dict[str, Any]]:
+    async def run_evolution_cycle(self, iterations: int = 1) -> list[dict[str, Any]]:
         """Run a complete evolution cycle.
 
         Args:
@@ -456,7 +461,7 @@ class EvolutionPipeline:
         iterations: int = 1,
         enable_checkpoints: bool = True,
         enable_auto_rollback: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Run a complete evolution cycle with comprehensive safety mechanisms.
 
         This method integrates checkpoint management, regression detection,
@@ -513,6 +518,14 @@ class EvolutionPipeline:
                 )
 
                 try:
+                    # Check budget before starting new iteration
+                    budget_check_result = self._check_budget_before_iteration(
+                        iteration_num, results
+                    )
+                    if budget_check_result is not None:
+                        results.append(budget_check_result)
+                        break
+
                     # Run single iteration to get new version
                     iteration_result = await self._run_single_iteration(iteration_num)
 
@@ -633,6 +646,9 @@ class EvolutionPipeline:
 
             logger.info(f"Safety-aware evolution cycle completed: {len(results)} iterations")
 
+            # Write budget snapshot at completion
+            self._write_budget_snapshot(results)
+
         except Exception as e:
             logger.exception("Error during safety-aware evolution cycle")
             await event_bus.publish(
@@ -650,7 +666,7 @@ class EvolutionPipeline:
 
         return results
 
-    async def _run_single_iteration(self, iteration: int) -> Dict[str, Any]:
+    async def _run_single_iteration(self, iteration: int) -> dict[str, Any]:
         """Run a single evolution iteration with comprehensive error handling."""
         iteration_result = {
             "iteration": iteration,
@@ -832,30 +848,136 @@ class EvolutionPipeline:
 
         return iteration_result
 
-    async def _analyze_current_version(self) -> Dict[str, Any]:
+    async def _analyze_current_version(self) -> dict[str, Any]:
         """Analyze the current version of the code."""
         # TODO: Implement analysis logic
         return {}
 
-    async def _generate_improvements(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _generate_improvements(self, analysis: dict[str, Any]) -> list[dict[str, Any]]:
         """Generate potential improvements based on analysis."""
         # TODO: Implement improvement generation logic
         return []
 
-    async def _adapt_improvements(self, improvements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _adapt_improvements(self, improvements: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Adapt improvements using SEAL (Self-Adapting Language Models)."""
         # TODO: Implement SEAL (Self-Adapting Language Models) adaptation logic
         return improvements
 
-    async def _evaluate_version(self, improvements: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _evaluate_version(self, improvements: list[dict[str, Any]]) -> dict[str, Any]:
         """Evaluate a new version with the given improvements."""
         # TODO: Implement version evaluation logic
         return {"metrics": {}}
 
-    async def _validate_improvement(self, evaluation_result: Dict[str, Any]) -> bool:
+    async def _validate_improvement(self, evaluation_result: dict[str, Any]) -> bool:
         """Validate if the new version is an improvement."""
         # TODO: Implement improvement validation logic
         return True
+
+    def _check_budget_before_iteration(
+        self, iteration_num: int, results: list[dict[str, Any]]
+    ) -> dict[str, Any] | None:
+        """Check budget before starting iteration.
+
+        Returns budget exhaustion result if budget is exhausted, None otherwise.
+        """
+        current_tokens = self.budget_tracker.tokens_consumed_this_run
+        budget = self._settings.budget.max_tokens_per_run
+
+        # Check if budget already exhausted
+        if current_tokens >= budget:
+            logger.warning(
+                f"Budget exhausted: {current_tokens} / {budget} tokens. "
+                f"Stopping evolution loop."
+            )
+            return {
+                "iteration": iteration_num,
+                "status": "BUDGET_EXHAUSTED",
+                "reason": "token budget consumed",
+                "tokens_consumed": current_tokens,
+                "budget": budget,
+            }
+
+        # Check warning threshold
+        warn_threshold = (budget * self._settings.budget.warn_at_percent_of_budget) / 100
+        if current_tokens >= warn_threshold:
+            avg_tokens_per_cycle = (
+                sum(r.get("tokens_this_cycle", 0) for r in results) / len(results)
+                if results
+                else 4100
+            )
+            # Guard against zero division
+            if avg_tokens_per_cycle > 0:
+                estimated_cycles = self.budget_tracker.estimated_cycles_until_budget(
+                    budget, int(avg_tokens_per_cycle)
+                )
+                logger.warning(
+                    f"Budget {self._settings.budget.warn_at_percent_of_budget}% consumed: "
+                    f"{current_tokens} / {budget} tokens. "
+                    f"Approximately {estimated_cycles} cycles remain."
+                )
+
+        return None
+
+    def _write_budget_snapshot(self, results: list[dict[str, Any]]) -> None:
+        """Write budget snapshot to disk at evolution cycle completion.
+
+        Args:
+            results: List of iteration results from the evolution cycle.
+        """
+        try:
+            metrics_dir = Path(".evoseal/metrics")
+            metrics_dir.mkdir(parents=True, exist_ok=True)
+
+            # Determine stop reason from results
+            stop_reason = "COMPLETED"
+            for result in reversed(results):
+                if result.get("status") == "BUDGET_EXHAUSTED":
+                    stop_reason = "BUDGET_EXHAUSTED"
+                    break
+
+            # Count successful cycles
+            successful_cycles = sum(1 for r in results if r.get("success", False))
+
+            # Calculate cost
+            total_tokens = self.budget_tracker.tokens_consumed_this_run
+            cost = self.budget_tracker.get_cost(self._settings.budget.cost_per_1k_tokens)
+
+            # Record end time
+            end_time = datetime.utcnow()
+
+            # Create snapshot
+            snapshot = {
+                "run_id": f"run_{self._run_start_time.strftime('%Y%m%d_%H%M%S')}",
+                "start_time": self._run_start_time.isoformat(),
+                "end_time": end_time.isoformat(),
+                "cycles_completed": successful_cycles,
+                "max_cycles_configured": len(results),
+                "budget_max_tokens": self._settings.budget.max_tokens_per_run,
+                "budget_max_cost": self._settings.budget.max_cost_per_run,
+                "tokens_consumed": total_tokens,
+                "cost_incurred": round(cost, 4),
+                "stop_reason": stop_reason,
+                "stop_graceful": stop_reason in ("COMPLETED", "BUDGET_EXHAUSTED"),
+                "warn_threshold_percent": self._settings.budget.warn_at_percent_of_budget,
+                "percent_budget_consumed": round(
+                    (total_tokens / self._settings.budget.max_tokens_per_run) * 100, 2
+                ),
+                "violations": [
+                    r.get("error")
+                    for r in results
+                    if r.get("error") and "budget" in str(r.get("error", "")).lower()
+                ],
+            }
+
+            # Write snapshot
+            snapshot_path = metrics_dir / "budget_snapshot.json"
+            with open(snapshot_path, "w") as f:
+                json.dump(snapshot, f, indent=2)
+
+            logger.info(f"Budget snapshot written to {snapshot_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to write budget snapshot: {e}")
 
     # Integration orchestrator methods
 
@@ -1071,7 +1193,7 @@ class EvolutionPipeline:
             )
             return False
 
-    def get_component_status(self) -> Dict[str, Any]:
+    def get_component_status(self) -> dict[str, Any]:
         """Get status of all components."""
         if not hasattr(self, "integration_orchestrator"):
             return {"error": "Integration orchestrator not initialized"}
@@ -1091,7 +1213,7 @@ class EvolutionPipeline:
             logger.exception("Error getting component status")
             return {"error": str(e)}
 
-    async def get_component_metrics(self) -> Dict[str, Any]:
+    async def get_component_metrics(self) -> dict[str, Any]:
         """Get metrics from all components."""
         if not hasattr(self, "integration_orchestrator"):
             return {"error": "Integration orchestrator not initialized"}
@@ -1102,7 +1224,7 @@ class EvolutionPipeline:
             logger.exception("Error getting component metrics")
             return {"error": str(e)}
 
-    async def execute_evolution_workflow(self, workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_evolution_workflow(self, workflow_config: dict[str, Any]) -> dict[str, Any]:
         """Execute a complete evolution workflow using all components."""
         if not hasattr(self, "integration_orchestrator"):
             return {
@@ -1118,8 +1240,6 @@ class EvolutionPipeline:
 
     def _update_legacy_connectors(self) -> None:
         """Update legacy connectors for backward compatibility."""
-        from ..integration.base_adapter import ComponentType
-
         if hasattr(self, "integration_orchestrator"):
             self.dgm_connector = self.integration_orchestrator.get_component(ComponentType.DGM)
             self.openevolve_connector = self.integration_orchestrator.get_component(
@@ -1193,7 +1313,7 @@ class WorkflowStage(Enum):
     FINALIZING = "finalizing"
 
     @classmethod
-    def get_stage_order(cls) -> List[WorkflowStage]:
+    def get_stage_order(cls) -> list[WorkflowStage]:
         """Get the ordered list of workflow stages."""
         return [
             cls.INITIALIZING,
@@ -1206,7 +1326,7 @@ class WorkflowStage(Enum):
         ]
 
     @classmethod
-    def get_required_stages(cls, stage: WorkflowStage) -> List[WorkflowStage]:
+    def get_required_stages(cls, stage: WorkflowStage) -> list[WorkflowStage]:
         """Get the list of stages that must be completed before the given stage."""
         stage_order = cls.get_stage_order()
         try:
@@ -1217,7 +1337,7 @@ class WorkflowStage(Enum):
 
     @classmethod
     def validate_stage_transition(
-        cls, from_stage: Optional[WorkflowStage], to_stage: WorkflowStage
+        cls, from_stage: WorkflowStage | None, to_stage: WorkflowStage
     ) -> bool:
         """Validate if a transition between stages is allowed."""
         if from_stage is None:
@@ -1276,7 +1396,7 @@ class WorkflowCoordinator:
     RETRY_DELAY = 5
     MAX_STAGE_ATTEMPTS = 3
 
-    def __init__(self, config_path: str, work_dir: Optional[str] = None):
+    def __init__(self, config_path: str, work_dir: str | None = None):
         """Initialize the WorkflowCoordinator.
 
         Args:
@@ -1324,7 +1444,7 @@ class WorkflowCoordinator:
             WorkflowStage.FINALIZING: self._finalize_workflow,
         }
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         """Load configuration from file."""
         try:
             with open(self.config_path) as f:
@@ -1686,7 +1806,7 @@ class WorkflowCoordinator:
         logger.info("Workflow resumed")
         return True
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get the current status of the workflow.
 
         Returns:
@@ -1734,7 +1854,7 @@ class WorkflowCoordinator:
 
     async def run_workflow(
         self, repository_url: str, iterations: int = 5, resume: bool = False
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Run the evolution workflow.
 
         Args:
@@ -1784,7 +1904,7 @@ class WorkflowCoordinator:
             logger.error(f"Workflow failed: {e}", exc_info=True)
             raise
 
-    async def _initialize_repository(self, repository_url: str) -> Dict[str, Any]:
+    async def _initialize_repository(self, repository_url: str) -> dict[str, Any]:
         """Initialize the repository for evolution.
 
         This method:
@@ -1887,7 +2007,7 @@ class WorkflowCoordinator:
                 "branch": self.current_branch or "",
             }
 
-    async def _run_evolution_iteration(self, iteration: int) -> Dict[str, Any]:
+    async def _run_evolution_iteration(self, iteration: int) -> dict[str, Any]:
         """Run a single evolution iteration.
 
         This method:
@@ -1953,7 +2073,7 @@ class WorkflowCoordinator:
             iteration_result["should_continue"] = False
             return iteration_result
 
-    async def _finalize_workflow(self) -> Dict[str, Any]:
+    async def _finalize_workflow(self) -> dict[str, Any]:
         """Finalize the workflow.
 
         Returns:

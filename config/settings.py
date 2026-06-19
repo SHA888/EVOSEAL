@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Protocol, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
@@ -102,6 +103,55 @@ class SEALConfig(BaseModel):
     )
 
 
+class BudgetConfig(BaseModel):
+    """Configuration for token budget and cost tracking."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_tokens_per_run: int = Field(500_000, ge=1, description="Hard cap on tokens for entire run")
+    max_cost_per_run: float | None = Field(
+        None, ge=0.0, description="Hard cap on cost (USD) for entire run"
+    )
+    cost_per_1k_tokens: float = Field(
+        0.005, ge=0.0, description="Cost per 1000 tokens for cost calculation"
+    )
+    warn_at_percent_of_budget: int = Field(
+        80, ge=1, le=100, description="Percentage at which to warn about budget consumption"
+    )
+    stop_on_exhaustion: bool = Field(True, description="Stop cleanly when budget is exhausted")
+    stop_tolerance_tokens: int = Field(
+        500, ge=0, description="Allow overage up to this amount for in-flight requests"
+    )
+    max_tokens_per_cycle: int = Field(
+        15_000, ge=1, description="Reject any cycle costing more than this"
+    )
+    max_tokens_per_epoch: int = Field(
+        20_000, ge=1, description="Reject fine-tuning checkpoints costing more than this"
+    )
+
+    @field_validator("max_tokens_per_cycle")
+    @classmethod
+    def validate_cycle_budget(cls, v: int, info: Any) -> int:
+        """Ensure max_tokens_per_cycle does not exceed max_tokens_per_run."""
+        if "max_tokens_per_run" in info.data and v > info.data["max_tokens_per_run"]:
+            raise ValueError(
+                f"max_tokens_per_cycle ({v}) cannot exceed max_tokens_per_run "
+                f"({info.data['max_tokens_per_run']})"
+            )
+        return v
+
+    @field_validator("max_tokens_per_epoch")
+    @classmethod
+    def validate_epoch_budget(cls, v: int, info: Any) -> int:
+        """Ensure max_tokens_per_epoch does not exceed max_tokens_per_run."""
+        if "max_tokens_per_run" in info.data and v > info.data["max_tokens_per_run"]:
+            raise ValueError(
+                f"max_tokens_per_epoch ({v}) cannot exceed max_tokens_per_run "
+                f"({info.data['max_tokens_per_run']})"
+            )
+        return v
+
+
 class LoggingConfig(BaseModel):
     """Logging configuration."""
 
@@ -147,6 +197,7 @@ class Settings(BaseSettings):
     seal: SEALConfig = Field(default_factory=SEALConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
+    budget: BudgetConfig = Field(default_factory=BudgetConfig)
 
     model_config = ConfigDict(
         extra="allow",
@@ -163,7 +214,7 @@ class Settings(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: Type[BaseSettings],
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
@@ -179,7 +230,7 @@ class Settings(BaseSettings):
         )
 
     @model_validator(mode="before")
-    def validate_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
+    def validate_settings(self, values: dict[str, Any]) -> dict[str, Any]:
         """Validate settings after loading.
 
         Args:

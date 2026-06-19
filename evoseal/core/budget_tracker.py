@@ -148,6 +148,10 @@ class BudgetTracker:
                     sum(c["tokens"] for c in self.cycle_history) / self.cycle_count
                 )
 
+        # Guard against zero division
+        if avg_tokens_per_cycle <= 0:
+            return 0
+
         return remaining_tokens // avg_tokens_per_cycle
 
     def get_summary(self, cost_per_1k_tokens: float) -> dict[str, Any]:

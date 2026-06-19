@@ -1,0 +1,16 @@
+budget:
+  # Hard limits
+  max_tokens_per_run: 500000
+  max_cost_per_run: null
+
+  # Model pricing (typical for Claude Sonnet)
+  cost_per_1k_tokens: 0.005
+
+  # Thresholds
+  warn_at_percent_of_budget: 80
+  stop_on_exhaustion: true
+  stop_tolerance_tokens: 500
+
+  # Per-cycle and per-epoch caps
+  max_tokens_per_cycle: 15000
+  max_tokens_per_epoch: 20000
