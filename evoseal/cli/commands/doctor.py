@@ -16,6 +16,8 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
+from evoseal.cli.commands import EVOSEALCommand
+
 app = typer.Typer(
     name="doctor",
     help="Validate EVOSEAL system health and configuration",
@@ -26,12 +28,14 @@ console = Console()
 
 def get_safety_yaml_path() -> Path:
     """Get the path to the safety configuration file."""
-    return Path.cwd() / "configs" / "safety.yaml"
+    project_root = EVOSEALCommand.get_project_root()
+    return project_root / "configs" / "safety.yaml"
 
 
 def get_budget_config_path() -> Path:
     """Get the path to the budget configuration file."""
-    return Path.cwd() / ".claude" / "state" / "budget_snapshot.json"
+    project_root = EVOSEALCommand.get_project_root()
+    return project_root / ".evoseal" / "metrics" / "budget_snapshot.json"
 
 
 def check_api_keys() -> tuple[bool, str]:
@@ -86,7 +90,6 @@ def check_dependencies() -> tuple[bool, str]:
         "structlog",
         "yaml",
         "pydantic",
-        "asyncio",
     ]
 
     missing = []
@@ -102,15 +105,15 @@ def check_dependencies() -> tuple[bool, str]:
 
 
 def check_git_state() -> tuple[bool, str]:
-    """Check if Git repository is in a clean, valid state.
+    """Check if Git repository is in a valid state.
 
     Returns:
         Tuple of (success, message)
     """
     try:
-        # Check if we're in a git repo
+        # git status --porcelain fails with exit code 128 if not in a git repo
         result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
+            ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
             timeout=5,
@@ -119,14 +122,6 @@ def check_git_state() -> tuple[bool, str]:
         if result.returncode != 0:
             return False, "Not in a git repository"
 
-        # Check for uncommitted changes (warning, not critical)
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
         if result.stdout.strip():
             return True, "Git state OK (with uncommitted changes)"
 
@@ -162,9 +157,10 @@ def check_budget_config() -> tuple[bool, str]:
         return False, f"Budget config missing: {', '.join(missing)}"
 
     tokens, cost = budget_data["max_tokens_per_run"], budget_data["max_cost_per_run"]
-    if tokens <= 0 or cost <= 0:
-        invalid = "tokens" if tokens <= 0 else "cost"
-        return False, f"max_{invalid}_per_run must be positive"
+    if tokens <= 0:
+        return False, "max_tokens_per_run must be positive"
+    if cost < 0:
+        return False, "max_cost_per_run must be non-negative"
 
     return True, f"Budget config valid (max {tokens} tokens)"
 
@@ -189,31 +185,27 @@ def main(
 
     Exits with status 0 if all critical checks pass, non-zero on critical failures.
     """
-    # Run all checks
+    # Run all checks with criticality metadata
     checks = [
-        ("API Keys", check_api_keys),
-        ("Safety Configuration", check_safety_yaml),
-        ("Dependencies", check_dependencies),
-        ("Git State", check_git_state),
-        ("Budget Configuration", check_budget_config),
+        ("API Keys", check_api_keys, True),
+        ("Safety Configuration", check_safety_yaml, True),
+        ("Dependencies", check_dependencies, False),
+        ("Git State", check_git_state, True),
+        ("Budget Configuration", check_budget_config, False),
     ]
 
     results = []
     critical_failures = []
 
-    for name, check_fn in checks:
+    for name, check_fn, is_critical in checks:
         try:
             success, message = check_fn()
-            results.append((name, success, message))
-            if not success:
-                # Determine if this is critical
-                # Critical: API keys, safety.yaml, git state
-                # Non-critical: budget config (will be auto-generated)
-                if name in ["API Keys", "Safety Configuration", "Git State"]:
-                    critical_failures.append((name, message))
+            results.append((name, success, message, is_critical))
+            if not success and is_critical:
+                critical_failures.append((name, message))
         except Exception as e:
-            results.append((name, False, f"Error: {e}"))
-            if name in ["API Keys", "Safety Configuration", "Git State"]:
+            results.append((name, False, f"Error: {e}", is_critical))
+            if is_critical:
                 critical_failures.append((name, str(e)))
 
     # Display results
@@ -225,18 +217,33 @@ def main(
     results_table = Table(title="Validation Results", show_header=True)
     results_table.add_column("Check", style="cyan")
     results_table.add_column("Status", justify="right")
-    results_table.add_column("Details", style="dim")
+    if verbose:
+        results_table.add_column("Details", style="dim")
+    else:
+        results_table.add_column("Severity", justify="right")
 
-    for name, success, message in results:
+    for name, success, message, is_critical in results:
         status = "[green]✓[/green]" if success else "[red]✗[/red]"
-        results_table.add_row(name, status, message)
+        if verbose:
+            results_table.add_row(name, status, message)
+        else:
+            severity = "[red]critical[/red]" if is_critical else "[yellow]warning[/yellow]"
+            results_table.add_row(name, status, severity if not success else "[green]ok[/green]")
 
     console.print(results_table)
     console.print()
 
+    if verbose:
+        console.print("[bold]Detailed Results[/bold]")
+        for name, success, message, is_critical in results:
+            if not success:
+                severity = "CRITICAL" if is_critical else "WARNING"
+                console.print(f"[bold]{name}[/bold] [{severity}]: {message}")
+        console.print()
+
     # Summary
     total_checks = len(results)
-    passed_checks = sum(1 for _, success, _ in results if success)
+    passed_checks = sum(1 for _, success, _, _ in results if success)
 
     console.print("[bold]Summary[/bold]")
     console.print(f"Checks passed: {passed_checks}/{total_checks}")
@@ -246,7 +253,8 @@ def main(
         for name, message in critical_failures:
             console.print(f"  • {name}: {message}")
         console.print()
-        console.print("[dim]Run 'evoseal doctor --verbose' for details[/dim]")
+        if not verbose:
+            console.print("[dim]Run 'evoseal doctor --verbose' for details[/dim]")
         raise typer.Exit(code=1)
     else:
         console.print("[bold green]All critical checks passed[/bold green]")

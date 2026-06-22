@@ -10,11 +10,9 @@ Tests validation of:
 
 from __future__ import annotations
 
-import json
 import os
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -29,16 +27,10 @@ class TestDoctorCommand:
     """Test suite for the doctor command."""
 
     def test_doctor_command_exists(self):
-        """Test that the doctor command is registered in the CLI."""
+        """Test that the doctor command is registered and responds to help."""
         result = runner.invoke(app, ["doctor", "--help"])
         assert result.exit_code == 0
         assert "doctor" in result.stdout.lower() or "validate" in result.stdout.lower()
-
-    def test_doctor_help_output(self):
-        """Test that doctor command shows help text."""
-        result = runner.invoke(app, ["doctor", "--help"])
-        assert result.exit_code == 0
-        assert "help" in result.stdout.lower() or "validate" in result.stdout.lower()
 
 
 class TestDoctorChecks:
