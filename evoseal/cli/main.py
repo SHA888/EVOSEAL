@@ -15,6 +15,7 @@ import typer
 from evoseal.cli.commands import (
     config,
     dgm,
+    doctor,
     estimate_cost,
     export,
     init,
@@ -62,6 +63,7 @@ app.add_typer(stop.app, name="stop", help="Stop background processes")
 app.add_typer(status.app, name="status", help="Show system status")
 app.add_typer(estimate_cost.app, name="estimate-cost", help="Estimate evolution costs")
 app.add_typer(export.app, name="export", help="Export results/variants")
+app.add_typer(doctor.app, name="doctor", help="System health check and validation")
 
 
 # Main callback with version flag support

@@ -16,14 +16,14 @@ T = TypeVar("T", bound="EVOSEALCommand")
 class EVOSEALCommand:
     """Base class for EVOSEAL CLI commands with common functionality."""
 
-    def __init__(self, project_root: Optional[Union[Path, str]] = None, **kwargs: Any) -> None:
+    def __init__(self, project_root: Path | str | None = None, **kwargs: Any) -> None:
         """Initialize the command with an optional project root.
 
         Args:
             project_root: Path to the project root. If None, will be detected.
             **kwargs: Additional keyword arguments for subclasses.
         """
-        self._project_root: Optional[Path] = None
+        self._project_root: Path | None = None
         if project_root is not None:
             self._project_root = Path(project_root).resolve()
 
@@ -42,7 +42,7 @@ class EVOSEALCommand:
         return self._project_root
 
     @classmethod
-    def get_project_root(cls, path: Optional[Path] = None) -> Path:
+    def get_project_root(cls, path: Path | None = None) -> Path:
         """Find the project root directory.
 
         Args:
@@ -80,6 +80,8 @@ class EVOSEALCommand:
 from . import (  # noqa: E402
     config,
     dgm,
+    doctor,
+    estimate_cost,
     export,
     init,
     openevolve,
@@ -94,6 +96,8 @@ from . import (  # noqa: E402
 COMMAND_MODULES = [
     config,
     dgm,
+    doctor,
+    estimate_cost,
     openevolve,
     export,
     init,
