@@ -9,9 +9,10 @@ failure and verify that the safety mechanisms prevent it from happening again.
 
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -327,6 +328,26 @@ class TestRollbackSafetyCritical:
             safe_dir.exists()
         ), f"Safe fallback directory should be created for path: {dangerous_path}"
 
+    def test_dead_success_check_regression(self):
+        """Regression test for dead success-check in rollback_manager.py:91-93.
+
+        This test verifies the fix for a bug where if not success: was always
+        False because restore_checkpoint() returns Dict[str, Any], which is
+        always truthy. The fix checks result.get("success") instead.
+
+        This test ensures that when restore_checkpoint returns {"success": False},
+        a RollbackError is raised (not silently ignored).
+        """
+        # Mock restore_checkpoint to return failure status
+        with patch.object(
+            self.checkpoint_manager,
+            "restore_checkpoint",
+            return_value={"success": False, "error": "Mock restoration failure"},
+        ):
+            # Verify that RollbackError is raised when restore_checkpoint fails
+            with pytest.raises(RollbackError, match="Failed to restore checkpoint"):
+                self.rollback_manager.rollback_to_version("test_checkpoint_v1.0", "test_failure")
+
 
 class TestRollbackSafetyIntegration:
     """Integration tests for rollback safety with real-world scenarios."""
@@ -432,4 +453,4 @@ if __name__ == "__main__":
         print("\n✅ All safety tests passed! Rollback system is secure.")
     else:
         print("\n❌ Some safety tests failed! Review the implementation.")
-        exit(1)
+        sys.exit(1)

@@ -5,9 +5,9 @@ automatic rollback on failures, and rollback history tracking.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from .checkpoint_manager import CheckpointError, CheckpointManager
 from .events import EventType, publish
@@ -29,11 +29,13 @@ class RollbackManager:
     comprehensive history tracking and integration with checkpoint management.
     """
 
+    MAX_SAFE_PATH_DEPTH = 3  # Paths shallower than this are considered dangerous
+
     def __init__(
         self,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         checkpoint_manager: CheckpointManager,
-        version_manager: Optional[Any] = None,
+        version_manager: Any | None = None,
     ):
         """Initialize the rollback manager.
 
@@ -47,7 +49,7 @@ class RollbackManager:
         self.version_manager = version_manager
 
         # Rollback history: List of rollback events
-        self.rollback_history: List[Dict[str, Any]] = []
+        self.rollback_history: list[dict[str, Any]] = []
 
         # Configuration
         self.auto_rollback_enabled = config.get("auto_rollback_enabled", True)
@@ -88,8 +90,8 @@ class RollbackManager:
             self._validate_rollback_target(working_dir)
 
             # Restore checkpoint to working directory
-            success = self.checkpoint_manager.restore_checkpoint(version_id, working_dir)
-            if not success:
+            result = self.checkpoint_manager.restore_checkpoint(version_id, working_dir)
+            if not result.get("success"):
                 raise RollbackError(f"Failed to restore checkpoint for version {version_id}")
 
             # Post-rollback verification
@@ -101,7 +103,7 @@ class RollbackManager:
 
             # Record rollback event
             rollback_event = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version_id": version_id,
                 "reason": reason,
                 "success": True,
@@ -131,7 +133,7 @@ class RollbackManager:
         except Exception as e:
             # Record failed rollback event
             rollback_event = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version_id": version_id,
                 "reason": reason,
                 "success": False,
@@ -199,7 +201,7 @@ class RollbackManager:
 
         for pattern in dangerous_patterns:
             if target_str == pattern or target_str.startswith(pattern + "/"):
-                if len(target_str.split("/")) <= 3:  # Very shallow paths are dangerous
+                if len(target_str.split("/")) <= self.MAX_SAFE_PATH_DEPTH:
                     raise RollbackError(
                         f"SAFETY ERROR: Rollback target {target_resolved} appears to be "
                         f"a system directory. This is extremely dangerous!"
@@ -210,8 +212,8 @@ class RollbackManager:
     def auto_rollback_on_failure(
         self,
         version_id: str,
-        test_results: List[Dict[str, Any]],
-        metrics_comparison: Optional[Dict[str, Any]] = None,
+        test_results: list[dict[str, Any]],
+        metrics_comparison: dict[str, Any] | None = None,
     ) -> bool:
         """Automatically rollback if tests fail or metrics regress.
 
@@ -276,7 +278,7 @@ class RollbackManager:
 
             # Record auto-rollback event with details
             rollback_event = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version_id": parent_id,
                 "from_version": version_id,
                 "reason": reason,
@@ -303,7 +305,7 @@ class RollbackManager:
             logger.error(f"Auto-rollback failed with exception: {e}")
             return False
 
-    def get_rollback_history(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_rollback_history(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Get the history of rollback events.
 
         Args:
@@ -317,7 +319,7 @@ class RollbackManager:
             history = history[:limit]
         return history
 
-    def get_rollback_stats(self) -> Dict[str, Any]:
+    def get_rollback_stats(self) -> dict[str, Any]:
         """Get rollback statistics.
 
         Returns:
@@ -368,7 +370,7 @@ class RollbackManager:
         checkpoint_path = self.checkpoint_manager.get_checkpoint_path(version_id)
         return checkpoint_path is not None
 
-    def get_available_rollback_targets(self) -> List[Dict[str, Any]]:
+    def get_available_rollback_targets(self) -> list[dict[str, Any]]:
         """Get list of available rollback targets.
 
         Returns:
@@ -376,7 +378,7 @@ class RollbackManager:
         """
         return self.checkpoint_manager.list_checkpoints()
 
-    def _find_parent_version(self, version_id: str) -> Optional[str]:
+    def _find_parent_version(self, version_id: str) -> str | None:
         """Find the parent version for a given version.
 
         Args:
@@ -400,7 +402,7 @@ class RollbackManager:
 
         return None
 
-    def _detect_regressions(self, metrics_comparison: Dict[str, Any]) -> Dict[str, Any]:
+    def _detect_regressions(self, metrics_comparison: dict[str, Any]) -> dict[str, Any]:
         """Detect regressions in metrics comparison.
 
         Args:
@@ -478,7 +480,7 @@ class RollbackManager:
             for pattern in dangerous_patterns:
                 if working_dir_str == pattern or (
                     working_dir_str.startswith(pattern + "/")
-                    and len(working_dir_str.split("/")) <= 3
+                    and len(working_dir_str.split("/")) <= self.MAX_SAFE_PATH_DEPTH
                 ):
                     is_safe = False
                     logger.warning(
@@ -502,7 +504,7 @@ class RollbackManager:
 
         return safe_rollback_dir
 
-    def _verify_rollback_success(self, version_id: str, working_dir: Path) -> Dict[str, Any]:
+    def _verify_rollback_success(self, version_id: str, working_dir: Path) -> dict[str, Any]:
         """Verify that rollback was successful.
 
         Args:
@@ -576,7 +578,7 @@ class RollbackManager:
 
             return {"success": False, "error": str(e)}
 
-    def cascading_rollback(self, failed_version_id: str, max_attempts: int = 3) -> Dict[str, Any]:
+    def cascading_rollback(self, failed_version_id: str, max_attempts: int = 3) -> dict[str, Any]:
         """Perform cascading rollback when multiple rollbacks are needed.
 
         Args:
@@ -684,7 +686,7 @@ class RollbackManager:
 
     def handle_rollback_failure(
         self, version_id: str, error: str, attempt_count: int = 1
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle rollback failures with recovery strategies.
 
         Args:
@@ -765,7 +767,7 @@ class RollbackManager:
             logger.error(f"Exception in rollback failure handling: {e}")
             return {"success": False, "error": str(e)}
 
-    def _find_known_good_versions(self) -> List[str]:
+    def _find_known_good_versions(self) -> list[str]:
         """Find versions that are known to be good based on rollback history.
 
         Returns:
