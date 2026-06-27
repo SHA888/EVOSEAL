@@ -33,6 +33,14 @@ def safety_integration(repo_root):
         "auto_rollback": True,
         "safety_checks_enabled": True,
         "enforce_edit_scope": True,
+        "edit_scope": {
+            "allowed_patterns": {
+                "evoseal/": True,
+                "tests/": True,
+                "examples/": True,
+                "docs/": True,
+            }
+        },
     }
     return SafetyIntegration(config, repo_root=repo_root)
 

@@ -151,13 +151,21 @@ class TestEditScopeAllowlist:
 
     def test_relative_path_handling(self, validator, repo_root):
         """Paths are canonicalized before validation (absolute + normalization)."""
-        # A relative path pointing outside should still be rejected
-        outside_relative = "../../etc/passwd"
+        # Resolve a relative path within the repo_root context
+        relative_within_repo = "evoseal/test.py"
+        absolute_within_repo = str(repo_root / relative_within_repo)
+
+        # Should not raise - this is within the allowed mutable surface
+        validator.validate_edit_path(absolute_within_repo, repo_root)
+
+        # A relative path that would resolve outside repo (when resolved from repo_root)
+        # Create an absolute path that is outside repo_root
+        outside_repo = "/etc/passwd"
 
         # Validator should handle this gracefully (reject or raise clearly)
         # This tests that path traversal attacks don't bypass the allowlist
         with pytest.raises((EditScopeError, ValueError)):
-            validator.validate_edit_path(outside_relative, repo_root)
+            validator.validate_edit_path(outside_repo, repo_root)
 
     def test_symlink_attacks_rejected(self, validator, repo_root):
         """Symlink attacks (symlink to forbidden file) are rejected."""

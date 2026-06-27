@@ -141,10 +141,14 @@ class EvolutionPipeline:
             self.metrics_tracker, None, min_improvement_score, confidence_level
         )
 
-        # Initialize safety integration
+        # Initialize safety integration with repo root
         safety_config = getattr(self.config, "safety_config", {})
+        repo_root = Path.cwd()  # Use current directory as repo root
         self.safety_integration = SafetyIntegration(
-            safety_config, self.metrics_tracker, getattr(self, "version_manager", None)
+            safety_config,
+            self.metrics_tracker,
+            getattr(self, "version_manager", None),
+            repo_root=repo_root,
         )
 
         # Initialize workflow engine

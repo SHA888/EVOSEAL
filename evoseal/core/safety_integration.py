@@ -39,11 +39,20 @@ class SafetyIntegration:
             config: Configuration dictionary
             metrics_tracker: MetricsTracker instance
             version_manager: Version manager instance
-            repo_root: Repository root path (for edit scope validation)
+            repo_root: Repository root path (required for edit scope validation)
+
+        Raises:
+            ValueError: If repo_root is not provided
         """
         self.config = config
         self.version_manager = version_manager
-        self.repo_root = repo_root or Path.cwd()
+
+        if repo_root is None:
+            raise ValueError(
+                "repo_root is required for edit scope validation. "
+                "Pass the actual repository root, not Path.cwd()."
+            )
+        self.repo_root = Path(repo_root).resolve()
 
         # Initialize components
         checkpoint_config = config.get("checkpoints", {})
@@ -63,7 +72,9 @@ class SafetyIntegration:
         self.regression_detector = RegressionDetector(regression_config, self.metrics_tracker)
 
         # Initialize edit scope validator (Tier 1, T1 window control)
-        self.edit_scope_validator = EditScopeValidator()
+        edit_scope_config = config.get("edit_scope", {})
+        allowed_patterns = edit_scope_config.get("allowed_patterns")
+        self.edit_scope_validator = EditScopeValidator(allowed_patterns)
 
         # Safety configuration
         self.auto_checkpoint = config.get("auto_checkpoint", True)
@@ -286,6 +297,10 @@ class SafetyIntegration:
             logger.debug("Edit scope validation disabled (enforce_edit_scope=False)")
             return
 
+        if not self.safety_checks_enabled:
+            logger.debug("Safety checks disabled; skipping edit scope validation")
+            return
+
         try:
             self.edit_scope_validator.validate_edit_path(file_path, self.repo_root)
             logger.debug(f"Edit path validated: {file_path}")
@@ -295,6 +310,22 @@ class SafetyIntegration:
         except Exception as e:
             logger.error(f"Error validating edit path {file_path}: {e}")
             raise ValueError(f"Failed to validate edit path: {e}") from e
+
+    def validate_edits_before_apply(self, edited_files: list[str]) -> None:
+        """Validate all edited files before applying them to the repository.
+
+        This is the integration point that should be called by the evolution pipeline
+        before any variant edits are written to disk.
+
+        Args:
+            edited_files: List of absolute paths to files being edited
+
+        Raises:
+            EditScopeError: If any edit violates the scope allowlist
+        """
+        logger.info(f"Validating edit scope for {len(edited_files)} files")
+        for file_path in edited_files:
+            self.validate_edit_path(file_path)
 
     def get_safety_status(self) -> dict[str, Any]:
         """Get comprehensive safety system status.

@@ -39,28 +39,38 @@ class EditScopeValidator:
     - docs/ (documentation, except safety config docs reference)
     """
 
-    def __init__(self) -> None:
-        """Initialize the validator with immutable default allowlist."""
+    def __init__(self, allowed_patterns: dict[str, bool] | None = None) -> None:
+        """Initialize the validator with immutable default allowlist.
+
+        Args:
+            allowed_patterns: Optional dict to override default allowed patterns.
+                             Key is pattern (with trailing /), value is unused (for config compat).
+        """
         # Forbidden paths: these are always rejected
-        self._forbidden_paths: set[str] = {
-            "configs/safety.yaml",
-            ".env",
-            "Makefile",
-        }
+        self._forbidden_paths: frozenset[str] = frozenset(
+            {
+                "configs/safety.yaml",
+                ".env",
+                "Makefile",
+            }
+        )
 
         # Forbidden directories: these and their contents are rejected
-        self._forbidden_dirs: set[str] = {
-            ".git",
-            ".github/workflows",
-            ".evoseal",
-            ".pytest_cache",
-            "__pycache__",
-            ".venv",
-            "venv",
-        }
+        self._forbidden_dirs: frozenset[str] = frozenset(
+            {
+                ".git",
+                ".github/workflows",
+                ".evoseal",
+                ".pytest_cache",
+                "__pycache__",
+                ".venv",
+                "venv",
+            }
+        )
 
         # Allowed patterns: only files under these directories can be edited
-        self._allowed_patterns: set[str] = {
+        # All patterns must end with / to enforce directory boundaries
+        default_patterns = {
             "evoseal/",
             "tests/",
             "examples/",
@@ -70,20 +80,35 @@ class EditScopeValidator:
             "config/",  # mutable config files (not configs/safety.yaml)
         }
 
-    @property
-    def forbidden_paths(self) -> set[str]:
-        """Get forbidden file paths (read-only)."""
-        return self._forbidden_paths.copy()
+        if allowed_patterns:
+            # Extract keys from config dict
+            patterns = set(allowed_patterns.keys())
+        else:
+            patterns = default_patterns
+
+        # Validate all patterns end with / for directory boundary enforcement
+        for pattern in patterns:
+            if not pattern.endswith("/"):
+                raise ValueError(
+                    f"Pattern '{pattern}' must end with '/' to enforce directory boundaries"
+                )
+
+        self._allowed_patterns: frozenset[str] = frozenset(patterns)
 
     @property
-    def forbidden_dirs(self) -> set[str]:
-        """Get forbidden directories (read-only)."""
-        return self._forbidden_dirs.copy()
+    def forbidden_paths(self) -> frozenset[str]:
+        """Get forbidden file paths (immutable)."""
+        return self._forbidden_paths
 
     @property
-    def allowed_patterns(self) -> set[str]:
-        """Get allowed path patterns (read-only)."""
-        return self._allowed_patterns.copy()
+    def forbidden_dirs(self) -> frozenset[str]:
+        """Get forbidden directories (immutable)."""
+        return self._forbidden_dirs
+
+    @property
+    def allowed_patterns(self) -> frozenset[str]:
+        """Get allowed path patterns (immutable)."""
+        return self._allowed_patterns
 
     def validate_edit_path(self, file_path: str, repo_root: Path) -> None:
         """Validate that a file edit is within the allowed scope.
@@ -162,10 +187,10 @@ class EditScopeValidator:
             raise ValueError(f"Cannot resolve path {file_path}: {e}") from e
 
     def _check_symlink_attack(self, file_path: Path) -> None:
-        """Check for symlink attacks (symlink to forbidden file).
+        """Check for symlink attacks (symlink to forbidden file or directory).
 
         Args:
-            file_path: Path to check
+            file_path: Absolute path to check (already resolved)
 
         Raises:
             EditScopeError: If a symlink to a forbidden target is detected
@@ -180,8 +205,10 @@ class EditScopeValidator:
 
                 # Check if symlink target is in a forbidden directory
                 for forbidden_dir in self._forbidden_dirs:
-                    forbidden_path = Path(forbidden_dir)
+                    # Make forbidden_dir absolute for proper comparison
+                    forbidden_path = Path("/") / forbidden_dir.lstrip("/")
                     try:
+                        # Check if target is under or equal to forbidden directory
                         target.relative_to(forbidden_path)
                         raise EditScopeError(
                             f"Symlink attack detected: {file_path} -> {target}. "
@@ -190,9 +217,9 @@ class EditScopeValidator:
                     except ValueError:
                         pass  # Not under this forbidden dir, continue checking
 
-                # Check if symlink target is a forbidden file
+                # Check if symlink target matches a forbidden file (exact filename match)
                 for forbidden_file in self._forbidden_paths:
-                    if str(target).endswith(forbidden_file):
+                    if target.name == forbidden_file or target == Path(forbidden_file):
                         raise EditScopeError(
                             f"Symlink attack detected: {file_path} -> {target}. "
                             f"Symlinks to forbidden files are not allowed."
