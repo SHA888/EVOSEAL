@@ -29,7 +29,7 @@ from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.repository import ConflictError, RepositoryError
 from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
 from evoseal.core.safety_integration import SafetyIntegration
-from evoseal.core.testrunner import TestRunner
+from evoseal.core.testrunner import SandboxedTestRunner, TestRunner
 from evoseal.core.version_database import VersionDatabase
 from evoseal.core.workflow import WorkflowEngine
 from evoseal.integration.base_adapter import ComponentType
@@ -123,7 +123,15 @@ class EvolutionPipeline:
         self._settings = Settings()
         self._run_start_time = datetime.utcnow()
 
-        self.test_runner = TestRunner(self.config.test_config)
+        # Initialize repository root (used for safety integration and sandboxed test runner)
+        repo_root = Path.cwd()
+
+        # Initialize test runner with sandboxing (Tier 1, T2 window control)
+        self.test_runner = SandboxedTestRunner(
+            config=self.config.test_config,
+            repo_root=repo_root,
+            sandbox_enabled=self.config.__dict__.get("sandbox_enabled", True),
+        )
 
         # Initialize ImprovementValidator with proper parameters
         validation_config = self.config.validation_config
@@ -143,7 +151,6 @@ class EvolutionPipeline:
 
         # Initialize safety integration with repo root
         safety_config = getattr(self.config, "safety_config", {})
-        repo_root = Path.cwd()  # Use current directory as repo root
         self.safety_integration = SafetyIntegration(
             safety_config,
             self.metrics_tracker,
