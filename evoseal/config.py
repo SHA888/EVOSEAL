@@ -6,7 +6,7 @@ providers, fine-tuning, and continuous evolution settings.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,7 +18,7 @@ class SEALProviderConfig(BaseModel):
     name: str = Field(..., description="Provider name")
     priority: int = Field(1, description="Provider priority (higher = preferred)")
     enabled: bool = Field(True, description="Whether provider is enabled")
-    config: Dict[str, Any] = Field(
+    config: dict[str, Any] = Field(
         default_factory=dict, description="Provider-specific configuration"
     )
 
@@ -41,7 +41,7 @@ class SEALConfig(BaseSettings):
 
     # Provider settings
     default_provider: str = Field("ollama", description="Default provider name")
-    providers: List[SEALProviderConfig] = Field(
+    providers: list[SEALProviderConfig] = Field(
         default_factory=lambda: [
             SEALProviderConfig(
                 name="ollama",
@@ -74,14 +74,14 @@ class SEALConfig(BaseSettings):
     dashboard_port: int = Field(8081, description="Dashboard port")
     dashboard_host: str = Field("localhost", description="Dashboard host")
 
-    def get_provider_config(self, provider_name: str) -> Optional[SEALProviderConfig]:
+    def get_provider_config(self, provider_name: str) -> SEALProviderConfig | None:
         """Get configuration for a specific provider."""
         for provider in self.providers:
             if provider.name == provider_name:
                 return provider
         return None
 
-    def get_enabled_providers(self) -> List[SEALProviderConfig]:
+    def get_enabled_providers(self) -> list[SEALProviderConfig]:
         """Get list of enabled providers sorted by priority."""
         enabled = [p for p in self.providers if p.enabled]
         return sorted(enabled, key=lambda x: x.priority, reverse=True)

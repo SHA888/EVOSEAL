@@ -31,7 +31,7 @@ class PromptTemplate:
     template: str
     description: str = ""
     style: str = "INSTRUCTION"
-    required_fields: Set[str] = field(default_factory=set)
+    required_fields: set[str] = field(default_factory=set)
     version: str = "1.0"
 
     def __post_init__(self):
@@ -67,8 +67,8 @@ class KnowledgeItem:
 
     content: str
     source: str = "unknown"
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    score: Optional[float] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    score: float | None = None
 
 
 @dataclass
@@ -82,10 +82,10 @@ class SearchResult:
         metadata: Additional search metadata
     """
 
-    items: List[KnowledgeItem]
+    items: list[KnowledgeItem]
     total: int
     query: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -102,7 +102,7 @@ class EditSuggestion:
     content: str
     confidence: float
     reason: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -123,7 +123,7 @@ class ProcessingStats:
     cache_hits: int = 0
     cache_misses: int = 0
     tokens_used: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def duration(self) -> float:

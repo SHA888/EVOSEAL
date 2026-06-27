@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
+from typing import Any, Literal, Optional, TypedDict, Union
 
 import numpy as np
 from rich.console import Console
@@ -21,8 +21,8 @@ from rich.text import Text
 from evoseal.core.metrics_tracker import MetricsTracker, TestMetrics
 
 # Type aliases
-ValidationResult = Dict[str, Any]
-ValidationResults = List[ValidationResult]
+ValidationResult = dict[str, Any]
+ValidationResults = list[ValidationResult]
 
 # Console for rich output
 console = Console()
@@ -61,7 +61,7 @@ class ValidationRule:
         threshold: float = 0.0,
         required: bool = True,
         weight: float = 1.0,
-        min_effect_size: Optional[float] = None,
+        min_effect_size: float | None = None,
         confidence_level: float = 0.95,
     ):
         self.name = name
@@ -74,7 +74,7 @@ class ValidationRule:
         self.min_effect_size = min_effect_size
         self.confidence_level = confidence_level
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert rule to dictionary for serialization."""
         return {
             "name": self.name,
@@ -89,7 +89,7 @@ class ValidationRule:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ValidationRule":
+    def from_dict(cls, data: dict[str, Any]) -> "ValidationRule":
         """Create a ValidationRule from a dictionary."""
         return cls(
             name=data["name"],
@@ -107,10 +107,10 @@ class ValidationRule:
         self,
         baseline: float,
         current: float,
-        baseline_std: Optional[float] = None,
-        current_std: Optional[float] = None,
+        baseline_std: float | None = None,
+        current_std: float | None = None,
         sample_size: int = 1,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Validate if the metric change meets the improvement criteria with statistical significance.
 
         Args:
@@ -274,7 +274,7 @@ class ImprovementValidator:
     def __init__(
         self,
         metrics_tracker: MetricsTracker,
-        rules: Optional[List[ValidationRule]] = None,
+        rules: list[ValidationRule] | None = None,
         min_improvement_score: float = 70.0,
         confidence_level: float = 0.95,
     ) -> None:
@@ -298,11 +298,11 @@ class ImprovementValidator:
 
     def validate_improvement(
         self,
-        baseline_id: Union[int, str],
-        comparison_id: Union[int, str],
-        test_type: Optional[str] = None,
+        baseline_id: int | str,
+        comparison_id: int | str,
+        test_type: str | None = None,
         sample_size: int = 1,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Validate if the comparison metrics represent an improvement over baseline.
 
         Args:
@@ -491,7 +491,7 @@ class ImprovementValidator:
             console.print("[red]❌ These changes do not meet the improvement criteria.[/red]")
 
     def save_validation_results(
-        self, validation_result: ValidationResult, output_path: Union[str, Path]
+        self, validation_result: ValidationResult, output_path: str | Path
     ) -> None:
         """Save validation results to a JSON file.
 
@@ -508,8 +508,8 @@ class ImprovementValidator:
         console.print(f"\n[green]Validation results saved to: {output_path}[/green]")
 
     def _calculate_metric_std(
-        self, historical_metrics: List[TestMetrics], current_metric: TestMetrics
-    ) -> Dict[str, float]:
+        self, historical_metrics: list[TestMetrics], current_metric: TestMetrics
+    ) -> dict[str, float]:
         """Calculate standard deviation for each metric from historical data.
 
         Args:
@@ -537,14 +537,16 @@ class ImprovementValidator:
         ]
 
         std_values = {}
-        for field in numeric_fields:
-            values = [getattr(m, field, 0) for m in historical_metrics if hasattr(m, field)]
+        for field_name in numeric_fields:
+            values = [
+                getattr(m, field_name, 0) for m in historical_metrics if hasattr(m, field_name)
+            ]
             if len(values) >= 2:  # Need at least 2 values to calculate std
-                std_values[field] = float(np.std(values, ddof=1))  # Sample standard deviation
+                std_values[field_name] = float(np.std(values, ddof=1))  # Sample standard deviation
 
         return std_values
 
-    def _calculate_rule_score(self, rule: ValidationRule, result: Dict[str, Any]) -> float:
+    def _calculate_rule_score(self, rule: ValidationRule, result: dict[str, Any]) -> float:
         """Calculate a score (0-100) for a validation rule result.
 
         Args:
@@ -584,8 +586,8 @@ class ImprovementValidator:
 
     def save_validation_report(
         self,
-        validation_result: Dict[str, Any],
-        output_path: Union[str, Path],
+        validation_result: dict[str, Any],
+        output_path: str | Path,
         format: str = "json",
         include_details: bool = True,
     ) -> None:
@@ -678,7 +680,7 @@ class ImprovementValidator:
                         )
                         f.write(f"\n  Status: {'PASS' if detail['passed'] else 'FAIL'}\n")
 
-    def get_validation_summary_table(self, validation_result: Dict[str, Any]) -> Table:
+    def get_validation_summary_table(self, validation_result: dict[str, Any]) -> Table:
         """Create a rich Table with a summary of validation results.
 
         Args:

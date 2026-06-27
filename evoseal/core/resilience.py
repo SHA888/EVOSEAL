@@ -8,10 +8,11 @@ import asyncio
 import logging
 import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union
 
 from evoseal.core.errors import (
     BaseError,
@@ -63,8 +64,8 @@ class FailureRecord:
     component: str
     operation: str
     failure_mode: FailureMode
-    error: Optional[Exception] = None
-    context: Dict[str, Any] = field(default_factory=dict)
+    error: Exception | None = None
+    context: dict[str, Any] = field(default_factory=dict)
     recovery_attempted: bool = False
     recovery_successful: bool = False
 
@@ -78,8 +79,8 @@ class HealthMetrics:
     success_rate: float
     error_rate: float
     avg_response_time: float
-    last_success: Optional[datetime] = None
-    last_failure: Optional[datetime] = None
+    last_success: datetime | None = None
+    last_failure: datetime | None = None
     consecutive_failures: int = 0
     consecutive_successes: int = 0
 
@@ -103,8 +104,8 @@ class CircuitBreaker:
         self.state = CircuitState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time: Optional[datetime] = None
-        self.next_attempt_time: Optional[datetime] = None
+        self.last_failure_time: datetime | None = None
+        self.next_attempt_time: datetime | None = None
 
     def can_execute(self) -> bool:
         """Check if operation can be executed."""
@@ -158,9 +159,9 @@ class HealthMonitor:
 
     def __init__(self, window_size: int = 100):
         self.window_size = window_size
-        self.metrics: Dict[str, HealthMetrics] = {}
-        self.operation_history: Dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
-        self.response_times: Dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
+        self.metrics: dict[str, HealthMetrics] = {}
+        self.operation_history: dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
+        self.response_times: dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
 
     def record_operation(
         self,
@@ -168,7 +169,7 @@ class HealthMonitor:
         operation: str,
         success: bool,
         response_time: float,
-        error: Optional[Exception] = None,
+        error: Exception | None = None,
     ):
         """Record an operation result."""
         timestamp = datetime.utcnow()
@@ -237,11 +238,11 @@ class HealthMonitor:
         else:
             return ComponentHealth.DEGRADED
 
-    def get_component_health(self, component: str) -> Optional[HealthMetrics]:
+    def get_component_health(self, component: str) -> HealthMetrics | None:
         """Get health metrics for a component."""
         return self.metrics.get(component)
 
-    def get_unhealthy_components(self) -> List[str]:
+    def get_unhealthy_components(self) -> list[str]:
         """Get list of unhealthy components."""
         return [
             component
@@ -254,12 +255,12 @@ class ResilienceManager:
     """Comprehensive resilience manager for the EVOSEAL pipeline."""
 
     def __init__(self):
-        self.circuit_breakers: Dict[str, CircuitBreaker] = {}
+        self.circuit_breakers: dict[str, CircuitBreaker] = {}
         self.health_monitor = HealthMonitor()
-        self.failure_history: List[FailureRecord] = []
-        self.recovery_strategies: Dict[str, Callable] = {}
-        self.degradation_handlers: Dict[str, Callable] = {}
-        self.isolation_policies: Dict[str, Set[str]] = {}
+        self.failure_history: list[FailureRecord] = []
+        self.recovery_strategies: dict[str, Callable] = {}
+        self.degradation_handlers: dict[str, Callable] = {}
+        self.isolation_policies: dict[str, set[str]] = {}
         self.event_bus = event_bus
         self._monitoring_task = None
         self._monitoring_started = False
@@ -267,7 +268,7 @@ class ResilienceManager:
         self.health_check_interval = 30  # seconds
         self.auto_recovery_enabled = True
 
-    def register_circuit_breaker(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+    def register_circuit_breaker(self, name: str, config: CircuitBreakerConfig | None = None):
         """Register a circuit breaker for a component."""
         if config is None:
             config = CircuitBreakerConfig()
@@ -284,7 +285,7 @@ class ResilienceManager:
         self.degradation_handlers[component] = handler
         logger.info(f"Registered degradation handler for {component}")
 
-    def set_isolation_policy(self, component: str, isolated_components: Set[str]):
+    def set_isolation_policy(self, component: str, isolated_components: set[str]):
         """Set isolation policy - which components to isolate when this one fails."""
         self.isolation_policies[component] = isolated_components
         logger.info(f"Set isolation policy for {component}: {isolated_components}")
@@ -531,7 +532,7 @@ class ResilienceManager:
                     )
                 )
 
-    def get_resilience_status(self) -> Dict[str, Any]:
+    def get_resilience_status(self) -> dict[str, Any]:
         """Get comprehensive resilience status."""
         return {
             "circuit_breakers": {

@@ -10,9 +10,9 @@ import hashlib
 import json
 import logging
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from ..models.experiment import (
     Experiment,
@@ -40,9 +40,9 @@ class VersionTracker:
     def __init__(
         self,
         work_dir: Path,
-        experiment_db: Optional[ExperimentDatabase] = None,
-        version_db: Optional[VersionDatabase] = None,
-        repo_manager: Optional[RepositoryManager] = None,
+        experiment_db: ExperimentDatabase | None = None,
+        version_db: VersionDatabase | None = None,
+        repo_manager: RepositoryManager | None = None,
     ):
         """Initialize the version tracker.
 
@@ -76,11 +76,11 @@ class VersionTracker:
         self,
         name: str,
         config: ExperimentConfig,
-        repository_name: Optional[str] = None,
-        branch: Optional[str] = None,
+        repository_name: str | None = None,
+        branch: str | None = None,
         description: str = "",
-        tags: Optional[List[str]] = None,
-        created_by: Optional[str] = None,
+        tags: list[str] | None = None,
+        created_by: str | None = None,
         **metadata: Any,
     ) -> Experiment:
         """Create a new experiment with version control information.
@@ -148,7 +148,7 @@ class VersionTracker:
         self,
         experiment_id: str,
         auto_commit: bool = True,
-        commit_message: Optional[str] = None,
+        commit_message: str | None = None,
     ) -> Experiment:
         """Start an experiment with optional auto-commit.
 
@@ -197,7 +197,7 @@ class VersionTracker:
         self,
         experiment_id: str,
         auto_commit: bool = True,
-        commit_message: Optional[str] = None,
+        commit_message: str | None = None,
         create_tag: bool = True,
     ) -> Experiment:
         """Complete an experiment with optional version control actions.
@@ -248,7 +248,7 @@ class VersionTracker:
     def create_checkpoint(
         self,
         experiment_id: str,
-        checkpoint_name: Optional[str] = None,
+        checkpoint_name: str | None = None,
         include_artifacts: bool = True,
     ) -> str:
         """Create a checkpoint of the current experiment state.
@@ -266,7 +266,7 @@ class VersionTracker:
             raise VersionTrackingError(f"Experiment {experiment_id} not found")
 
         # Generate checkpoint ID
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         checkpoint_id = f"{experiment_id}_{timestamp}"
         if checkpoint_name:
             checkpoint_id += f"_{checkpoint_name}"
@@ -294,7 +294,7 @@ class VersionTracker:
         checkpoint_metadata = {
             "checkpoint_id": checkpoint_id,
             "experiment_id": experiment_id,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "git_commit": experiment.git_commit,
             "git_branch": experiment.git_branch,
             "experiment_status": experiment.status.value,
@@ -346,7 +346,7 @@ class VersionTracker:
         logger.info(f"Restored experiment {experiment.id} from checkpoint {checkpoint_id}")
         return experiment
 
-    def compare_experiments(self, experiment_ids: List[str]) -> Dict[str, Any]:
+    def compare_experiments(self, experiment_ids: list[str]) -> dict[str, Any]:
         """Compare multiple experiments.
 
         Args:
@@ -384,10 +384,10 @@ class VersionTracker:
             "results": results_comparison,
             "versions": version_comparison,
             "metrics": metrics_comparison,
-            "comparison_timestamp": datetime.now(timezone.utc).isoformat(),
+            "comparison_timestamp": datetime.now(UTC).isoformat(),
         }
 
-    def get_experiment_lineage(self, experiment_id: str) -> Dict[str, Any]:
+    def get_experiment_lineage(self, experiment_id: str) -> dict[str, Any]:
         """Get the lineage of an experiment (ancestors and descendants).
 
         Args:
@@ -450,7 +450,7 @@ class VersionTracker:
             "git_commit": experiment.git_commit,
             "git_branch": experiment.git_branch,
             "created_at": experiment.created_at.isoformat(),
-            "snapshot_timestamp": datetime.now(timezone.utc).isoformat(),
+            "snapshot_timestamp": datetime.now(UTC).isoformat(),
         }
 
         with open(snapshot_file, "w") as f:
@@ -472,7 +472,7 @@ class VersionTracker:
                 # Update artifact path to archived location
                 artifact.file_path = str(dest_path)
 
-    def _compare_configurations(self, configs: List[ExperimentConfig]) -> Dict[str, Any]:
+    def _compare_configurations(self, configs: list[ExperimentConfig]) -> dict[str, Any]:
         """Compare experiment configurations."""
         if not configs:
             return {}
@@ -501,7 +501,7 @@ class VersionTracker:
             "different_parameters": different_params,
         }
 
-    def _compare_results(self, results: List[Optional[Any]]) -> Dict[str, Any]:
+    def _compare_results(self, results: list[Any | None]) -> dict[str, Any]:
         """Compare experiment results."""
         valid_results = [r for r in results if r is not None]
         if not valid_results:
@@ -528,7 +528,7 @@ class VersionTracker:
             "result_count": len(valid_results),
         }
 
-    def _compare_versions(self, experiments: List[Experiment]) -> Dict[str, Any]:
+    def _compare_versions(self, experiments: list[Experiment]) -> dict[str, Any]:
         """Compare version information."""
         version_info = []
         for exp in experiments:
@@ -554,7 +554,7 @@ class VersionTracker:
             "unique_branches": len(branches),
         }
 
-    def _compare_metrics(self, experiments: List[Experiment]) -> Dict[str, Any]:
+    def _compare_metrics(self, experiments: list[Experiment]) -> dict[str, Any]:
         """Compare metrics across experiments."""
         all_metric_names = set()
         for exp in experiments:
@@ -583,7 +583,7 @@ class VersionTracker:
 
 
 def create_version_tracker(
-    work_dir: Union[str, Path], db_path: Optional[Union[str, Path]] = None
+    work_dir: str | Path, db_path: str | Path | None = None
 ) -> VersionTracker:
     """Create a version tracker with default configuration.
 

@@ -195,7 +195,9 @@ def system_status(
             status_color = (
                 "🟢"
                 if component["status"] in ["running", "operational"]
-                else "🔴" if component["status"] in ["failed", "error"] else "🟡"
+                else "🔴"
+                if component["status"] in ["failed", "error"]
+                else "🟡"
             )
             typer.echo(f"  {status_color} {component['name']}: {component['status'].upper()}")
 

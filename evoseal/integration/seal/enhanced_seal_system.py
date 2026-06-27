@@ -14,12 +14,11 @@ import logging
 import os
 import time
 from collections import defaultdict, deque
-from collections.abc import AsyncGenerator, Awaitable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import (
     Any,
-    Callable,
     Deque,
     Dict,
     List,
@@ -68,13 +67,13 @@ class Metrics:
     error_count: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
-    processing_times: List[float] = field(default_factory=list)
-    errors_by_type: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    knowledge_retrieval_times: List[float] = field(default_factory=list)
-    generation_times: List[float] = field(default_factory=list)
-    self_editing_times: List[float] = field(default_factory=list)
-    context_sizes: List[int] = field(default_factory=list)
-    response_lengths: List[int] = field(default_factory=list)
+    processing_times: list[float] = field(default_factory=list)
+    errors_by_type: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    knowledge_retrieval_times: list[float] = field(default_factory=list)
+    generation_times: list[float] = field(default_factory=list)
+    self_editing_times: list[float] = field(default_factory=list)
+    context_sizes: list[int] = field(default_factory=list)
+    response_lengths: list[int] = field(default_factory=list)
 
     def record_processing_time(self, duration: float) -> None:
         """Record processing time for a request."""
@@ -89,10 +88,10 @@ class Metrics:
         error_type = error.__class__.__name__
         self.errors_by_type[error_type] += 1
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> dict[str, Any]:
         """Get a comprehensive summary of collected metrics."""
 
-        def safe_avg(values: List[float]) -> float:
+        def safe_avg(values: list[float]) -> float:
             return sum(values) / len(values) if values else 0.0
 
         return {
@@ -180,22 +179,20 @@ class ConversationHistory:
 
     def __init__(self, max_history: int = 10):
         self.max_history = max_history
-        self.history: Deque[Dict[str, Any]] = deque(maxlen=max_history)
-        self._current_session_id: Optional[str] = None
+        self.history: deque[dict[str, Any]] = deque(maxlen=max_history)
+        self._current_session_id: str | None = None
 
-    def add_message(
-        self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def add_message(self, role: str, content: str, metadata: dict[str, Any] | None = None) -> None:
         """Add a message to the conversation history."""
         message = {
             "role": role,
             "content": content,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "metadata": metadata or {},
         }
         self.history.append(message)
 
-    def get_history(self, max_messages: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_history(self, max_messages: int | None = None) -> list[dict[str, Any]]:
         """Retrieve conversation history, optionally limited to a number of messages."""
         history = list(self.history)
         if max_messages is not None:
@@ -210,7 +207,7 @@ class ConversationHistory:
         """Set the current session ID."""
         self._current_session_id = session_id
 
-    def get_session_id(self) -> Optional[str]:
+    def get_session_id(self) -> str | None:
         """Get the current session ID."""
         return self._current_session_id
 
@@ -223,10 +220,10 @@ class EnhancedSEALSystem:
 
     def __init__(
         self,
-        config: Optional[Union[Dict[str, Any], SEALConfig]] = None,
-        knowledge_base: Optional[Any] = None,  # Use Any to accept both real and mock
-        prompt_constructor: Optional[PromptConstructor] = None,
-        self_editor: Optional[Any] = None,  # Use Any to accept both real and mock
+        config: dict[str, Any] | SEALConfig | None = None,
+        knowledge_base: Any | None = None,  # Use Any to accept both real and mock
+        prompt_constructor: PromptConstructor | None = None,
+        self_editor: Any | None = None,  # Use Any to accept both real and mock
     ) -> None:
         """
         Initialize the EnhancedSEALSystem.
@@ -250,16 +247,16 @@ class EnhancedSEALSystem:
 
         # Initialize metrics and monitoring
         self.metrics = Metrics() if self.config.enable_metrics else None
-        self._startup_time = datetime.now(timezone.utc)
+        self._startup_time = datetime.now(UTC)
 
         # Initialize caches
-        self._cache: Dict[str, Any] = {}
-        self._template_cache: Dict[str, Any] = {}
-        self._last_accessed: Dict[str, float] = {}
-        self._cache_timestamps: Dict[str, float] = {}
+        self._cache: dict[str, Any] = {}
+        self._template_cache: dict[str, Any] = {}
+        self._last_accessed: dict[str, float] = {}
+        self._cache_timestamps: dict[str, float] = {}
 
         # Background tasks
-        self._background_tasks: List[asyncio.Task] = []
+        self._background_tasks: list[asyncio.Task] = []
         self._shutdown_event = asyncio.Event()
         self._is_running = False
 
@@ -315,10 +312,10 @@ class EnhancedSEALSystem:
     async def process_prompt(
         self,
         prompt_text: str,
-        context: Optional[Dict[str, Any]] = None,
-        template_name: Optional[str] = None,
+        context: dict[str, Any] | None = None,
+        template_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process a prompt with knowledge integration and optional self-editing.
 
@@ -345,7 +342,6 @@ class EnhancedSEALSystem:
         start_time = time.time()
 
         try:
-
             # Check cache if enabled
             cache_key = self._generate_cache_key(
                 "prompt", prompt_text, context or {}, template_name or "default"
@@ -464,10 +460,10 @@ class EnhancedSEALSystem:
     async def retrieve_relevant_knowledge(
         self,
         query: str,
-        context: Dict[str, Any],
-        max_results: Optional[int] = None,
-        min_score: Optional[float] = None,
-    ) -> List[Dict[str, Any]]:
+        context: dict[str, Any],
+        max_results: int | None = None,
+        min_score: float | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Retrieve relevant knowledge for a query with caching and context awareness.
         """
@@ -509,9 +505,9 @@ class EnhancedSEALSystem:
     async def _construct_prompt(
         self,
         prompt_text: str,
-        knowledge: List[Dict[str, Any]],
-        context: Dict[str, Any],
-        template_name: Optional[str] = None,
+        knowledge: list[dict[str, Any]],
+        context: dict[str, Any],
+        template_name: str | None = None,
         **kwargs,
     ) -> str:
         """Construct a prompt with knowledge and context."""
@@ -540,7 +536,7 @@ class EnhancedSEALSystem:
                 self.metrics.record_error(e)
             raise
 
-    async def _generate_response(self, prompt: str, context: Dict[str, Any]) -> str:
+    async def _generate_response(self, prompt: str, context: dict[str, Any]) -> str:
         """Generate a response using the configured language model."""
         # This is a placeholder implementation
         # In a real implementation, this would call an LLM API
@@ -550,9 +546,9 @@ class EnhancedSEALSystem:
         self,
         original_prompt: str,
         response: str,
-        knowledge: List[Dict[str, Any]],
-        context: Dict[str, Any],
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+        knowledge: list[dict[str, Any]],
+        context: dict[str, Any],
+    ) -> tuple[str, list[dict[str, Any]]]:
         """Apply self-editing to the response if confidence is sufficient."""
         if not self.config.enable_self_editing:
             return response, []
@@ -620,7 +616,7 @@ class EnhancedSEALSystem:
                             timeout=0.1,  # Small timeout to check shutdown
                         )
                         batch.append(item)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         if batch:  # If we have items, process them
                             break
 
@@ -636,7 +632,7 @@ class EnhancedSEALSystem:
                     self.metrics.record_error(e)
                 await asyncio.sleep(1)  # Prevent tight loop on errors
 
-    async def _process_batch(self, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _process_batch(self, batch: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Process a batch of requests with proper error handling and progress tracking.
 
         Args:
@@ -692,7 +688,7 @@ class EnhancedSEALSystem:
                         "response": result.get("response"),
                         "metadata": {
                             **result.get("metadata", {}),
-                            "processed_at": datetime.now(timezone.utc).isoformat(),
+                            "processed_at": datetime.now(UTC).isoformat(),
                             "batch_size": len(batch),
                         },
                     }
@@ -718,7 +714,7 @@ class EnhancedSEALSystem:
                         "error": error_msg,
                         "metadata": {
                             "error_type": type(e).__name__,
-                            "processed_at": datetime.now(timezone.utc).isoformat(),
+                            "processed_at": datetime.now(UTC).isoformat(),
                             "batch_size": len(batch),
                         },
                     }
@@ -766,7 +762,7 @@ class EnhancedSEALSystem:
 
         return self._cache.get(key)
 
-    def _add_to_cache(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def _add_to_cache(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Add a value to the cache, evicting if necessary."""
         if not self.config.enable_caching:
             return
@@ -808,7 +804,7 @@ class EnhancedSEALSystem:
             # Template not found in the constructor
             return None
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get current metrics."""
         if not self.config.enable_metrics or self.metrics is None:
             return {"error": "Metrics collection is disabled"}
@@ -823,14 +819,12 @@ class EnhancedSEALSystem:
         self._last_accessed.clear()
         logger.info("All caches cleared")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get system status information."""
         return {
             "status": "running" if self._is_running else "stopped",
             "uptime_seconds": (
-                (datetime.now(timezone.utc) - self._startup_time).total_seconds()
-                if self._is_running
-                else 0
+                (datetime.now(UTC) - self._startup_time).total_seconds() if self._is_running else 0
             ),
             "cache_size": len(self._cache),
             "template_cache_size": len(self._template_cache),

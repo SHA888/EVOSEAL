@@ -6,7 +6,8 @@ The framework is designed to be extensible for different agent types and behavio
 """
 
 import inspect
-from typing import Any, Callable, Optional, Protocol, Union
+from collections.abc import Callable
+from typing import Any, Optional, Protocol, Union
 
 from evoseal.utils.logging import Logger
 
@@ -24,13 +25,13 @@ class AgenticSystem:
     Manages the lifecycle and interactions of agents in the system. Supports agent groups, logging, and async agents.
     """
 
-    def __init__(self, logger: Optional[Logger] = None) -> None:
+    def __init__(self, logger: Logger | None = None) -> None:
         self.agents: dict[str, Agent] = {}
         self.performance: dict[str, list[Any]] = {}
         self.groups: dict[str, list[str]] = {}  # group_name -> list of agent_ids
         self.logger = logger or Logger("AgenticSystem")
 
-    def create_agent(self, agent_id: str, agent: Agent, group: Optional[str] = None) -> None:
+    def create_agent(self, agent_id: str, agent: Agent, group: str | None = None) -> None:
         """Register a new agent. Optionally assign to a group."""
         if agent_id in self.agents:
             raise ValueError(f"Agent '{agent_id}' already exists.")
@@ -98,7 +99,7 @@ class AgenticSystem:
         self.logger.info(f"Assigned async task to agent '{agent_id}': {task} (result: {result})")
         return result
 
-    def monitor_performance(self, agent_id: Optional[str] = None) -> dict[str, list[Any]]:
+    def monitor_performance(self, agent_id: str | None = None) -> dict[str, list[Any]]:
         """Return performance history for one or all agents."""
         if agent_id:
             if agent_id not in self.performance:
@@ -130,7 +131,7 @@ class AgenticSystem:
         """List all agent IDs in the system."""
         return list(self.agents.keys())
 
-    def create_group(self, group_name: str, agent_ids: Optional[list[str]] = None) -> None:
+    def create_group(self, group_name: str, agent_ids: list[str] | None = None) -> None:
         """Create a new agent group with optional initial members."""
         if group_name in self.groups:
             raise ValueError(f"Group '{group_name}' already exists.")

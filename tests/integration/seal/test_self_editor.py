@@ -276,7 +276,7 @@ class TestDefaultEditStrategy:
         logger.debug(f"Test REWRITE - expected bytes: {list(suggested_text.encode('utf-8'))}")
 
         # Check if the strings are equal character by character
-        for i, (r, e) in enumerate(zip(result1, suggested_text)):
+        for i, (r, e) in enumerate(zip(result1, suggested_text, strict=False)):
             if r != e:
                 logger.debug(
                     f"Mismatch at position {i}: result1[{i}]={r!r} ({ord(r)}) != expected[{i}]={e!r} ({ord(e)})"

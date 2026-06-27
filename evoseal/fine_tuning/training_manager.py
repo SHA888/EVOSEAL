@@ -29,11 +29,11 @@ class TrainingManager:
 
     def __init__(
         self,
-        data_collector: Optional[EvolutionDataCollector] = None,
-        fine_tuner: Optional[DevstralFineTuner] = None,
-        validator: Optional[ModelValidator] = None,
-        version_manager: Optional[ModelVersionManager] = None,
-        output_dir: Optional[Path] = None,
+        data_collector: EvolutionDataCollector | None = None,
+        fine_tuner: DevstralFineTuner | None = None,
+        validator: ModelValidator | None = None,
+        version_manager: ModelVersionManager | None = None,
+        output_dir: Path | None = None,
         min_training_samples: int = 100,
     ):
         """
@@ -67,7 +67,7 @@ class TrainingManager:
 
         logger.info(f"TrainingManager initialized with {min_training_samples} min samples")
 
-    async def check_training_readiness(self) -> Dict[str, Any]:
+    async def check_training_readiness(self) -> dict[str, Any]:
         """
         Check if the system is ready for training.
 
@@ -134,7 +134,7 @@ class TrainingManager:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    async def prepare_training_data(self) -> Dict[str, Any]:
+    async def prepare_training_data(self) -> dict[str, Any]:
         """
         Prepare training data from evolution results.
 
@@ -193,7 +193,7 @@ class TrainingManager:
             logger.error(f"Error preparing training data: {e}")
             return {"success": False, "error": str(e)}
 
-    async def run_training_cycle(self) -> Dict[str, Any]:
+    async def run_training_cycle(self) -> dict[str, Any]:
         """
         Run a complete training cycle.
 
@@ -293,7 +293,7 @@ class TrainingManager:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    async def get_training_status(self) -> Dict[str, Any]:
+    async def get_training_status(self) -> dict[str, Any]:
         """Get current training status."""
         status = {
             "is_training": self.current_training is not None,

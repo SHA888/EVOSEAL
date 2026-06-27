@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class OrchestrationState(Enum):
@@ -51,13 +51,13 @@ class WorkflowStep:
     name: str
     component: str
     operation: str
-    dependencies: List[str] = field(default_factory=list)
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    timeout: Optional[float] = None
+    dependencies: list[str] = field(default_factory=list)
+    parameters: dict[str, Any] = field(default_factory=dict)
+    timeout: float | None = None
     retry_count: int = 3
     retry_delay: float = 1.0
     critical: bool = True
-    parallel_group: Optional[str] = None
+    parallel_group: str | None = None
     priority: int = 0
 
 
@@ -66,16 +66,16 @@ class ExecutionContext:
     """Context for workflow execution."""
 
     workflow_id: str
-    experiment_id: Optional[str]
+    experiment_id: str | None
     start_time: datetime
     current_iteration: int
     current_stage: str
     total_iterations: int
     state: OrchestrationState
     checkpoint_interval: int
-    last_checkpoint: Optional[datetime]
-    resource_limits: Dict[str, Any] = field(default_factory=dict)
-    custom_context: Dict[str, Any] = field(default_factory=dict)
+    last_checkpoint: datetime | None
+    resource_limits: dict[str, Any] = field(default_factory=dict)
+    custom_context: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -87,11 +87,11 @@ class StepResult:
     success: bool
     execution_time: float
     retry_count: int
-    result: Optional[Any] = None
-    error: Optional[str] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    resource_usage: Dict[str, Any] = field(default_factory=dict)
+    result: Any | None = None
+    error: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    resource_usage: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -100,12 +100,12 @@ class IterationResult:
 
     iteration: int
     start_time: datetime
-    end_time: Optional[datetime]
+    end_time: datetime | None
     success: bool
     execution_time: float
-    stages: Dict[str, StepResult]
-    resource_usage: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    stages: dict[str, StepResult]
+    resource_usage: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
     should_continue: bool = True
 
 
@@ -114,14 +114,14 @@ class WorkflowResult:
     """Complete workflow execution result."""
 
     workflow_id: str
-    experiment_id: Optional[str]
+    experiment_id: str | None
     start_time: datetime
-    end_time: Optional[datetime]
+    end_time: datetime | None
     total_execution_time: float
-    iterations: List[IterationResult]
+    iterations: list[IterationResult]
     success_count: int
     failure_count: int
     checkpoints_created: int
     final_state: OrchestrationState
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)

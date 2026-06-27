@@ -22,7 +22,7 @@ class TestRepositoryManager:
     def test_clone_repository(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
         monkeypatch,
     ):
         """Test cloning a repository."""
@@ -47,7 +47,7 @@ class TestRepositoryManager:
     def test_get_repository(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
     ):
         """Test getting a repository instance."""
         repo_path, repo, _ = test_repo
@@ -72,7 +72,7 @@ class TestRepositoryManager:
     def test_remove_repository(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
         monkeypatch,
     ):
         """Test removing a repository."""
@@ -103,7 +103,7 @@ class TestRepositoryManager:
     def test_get_repository_info(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
     ):
         """Test getting repository information."""
         repo_path, repo, head_commit = test_repo
@@ -125,7 +125,7 @@ class TestRepositoryManager:
     def test_get_repositories(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
     ):
         """Test getting all repositories."""
         repo_path, repo, _ = test_repo

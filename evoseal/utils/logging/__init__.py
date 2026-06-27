@@ -21,7 +21,7 @@ import time
 import traceback
 import uuid
 from collections.abc import Callable, Mapping, MutableMapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from functools import wraps
 from pathlib import Path
 from typing import Any, TypeVar, cast, overload
@@ -51,7 +51,7 @@ class JsonFormatter(logging.Formatter):
             JSON string representation of the log record
         """
         log_record: LogRecordDict = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

@@ -4,8 +4,9 @@ Retry utilities for SEAL system operations.
 
 import secrets
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Optional, Tuple, Type, TypeVar, Union
 
 from ..exceptions import RateLimitError, RetryableError, TimeoutError
 
@@ -17,7 +18,7 @@ def retry(
     initial_delay: float = 0.1,
     max_delay: float = 5.0,
     backoff_factor: float = 2.0,
-    exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = Exception,
+    exceptions: type[Exception] | tuple[type[Exception], ...] = Exception,
 ):
     """Retry decorator with exponential backoff.
 

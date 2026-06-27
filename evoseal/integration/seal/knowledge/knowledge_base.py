@@ -11,7 +11,7 @@ import fcntl
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from threading import Lock, RLock
 from typing import Any, Literal
@@ -26,8 +26,8 @@ class KnowledgeEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     content: Any
     metadata: dict[str, Any] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     version: int = 1
     tags: list[str] = Field(default_factory=list)
 
@@ -36,7 +36,7 @@ class KnowledgeEntry(BaseModel):
         self.content = new_content
         if metadata is not None:
             self.metadata.update(metadata)
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
         self.version += 1
 
 
@@ -168,7 +168,7 @@ class KnowledgeBase:
                 updated = True
             elif metadata is not None:
                 entry_to_update.metadata.update(metadata)
-                entry_to_update.updated_at = datetime.now(timezone.utc)
+                entry_to_update.updated_at = datetime.now(UTC)
                 updated = True
 
         # Only save if we actually updated something
@@ -278,7 +278,7 @@ class KnowledgeBase:
 
         if tag not in self.entries[entry_id].tags:
             self.entries[entry_id].tags.append(tag)
-            self.entries[entry_id].updated_at = datetime.now(timezone.utc)
+            self.entries[entry_id].updated_at = datetime.now(UTC)
             self._save_to_disk()
         return True
 
@@ -297,7 +297,7 @@ class KnowledgeBase:
 
         if tag in self.entries[entry_id].tags:
             self.entries[entry_id].tags.remove(tag)
-            self.entries[entry_id].updated_at = datetime.now(timezone.utc)
+            self.entries[entry_id].updated_at = datetime.now(UTC)
             self._save_to_disk()
             return True
         return False

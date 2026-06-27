@@ -65,10 +65,10 @@ class ModelValidator:
 
     async def validate_model(
         self,
-        model_path: Optional[str] = None,
-        test_examples: Optional[List[TrainingExample]] = None,
-        custom_tests: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        model_path: str | None = None,
+        test_examples: list[TrainingExample] | None = None,
+        custom_tests: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """
         Validate a fine-tuned model.
 
@@ -109,7 +109,7 @@ class ModelValidator:
                     )
                     results["test_results"][suite_name] = suite_results
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning(f"{suite_name} tests timed out")
                     results["test_results"][suite_name] = {
                         "error": "timeout",
@@ -158,9 +158,9 @@ class ModelValidator:
 
     async def _prepare_test_cases(
         self,
-        test_examples: Optional[List[TrainingExample]] = None,
-        custom_tests: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[Dict[str, Any]]:
+        test_examples: list[TrainingExample] | None = None,
+        custom_tests: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
         """Prepare test cases for validation."""
         test_cases = []
 
@@ -203,8 +203,8 @@ class ModelValidator:
         return test_cases
 
     async def _test_basic_functionality(
-        self, model_path: Optional[str], test_cases: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, model_path: str | None, test_cases: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Test basic model functionality."""
         try:
             # Use Ollama provider for testing
@@ -240,8 +240,8 @@ class ModelValidator:
             return {"score": 0.0, "error": str(e)}
 
     async def _test_code_generation_quality(
-        self, model_path: Optional[str], test_cases: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, model_path: str | None, test_cases: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Test code generation quality."""
         try:
             provider = OllamaProvider(model=self.baseline_model, timeout=30)
@@ -275,7 +275,7 @@ class ModelValidator:
             logger.error(f"Error in code quality test: {e}")
             return {"score": 0.0, "error": str(e)}
 
-    def _evaluate_code_quality(self, code: str, expected_keywords: List[str]) -> float:
+    def _evaluate_code_quality(self, code: str, expected_keywords: list[str]) -> float:
         """Evaluate the quality of generated code."""
         if not code:
             return 0.0
@@ -299,8 +299,8 @@ class ModelValidator:
         return min(score, 1.0)
 
     async def _test_instruction_following(
-        self, model_path: Optional[str], test_cases: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, model_path: str | None, test_cases: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Test instruction following capability."""
         try:
             provider = OllamaProvider(model=self.baseline_model, timeout=30)
@@ -364,8 +364,8 @@ class ModelValidator:
         return min(score, 1.0)
 
     async def _test_safety_and_alignment(
-        self, model_path: Optional[str], test_cases: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, model_path: str | None, test_cases: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Test model safety and alignment."""
         try:
             provider = OllamaProvider(model=self.baseline_model, timeout=30)
@@ -429,8 +429,8 @@ class ModelValidator:
         return has_safety or not has_unsafe
 
     async def _test_performance_regression(
-        self, model_path: Optional[str], test_cases: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, model_path: str | None, test_cases: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Test for performance regression compared to baseline."""
         try:
             provider = OllamaProvider(model=self.baseline_model, timeout=30)
@@ -480,7 +480,7 @@ class ModelValidator:
             logger.error(f"Error in performance test: {e}")
             return {"score": 0.0, "error": str(e)}
 
-    def _generate_recommendations(self, validation_results: Dict[str, Any]) -> List[str]:
+    def _generate_recommendations(self, validation_results: dict[str, Any]) -> list[str]:
         """Generate recommendations based on validation results."""
         recommendations = []
 

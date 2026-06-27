@@ -717,7 +717,9 @@ class FewShotLearner:
         texts: list[str] = []
         system_prompts = examples.get("system_prompt", [""] * len(examples["input"]))
 
-        for i, (input_text, output_text) in enumerate(zip(examples["input"], examples["output"])):
+        for i, (input_text, output_text) in enumerate(
+            zip(examples["input"], examples["output"], strict=False)
+        ):
             prompt = self.format_prompt(
                 query=input_text,
                 examples=[],  # Don't include other examples in each training example

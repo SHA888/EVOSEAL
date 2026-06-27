@@ -5,6 +5,7 @@ Basic EVOSEAL CLI Usage Example
 This script demonstrates how to use the EVOSEAL CLI programmatically
 for a simple evolutionary optimization task.
 """
+
 from __future__ import annotations
 
 import json

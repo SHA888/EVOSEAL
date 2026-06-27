@@ -66,7 +66,7 @@ class EditSuggestion:
     suggested_text: str = ""
     explanation: str = ""
     confidence: float = 1.0
-    line_number: Optional[int] = None
+    line_number: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -134,7 +134,7 @@ class EditHistoryEntry:
     content_id: str
     suggestion: EditSuggestion
     applied: bool
-    user: Optional[str] = None
+    user: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -182,9 +182,9 @@ class EditResult:
     """
 
     success: bool
-    content: Optional[str] = None
-    error: Optional[Exception] = None
-    suggestion: Optional[EditSuggestion] = None
+    content: str | None = None
+    error: Exception | None = None
+    suggestion: EditSuggestion | None = None
 
     @classmethod
     def create_success(cls, content: str, suggestion: EditSuggestion) -> "EditResult":

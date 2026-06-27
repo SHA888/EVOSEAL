@@ -3,7 +3,7 @@ Tests for the Enhanced SEAL system.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -222,7 +222,7 @@ async def test_timezone_handling(enhanced_seal_system):
     await enhanced_seal_system.process_prompt("Test timezone", {"timestamp": now_naive})
 
     # Test with timezone-aware datetime
-    now_aware = datetime.now(timezone.utc)
+    now_aware = datetime.now(UTC)
     await enhanced_seal_system.process_prompt("Test timezone", {"timestamp": now_aware})
 
     # Test with string timestamp
@@ -251,7 +251,6 @@ async def test_self_editing_disabled(enhanced_seal_system, mock_self_editor):
     with patch.object(
         mock_self_editor, "suggest_edits", return_value=[test_suggestion]
     ) as mock_suggest:
-
         # Process a prompt
         await enhanced_seal_system.process_prompt("Test prompt", context={"test": "context"})
 
@@ -314,7 +313,6 @@ async def test_self_edit_process(enhanced_seal_system, mock_self_editor, mock_kn
     with patch.object(
         mock_self_editor, "suggest_edits", return_value=[test_suggestion]
     ) as mock_suggest:
-
         # Process a prompt that will trigger self-editing
         response = await enhanced_seal_system.process_prompt(test_prompt, context=test_context)
 

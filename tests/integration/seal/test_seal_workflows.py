@@ -209,7 +209,9 @@ async def test_workflow_with_error_recovery(workflow_config):
     ), f"Expected {TOTAL_ITERATIONS} parse_response calls, got {mock_provider.parse_response.await_count}"
     assert (
         len(workflow.results) == EXPECTED_SUCCESSFUL_ITERATIONS
-    ), f"Expected {EXPECTED_SUCCESSFUL_ITERATIONS} successful results, got {len(workflow.results)}"  # 3 results (one error was caught and handled)
+    ), (
+        f"Expected {EXPECTED_SUCCESSFUL_ITERATIONS} successful results, got {len(workflow.results)}"
+    )  # 3 results (one error was caught and handled)
 
 
 # Add more test cases for specific workflow scenarios

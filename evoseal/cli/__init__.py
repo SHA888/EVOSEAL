@@ -8,11 +8,12 @@ and common utilities for all CLI commands.
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any, Callable, TypeVar, Union
+from typing import Annotated, Any, TypeAlias, TypeVar, Union
 
 import typer
-from typing_extensions import ParamSpec, TypeAlias
+from typing_extensions import ParamSpec
 
 # Import the base command class for use in subcommands
 from .base import EVOSEALCommand
@@ -35,8 +36,8 @@ __all__ = [
 __version__ = "0.1.0"
 
 # Type aliases
-JSONType: TypeAlias = Union[dict[str, Any], list[Any], str, int, float, bool, None]
-PathLike: TypeAlias = Union[str, Path]
+JSONType: TypeAlias = dict[str, Any] | list[Any] | str | int | float | bool | None
+PathLike: TypeAlias = str | Path
 
 # Global configuration paths
 DEFAULT_CONFIG_DIR = Path(".evoseal")

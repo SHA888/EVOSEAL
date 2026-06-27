@@ -319,7 +319,7 @@ def main():
         "Auto rollback with events",
     ]
 
-    for i, (name, result) in enumerate(zip(test_names, test_results)):
+    for i, (name, result) in enumerate(zip(test_names, test_results, strict=False)):
         status = "✅ PASSED" if result else "❌ FAILED"
         print(f"{i+1}. {name}: {status}")
 

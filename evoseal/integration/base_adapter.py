@@ -46,7 +46,7 @@ class ComponentConfig:
     timeout: int = 300
     max_retries: int = 3
     retry_delay: float = 1.0
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -55,9 +55,9 @@ class ComponentStatus:
 
     state: ComponentState
     message: str = ""
-    last_updated: Optional[str] = None
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    last_updated: str | None = None
+    metrics: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
 
 
 @dataclass
@@ -66,8 +66,8 @@ class ComponentResult:
 
     success: bool
     data: Any = None
-    error: Optional[str] = None
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+    metrics: dict[str, Any] = field(default_factory=dict)
     execution_time: float = 0.0
 
 
@@ -283,13 +283,13 @@ class BaseComponentAdapter(ABC):
         """Get the current component status."""
         return self.status
 
-    def update_config(self, new_config: Dict[str, Any]) -> None:
+    def update_config(self, new_config: dict[str, Any]) -> None:
         """Update component configuration."""
         self.config.config.update(new_config)
         self.logger.info(f"Updated configuration for {self.component_type.value} component")
 
     def _update_status(
-        self, state: ComponentState, message: str = "", error: Optional[str] = None
+        self, state: ComponentState, message: str = "", error: str | None = None
     ) -> None:
         """Update the component status."""
         import datetime
@@ -338,7 +338,7 @@ class BaseComponentAdapter(ABC):
         pass
 
     @abstractmethod
-    async def get_metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> dict[str, Any]:
         """Get component-specific metrics."""
         pass
 
@@ -352,7 +352,7 @@ class ComponentManager:
     """
 
     def __init__(self):
-        self.components: Dict[ComponentType, BaseComponentAdapter] = {}
+        self.components: dict[ComponentType, BaseComponentAdapter] = {}
         self.logger = logging.getLogger(f"{__name__}.ComponentManager")
 
     def register_component(self, adapter: BaseComponentAdapter) -> None:
@@ -360,11 +360,11 @@ class ComponentManager:
         self.components[adapter.component_type] = adapter
         self.logger.info(f"Registered {adapter.component_type.value} component")
 
-    def get_component(self, component_type: ComponentType) -> Optional[BaseComponentAdapter]:
+    def get_component(self, component_type: ComponentType) -> BaseComponentAdapter | None:
         """Get a component adapter by type."""
         return self.components.get(component_type)
 
-    async def initialize_all(self) -> Dict[ComponentType, bool]:
+    async def initialize_all(self) -> dict[ComponentType, bool]:
         """Initialize all registered components."""
         results = {}
 
@@ -377,7 +377,7 @@ class ComponentManager:
 
         return results
 
-    async def start_all(self) -> Dict[ComponentType, bool]:
+    async def start_all(self) -> dict[ComponentType, bool]:
         """Start all registered components."""
         results = {}
 
@@ -390,7 +390,7 @@ class ComponentManager:
 
         return results
 
-    async def stop_all(self) -> Dict[ComponentType, bool]:
+    async def stop_all(self) -> dict[ComponentType, bool]:
         """Stop all registered components."""
         results = {}
 
@@ -403,14 +403,14 @@ class ComponentManager:
 
         return results
 
-    def get_all_status(self) -> Dict[ComponentType, ComponentStatus]:
+    def get_all_status(self) -> dict[ComponentType, ComponentStatus]:
         """Get status of all registered components."""
         return {
             component_type: adapter.get_status()
             for component_type, adapter in self.components.items()
         }
 
-    async def get_all_metrics(self) -> Dict[ComponentType, Dict[str, Any]]:
+    async def get_all_metrics(self) -> dict[ComponentType, dict[str, Any]]:
         """Get metrics from all registered components."""
         metrics = {}
 

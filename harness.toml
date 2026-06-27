@@ -27,4 +27,3 @@ failIfUnavailable = false
 [safety.sandbox.filesystem]
 # denyRead = [".env", "secrets/**"]
 # allowRead = [".env.example"]
-

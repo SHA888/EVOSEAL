@@ -37,9 +37,9 @@ class FileInfo:
     status: FileStatus
     staged: bool = False
     conflicts: bool = False
-    original_path: Optional[Path] = None
-    similarity: Optional[int] = None
-    similarity: Optional[int] = None
+    original_path: Path | None = None
+    similarity: int | None = None
+    similarity: int | None = None
 
 
 class FileOperations:
@@ -58,7 +58,7 @@ class FileOperations:
         """
         self.git = git_interface
 
-    def stage_files(self, *file_paths: Union[str, Path]) -> bool:
+    def stage_files(self, *file_paths: str | Path) -> bool:
         """Stage one or more files for commit.
 
         Args:
@@ -81,7 +81,7 @@ class FileOperations:
             logger.error(f"Error staging files {paths}: {e}")
             return False
 
-    def unstage_files(self, *file_paths: Union[str, Path]) -> bool:
+    def unstage_files(self, *file_paths: str | Path) -> bool:
         """Unstage one or more files.
 
         Args:
@@ -104,7 +104,7 @@ class FileOperations:
             logger.error(f"Error unstaging files {paths}: {e}")
             return False
 
-    def get_file_status(self, file_path: Union[str, Path]) -> Optional[FileInfo]:
+    def get_file_status(self, file_path: str | Path) -> FileInfo | None:
         """Get the status of a specific file.
 
         Args:
@@ -117,7 +117,7 @@ class FileOperations:
         status = self.get_status()
         return status.get(file_path)
 
-    def get_status(self) -> Dict[Path, FileInfo]:
+    def get_status(self) -> dict[Path, FileInfo]:
         """Get the status of all files in the repository.
 
         Returns:
@@ -131,7 +131,7 @@ class FileOperations:
             logger.error(f"Error getting file status: {e}")
             return {}
 
-    def _parse_status_output(self, status_output: str) -> Dict[Path, FileInfo]:
+    def _parse_status_output(self, status_output: str) -> dict[Path, FileInfo]:
         """Parse the output of 'git status --porcelain=v2' into a dictionary of FileInfo objects.
 
         Args:
@@ -263,7 +263,7 @@ class FileOperations:
 
         return FileStatus.MODIFIED  # Default to modified if we can't determine
 
-    def get_file_diff(self, file_path: Union[str, Path], staged: bool = False) -> Optional[str]:
+    def get_file_diff(self, file_path: str | Path, staged: bool = False) -> str | None:
         """Get the diff for a specific file.
 
         Args:
@@ -286,9 +286,7 @@ class FileOperations:
             logger.error(f"Error getting diff for {file_path}: {e}")
             return None
 
-    def get_file_history(
-        self, file_path: Union[str, Path], limit: int = 10
-    ) -> List[Dict[str, str]]:
+    def get_file_history(self, file_path: str | Path, limit: int = 10) -> list[dict[str, str]]:
         """Get the commit history for a specific file.
 
         Args:
@@ -340,7 +338,7 @@ class FileOperations:
             logger.error(f"Error getting history for {file_path}: {e}")
             return []
 
-    def is_binary_file(self, file_path: Union[str, Path]) -> bool:
+    def is_binary_file(self, file_path: str | Path) -> bool:
         """Check if a file is a binary file.
 
         Args:
@@ -367,7 +365,7 @@ class FileOperations:
             logger.error(f"Error checking if file is binary: {e}")
             return False
 
-    def get_conflicted_files(self) -> List[Path]:
+    def get_conflicted_files(self) -> list[Path]:
         """Get a list of files with merge conflicts.
 
         Returns:
@@ -385,7 +383,7 @@ class FileOperations:
             logger.error(f"Error getting conflicted files: {e}")
             return []
 
-    def resolve_conflict(self, file_path: Union[str, Path], content: str) -> bool:
+    def resolve_conflict(self, file_path: str | Path, content: str) -> bool:
         """Resolve a merge conflict by providing the resolved content.
 
         Args:
@@ -412,9 +410,7 @@ class FileOperations:
             logger.error(f"Error staging resolved file {file_path}: {e}")
             return False
 
-    def get_file_at_commit(
-        self, file_path: Union[str, Path], commit: str = "HEAD"
-    ) -> Optional[str]:
+    def get_file_at_commit(self, file_path: str | Path, commit: str = "HEAD") -> str | None:
         """Get the content of a file at a specific commit.
 
         Args:
@@ -432,7 +428,7 @@ class FileOperations:
             logger.error(f"Error getting file {file_path} at commit {commit}: {e}")
             return None
 
-    def get_file_mode(self, file_path: Union[str, Path]) -> Optional[str]:
+    def get_file_mode(self, file_path: str | Path) -> str | None:
         """Get the file mode (permissions) from Git's index.
 
         Args:
@@ -458,7 +454,7 @@ class FileOperations:
             logger.error(f"Error getting file mode for {file_path}: {e}")
             return None
 
-    def get_file_size(self, file_path: Union[str, Path]) -> Optional[int]:
+    def get_file_size(self, file_path: str | Path) -> int | None:
         """Get the size of a file in bytes from Git's index.
 
         Args:
@@ -479,7 +475,7 @@ class FileOperations:
             logger.error(f"Error getting file size for {file_path}: {e}")
             return None
 
-    def get_file_type(self, file_path: Union[str, Path]) -> Optional[str]:
+    def get_file_type(self, file_path: str | Path) -> str | None:
         """Get the type of a file (blob, symlink, etc.) from Git's index.
 
         Args:
@@ -497,7 +493,7 @@ class FileOperations:
             logger.error(f"Error getting file type for {file_path}: {e}")
             return None
 
-    def get_file_encoding(self, file_path: Union[str, Path]) -> Optional[str]:
+    def get_file_encoding(self, file_path: str | Path) -> str | None:
         """Attempt to detect the encoding of a file.
 
         This is a best-effort detection and may not be 100% accurate.
@@ -540,7 +536,7 @@ class FileOperations:
             logger.error(f"Error getting file encoding for {file_path}: {e}")
             return None
 
-    def get_file_attributes(self, file_path: Union[str, Path]) -> Dict[str, str]:
+    def get_file_attributes(self, file_path: str | Path) -> dict[str, str]:
         """Get all Git attributes for a file.
 
         Args:
@@ -575,7 +571,7 @@ class FileOperations:
             logger.error(f"Error getting attributes for {file_path}: {e}")
             return {}
 
-    def get_file_blame(self, file_path: Union[str, Path]) -> List[Dict[str, Any]]:
+    def get_file_blame(self, file_path: str | Path) -> list[dict[str, Any]]:
         """Get blame information for a file.
 
         Args:

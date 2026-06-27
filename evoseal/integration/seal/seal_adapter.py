@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class DefaultSEALProvider:
     """Default SEAL (Self-Adapting Language Models) provider implementation."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.logger = logging.getLogger(f"{__name__}.DefaultSEALProvider")
 
@@ -64,8 +64,8 @@ class SEALAdapter(BaseComponentAdapter):
             raise ValueError("SEALAdapter requires ComponentType.SEAL")
 
         super().__init__(config)
-        self.seal_interface: Optional[SEALInterface] = None
-        self.provider: Optional[SEALProvider] = None
+        self.seal_interface: SEALInterface | None = None
+        self.provider: SEALProvider | None = None
         self._rate_limit: float = 1.0
         self._max_retries: int = 3
         self._retry_delay: float = 1.0
@@ -216,7 +216,7 @@ class SEALAdapter(BaseComponentAdapter):
 
             return ComponentResult(success=False, error=str(e), execution_time=execution_time)
 
-    async def get_metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> dict[str, Any]:
         """Get SEAL (Self-Adapting Language Models)-specific metrics."""
         try:
             metrics = {
@@ -241,7 +241,7 @@ class SEALAdapter(BaseComponentAdapter):
 
     # Private methods for specific operations
 
-    async def _submit_prompt(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _submit_prompt(self, data: Any, **kwargs) -> dict[str, Any]:
         """Submit a single prompt to SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             prompt = data
@@ -257,7 +257,7 @@ class SEALAdapter(BaseComponentAdapter):
 
         return {"prompt": prompt, "response": response, "success": True}
 
-    async def _batch_submit(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _batch_submit(self, data: Any, **kwargs) -> dict[str, Any]:
         """Submit multiple prompts to SEAL (Self-Adapting Language Models)."""
         if not isinstance(data, list):
             raise ValueError("Batch submit requires a list of prompts")
@@ -277,7 +277,7 @@ class SEALAdapter(BaseComponentAdapter):
             "failed": sum(1 for r in results if not r.get("success", False)),
         }
 
-    async def _analyze_code(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _analyze_code(self, data: Any, **kwargs) -> dict[str, Any]:
         """Analyze code using SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
@@ -315,7 +315,7 @@ class SEALAdapter(BaseComponentAdapter):
             "success": True,
         }
 
-    async def _generate_code(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _generate_code(self, data: Any, **kwargs) -> dict[str, Any]:
         """Generate code using SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             specification = data
@@ -353,7 +353,7 @@ class SEALAdapter(BaseComponentAdapter):
             "success": True,
         }
 
-    async def _improve_code(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _improve_code(self, data: Any, **kwargs) -> dict[str, Any]:
         """Improve existing code using SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
@@ -389,7 +389,7 @@ class SEALAdapter(BaseComponentAdapter):
             "success": True,
         }
 
-    async def _explain_code(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _explain_code(self, data: Any, **kwargs) -> dict[str, Any]:
         """Get code explanations from SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
@@ -426,7 +426,7 @@ class SEALAdapter(BaseComponentAdapter):
             "success": True,
         }
 
-    async def _review_code(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _review_code(self, data: Any, **kwargs) -> dict[str, Any]:
         """Get code reviews from SEAL (Self-Adapting Language Models)."""
         if isinstance(data, str):
             code = data
@@ -464,7 +464,7 @@ class SEALAdapter(BaseComponentAdapter):
             "success": True,
         }
 
-    async def _optimize_prompt(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _optimize_prompt(self, data: Any, **kwargs) -> dict[str, Any]:
         """Optimize prompt for better results."""
         if isinstance(data, str):
             original_prompt = data
@@ -502,7 +502,7 @@ class SEALAdapter(BaseComponentAdapter):
 
 def create_seal_adapter(
     provider_type: str = "default",
-    provider_config: Optional[Dict[str, Any]] = None,
+    provider_config: dict[str, Any] | None = None,
     rate_limit_per_sec: float = 1.0,
     max_retries: int = 3,
     retry_delay: float = 1.0,

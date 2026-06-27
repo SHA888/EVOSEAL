@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 
 
 def format_knowledge(
-    knowledge: Union[str, List[Dict[str, Any]], None],
+    knowledge: str | list[dict[str, Any]] | None,
     max_items: int = 5,
     max_length: int = 1000,
 ) -> str:
@@ -71,7 +71,7 @@ def format_knowledge(
     return "\n".join(formatted)
 
 
-def format_examples(examples: Union[str, List[Dict[str, str]], None], max_examples: int = 3) -> str:
+def format_examples(examples: str | list[dict[str, str]] | None, max_examples: int = 3) -> str:
     """Format examples for inclusion in a prompt.
 
     Args:
@@ -108,9 +108,9 @@ def format_examples(examples: Union[str, List[Dict[str, str]], None], max_exampl
 
 
 def format_context(
-    context: Optional[Dict[str, Any]] = None,
-    include_keys: Optional[List[str]] = None,
-    exclude_keys: Optional[List[str]] = None,
+    context: dict[str, Any] | None = None,
+    include_keys: list[str] | None = None,
+    exclude_keys: list[str] | None = None,
 ) -> str:
     """Format context dictionary into a string for the prompt.
 
@@ -154,9 +154,9 @@ def format_context(
 
 def format_prompt(
     template: str,
-    knowledge: Union[str, List[Dict[str, Any]], None] = None,
-    examples: Union[str, List[Dict[str, str]], None] = None,
-    context: Optional[Dict[str, Any]] = None,
+    knowledge: str | list[dict[str, Any]] | None = None,
+    examples: str | list[dict[str, str]] | None = None,
+    context: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> str:
     """Format a complete prompt with knowledge, examples, and context.

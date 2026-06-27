@@ -14,7 +14,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from .types import CheckpointType, ExecutionContext, OrchestrationState
 
@@ -36,9 +36,9 @@ class CheckpointMetadata:
     total_execution_time: float
     memory_usage: float
     cpu_usage: float
-    experiment_id: Optional[str] = None
-    version_id: Optional[str] = None
-    custom_metadata: Dict[str, Any] = field(default_factory=dict)
+    experiment_id: str | None = None
+    version_id: str | None = None
+    custom_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CheckpointManager:
@@ -59,7 +59,7 @@ class CheckpointManager:
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # In-memory checkpoint registry
-        self.checkpoints: Dict[str, CheckpointMetadata] = {}
+        self.checkpoints: dict[str, CheckpointMetadata] = {}
 
         # Load existing checkpoints
         self._load_existing_checkpoints()
@@ -104,11 +104,11 @@ class CheckpointManager:
         self,
         checkpoint_type: CheckpointType,
         execution_context: ExecutionContext,
-        workflow_steps: List[Any],
-        step_results: Dict[str, Any],
+        workflow_steps: list[Any],
+        step_results: dict[str, Any],
         state: OrchestrationState,
-        resource_usage: Dict[str, Any],
-        custom_metadata: Optional[Dict[str, Any]] = None,
+        resource_usage: dict[str, Any],
+        custom_metadata: dict[str, Any] | None = None,
     ) -> str:
         """Create a new checkpoint.
 
@@ -175,7 +175,7 @@ class CheckpointManager:
         logger.info(f"Created checkpoint: {checkpoint_id} (type: {checkpoint_type.value})")
         return checkpoint_id
 
-    def _serialize_metadata(self, metadata: CheckpointMetadata) -> Dict[str, Any]:
+    def _serialize_metadata(self, metadata: CheckpointMetadata) -> dict[str, Any]:
         """Serialize checkpoint metadata for JSON storage."""
         return {
             "checkpoint_id": metadata.checkpoint_id,
@@ -194,7 +194,7 @@ class CheckpointManager:
             "custom_metadata": metadata.custom_metadata,
         }
 
-    def _serialize_execution_context(self, context: ExecutionContext) -> Dict[str, Any]:
+    def _serialize_execution_context(self, context: ExecutionContext) -> dict[str, Any]:
         """Serialize execution context for JSON storage."""
         return {
             "workflow_id": context.workflow_id,
@@ -212,13 +212,13 @@ class CheckpointManager:
             "custom_context": context.custom_context,
         }
 
-    def _serialize_step(self, step: Any) -> Dict[str, Any]:
+    def _serialize_step(self, step: Any) -> dict[str, Any]:
         """Serialize workflow step for JSON storage."""
         if hasattr(step, "__dict__"):
             return step.__dict__
         return str(step)
 
-    def get_checkpoint(self, checkpoint_id: str) -> Optional[Dict[str, Any]]:
+    def get_checkpoint(self, checkpoint_id: str) -> dict[str, Any] | None:
         """Retrieve a checkpoint by ID.
 
         Args:
@@ -252,10 +252,10 @@ class CheckpointManager:
 
     def list_checkpoints(
         self,
-        checkpoint_type: Optional[CheckpointType] = None,
-        experiment_id: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[CheckpointMetadata]:
+        checkpoint_type: CheckpointType | None = None,
+        experiment_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[CheckpointMetadata]:
         """List available checkpoints with optional filtering.
 
         Args:
@@ -368,9 +368,9 @@ class CheckpointManager:
 
     def get_latest_checkpoint(
         self,
-        experiment_id: Optional[str] = None,
-        checkpoint_type: Optional[CheckpointType] = None,
-    ) -> Optional[CheckpointMetadata]:
+        experiment_id: str | None = None,
+        checkpoint_type: CheckpointType | None = None,
+    ) -> CheckpointMetadata | None:
         """Get the most recent checkpoint.
 
         Args:
@@ -386,7 +386,7 @@ class CheckpointManager:
 
         return checkpoints[0] if checkpoints else None
 
-    def get_checkpoint_statistics(self) -> Dict[str, Any]:
+    def get_checkpoint_statistics(self) -> dict[str, Any]:
         """Get statistics about stored checkpoints.
 
         Returns:

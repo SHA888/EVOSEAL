@@ -78,7 +78,7 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
             """AST visitor that extracts simple variable assignments from a module."""
 
             def __init__(self) -> None:
-                self.config: TDict[str, Any] = {}
+                self.config: dict[str, Any] = {}
 
             def visit_Assign(self, node: Assign) -> None:
                 """Handle variable assignments in the AST."""
@@ -98,14 +98,16 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
                     return (
                         node.value
                         if hasattr(node, "value")
-                        else node.n if hasattr(node, "n") else node.s
+                        else node.n
+                        if hasattr(node, "n")
+                        else node.s
                     )
                 elif isinstance(node, (List, Tuple)):
                     return [self._extract_value(n) for n in node.elts]
                 elif isinstance(node, Dict):
                     return dict(
                         (self._extract_value(k), self._extract_value(v))
-                        for k, v in zip(node.keys, node.values)
+                        for k, v in zip(node.keys, node.values, strict=False)
                     )
                 elif (
                     isinstance(node, UnaryOp)

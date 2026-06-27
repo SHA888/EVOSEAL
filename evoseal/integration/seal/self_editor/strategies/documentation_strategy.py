@@ -51,7 +51,7 @@ class DocumentationStrategy(BaseEditStrategy):
     - Adding examples
     """
 
-    def __init__(self, config: Optional[DocumentationConfig] = None, **kwargs: Any) -> None:
+    def __init__(self, config: DocumentationConfig | None = None, **kwargs: Any) -> None:
         """Initialize the documentation strategy.
 
         Args:
@@ -122,9 +122,8 @@ class DocumentationStrategy(BaseEditStrategy):
         from collections.abc import Iterator, Sequence
 
         # No need to import List as we use built-in list type
-        from typing import Any
+        from typing import Any, TypeVar, cast
         from typing import Optional as Opt
-        from typing import TypeVar, cast
 
         # Initialize with explicit type annotation to ensure we only store EditSuggestion
         suggestions: list[EditSuggestion] = []
@@ -157,7 +156,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _check_function_docstring(
         self,
-        node: Union[ast.FunctionDef, ast.AsyncFunctionDef],
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
         parsed: Any,  # Using Any for parsed docstring as we don't have the exact type
         content: str,
     ) -> list[EditSuggestion]:
@@ -280,7 +279,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _create_missing_param_suggestion(
         self, node: ast.AST, param: Any, docstring: str, content: str
-    ) -> Optional[EditSuggestion]:
+    ) -> EditSuggestion | None:
         """Create a suggestion for a missing parameter documentation.
 
         Args:
@@ -374,7 +373,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _create_remove_param_suggestion(
         self, node: ast.AST, param_name: str, docstring: str, content: str
-    ) -> Optional[EditSuggestion]:
+    ) -> EditSuggestion | None:
         """Create a suggestion to remove a parameter that no longer exists.
 
         Args:
@@ -504,7 +503,9 @@ class DocumentationStrategy(BaseEditStrategy):
                     )
 
                 # Handle keyword-only arguments
-                for arg, default_expr in zip(node.args.kwonlyargs, node.args.kw_defaults or []):
+                for arg, default_expr in zip(
+                    node.args.kwonlyargs, node.args.kw_defaults or [], strict=False
+                ):
                     # Get the default value if it exists
                     default = (
                         default_expr.value
@@ -610,7 +611,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _create_missing_docstring_suggestion(
         self, node: ast.AST, content: str
-    ) -> Optional[EditSuggestion]:
+    ) -> EditSuggestion | None:
         """Create a suggestion for a missing docstring.
 
         Args:
@@ -629,7 +630,7 @@ class DocumentationStrategy(BaseEditStrategy):
         return None
 
     def _create_missing_function_docstring(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef], content: str
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, content: str
     ) -> EditSuggestion:
         """Create a suggestion for a missing function docstring.
 
@@ -708,7 +709,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _create_missing_module_docstring(
         self, node: ast.Module, content: str
-    ) -> Optional[EditSuggestion]:
+    ) -> EditSuggestion | None:
         """Create a suggestion for a missing module docstring.
 
         Args:
@@ -762,7 +763,7 @@ class DocumentationStrategy(BaseEditStrategy):
             metadata={"node_type": "module"},
         )
 
-    def _safe_get_docstring(self, node: ast.AST) -> Optional[str]:
+    def _safe_get_docstring(self, node: ast.AST) -> str | None:
         """Safely get docstring from an AST node."""
         if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)):
             return ast.get_docstring(node, clean=False)
@@ -903,7 +904,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
     def _create_missing_section_suggestion(
         self, node: ast.AST, section_name: str, section_content: str, explanation: str
-    ) -> Optional[EditSuggestion]:
+    ) -> EditSuggestion | None:
         """Create a suggestion for a missing docstring section.
 
         Args:
@@ -965,7 +966,7 @@ class DocumentationStrategy(BaseEditStrategy):
             return None
 
     def _check_type_hints(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef], content: str
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, content: str
     ) -> list[EditSuggestion]:
         """Check for missing type hints in function parameters and return type."""
         suggestions = []
@@ -1011,9 +1012,7 @@ class DocumentationStrategy(BaseEditStrategy):
             },
         )
 
-    def _generate_function_docstring(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]
-    ) -> str:
+    def _generate_function_docstring(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
         """Generate a docstring for a function."""
         docstring = [f"{node.name}."]
 
@@ -1044,7 +1043,7 @@ class DocumentationStrategy(BaseEditStrategy):
 
         return "\n".join(docstring)
 
-    def _generate_args_section(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
+    def _generate_args_section(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
         """Generate the Args section for a function docstring."""
         args = [arg for arg in node.args.args if arg.arg != "self"]
         if not args and not node.args.vararg and not node.args.kwarg:

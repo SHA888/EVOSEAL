@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Optional, Protocol, TypeVar
 
 # Type variables for generic types
 T = TypeVar("T")
-Individual = Dict[str, Any]
-Population = List[Individual]
+Individual = dict[str, Any]
+Population = list[Individual]
 
 # Constants
 DEFAULT_TOURNAMENT_SIZE = 3
@@ -119,7 +119,7 @@ class SelectionAlgorithm:
             # Using secrets for secure random number generation
             pick = secrets.SystemRandom().uniform(0, total_fitness)
             current = 0
-            for ind, fit in zip(pop, fitnesses):
+            for ind, fit in zip(pop, fitnesses, strict=False):
                 current += fit
                 if current >= pick:
                     selected.append(ind)

@@ -23,8 +23,8 @@ class PromptTemplate(BasePromptTemplate):
         name: str,
         template: str,
         description: str = "",
-        style: Union[str, PromptStyle] = PromptStyle.INSTRUCTION,
-        required_fields: Optional[Set[str]] = None,
+        style: str | PromptStyle = PromptStyle.INSTRUCTION,
+        required_fields: set[str] | None = None,
         version: str = "1.0",
     ):
         """Initialize the prompt template with validation.
@@ -61,7 +61,7 @@ class PromptConstructor:
     def __init__(
         self,
         default_style: PromptStyle = PromptStyle.INSTRUCTION,
-        templates: Optional[Dict[str, PromptTemplate]] = None,
+        templates: dict[str, PromptTemplate] | None = None,
     ):
         """Initialize the prompt constructor.
 
@@ -137,7 +137,7 @@ class PromptConstructor:
     def format_with_style(
         self,
         content: str,
-        style: Optional[Union[str, PromptStyle]] = None,
+        style: str | PromptStyle | None = None,
         **kwargs: Any,
     ) -> str:
         """Format content with a specific style.
@@ -166,11 +166,11 @@ class PromptConstructor:
 
     def add_template(
         self,
-        name_or_template: Union[str, PromptTemplate],
-        template: Optional[str] = None,
-        style: Optional[Union[str, PromptStyle]] = None,
+        name_or_template: str | PromptTemplate,
+        template: str | None = None,
+        style: str | PromptStyle | None = None,
         description: str = "",
-        required_fields: Optional[Set[str]] = None,
+        required_fields: set[str] | None = None,
     ) -> None:
         """Add a new template to the constructor.
 
@@ -225,7 +225,7 @@ class PromptConstructor:
             raise ValueError(f"Template '{name}' not found")
         return self.templates[name]
 
-    def list_templates(self) -> Dict[str, Dict[str, Any]]:
+    def list_templates(self) -> dict[str, dict[str, Any]]:
         """List all available templates with their metadata.
 
         Returns:

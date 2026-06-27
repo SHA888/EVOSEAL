@@ -23,7 +23,7 @@ class DataLoader(ABC, Generic[T]):
     """Abstract base class for data loaders."""
 
     @classmethod
-    def from_file(cls, file_path: Union[str, Path], model: Type[T], **kwargs: Any) -> List[T]:
+    def from_file(cls, file_path: str | Path, model: type[T], **kwargs: Any) -> list[T]:
         """Load data from a file.
 
         Args:
@@ -52,8 +52,8 @@ class DataLoader(ABC, Generic[T]):
     @classmethod
     @abstractmethod
     def from_string(
-        cls, content: str, format: DataFormat, model: Type[T], **kwargs: Any
-    ) -> List[T]:
+        cls, content: str, format: DataFormat, model: type[T], **kwargs: Any
+    ) -> list[T]:
         """Load data from a string.
 
         Args:
@@ -73,8 +73,8 @@ class JSONLoader(DataLoader[T]):
 
     @classmethod
     def from_string(
-        cls, content: str, format: DataFormat, model: Type[T], **kwargs: Any
-    ) -> List[T]:
+        cls, content: str, format: DataFormat, model: type[T], **kwargs: Any
+    ) -> list[T]:
         if format != DataFormat.JSON:
             raise ValueError(f"JSONLoader only supports JSON format, got {format}")
 
@@ -88,9 +88,9 @@ class JSONLoader(DataLoader[T]):
                 data = [{"data": data}]
             return [model.model_validate(item) for item in data]
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON: {e}")
+            raise ValueError(f"Invalid JSON: {e}") from e
         except ValidationError as e:
-            raise ValueError(f"Validation error: {e}")
+            raise ValueError(f"Validation error: {e}") from e
 
 
 class YAMLLoader(DataLoader[T]):
@@ -98,8 +98,8 @@ class YAMLLoader(DataLoader[T]):
 
     @classmethod
     def from_string(
-        cls, content: str, format: DataFormat, model: Type[T], **kwargs: Any
-    ) -> List[T]:
+        cls, content: str, format: DataFormat, model: type[T], **kwargs: Any
+    ) -> list[T]:
         if format not in (DataFormat.YAML, DataFormat.YML):
             raise ValueError(f"YAMLLoader only supports YAML format, got {format}")
 
@@ -113,9 +113,9 @@ class YAMLLoader(DataLoader[T]):
                 data = [{"data": data}]
             return [model.model_validate(item) for item in data]
         except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML: {e}")
+            raise ValueError(f"Invalid YAML: {e}") from e
         except ValidationError as e:
-            raise ValueError(f"Validation error: {e}")
+            raise ValueError(f"Validation error: {e}") from e
 
 
 class CSVLoader(DataLoader[T]):
@@ -123,8 +123,8 @@ class CSVLoader(DataLoader[T]):
 
     @classmethod
     def from_string(
-        cls, content: str, format: DataFormat, model: Type[T], **kwargs: Any
-    ) -> List[T]:
+        cls, content: str, format: DataFormat, model: type[T], **kwargs: Any
+    ) -> list[T]:
         if format != DataFormat.CSV:
             raise ValueError(f"CSVLoader only supports CSV format, got {format}")
 
@@ -158,15 +158,15 @@ class CSVLoader(DataLoader[T]):
             return results
 
         except csv.Error as e:
-            raise ValueError(f"CSV parsing error: {e}")
+            raise ValueError(f"CSV parsing error: {e}") from e
         except ValidationError as e:
-            raise ValueError(f"Validation error: {e}")
+            raise ValueError(f"Validation error: {e}") from e
         except Exception as e:
-            raise ValueError(f"Error processing CSV data: {e}")
+            raise ValueError(f"Error processing CSV data: {e}") from e
 
 
 # Factory function for getting the appropriate loader
-def get_loader(format: Union[str, DataFormat]) -> Type[DataLoader]:
+def get_loader(format: str | DataFormat) -> type[DataLoader]:
     """Get the appropriate loader for the given format.
 
     Args:
@@ -178,8 +178,8 @@ def get_loader(format: Union[str, DataFormat]) -> Type[DataLoader]:
     if isinstance(format, str):
         try:
             format = DataFormat(format.lower())
-        except ValueError:
-            raise ValueError(f"Unsupported format: {format}")
+        except ValueError as e:
+            raise ValueError(f"Unsupported format: {format}") from e
 
     loaders = {
         DataFormat.JSON: JSONLoader,
@@ -192,11 +192,11 @@ def get_loader(format: Union[str, DataFormat]) -> Type[DataLoader]:
 
 
 def load_data(
-    source: Union[str, Path],
-    model: Type[T],
-    format: Optional[Union[str, DataFormat]] = None,
+    source: str | Path,
+    model: type[T],
+    format: str | DataFormat | None = None,
     **kwargs: Any,
-) -> List[T]:
+) -> list[T]:
     """Load data from a source with automatic format detection.
 
     Args:

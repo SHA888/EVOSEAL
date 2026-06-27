@@ -54,8 +54,8 @@ class DevstralFineTuner:
     def __init__(
         self,
         model_name: str = "devstral:latest",
-        base_model_path: Optional[str] = None,
-        output_dir: Optional[Path] = None,
+        base_model_path: str | None = None,
+        output_dir: Path | None = None,
         use_lora: bool = True,
         use_qlora: bool = False,
     ):
@@ -163,7 +163,7 @@ class DevstralFineTuner:
             logger.error(f"Error initializing model: {e}")
             return False
 
-    async def prepare_training_data(self, data_file: Path) -> Dict[str, Any]:
+    async def prepare_training_data(self, data_file: Path) -> dict[str, Any]:
         """
         Prepare training data for fine-tuning.
 
@@ -253,12 +253,12 @@ class DevstralFineTuner:
 
     async def fine_tune_model(
         self,
-        training_data_path: Optional[str] = None,
+        training_data_path: str | None = None,
         epochs: int = 3,
         learning_rate: float = 2e-4,
         batch_size: int = 4,
         max_length: int = 512,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Fine-tune the model using LoRA/QLoRA.
 

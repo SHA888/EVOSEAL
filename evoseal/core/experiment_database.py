@@ -11,7 +11,7 @@ import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from ..models.experiment import (
     Experiment,
@@ -41,14 +41,14 @@ class ExperimentNotFoundError(ExperimentDatabaseError):
 class ExperimentDatabase:
     """Database for storing and querying experiments."""
 
-    def __init__(self, db_path: Union[str, Path] = ":memory:"):
+    def __init__(self, db_path: str | Path = ":memory:"):
         """Initialize the experiment database.
 
         Args:
             db_path: Path to the SQLite database file, or ":memory:" for in-memory database
         """
         self.db_path = Path(db_path) if db_path != ":memory:" else db_path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._initialize_database()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -256,9 +256,9 @@ class ExperimentDatabase:
         except Exception as e:
             conn.rollback()
             logger.error(f"Error saving experiment {experiment.id}: {e}")
-            raise ExperimentDatabaseError(f"Failed to save experiment: {e}")
+            raise ExperimentDatabaseError(f"Failed to save experiment: {e}") from e
 
-    def get_experiment(self, experiment_id: str) -> Optional[Experiment]:
+    def get_experiment(self, experiment_id: str) -> Experiment | None:
         """Get an experiment by ID.
 
         Args:
@@ -371,19 +371,19 @@ class ExperimentDatabase:
 
         except Exception as e:
             logger.error(f"Error loading experiment {experiment_id}: {e}")
-            raise ExperimentDatabaseError(f"Failed to load experiment: {e}")
+            raise ExperimentDatabaseError(f"Failed to load experiment: {e}") from e
 
     def list_experiments(
         self,
-        status: Optional[ExperimentStatus] = None,
-        experiment_type: Optional[ExperimentType] = None,
-        created_by: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        limit: Optional[int] = None,
+        status: ExperimentStatus | None = None,
+        experiment_type: ExperimentType | None = None,
+        created_by: str | None = None,
+        tags: list[str] | None = None,
+        limit: int | None = None,
         offset: int = 0,
         order_by: str = "created_at",
         order_desc: bool = True,
-    ) -> List[Experiment]:
+    ) -> list[Experiment]:
         """List experiments with optional filtering.
 
         Args:
@@ -470,11 +470,11 @@ class ExperimentDatabase:
         except Exception as e:
             conn.rollback()
             logger.error(f"Error deleting experiment {experiment_id}: {e}")
-            raise ExperimentDatabaseError(f"Failed to delete experiment: {e}")
+            raise ExperimentDatabaseError(f"Failed to delete experiment: {e}") from e
 
     def get_experiment_metrics(
-        self, experiment_id: str, metric_name: Optional[str] = None
-    ) -> List[ExperimentMetric]:
+        self, experiment_id: str, metric_name: str | None = None
+    ) -> list[ExperimentMetric]:
         """Get metrics for an experiment.
 
         Args:
@@ -514,9 +514,9 @@ class ExperimentDatabase:
 
     def get_experiment_count(
         self,
-        status: Optional[ExperimentStatus] = None,
-        experiment_type: Optional[ExperimentType] = None,
-        created_by: Optional[str] = None,
+        status: ExperimentStatus | None = None,
+        experiment_type: ExperimentType | None = None,
+        created_by: str | None = None,
     ) -> int:
         """Get count of experiments matching criteria.
 
@@ -564,7 +564,7 @@ class ExperimentDatabase:
 
 
 def create_experiment_database(
-    db_path: Union[str, Path] = ":memory:",
+    db_path: str | Path = ":memory:",
 ) -> ExperimentDatabase:
     """Create and initialize an experiment database.
 

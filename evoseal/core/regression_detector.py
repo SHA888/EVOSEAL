@@ -9,9 +9,10 @@ import json
 import math
 import statistics
 from collections import defaultdict, deque
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from .events import EventType, publish
 from .logging_system import get_logger
@@ -27,7 +28,7 @@ class RegressionDetector:
     and severity classification for different types of metrics.
     """
 
-    def __init__(self, config: Dict[str, Any], metrics_tracker: MetricsTracker):
+    def __init__(self, config: dict[str, Any], metrics_tracker: MetricsTracker):
         """Initialize the regression detector.
 
         Args:
@@ -68,11 +69,11 @@ class RegressionDetector:
 
         # Baseline management
         self.baseline_storage_path = Path(config.get("baseline_storage_path", "./baselines.json"))
-        self.baselines: Dict[str, Dict[str, Any]] = {}
+        self.baselines: dict[str, dict[str, Any]] = {}
         self._load_baselines()
 
         # Alert system
-        self.alert_callbacks: List[Callable[[Dict[str, Any]], None]] = []
+        self.alert_callbacks: list[Callable[[dict[str, Any]], None]] = []
         self.alert_enabled = config.get("alert_enabled", True)
 
         # Testing framework integration
@@ -109,7 +110,7 @@ class RegressionDetector:
         )
 
         # Historical data storage for statistical analysis
-        self.historical_metrics: Dict[str, deque] = defaultdict(
+        self.historical_metrics: dict[str, deque] = defaultdict(
             lambda: deque(maxlen=self.statistical_config["trend_window"] * 2)
         )
 
@@ -130,8 +131,8 @@ class RegressionDetector:
         )
 
     def detect_regression(
-        self, old_version_id: Union[str, int], new_version_id: Union[str, int]
-    ) -> Tuple[bool, Dict[str, Any]]:
+        self, old_version_id: str | int, new_version_id: str | int
+    ) -> tuple[bool, dict[str, Any]]:
         """Detect if there's a regression in the new version.
 
         Args:
@@ -162,7 +163,6 @@ class RegressionDetector:
                     self.statistical_config["enable_trend_analysis"]
                     or self.statistical_config["enable_anomaly_detection"]
                 ):
-
                     old_value = metric_data.get("baseline", metric_data.get("before", 0))
                     new_value = metric_data.get("current", metric_data.get("after", 0))
 
@@ -240,8 +240,8 @@ class RegressionDetector:
             return False, {"error": str(e)}
 
     def detect_regressions_batch(
-        self, version_comparisons: List[Tuple[Union[str, int], Union[str, int]]]
-    ) -> Dict[str, Tuple[bool, Dict[str, Any]]]:
+        self, version_comparisons: list[tuple[str | int, str | int]]
+    ) -> dict[str, tuple[bool, dict[str, Any]]]:
         """Detect regressions for multiple version comparisons.
 
         Args:
@@ -259,7 +259,7 @@ class RegressionDetector:
 
         return results
 
-    def get_regression_summary(self, regressions: Dict[str, Any]) -> Dict[str, Any]:
+    def get_regression_summary(self, regressions: dict[str, Any]) -> dict[str, Any]:
         """Get a summary of regression analysis.
 
         Args:
@@ -304,7 +304,7 @@ class RegressionDetector:
             "affected_metrics": list(regressions.keys()),
         }
 
-    def is_critical_regression(self, regressions: Dict[str, Any]) -> bool:
+    def is_critical_regression(self, regressions: dict[str, Any]) -> bool:
         """Check if any regressions are critical.
 
         Args:
@@ -328,7 +328,7 @@ class RegressionDetector:
             return self.metric_thresholds[metric_name].get("regression", self.regression_threshold)
         return self.regression_threshold
 
-    def update_thresholds(self, new_thresholds: Dict[str, Dict[str, float]]) -> None:
+    def update_thresholds(self, new_thresholds: dict[str, dict[str, float]]) -> None:
         """Update metric thresholds.
 
         Args:
@@ -338,8 +338,8 @@ class RegressionDetector:
         logger.info(f"Updated regression thresholds for {len(new_thresholds)} metrics")
 
     def _analyze_metric_regression(
-        self, metric_name: str, metric_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, metric_name: str, metric_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Analyze a single metric for regression.
 
         Args:
@@ -414,7 +414,7 @@ class RegressionDetector:
         }
 
     def _determine_severity(
-        self, metric_name: str, change_pct: float, thresholds: Dict[str, float]
+        self, metric_name: str, change_pct: float, thresholds: dict[str, float]
     ) -> str:
         """Determine the severity of a regression.
 
@@ -473,9 +473,7 @@ class RegressionDetector:
         else:
             return "custom"
 
-    def establish_baseline(
-        self, version_id: Union[str, int], baseline_name: str = "default"
-    ) -> bool:
+    def establish_baseline(self, version_id: str | int, baseline_name: str = "default") -> bool:
         """Establish a baseline from a specific version's metrics.
 
         Args:
@@ -495,7 +493,7 @@ class RegressionDetector:
             # Create baseline entry
             baseline_data = {
                 "version_id": str(version_id),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "metrics": (metrics.to_dict() if hasattr(metrics, "to_dict") else metrics),
                 "monitored_metrics": self.monitored_metrics.copy(),
                 "thresholds": self.metric_thresholds.copy(),
@@ -524,7 +522,7 @@ class RegressionDetector:
             logger.error(f"Failed to establish baseline '{baseline_name}': {e}")
             return False
 
-    def get_baseline(self, baseline_name: str = "default") -> Optional[Dict[str, Any]]:
+    def get_baseline(self, baseline_name: str = "default") -> dict[str, Any] | None:
         """Get baseline data by name.
 
         Args:
@@ -535,7 +533,7 @@ class RegressionDetector:
         """
         return self.baselines.get(baseline_name)
 
-    def list_baselines(self) -> List[Dict[str, Any]]:
+    def list_baselines(self) -> list[dict[str, Any]]:
         """List all available baselines.
 
         Returns:
@@ -555,8 +553,8 @@ class RegressionDetector:
         return baseline_list
 
     def compare_against_baseline(
-        self, version_id: Union[str, int], baseline_name: str = "default"
-    ) -> Tuple[bool, Dict[str, Any]]:
+        self, version_id: str | int, baseline_name: str = "default"
+    ) -> tuple[bool, dict[str, Any]]:
         """Compare a version against an established baseline.
 
         Args:
@@ -578,7 +576,7 @@ class RegressionDetector:
 
         return self.detect_regression(baseline_version_id, version_id)
 
-    def register_alert_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
+    def register_alert_callback(self, callback: Callable[[dict[str, Any]], None]) -> None:
         """Register a callback function to be called when regressions are detected.
 
         Args:
@@ -587,7 +585,7 @@ class RegressionDetector:
         self.alert_callbacks.append(callback)
         logger.info(f"Registered alert callback: {callback.__name__}")
 
-    def trigger_alerts(self, regression_data: Dict[str, Any]) -> None:
+    def trigger_alerts(self, regression_data: dict[str, Any]) -> None:
         """Trigger all registered alert callbacks.
 
         Args:
@@ -615,7 +613,7 @@ class RegressionDetector:
             except Exception as e:
                 logger.error(f"Error in alert callback {callback.__name__}: {e}")
 
-    def integrate_with_test_framework(self, framework_name: str, config: Dict[str, Any]) -> bool:
+    def integrate_with_test_framework(self, framework_name: str, config: dict[str, Any]) -> bool:
         """Configure integration with a testing framework.
 
         Args:
@@ -635,10 +633,10 @@ class RegressionDetector:
 
     def run_regression_analysis(
         self,
-        version_id: Union[str, int],
+        version_id: str | int,
         baseline_name: str = "default",
         trigger_alerts: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run comprehensive regression analysis against a baseline.
 
         Args:
@@ -662,7 +660,7 @@ class RegressionDetector:
             analysis_results = {
                 "version_id": str(version_id),
                 "baseline_name": baseline_name,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "has_regression": has_regression,
                 "regression_details": regression_details,
                 "summary": summary,
@@ -686,7 +684,7 @@ class RegressionDetector:
             return {
                 "version_id": str(version_id),
                 "baseline_name": baseline_name,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "has_regression": False,
                 "error": str(e),
             }
@@ -699,7 +697,7 @@ class RegressionDetector:
             f"metrics_tracked={len(self.metric_thresholds)})"
         )
 
-    def analyze_metric_statistics(self, metric_name: str, values: List[float]) -> Dict[str, Any]:
+    def analyze_metric_statistics(self, metric_name: str, values: list[float]) -> dict[str, Any]:
         """Perform statistical analysis on metric values.
 
         Args:
@@ -762,7 +760,7 @@ class RegressionDetector:
             logger.error(f"Error in statistical analysis for {metric_name}: {e}")
             return {"error": str(e)}
 
-    def _analyze_trend(self, values: List[float]) -> Dict[str, Any]:
+    def _analyze_trend(self, values: list[float]) -> dict[str, Any]:
         """Analyze trend in metric values using linear regression.
 
         Args:
@@ -835,7 +833,7 @@ class RegressionDetector:
             logger.error(f"Error in trend analysis: {e}")
             return {"trend": "error", "error": str(e)}
 
-    def _detect_anomalies(self, metric_name: str, values: List[float]) -> List[Dict[str, Any]]:
+    def _detect_anomalies(self, metric_name: str, values: list[float]) -> list[dict[str, Any]]:
         """Detect anomalies in metric values using multiple algorithms.
 
         Args:
@@ -869,7 +867,7 @@ class RegressionDetector:
             logger.error(f"Error in anomaly detection for {metric_name}: {e}")
             return []
 
-    def _detect_zscore_anomalies(self, values: List[float]) -> List[Dict[str, Any]]:
+    def _detect_zscore_anomalies(self, values: list[float]) -> list[dict[str, Any]]:
         """Detect anomalies using Z-score method."""
         if len(values) < 3:
             return []
@@ -898,7 +896,7 @@ class RegressionDetector:
 
         return anomalies
 
-    def _detect_iqr_anomalies(self, values: List[float]) -> List[Dict[str, Any]]:
+    def _detect_iqr_anomalies(self, values: list[float]) -> list[dict[str, Any]]:
         """Detect anomalies using Interquartile Range (IQR) method."""
         if len(values) < 4:
             return []
@@ -937,8 +935,8 @@ class RegressionDetector:
         return anomalies
 
     def _detect_pattern_anomalies(
-        self, metric_name: str, values: List[float]
-    ) -> List[Dict[str, Any]]:
+        self, metric_name: str, values: list[float]
+    ) -> list[dict[str, Any]]:
         """Detect behavioral pattern anomalies."""
         anomalies = []
 
@@ -981,7 +979,7 @@ class RegressionDetector:
             logger.error(f"Error in pattern anomaly detection: {e}")
             return []
 
-    def update_historical_metrics(self, version_id: str, metrics: Dict[str, Any]) -> None:
+    def update_historical_metrics(self, version_id: str, metrics: dict[str, Any]) -> None:
         """Update historical metrics for statistical analysis.
 
         Args:
@@ -989,7 +987,7 @@ class RegressionDetector:
             metrics: Metrics data to add to history
         """
         try:
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
 
             for metric_name, value in metrics.items():
                 if metric_name in self.monitored_metrics and isinstance(value, (int, float)):
@@ -1008,7 +1006,7 @@ class RegressionDetector:
 
     def get_statistical_regression_analysis(
         self, metric_name: str, old_value: float, new_value: float
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Enhanced regression analysis with statistical methods.
 
         Args:
@@ -1088,7 +1086,7 @@ class RegressionDetector:
             logger.error(f"Error in statistical regression analysis: {e}")
             return {"error": str(e)}
 
-    def _calculate_percentile_rank(self, value: float, historical_values: List[float]) -> float:
+    def _calculate_percentile_rank(self, value: float, historical_values: list[float]) -> float:
         """Calculate percentile rank of a value in historical data."""
         if not historical_values:
             return 50.0
@@ -1122,7 +1120,7 @@ class RegressionDetector:
         except OSError as e:
             logger.error(f"Failed to save baselines: {e}")
 
-    def _get_critical_regressions(self, regression_data: Dict[str, Any]) -> List[str]:
+    def _get_critical_regressions(self, regression_data: dict[str, Any]) -> list[str]:
         """Get list of metrics with critical regressions.
 
         Args:

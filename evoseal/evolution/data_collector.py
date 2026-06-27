@@ -10,9 +10,10 @@ import json
 import logging
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .models import CodeMetrics, EvolutionResult, EvolutionStrategy, ImprovementType
 
@@ -29,7 +30,7 @@ class EvolutionDataCollector:
 
     def __init__(
         self,
-        data_dir: Optional[Path] = None,
+        data_dir: Path | None = None,
         min_fitness_threshold: float = 0.7,
         max_memory_results: int = 1000,
         auto_save_interval: int = 50,
@@ -69,7 +70,7 @@ class EvolutionDataCollector:
         self.improvement_patterns = defaultdict(int)
 
         # Callbacks for real-time processing
-        self.result_callbacks: List[Callable[[EvolutionResult], None]] = []
+        self.result_callbacks: list[Callable[[EvolutionResult], None]] = []
 
         logger.info(f"Evolution data collector initialized. Data dir: {self.data_dir}")
 
@@ -174,7 +175,7 @@ class EvolutionDataCollector:
             logger.error(f"Error saving evolution data: {e}")
             raise
 
-    def load_historical_data(self, days_back: int = 30) -> List[EvolutionResult]:
+    def load_historical_data(self, days_back: int = 30) -> list[EvolutionResult]:
         """
         Load historical evolution data.
 
@@ -215,7 +216,7 @@ class EvolutionDataCollector:
             logger.error(f"Error loading historical data: {e}")
             return []
 
-    def get_training_candidates(self, min_samples: int = 100) -> List[EvolutionResult]:
+    def get_training_candidates(self, min_samples: int = 100) -> list[EvolutionResult]:
         """
         Get evolution results suitable for training.
 
@@ -247,7 +248,7 @@ class EvolutionDataCollector:
         logger.info(f"Found {len(high_quality)} high-quality training candidates")
         return high_quality
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get comprehensive statistics about collected data."""
         runtime = datetime.now() - self.stats["collection_start"]
 

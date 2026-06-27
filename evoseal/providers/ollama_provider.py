@@ -112,15 +112,15 @@ class OllamaProvider(SEALProvider):
                     logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
                     return response_text
 
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             logger.error(f"Timeout error communicating with Ollama after {self.timeout}s: {e}")
-            raise Exception(f"Ollama request timed out after {self.timeout} seconds")
+            raise Exception(f"Ollama request timed out after {self.timeout} seconds") from e
         except aiohttp.ClientError as e:
             logger.error(f"Network error communicating with Ollama: {e}")
-            raise Exception(f"Failed to connect to Ollama at {self.base_url}: {e}")
+            raise Exception(f"Failed to connect to Ollama at {self.base_url}: {e}") from e
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON response from Ollama: {e}")
-            raise Exception(f"Invalid response format from Ollama: {e}")
+            raise Exception(f"Invalid response format from Ollama: {e}") from e
         except Exception as e:
             logger.error(f"Unexpected error in Ollama request: {type(e).__name__}: {e}")
             raise

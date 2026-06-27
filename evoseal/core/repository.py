@@ -45,7 +45,7 @@ class MergeError(RepositoryError):
 class ConflictError(RepositoryError):
     """Raised when there are merge conflicts."""
 
-    def __init__(self, message: str, conflicts: List[str] = None):
+    def __init__(self, message: str, conflicts: list[str] = None):
         super().__init__(message)
         self.conflicts = conflicts or []
 
@@ -63,7 +63,7 @@ class RepositoryManager:
         self.repos_dir = work_dir / "repositories"
         self.repos_dir.mkdir(parents=True, exist_ok=True)
 
-    def clone_repository(self, url: str, name: Optional[str] = None) -> Path:
+    def clone_repository(self, url: str, name: str | None = None) -> Path:
         """Clone a git repository.
 
         Args:
@@ -86,7 +86,7 @@ class RepositoryManager:
         repo = Repo.clone_from(url, repo_path)
         return repo_path
 
-    def get_repository(self, name: str) -> Optional[Repo]:
+    def get_repository(self, name: str) -> Repo | None:
         """Get a repository by name.
 
         Args:
@@ -127,7 +127,7 @@ class RepositoryManager:
             print(f"Failed to checkout branch: {e}")
             return False
 
-    def commit_changes(self, repo_name: str, message: str, paths: Optional[list] = None) -> bool:
+    def commit_changes(self, repo_name: str, message: str, paths: list | None = None) -> bool:
         """Commit changes in the repository.
 
         Args:
@@ -181,7 +181,7 @@ class RepositoryManager:
             print(f"Failed to create branch: {e}")
             return False
 
-    def get_commit_info(self, repo_name: str, commit_hash: str) -> Optional[Dict[str, Any]]:
+    def get_commit_info(self, repo_name: str, commit_hash: str) -> dict[str, Any] | None:
         """Get information about a specific commit.
 
         Args:
@@ -207,7 +207,7 @@ class RepositoryManager:
         except git.GitCommandError:
             return None
 
-    def get_status(self, repo_name: str) -> Dict[str, Any]:
+    def get_status(self, repo_name: str) -> dict[str, Any]:
         """Get the current status of the repository.
 
         Args:
@@ -258,7 +258,7 @@ class RepositoryManager:
             }
         except GitCommandError as e:
             logger.error(f"Error getting status for repository '{repo_name}': {e}")
-            raise RepositoryError(f"Failed to get repository status: {e}")
+            raise RepositoryError(f"Failed to get repository status: {e}") from e
 
     def merge_branch(
         self,
@@ -266,7 +266,7 @@ class RepositoryManager:
         source_branch: str,
         target_branch: str,
         no_ff: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Merge changes from source branch into target branch.
 
         Args:
@@ -317,17 +317,17 @@ class RepositoryManager:
                 for path in repo.index.unmerged:
                     if path not in conflicts:
                         conflicts.append(path)
-                raise ConflictError(f"Merge conflict in {repo_name}", conflicts=conflicts)
+                raise ConflictError(f"Merge conflict in {repo_name}", conflicts=conflicts) from e
 
             # Other git command errors
             logger.error(f"Error merging branch '{source_branch}' into '{target_branch}': {e}")
-            raise MergeError(f"Failed to merge branches: {e}")
+            raise MergeError(f"Failed to merge branches: {e}") from e
 
         except Exception as e:
             logger.error(f"Unexpected error during merge: {e}")
-            raise RepositoryError(f"Unexpected error during merge: {e}")
+            raise RepositoryError(f"Unexpected error during merge: {e}") from e
 
-    def resolve_conflicts(self, repo_name: str, resolution: Dict[str, str]) -> bool:
+    def resolve_conflicts(self, repo_name: str, resolution: dict[str, str]) -> bool:
         """Resolve merge conflicts by providing resolutions for conflicted files.
 
         Args:
@@ -358,7 +358,7 @@ class RepositoryManager:
 
         except Exception as e:
             logger.error(f"Error resolving conflicts: {e}")
-            raise RepositoryError(f"Failed to resolve conflicts: {e}")
+            raise RepositoryError(f"Failed to resolve conflicts: {e}") from e
 
     def create_tag(
         self, repo_name: str, tag_name: str, message: str = "", commit: str = "HEAD"
@@ -386,7 +386,7 @@ class RepositoryManager:
             return True
         except GitCommandError as e:
             logger.error(f"Error creating tag '{tag_name}': {e}")
-            raise RepositoryError(f"Failed to create tag: {e}")
+            raise RepositoryError(f"Failed to create tag: {e}") from e
 
     def get_diff(self, repo_name: str, base: str = "HEAD", compare: str = None) -> str:
         """Get the diff between two commits or branches.
@@ -412,7 +412,7 @@ class RepositoryManager:
             return repo.git.diff(base)
         except GitCommandError as e:
             logger.error(f"Error generating diff: {e}")
-            raise RepositoryError(f"Failed to generate diff: {e}")
+            raise RepositoryError(f"Failed to generate diff: {e}") from e
 
     def stash_changes(self, repo_name: str, message: str = "") -> bool:
         """Stash changes in the working directory.
@@ -436,7 +436,7 @@ class RepositoryManager:
             return True
         except GitCommandError as e:
             logger.error(f"Error stashing changes: {e}")
-            raise RepositoryError(f"Failed to stash changes: {e}")
+            raise RepositoryError(f"Failed to stash changes: {e}") from e
 
     def apply_stash(self, repo_name: str, stash_ref: str = "stash@{0}") -> bool:
         """Apply a stashed change.
@@ -460,9 +460,9 @@ class RepositoryManager:
             return True
         except GitCommandError as e:
             logger.error(f"Error applying stash: {e}")
-            raise RepositoryError(f"Failed to apply stash: {e}")
+            raise RepositoryError(f"Failed to apply stash: {e}") from e
 
-    def get_branches(self, repo_name: str, remote: bool = False) -> List[str]:
+    def get_branches(self, repo_name: str, remote: bool = False) -> list[str]:
         """Get list of branches in the repository.
 
         Args:
@@ -485,9 +485,9 @@ class RepositoryManager:
             return [ref.name for ref in repo.branches]
         except Exception as e:
             logger.error(f"Error listing branches: {e}")
-            raise RepositoryError(f"Failed to list branches: {e}")
+            raise RepositoryError(f"Failed to list branches: {e}") from e
 
-    def get_commit_history(self, repo_name: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_commit_history(self, repo_name: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get commit history for the repository.
 
         Args:
@@ -518,7 +518,7 @@ class RepositoryManager:
             return commits
         except Exception as e:
             logger.error(f"Error getting commit history: {e}")
-            raise RepositoryError(f"Failed to get commit history: {e}")
+            raise RepositoryError(f"Failed to get commit history: {e}") from e
 
     def reset_to_commit(self, repo_name: str, commit_hash: str, hard: bool = False) -> bool:
         """Reset repository to a specific commit.
@@ -544,9 +544,9 @@ class RepositoryManager:
             return True
         except GitCommandError as e:
             logger.error(f"Error resetting to commit {commit_hash}: {e}")
-            raise RepositoryError(f"Failed to reset repository: {e}")
+            raise RepositoryError(f"Failed to reset repository: {e}") from e
 
-    def get_file_content(self, repo_name: str, file_path: str, ref: str = "HEAD") -> Optional[str]:
+    def get_file_content(self, repo_name: str, file_path: str, ref: str = "HEAD") -> str | None:
         """Get the content of a file at a specific reference.
 
         Args:
@@ -572,9 +572,9 @@ class RepositoryManager:
                 return None
         except Exception as e:
             logger.error(f"Error reading file {file_path} at {ref}: {e}")
-            raise RepositoryError(f"Failed to read file: {e}")
+            raise RepositoryError(f"Failed to read file: {e}") from e
 
-    def get_remote_url(self, repo_name: str, remote_name: str = "origin") -> Optional[str]:
+    def get_remote_url(self, repo_name: str, remote_name: str = "origin") -> str | None:
         """Get the URL of a remote repository.
 
         Args:
@@ -598,7 +598,7 @@ class RepositoryManager:
             return None
         except Exception as e:
             logger.error(f"Error getting remote URL: {e}")
-            raise RepositoryError(f"Failed to get remote URL: {e}")
+            raise RepositoryError(f"Failed to get remote URL: {e}") from e
 
     def get_default_branch(self, repo_name: str) -> str:
         """Get the default branch name of a repository.
@@ -641,9 +641,9 @@ class RepositoryManager:
 
         except Exception as e:
             logger.error(f"Error getting default branch: {e}")
-            raise RepositoryError(f"Failed to get default branch: {e}")
+            raise RepositoryError(f"Failed to get default branch: {e}") from e
 
-    def pull_changes(self, repo_name: str, branch: Optional[str] = None) -> bool:
+    def pull_changes(self, repo_name: str, branch: str | None = None) -> bool:
         """Pull the latest changes from the remote repository.
 
         Args:
@@ -691,13 +691,13 @@ class RepositoryManager:
         except GitCommandError as e:
             error_msg = f"Failed to pull changes: {e}"
             logger.error(error_msg)
-            raise RepositoryError(error_msg)
+            raise RepositoryError(error_msg) from e
         except Exception as e:
             error_msg = f"Unexpected error during pull: {e}"
             logger.error(error_msg, exc_info=True)
-            raise RepositoryError(error_msg)
+            raise RepositoryError(error_msg) from e
 
-    def get_repository(self, repo_name: str) -> Optional[Repo]:
+    def get_repository(self, repo_name: str) -> Repo | None:
         """Get a repository object by name.
 
         Args:

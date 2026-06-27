@@ -2,6 +2,7 @@
 """
 Generate release notes and changelog excerpts based on evolution metrics and git history.
 """
+
 import json
 import os
 import subprocess
@@ -12,7 +13,7 @@ from typing import Dict, List, Optional
 import yaml
 
 
-def get_git_changes(since_tag: str) -> List[Dict]:
+def get_git_changes(since_tag: str) -> list[dict]:
     """Get commit history since the last release."""
     cmd = [
         "git",
@@ -33,7 +34,7 @@ def get_git_changes(since_tag: str) -> List[Dict]:
     return changes
 
 
-def load_evolution_metrics() -> Dict:
+def load_evolution_metrics() -> dict:
     """Load evolution metrics from the metrics directory."""
     metrics_dir = Path("metrics")
     metrics = {
@@ -62,7 +63,7 @@ def load_evolution_metrics() -> Dict:
     return metrics
 
 
-def generate_changelog_excerpt(version: str, metrics: Dict, changes: List[Dict]) -> str:
+def generate_changelog_excerpt(version: str, metrics: dict, changes: list[dict]) -> str:
     """Generate changelog excerpt with evolution highlights."""
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -104,7 +105,7 @@ def generate_changelog_excerpt(version: str, metrics: Dict, changes: List[Dict])
             output.append(f"- {commit['message']} (*{commit['author']}*)")
 
 
-def generate_release_notes(version: str, metrics: Dict, changes: List[Dict]) -> str:
+def generate_release_notes(version: str, metrics: dict, changes: list[dict]) -> str:
     """Generate comprehensive release notes."""
     today = datetime.now().strftime("%Y-%m-%d")
     output = [

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, ClassVar, Optional, cast
 from uuid import uuid4
 
@@ -26,7 +26,7 @@ class EvaluationResult(BaseModel):
         default_factory=list, description="Results for each test case"
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="Evaluation timestamp (UTC)",
     )
     notes: str | None = Field(default=None, description="Optional notes or comments")

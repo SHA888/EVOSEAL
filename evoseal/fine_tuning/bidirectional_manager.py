@@ -32,9 +32,9 @@ class BidirectionalEvolutionManager:
 
     def __init__(
         self,
-        data_collector: Optional[EvolutionDataCollector] = None,
-        training_manager: Optional[TrainingManager] = None,
-        output_dir: Optional[Path] = None,
+        data_collector: EvolutionDataCollector | None = None,
+        training_manager: TrainingManager | None = None,
+        output_dir: Path | None = None,
         evolution_check_interval: int = 60,  # minutes
         min_evolution_cycles: int = 10,
     ):
@@ -63,7 +63,7 @@ class BidirectionalEvolutionManager:
         self.evolution_check_interval = timedelta(minutes=evolution_check_interval)
         self.min_evolution_cycles = min_evolution_cycles
         self.is_running = False
-        self.evolution_history: List[Dict[str, Any]] = []
+        self.evolution_history: list[dict[str, Any]] = []
         self.last_check_time = None
 
         # Statistics
@@ -77,7 +77,7 @@ class BidirectionalEvolutionManager:
 
         logger.info("BidirectionalEvolutionManager initialized")
 
-    def get_evolution_status(self) -> Dict[str, Any]:
+    def get_evolution_status(self) -> dict[str, Any]:
         """Get current evolution status and statistics."""
         # Get component statuses
         data_stats = self.data_collector.get_statistics() if self.data_collector else {}
@@ -110,7 +110,7 @@ class BidirectionalEvolutionManager:
 
         return status
 
-    def get_evolution_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_evolution_history(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         Get recent evolution history.
 
@@ -122,7 +122,7 @@ class BidirectionalEvolutionManager:
         """
         return self.evolution_history[-limit:] if self.evolution_history else []
 
-    async def generate_evolution_report(self) -> Dict[str, Any]:
+    async def generate_evolution_report(self) -> dict[str, Any]:
         """Generate a comprehensive evolution report."""
         try:
             # Get current status
@@ -174,7 +174,7 @@ class BidirectionalEvolutionManager:
             logger.error(f"Error generating evolution report: {e}")
             return {"error": str(e)}
 
-    def _analyze_evolution_trends(self) -> Dict[str, Any]:
+    def _analyze_evolution_trends(self) -> dict[str, Any]:
         """Analyze trends in evolution performance."""
         if len(self.evolution_history) < 2:
             return {"insufficient_data": True}
@@ -206,7 +206,7 @@ class BidirectionalEvolutionManager:
 
         return trends
 
-    def _generate_recommendations(self) -> List[str]:
+    def _generate_recommendations(self) -> list[str]:
         """Generate recommendations based on evolution performance."""
         recommendations = []
 

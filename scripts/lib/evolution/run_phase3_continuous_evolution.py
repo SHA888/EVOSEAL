@@ -36,7 +36,7 @@ class Phase3Orchestrator:
 
     def __init__(
         self,
-        config_file: Optional[Path] = None,
+        config_file: Path | None = None,
         dashboard_host: str = "localhost",
         dashboard_port: int = 9613,
         evolution_interval: int = 3600,  # 1 hour

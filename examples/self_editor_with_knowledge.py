@@ -13,10 +13,10 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union, cast
+from typing import Any, List, Optional, Union, cast
 
 # Add the project root to the path so we can import evoseal
 project_root = str(Path(__file__).parent.parent)
@@ -42,7 +42,7 @@ from evoseal.integration.seal.self_editor.utils.code_utils import (
 
 # Type alias for either type of EditSuggestion
 AnyEditSuggestion = Union[ModelsEditSuggestion, EditorEditSuggestion, dict[str, Any]]
-AnyEditSuggestionList = List[AnyEditSuggestion]
+AnyEditSuggestionList = list[AnyEditSuggestion]
 
 
 def setup_knowledge_base() -> KnowledgeBase:

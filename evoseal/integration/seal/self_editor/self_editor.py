@@ -10,7 +10,7 @@ import json
 import logging
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Optional, Protocol, TypeVar, Union
@@ -107,14 +107,14 @@ class EditHistory(BaseModel):
     original_content: str
     current_content: str
     edit_history: list[dict[str, Any]] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def add_edit(self, suggestion: EditSuggestion, applied: bool = True) -> None:
         """Add an edit to the history."""
         self.edit_history.append(
             {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "suggestion": suggestion.to_dict(),
                 "applied": applied,
                 "content_before": self.current_content,
@@ -122,7 +122,7 @@ class EditHistory(BaseModel):
             }
         )
         self.current_content = suggestion.suggested_text if applied else self.current_content
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
 
 class EditStrategy(Protocol):
@@ -591,6 +591,6 @@ class SelfEditor:
             history = self.histories[content_id]
             history.current_content = history.original_content
             history.edit_history = []
-            history.updated_at = datetime.now(timezone.utc)
+            history.updated_at = datetime.now(UTC)
             return history.current_content
         return None

@@ -46,8 +46,8 @@ class TrainingDataBuilder:
         self.include_negative_examples = include_negative_examples
 
         # Training example storage
-        self.training_examples: List[TrainingExample] = []
-        self.examples_by_pattern: Dict[str, List[TrainingExample]] = defaultdict(list)
+        self.training_examples: list[TrainingExample] = []
+        self.examples_by_pattern: dict[str, list[TrainingExample]] = defaultdict(list)
 
         # Quality filters
         self.quality_filters = [
@@ -61,9 +61,9 @@ class TrainingDataBuilder:
 
     def build_training_data(
         self,
-        evolution_results: List[EvolutionResult],
-        pattern_analysis: Optional[Dict[str, Any]] = None,
-    ) -> List[TrainingExample]:
+        evolution_results: list[EvolutionResult],
+        pattern_analysis: dict[str, Any] | None = None,
+    ) -> list[TrainingExample]:
         """
         Build training data from evolution results.
 
@@ -102,7 +102,7 @@ class TrainingDataBuilder:
 
         return varied_examples
 
-    def _filter_high_quality_results(self, results: List[EvolutionResult]) -> List[EvolutionResult]:
+    def _filter_high_quality_results(self, results: list[EvolutionResult]) -> list[EvolutionResult]:
         """Filter results for high-quality training examples."""
         high_quality = []
 
@@ -112,7 +112,6 @@ class TrainingDataBuilder:
                 and result.fitness_score >= self.min_quality_score
                 and result.improvement_percentage > 10.0
             ):  # Significant improvement
-
                 # Apply quality filters
                 if all(filter_func(result) for filter_func in self.quality_filters):
                     high_quality.append(result)
@@ -163,7 +162,7 @@ class TrainingDataBuilder:
 
         return any(improvements)
 
-    def _create_training_example(self, result: EvolutionResult) -> Optional[TrainingExample]:
+    def _create_training_example(self, result: EvolutionResult) -> TrainingExample | None:
         """Create a training example from an evolution result."""
         try:
             # Generate instruction based on improvement types
@@ -315,7 +314,7 @@ class TrainingDataBuilder:
         else:
             return "general_improvement"
 
-    def _balance_examples(self, examples: List[TrainingExample]) -> List[TrainingExample]:
+    def _balance_examples(self, examples: list[TrainingExample]) -> list[TrainingExample]:
         """Balance examples across different pattern types."""
         if len(examples) <= self.max_examples_per_pattern:
             return examples
@@ -342,7 +341,7 @@ class TrainingDataBuilder:
 
         return balanced
 
-    def _add_instruction_variations(self, examples: List[TrainingExample]) -> List[TrainingExample]:
+    def _add_instruction_variations(self, examples: list[TrainingExample]) -> list[TrainingExample]:
         """Add variations to instructions for better training diversity."""
         varied_examples = []
 
@@ -387,7 +386,7 @@ class TrainingDataBuilder:
 
     def save_training_data(
         self, output_dir: Path, format_type: str = "alpaca", split_ratio: float = 0.8
-    ) -> Dict[str, Path]:
+    ) -> dict[str, Path]:
         """
         Save training data in various formats.
 
@@ -441,9 +440,9 @@ class TrainingDataBuilder:
     def _save_alpaca_format(
         self,
         output_dir: Path,
-        train_examples: List[TrainingExample],
-        val_examples: List[TrainingExample],
-    ) -> Dict[str, Path]:
+        train_examples: list[TrainingExample],
+        val_examples: list[TrainingExample],
+    ) -> dict[str, Path]:
         """Save in Alpaca instruction format."""
 
         def convert_to_alpaca(examples):
@@ -463,9 +462,9 @@ class TrainingDataBuilder:
     def _save_chat_format(
         self,
         output_dir: Path,
-        train_examples: List[TrainingExample],
-        val_examples: List[TrainingExample],
-    ) -> Dict[str, Path]:
+        train_examples: list[TrainingExample],
+        val_examples: list[TrainingExample],
+    ) -> dict[str, Path]:
         """Save in chat format."""
 
         def convert_to_chat(examples):
@@ -485,9 +484,9 @@ class TrainingDataBuilder:
     def _save_jsonl_format(
         self,
         output_dir: Path,
-        train_examples: List[TrainingExample],
-        val_examples: List[TrainingExample],
-    ) -> Dict[str, Path]:
+        train_examples: list[TrainingExample],
+        val_examples: list[TrainingExample],
+    ) -> dict[str, Path]:
         """Save in JSONL format."""
         train_file = output_dir / "train.jsonl"
         val_file = output_dir / "val.jsonl"
@@ -502,7 +501,7 @@ class TrainingDataBuilder:
 
         return {"train_jsonl": train_file, "val_jsonl": val_file}
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the training data."""
         if not self.training_examples:
             return {"error": "No training examples available"}

@@ -22,7 +22,7 @@ class DGMDataAdapter:
         with open(path, "w") as f:
             f.write(archive.to_json(indent=2))
 
-    def load_code_archive(self, archive_id: str) -> Optional[CodeArchive]:
+    def load_code_archive(self, archive_id: str) -> CodeArchive | None:
         path = os.path.join(self.base_dir, "code_archives", f"{archive_id}.json")
         if not os.path.exists(path):
             return None
@@ -38,7 +38,7 @@ class DGMDataAdapter:
         with open(path, "w") as f:
             f.write(result.to_json(indent=2))
 
-    def load_evaluation_result(self, result_id: str) -> Optional[EvaluationResult]:
+    def load_evaluation_result(self, result_id: str) -> EvaluationResult | None:
         path = os.path.join(self.base_dir, "evaluation_results", f"{result_id}.json")
         if not os.path.exists(path):
             return None

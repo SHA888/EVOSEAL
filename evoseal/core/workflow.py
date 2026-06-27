@@ -15,9 +15,9 @@ import time
 from collections.abc import Awaitable, Callable, Generator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Literal, TypeVar, Union, cast, overload
+from typing import Any, Literal, NotRequired, TypeAlias, TypeVar, Union, cast, overload
 
-from typing_extensions import NotRequired, TypeAlias, TypedDict
+from typing_extensions import TypedDict
 
 from evoseal.core.events import Event, EventBus, EventType
 
@@ -27,12 +27,12 @@ R = TypeVar("R")
 # Define handler types
 SyncHandler: TypeAlias = Callable[[dict[str, Any]], Any]
 AsyncHandler: TypeAlias = Callable[[dict[str, Any]], Awaitable[None]]
-EventHandlerType: TypeAlias = Union[SyncHandler, AsyncHandler]
+EventHandlerType: TypeAlias = SyncHandler | AsyncHandler
 
 # Define component method types
 SyncComponentMethod: TypeAlias = Callable[..., Any]
 AsyncComponentMethod: TypeAlias = Callable[..., Awaitable[Any]]
-ComponentMethod: TypeAlias = Union[SyncComponentMethod, AsyncComponentMethod]
+ComponentMethod: TypeAlias = SyncComponentMethod | AsyncComponentMethod
 
 # Type alias for backward compatibility
 EventHandler = Callable[[dict[str, Any]], Any]

@@ -8,10 +8,11 @@ import asyncio
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from evoseal.core.errors import BaseError, ErrorCategory, ErrorSeverity
 from evoseal.core.events import Event, EventBus, create_error_event
@@ -55,7 +56,7 @@ class RecoveryStrategy:
     timeout: float = 30.0
     fallback_enabled: bool = True
     escalation_threshold: int = 5
-    recovery_actions: List[RecoveryAction] = field(
+    recovery_actions: list[RecoveryAction] = field(
         default_factory=lambda: [RecoveryAction.RETRY, RecoveryAction.FALLBACK]
     )
 
@@ -71,7 +72,7 @@ class RecoveryAttempt:
     action: RecoveryAction
     result: RecoveryResult
     duration: float
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     retry_count: int = 0
 
 
@@ -80,20 +81,20 @@ class ErrorPattern:
     """Pattern for error classification and recovery."""
 
     error_type: str
-    error_message_pattern: Optional[str] = None
-    component: Optional[str] = None
-    operation: Optional[str] = None
-    recovery_strategy: Optional[RecoveryStrategy] = None
-    custom_handler: Optional[Callable] = None
+    error_message_pattern: str | None = None
+    component: str | None = None
+    operation: str | None = None
+    recovery_strategy: RecoveryStrategy | None = None
+    custom_handler: Callable | None = None
 
 
 class ErrorClassifier:
     """Classifies errors and determines appropriate recovery strategies."""
 
     def __init__(self):
-        self.patterns: List[ErrorPattern] = []
-        self.error_history: Dict[str, List[Exception]] = defaultdict(list)
-        self.recovery_success_rates: Dict[str, Dict[RecoveryAction, float]] = defaultdict(dict)
+        self.patterns: list[ErrorPattern] = []
+        self.error_history: dict[str, list[Exception]] = defaultdict(list)
+        self.recovery_success_rates: dict[str, dict[RecoveryAction, float]] = defaultdict(dict)
 
     def register_pattern(self, pattern: ErrorPattern):
         """Register an error pattern for classification."""
@@ -102,7 +103,7 @@ class ErrorClassifier:
 
     def classify_error(
         self, error: Exception, component: str, operation: str
-    ) -> Optional[ErrorPattern]:
+    ) -> ErrorPattern | None:
         """Classify an error and return matching pattern."""
         error_type = error.__class__.__name__
         error_message = str(error)
@@ -146,7 +147,7 @@ class ErrorClassifier:
         self.recovery_success_rates[component][action] = new_rate
 
     def get_best_recovery_action(
-        self, component: str, available_actions: List[RecoveryAction]
+        self, component: str, available_actions: list[RecoveryAction]
     ) -> RecoveryAction:
         """Get the recovery action with highest success rate."""
         if component not in self.recovery_success_rates:
@@ -168,15 +169,15 @@ class FallbackManager:
     """Manages fallback mechanisms for failed operations."""
 
     def __init__(self):
-        self.fallback_handlers: Dict[str, Callable] = {}
-        self.fallback_data: Dict[str, Any] = {}
+        self.fallback_handlers: dict[str, Callable] = {}
+        self.fallback_data: dict[str, Any] = {}
 
     def register_fallback(
         self,
         component: str,
         operation: str,
         handler: Callable,
-        fallback_data: Optional[Any] = None,
+        fallback_data: Any | None = None,
     ):
         """Register a fallback handler for a component operation."""
         key = f"{component}:{operation}"
@@ -225,12 +226,14 @@ class FallbackManager:
 class ErrorRecoveryManager:
     """Comprehensive error recovery manager."""
 
+    ERROR_FREQUENCY_ESCALATION_THRESHOLD = 5
+
     def __init__(self):
         self.classifier = ErrorClassifier()
         self.fallback_manager = FallbackManager()
-        self.recovery_attempts: List[RecoveryAttempt] = []
-        self.component_states: Dict[str, str] = {}
-        self.escalation_handlers: Dict[str, Callable] = {}
+        self.recovery_attempts: list[RecoveryAttempt] = []
+        self.component_states: dict[str, str] = {}
+        self.escalation_handlers: dict[str, Callable] = {}
 
         # Default recovery strategies
         self.default_strategies = {
@@ -308,7 +311,7 @@ class ErrorRecoveryManager:
         original_func: Callable,
         *args,
         **kwargs,
-    ) -> Tuple[Any, RecoveryResult]:
+    ) -> tuple[Any, RecoveryResult]:
         """Attempt to recover from an error."""
         recovery_start = time.time()
 
@@ -511,7 +514,7 @@ class ErrorRecoveryManager:
     async def _should_escalate(self, component: str, operation: str) -> bool:
         """Determine if error should be escalated."""
         error_frequency = self.classifier.get_error_frequency(component, operation)
-        return error_frequency >= 5  # Escalate after 5 errors
+        return error_frequency >= self.ERROR_FREQUENCY_ESCALATION_THRESHOLD
 
     async def _escalate_error(
         self, error: Exception, component: str, operation: str, *args, **kwargs
@@ -534,14 +537,14 @@ class ErrorRecoveryManager:
         """Get default recovery strategy based on error type."""
         if isinstance(error, TimeoutError):
             return self.default_strategies[ErrorCategory.TIMEOUT]
-        elif isinstance(error, (ConnectionError, OSError)):
+        elif isinstance(error, ConnectionError | OSError):
             return self.default_strategies[ErrorCategory.NETWORK]
         elif isinstance(error, MemoryError):
             return self.default_strategies[ErrorCategory.RESOURCE]
         else:
             return RecoveryStrategy()  # Default strategy
 
-    def get_recovery_statistics(self) -> Dict[str, Any]:
+    def get_recovery_statistics(self) -> dict[str, Any]:
         """Get recovery statistics."""
         if not self.recovery_attempts:
             return {}
@@ -587,7 +590,7 @@ error_recovery_manager = ErrorRecoveryManager()
 def with_error_recovery(
     component: str,
     operation: str,
-    recovery_strategy: Optional[RecoveryStrategy] = None,
+    recovery_strategy: RecoveryStrategy | None = None,
 ):
     """Decorator to add error recovery to functions."""
 

@@ -5,7 +5,8 @@ Base command class for EVOSEAL CLI commands.
 import abc
 import logging
 import typing
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from collections.abc import Callable
+from typing import Any, Optional, TypeVar, Union, cast
 
 import typer
 from click import Group as ClickGroup
@@ -28,21 +29,21 @@ class EVOSEALCommand(abc.ABC, typer.Typer):
     def callback(
         self,
         *,
-        cls: Union[type[ClickGroup], None] = None,
+        cls: type[ClickGroup] | None = None,
         invoke_without_command: bool = False,
         no_args_is_help: bool = True,
-        subcommand_metavar: Union[str, None] = None,
+        subcommand_metavar: str | None = None,
         chain: bool = False,
-        result_callback: Union[typing.Callable[..., typing.Any], None] = None,
-        context_settings: Union[dict[typing.Any, typing.Any], None] = None,
-        help: Union[str, None] = None,
-        epilog: Union[str, None] = None,
-        short_help: Union[str, None] = None,
+        result_callback: typing.Callable[..., typing.Any] | None = None,
+        context_settings: dict[typing.Any, typing.Any] | None = None,
+        help: str | None = None,
+        epilog: str | None = None,
+        short_help: str | None = None,
         options_metavar: str = "[OPTIONS]",
         add_help_option: bool = True,
         hidden: bool = False,
         deprecated: bool = False,
-        rich_help_panel: Union[str, None] = None,
+        rich_help_panel: str | None = None,
     ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
         """The main entry point for the command.
 

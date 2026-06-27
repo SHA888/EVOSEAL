@@ -83,7 +83,7 @@ class MockMetricsTracker:
         return comparison
 
 
-def alert_callback(regression_data: Dict[str, Any]) -> None:
+def alert_callback(regression_data: dict[str, Any]) -> None:
     """Example alert callback function."""
     logger.warning("🚨 REGRESSION ALERT TRIGGERED!")
     logger.warning(f"Detected regressions in {len(regression_data)} metrics:")
@@ -94,7 +94,7 @@ def alert_callback(regression_data: Dict[str, Any]) -> None:
         logger.warning(f"  - {metric}: {severity} severity ({change:.2%} change)")
 
 
-def email_alert_callback(regression_data: Dict[str, Any]) -> None:
+def email_alert_callback(regression_data: dict[str, Any]) -> None:
     """Example email alert callback (mock)."""
     logger.info("📧 Sending email alert to development team...")
     critical_count = len(

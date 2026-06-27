@@ -40,7 +40,7 @@ class EvolutionManager:
     """
 
     def __init__(
-        self, output_dir: str, prevrun_dir: Optional[str] = None, polyglot: bool = False
+        self, output_dir: str, prevrun_dir: str | None = None, polyglot: bool = False
     ) -> None:
         self.output_dir = output_dir
         self.prevrun_dir = prevrun_dir
@@ -60,7 +60,7 @@ class EvolutionManager:
         self,
         selfimprove_size: int,
         method: str = "random",
-        run_baseline: Optional[str] = None,
+        run_baseline: str | None = None,
     ) -> list[tuple[str, dict[str, str]]]:
         """
         Choose parent candidates for the next generation using DGM logic.
@@ -84,7 +84,7 @@ class EvolutionManager:
         self,
         selfimprove_size: int,
         method: str = "random",
-        run_baseline: Optional[str] = None,
+        run_baseline: str | None = None,
         **kwargs: dict[str, str],
     ) -> dict:
         """
@@ -159,7 +159,7 @@ class EvolutionManager:
         return dict(result)
 
     # ---- Fitness Metrics ----
-    def get_fitness_metrics(self, run_id: Optional[str] = None) -> dict[str, str]:
+    def get_fitness_metrics(self, run_id: str | None = None) -> dict[str, str]:
         """
         Retrieve fitness metrics (accuracy, resolved/unresolved counts, etc.) for a given run.
         If run_id is None, use the latest in the archive.

@@ -32,8 +32,8 @@ class ContinuousEvolutionService:
 
     def __init__(
         self,
-        config: Optional[SEALConfig] = None,
-        data_dir: Optional[Path] = None,
+        config: SEALConfig | None = None,
+        data_dir: Path | None = None,
         evolution_interval: int = 3600,  # 1 hour
         training_check_interval: int = 1800,  # 30 minutes
         min_evolution_samples: int = 50,
@@ -164,7 +164,7 @@ class ContinuousEvolutionService:
                 try:
                     await asyncio.wait_for(self.shutdown_event.wait(), timeout=60.0)
                     break  # Shutdown requested
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue  # Normal timeout, continue loop
 
             except Exception as e:
@@ -256,7 +256,7 @@ class ContinuousEvolutionService:
                 datetime.now() - self.start_time
             ).total_seconds()
 
-    async def generate_service_report(self) -> Dict[str, Any]:
+    async def generate_service_report(self) -> dict[str, Any]:
         """Generate comprehensive service report."""
         try:
             # Get bidirectional evolution report
@@ -293,7 +293,7 @@ class ContinuousEvolutionService:
             logger.error(f"Error generating service report: {e}")
             return {"error": str(e)}
 
-    def _calculate_performance_metrics(self) -> Dict[str, Any]:
+    def _calculate_performance_metrics(self) -> dict[str, Any]:
         """Calculate performance metrics."""
         metrics = {}
 
@@ -321,7 +321,7 @@ class ContinuousEvolutionService:
         logger.info("🧹 Cleaning up service resources")
         # Add any cleanup logic here
 
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """Get current service status."""
         return {
             "is_running": self.is_running,

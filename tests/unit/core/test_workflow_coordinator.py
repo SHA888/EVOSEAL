@@ -38,12 +38,12 @@ class WorkflowStage:
 class WorkflowCoordinator:
     """Mock implementation of WorkflowCoordinator for testing."""
 
-    def __init__(self, config_path: str, work_dir: Optional[str] = None):
+    def __init__(self, config_path: str, work_dir: str | None = None):
         self.config_path = config_path
         self.work_dir = work_dir or "work"
         self.state = WorkflowState.NOT_STARTED
         self.current_stage = None
-        self.stage_results: Dict[str, Any] = {}
+        self.stage_results: dict[str, Any] = {}
         self.retry_count = 0
         self.current_repo = None
         self.current_branch = None
@@ -108,14 +108,14 @@ class TestWorkflowCoordinator(unittest.IsolatedAsyncioTestCase):
         """Set up test fixtures."""
         # Create a temporary config file
         self.temp_dir = tempfile.mkdtemp()
-        self.config_path = os.path.join(self.temp_dir, 'test_config.yaml')
-        with open(self.config_path, 'w') as f:
-            f.write('test: config\n')
+        self.config_path = os.path.join(self.temp_dir, "test_config.yaml")
+        with open(self.config_path, "w") as f:
+            f.write("test: config\n")
         self.workflow = WorkflowCoordinator(config_path=self.config_path)
 
     def teardown_method(self, method=None):
         """Clean up after tests."""
-        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+        if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
     def test_initial_state(self):
@@ -237,7 +237,7 @@ class TestWorkflowCoordinator(unittest.IsolatedAsyncioTestCase):
             assert self.workflow.state == WorkflowState.COMPLETED
             assert WorkflowStage.ADAPTING in stages  # Make sure we continued past the pause point
             assert WorkflowStage.EVALUATING in stages  # Make sure we completed all stages
-        except asyncio.TimeoutError:
+        except TimeoutError:
             assert False, "Test timed out waiting for workflow to reach pause point"
         finally:
             # Clean up and restore the original method

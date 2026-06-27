@@ -20,8 +20,8 @@ class ProviderManager:
 
     def __init__(self):
         """Initialize the provider manager."""
-        self._providers: Dict[str, SEALProvider] = {}
-        self._provider_classes: Dict[str, Type[SEALProvider]] = {
+        self._providers: dict[str, SEALProvider] = {}
+        self._provider_classes: dict[str, type[SEALProvider]] = {
             "ollama": OllamaProvider,
         }
 
@@ -33,7 +33,7 @@ class ProviderManager:
         except ImportError:
             logger.warning("DummySEALProvider not available")
 
-    def get_provider(self, provider_name: Optional[str] = None) -> SEALProvider:
+    def get_provider(self, provider_name: str | None = None) -> SEALProvider:
         """Get a provider instance by name.
 
         Args:
@@ -165,7 +165,7 @@ class ProviderManager:
             logger.error(f"Failed to create {provider_name} provider: {e}")
             raise
 
-    def list_providers(self) -> Dict[str, Dict[str, Any]]:
+    def list_providers(self) -> dict[str, dict[str, Any]]:
         """List all configured providers with their status.
 
         Returns:
@@ -213,7 +213,7 @@ class ProviderManager:
         logger.info("Reloading provider configuration")
         self._providers.clear()
 
-    def register_provider_class(self, name: str, provider_class: Type[SEALProvider]) -> None:
+    def register_provider_class(self, name: str, provider_class: type[SEALProvider]) -> None:
         """Register a new provider class.
 
         Args:

@@ -88,7 +88,7 @@ def context_filter():
     return ContextFilter()
 
 
-@patch('evoseal.utils.logging.context_filter')
+@patch("evoseal.utils.logging.context_filter")
 def test_context_filter_with_no_context(mock_global_filter, log_record, context_filter):
     """Test filtering with no context."""
     # Set up the global filter mock to return our test filter
@@ -189,7 +189,7 @@ def test_performance_filter_with_non_perf_record(log_record, performance_filter)
 
 def test_performance_filter_with_perf_record(log_record, performance_filter):
     """Test filtering with performance record."""
-    setattr(log_record, "is_performance", True)
+    log_record.is_performance = True
     assert performance_filter.filter(log_record) is False
     assert hasattr(log_record, "is_performance")
 
@@ -302,11 +302,10 @@ def test_setup_logging_with_config(temp_logging_config, mocker):
     mock_file = mocker.mock_open(read_data=yaml.dump(test_config))
 
     with (
-        patch('builtins.open', mock_file),
-        patch('yaml.safe_load', return_value=test_config) as mock_load,
-        patch('logging.config.dictConfig') as mock_dict_config,
+        patch("builtins.open", mock_file),
+        patch("yaml.safe_load", return_value=test_config) as mock_load,
+        patch("logging.config.dictConfig") as mock_dict_config,
     ):
-
         # Setup logging
         logger = setup_logging(config_path=config_file)
 
@@ -322,9 +321,9 @@ def test_setup_logging_with_config(temp_logging_config, mocker):
 
         # Verify the dictConfig was called with the expected file handler config
         config = mock_dict_config.call_args[0][0]
-        assert 'handlers' in config
-        assert 'file' in config['handlers']
-        assert config['handlers']['file'].get('filename') == os.path.join(temp_dir, "test.log")
+        assert "handlers" in config
+        assert "file" in config["handlers"]
+        assert config["handlers"]["file"].get("filename") == os.path.join(temp_dir, "test.log")
 
 
 def test_setup_logging_default(mocker):
@@ -333,11 +332,11 @@ def test_setup_logging_default(mocker):
     mock_open = mocker.mock_open()
 
     # Mock file operations to simulate config file not found
-    mocker.patch('builtins.open', mock_open, create=True)
-    mocker.patch('os.path.exists', return_value=False)
+    mocker.patch("builtins.open", mock_open, create=True)
+    mocker.patch("os.path.exists", return_value=False)
 
     # Setup logging with default config (should fall back to basic config)
-    with patch('logging.basicConfig') as mock_basic_config:
+    with patch("logging.basicConfig") as mock_basic_config:
         logger = setup_logging()
 
         # Verify basicConfig was called (fallback behavior)

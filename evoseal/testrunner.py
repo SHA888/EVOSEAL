@@ -10,7 +10,8 @@ import concurrent.futures
 import subprocess  # nosec B404: Required for test execution in a controlled environment
 import threading
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 DEFAULT_TIMEOUT = 60  # seconds
 
@@ -21,7 +22,7 @@ class TestRunner:
         self.max_workers = max_workers
 
     def run_tests(
-        self, variant_path: str, test_types: Optional[list[str]] = None
+        self, variant_path: str, test_types: list[str] | None = None
     ) -> list[dict[str, Any]]:
         """
         Run specified test types against the code variant at variant_path.

@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
 
 @pytest.fixture(scope="function")
-def bare_test_repo(test_repo: Tuple[Path, "git.Repo", str]) -> Path:
+def bare_test_repo(test_repo: tuple[Path, "git.Repo", str]) -> Path:
     """Create a bare clone of the test repository for testing remote operations."""
     import git
 

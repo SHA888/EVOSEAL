@@ -43,7 +43,7 @@ def print_error(msg: str) -> None:
     sys.exit(1)
 
 
-def run_cmd(cmd: List[str], cwd: Optional[Path] = None) -> Tuple[int, str]:
+def run_cmd(cmd: list[str], cwd: Path | None = None) -> tuple[int, str]:
     try:
         result = subprocess.run(
             cmd, cwd=cwd or ROOT_DIR, capture_output=True, text=True, check=False

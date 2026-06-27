@@ -11,9 +11,9 @@ import json
 import os
 import pickle  # nosec B403 - Used for internal system state serialization only
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from ..models.experiment import Experiment
 from .logging_system import get_logger
@@ -34,7 +34,7 @@ class CheckpointManager:
     with metadata storage and version tracking integration.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the checkpoint manager.
 
         Args:
@@ -45,7 +45,7 @@ class CheckpointManager:
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # Checkpoint registry: version_id -> checkpoint_path
-        self.checkpoints: Dict[str, str] = {}
+        self.checkpoints: dict[str, str] = {}
 
         # Configuration
         self.max_checkpoints = self.config.get("max_checkpoints", 100)
@@ -60,7 +60,7 @@ class CheckpointManager:
     def create_checkpoint(
         self,
         version_id: str,
-        version: Union[Dict[str, Any], Experiment],
+        version: dict[str, Any] | Experiment,
         capture_system_state: bool = True,
     ) -> str:
         """Create a comprehensive checkpoint for a version.
@@ -82,7 +82,7 @@ class CheckpointManager:
                 version_data = version.to_dict()
                 changes = version_data.get("artifacts", {})
                 parent_id = version_data.get("parent_id")
-                timestamp = version_data.get("created_at", datetime.now(timezone.utc).isoformat())
+                timestamp = version_data.get("created_at", datetime.now(UTC).isoformat())
                 config = version_data.get("config", {})
                 metrics = version_data.get("metrics", [])
                 result = version_data.get("result", {})
@@ -90,7 +90,7 @@ class CheckpointManager:
                 version_data = version
                 changes = version.get("changes", {})
                 parent_id = version.get("parent_id")
-                timestamp = version.get("timestamp", datetime.now(timezone.utc).isoformat())
+                timestamp = version.get("timestamp", datetime.now(UTC).isoformat())
                 config = version.get("config", {})
                 metrics = version.get("metrics", [])
                 result = version.get("result", {})
@@ -166,7 +166,7 @@ class CheckpointManager:
                 "version_id": version_id,
                 "parent_id": parent_id,
                 "timestamp": (timestamp if isinstance(timestamp, str) else timestamp.isoformat()),
-                "checkpoint_time": datetime.now(timezone.utc).isoformat(),
+                "checkpoint_time": datetime.now(UTC).isoformat(),
                 "version_data": version_data,
                 "system_state_captured": capture_system_state,
                 "compression_enabled": self.compression_enabled,
@@ -212,9 +212,9 @@ class CheckpointManager:
     def restore_checkpoint(
         self,
         version_id: str,
-        target_dir: Union[str, Path],
+        target_dir: str | Path,
         verify_integrity: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Restore a checkpoint to the target directory with integrity verification.
 
         Args:
@@ -344,7 +344,7 @@ class CheckpointManager:
                 "system_state": system_state,
                 "metadata": metadata,
                 "integrity_verified": verify_integrity,
-                "restoration_time": datetime.now(timezone.utc).isoformat(),
+                "restoration_time": datetime.now(UTC).isoformat(),
             }
 
             logger.info(f"Successfully restored checkpoint {version_id} to {target_dir}")
@@ -357,7 +357,7 @@ class CheckpointManager:
             logger.error(f"Failed to restore checkpoint {version_id}: {e}")
             raise CheckpointError(f"Failed to restore checkpoint {version_id}: {e}") from e
 
-    def list_checkpoints(self) -> List[Dict[str, Any]]:
+    def list_checkpoints(self) -> list[dict[str, Any]]:
         """List all available checkpoints.
 
         Returns:
@@ -379,7 +379,7 @@ class CheckpointManager:
         # Sort by checkpoint time
         return sorted(checkpoints, key=lambda x: x.get("checkpoint_time", ""))
 
-    def get_checkpoint_path(self, version_id: str) -> Optional[str]:
+    def get_checkpoint_path(self, version_id: str) -> str | None:
         """Get the path to a checkpoint.
 
         Args:
@@ -398,7 +398,7 @@ class CheckpointManager:
 
         return None
 
-    def get_checkpoint_metadata(self, version_id: str) -> Optional[Dict[str, Any]]:
+    def get_checkpoint_metadata(self, version_id: str) -> dict[str, Any] | None:
         """Get metadata for a checkpoint.
 
         Args:
@@ -445,7 +445,7 @@ class CheckpointManager:
             logger.error(f"Failed to delete checkpoint {version_id}: {e}")
             return False
 
-    def get_checkpoint_size(self, version_id: str) -> Optional[int]:
+    def get_checkpoint_size(self, version_id: str) -> int | None:
         """Get the size of a checkpoint in bytes.
 
         Args:
@@ -460,7 +460,7 @@ class CheckpointManager:
 
         return self._calculate_checkpoint_size(Path(checkpoint_path))
 
-    def cleanup_old_checkpoints(self, keep_count: Optional[int] = None) -> int:
+    def cleanup_old_checkpoints(self, keep_count: int | None = None) -> int:
         """Clean up old checkpoints, keeping only the most recent ones.
 
         Args:
@@ -516,7 +516,7 @@ class CheckpointManager:
         if self.auto_cleanup and len(self.checkpoints) > self.max_checkpoints:
             self.cleanup_old_checkpoints()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get checkpoint manager statistics.
 
         Returns:
@@ -540,11 +540,11 @@ class CheckpointManager:
 
     def _capture_system_state(
         self,
-        version_data: Dict[str, Any],
-        config: Dict[str, Any],
-        metrics: List[Dict[str, Any]],
-        result: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        version_data: dict[str, Any],
+        config: dict[str, Any],
+        metrics: list[dict[str, Any]],
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
         """Capture complete system state including model parameters and configuration.
 
         Args:
@@ -571,7 +571,7 @@ class CheckpointManager:
                 "memory_total": psutil.virtual_memory().total,
                 "memory_available": psutil.virtual_memory().available,
                 "cpu_count": psutil.cpu_count(),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
             logger.warning(f"Failed to capture system info: {e}")
@@ -613,7 +613,7 @@ class CheckpointManager:
             if isinstance(metrics, list) and all(isinstance(m, dict) for m in metrics):
                 metrics_summary = {
                     "total_metrics": len(metrics),
-                    "metric_types": list(set(m.get("metric_type", "unknown") for m in metrics)),
+                    "metric_types": {m.get("metric_type", "unknown") for m in metrics},
                     "latest_values": {
                         m.get("name"): m.get("value") for m in metrics[-10:] if m.get("name")
                     },
@@ -653,7 +653,7 @@ class CheckpointManager:
                 "status": version_data.get("status"),
                 "experiment_type": version_data.get("type"),
             },
-            "capture_timestamp": datetime.now(timezone.utc).isoformat(),
+            "capture_timestamp": datetime.now(UTC).isoformat(),
         }
 
     def _calculate_integrity_hash(self, checkpoint_path: Path) -> str:
@@ -736,8 +736,8 @@ class CheckpointManager:
             return False
 
     def restore_checkpoint_with_validation(
-        self, version_id: str, target_dir: Union[str, Path], backup_current: bool = True
-    ) -> Dict[str, Any]:
+        self, version_id: str, target_dir: str | Path, backup_current: bool = True
+    ) -> dict[str, Any]:
         """Restore checkpoint with comprehensive validation and optional backup.
 
         Args:
@@ -753,7 +753,7 @@ class CheckpointManager:
         """
         try:
             target_dir = Path(target_dir)
-            restoration_start = datetime.now(timezone.utc)
+            restoration_start = datetime.now(UTC)
 
             logger.info(
                 f"Starting validated restoration of checkpoint {version_id} to {target_dir}"
@@ -785,9 +785,7 @@ class CheckpointManager:
                     "success": True,
                     "version_id": version_id,
                     "target_directory": str(target_dir),
-                    "restoration_time": (
-                        datetime.now(timezone.utc) - restoration_start
-                    ).total_seconds(),
+                    "restoration_time": (datetime.now(UTC) - restoration_start).total_seconds(),
                     "backup_created": backup_path is not None,
                     "backup_path": str(backup_path) if backup_path else None,
                     "pre_validation": validation_results,
@@ -810,7 +808,7 @@ class CheckpointManager:
             logger.error(f"Validated restoration failed for {version_id}: {e}")
             raise CheckpointError(f"Validated restoration failed: {e}") from e
 
-    def validate_checkpoint_for_restoration(self, version_id: str) -> Dict[str, Any]:
+    def validate_checkpoint_for_restoration(self, version_id: str) -> dict[str, Any]:
         """Validate that a checkpoint is ready for restoration.
 
         Args:
@@ -876,7 +874,7 @@ class CheckpointManager:
                 "errors": validation_errors,
                 "warnings": validation_warnings,
                 "checkpoint_size": checkpoint_size,
-                "validation_time": datetime.now(timezone.utc).isoformat(),
+                "validation_time": datetime.now(UTC).isoformat(),
             }
 
         except Exception as e:
@@ -896,7 +894,7 @@ class CheckpointManager:
         Returns:
             Path to the backup directory
         """
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         backup_dir = self.checkpoint_dir / "restoration_backups"
         backup_dir.mkdir(parents=True, exist_ok=True)
 
@@ -908,7 +906,7 @@ class CheckpointManager:
         # Create backup metadata
         backup_metadata = {
             "original_path": str(target_dir),
-            "backup_time": datetime.now(timezone.utc).isoformat(),
+            "backup_time": datetime.now(UTC).isoformat(),
             "backup_size": self._calculate_checkpoint_size(backup_path),
         }
 
@@ -936,7 +934,7 @@ class CheckpointManager:
         if backup_metadata_path.exists():
             backup_metadata_path.unlink()
 
-    def _validate_restored_state(self, target_dir: Path, version_id: str) -> Dict[str, Any]:
+    def _validate_restored_state(self, target_dir: Path, version_id: str) -> dict[str, Any]:
         """Validate the state after restoration.
 
         Args:
@@ -949,7 +947,7 @@ class CheckpointManager:
         validation_results = {
             "directory_exists": target_dir.exists(),
             "files_present": [],
-            "validation_time": datetime.now(timezone.utc).isoformat(),
+            "validation_time": datetime.now(UTC).isoformat(),
         }
 
         if target_dir.exists():
@@ -972,7 +970,7 @@ class CheckpointManager:
 
         return validation_results
 
-    def list_restoration_backups(self) -> List[Dict[str, Any]]:
+    def list_restoration_backups(self) -> list[dict[str, Any]]:
         """List available restoration backups.
 
         Returns:
@@ -997,7 +995,7 @@ class CheckpointManager:
                                 "backup_time": metadata.get("backup_time"),
                                 "backup_size": metadata.get("backup_size", 0),
                                 "age_hours": (
-                                    datetime.now(timezone.utc)
+                                    datetime.now(UTC)
                                     - datetime.fromisoformat(
                                         metadata.get("backup_time", "").replace("Z", "+00:00")
                                     )

@@ -43,8 +43,8 @@ class DGMAdapter(BaseComponentAdapter):
             raise ValueError("DGMAdapter requires ComponentType.DGM")
         super().__init__(config)
 
-        self._base_url: Optional[str] = None
-        self._auth_token: Optional[str] = None
+        self._base_url: str | None = None
+        self._auth_token: str | None = None
         self._timeout: int = config.timeout
         self._poll_interval: float = 2.0
 
@@ -95,7 +95,7 @@ class DGMAdapter(BaseComponentAdapter):
             self.logger.exception("DGM operation error")
             return ComponentResult(success=False, error=str(e), execution_time=exec_time)
 
-    async def get_metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> dict[str, Any]:
         return {
             "mode": "remote",
             "base_url_set": bool(self._base_url),
@@ -105,13 +105,13 @@ class DGMAdapter(BaseComponentAdapter):
 
     # --- Remote helpers ---
 
-    def _headers(self) -> Dict[str, str]:
-        headers: Dict[str, str] = {}
+    def _headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {}
         if self._auth_token:
             headers["Authorization"] = f"Bearer {self._auth_token}"
         return headers
 
-    async def _advance_generation(self, payload: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    async def _advance_generation(self, payload: dict[str, Any], **kwargs) -> dict[str, Any]:
         if aiohttp is None:
             return {"success": False, "error": "aiohttp not available"}
         base = self._base_url.rstrip("/")  # type: ignore
@@ -158,14 +158,14 @@ class DGMAdapter(BaseComponentAdapter):
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def _update_archive(self, data: Any, **kwargs) -> Dict[str, Any]:
+    async def _update_archive(self, data: Any, **kwargs) -> dict[str, Any]:
         if aiohttp is None:
             return {"success": False, "error": "aiohttp not available"}
         base = self._base_url.rstrip("/")  # type: ignore
         timeout = aiohttp.ClientTimeout(total=self._timeout)
 
         # Normalize payload
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
         if isinstance(data, list):
             payload = {"run_ids": data}
         elif isinstance(data, dict):

@@ -11,10 +11,11 @@ import shutil
 import subprocess  # nosec
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 from .exceptions import (
     AuthenticationError,
@@ -63,7 +64,7 @@ class GitResult:
 
     success: bool
     output: str = ""
-    error: Optional[str] = None
+    error: str | None = None
     data: Any = None
 
 
@@ -76,10 +77,10 @@ class GitInterface(ABC):
 
     def __init__(
         self,
-        repo_path: Optional[Union[str, Path]] = None,
-        ssh_key_path: Optional[Union[str, Path]] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        repo_path: str | Path | None = None,
+        ssh_key_path: str | Path | None = None,
+        username: str | None = None,
+        password: str | None = None,
         timeout: int = DEFAULT_GIT_TIMEOUT,
     ):
         """
@@ -115,8 +116,8 @@ class GitInterface(ABC):
     @abstractmethod
     def initialize(
         self,
-        repo_url: Optional[str] = None,
-        clone_path: Optional[Union[str, Path]] = None,
+        repo_url: str | None = None,
+        clone_path: str | Path | None = None,
     ) -> "GitInterface":
         """
         Initialize the Git repository.
@@ -138,9 +139,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def clone(
-        self, repo_url: str, target_path: Optional[Union[str, Path]] = None
-    ) -> "GitInterface":
+    def clone(self, repo_url: str, target_path: str | Path | None = None) -> "GitInterface":
         """
         Clone a Git repository.
 
@@ -183,7 +182,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def commit(self, message: str, files: Optional[List[Union[str, Path]]] = None) -> GitResult:
+    def commit(self, message: str, files: list[str | Path] | None = None) -> GitResult:
         """
         Commit changes to the repository.
 
@@ -247,7 +246,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def branch(self, name: Optional[str] = None, delete: bool = False) -> GitResult:
+    def branch(self, name: str | None = None, delete: bool = False) -> GitResult:
         """
         List, create, or delete branches.
 
@@ -263,8 +262,8 @@ class GitInterface(ABC):
     @abstractmethod
     def tag(
         self,
-        name: Optional[str] = None,
-        message: Optional[str] = None,
+        name: str | None = None,
+        message: str | None = None,
         delete: bool = False,
     ) -> GitResult:
         """
@@ -281,7 +280,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def get_file_content(self, file_path: Union[str, Path]) -> Optional[str]:
+    def get_file_content(self, file_path: str | Path) -> str | None:
         """
         Get the content of a file from the repository.
 
@@ -294,7 +293,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def write_file_content(self, file_path: Union[str, Path], content: str) -> bool:
+    def write_file_content(self, file_path: str | Path, content: str) -> bool:
         """
         Write content to a file in the repository.
 
@@ -308,7 +307,7 @@ class GitInterface(ABC):
         pass
 
     @abstractmethod
-    def get_repository_structure(self) -> Dict[str, Any]:
+    def get_repository_structure(self) -> dict[str, Any]:
         """
         Get the structure of the repository as a nested dictionary.
 
@@ -326,7 +325,7 @@ class GitInterface(ABC):
         self._run_git_command(["config", "--local", "credential.helper", "cache"])
         self._run_git_command(["config", "--local", "credential.helper", "'cache --timeout=300'"])
 
-    def _get_auth_env(self) -> Dict[str, str]:
+    def _get_auth_env(self) -> dict[str, str]:
         """Get the environment variables for authentication."""
         env = self._env.copy()
 
@@ -343,12 +342,12 @@ class GitInterface(ABC):
 
     def _run_git_command(
         self,
-        args: List[str],
-        cwd: Optional[Union[str, Path]] = None,
-        input_data: Optional[str] = None,
+        args: list[str],
+        cwd: str | Path | None = None,
+        input_data: str | None = None,
         retries: int = 3,
         retry_delay: float = 1.0,
-    ) -> Tuple[bool, str, str]:
+    ) -> tuple[bool, str, str]:
         """
         Run a Git command with enhanced error handling and retries.
 

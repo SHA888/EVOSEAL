@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Optional
 
 import psutil
 
@@ -45,7 +46,7 @@ class ResourceAlert:
     threshold_value: float
     message: str
     resolved: bool = False
-    resolved_at: Optional[datetime] = None
+    resolved_at: datetime | None = None
 
 
 @dataclass
@@ -64,7 +65,7 @@ class ResourceSnapshot:
     network_sent_mb: float = 0.0
     network_recv_mb: float = 0.0
     process_count: int = 0
-    load_average: List[float] = field(default_factory=list)
+    load_average: list[float] = field(default_factory=list)
 
 
 class ResourceMonitor:
@@ -77,7 +78,7 @@ class ResourceMonitor:
 
     def __init__(
         self,
-        thresholds: Optional[ResourceThresholds] = None,
+        thresholds: ResourceThresholds | None = None,
         monitoring_interval: float = 30.0,
         history_retention_hours: int = 24,
         alert_cooldown_minutes: int = 5,
@@ -97,18 +98,18 @@ class ResourceMonitor:
 
         # Monitoring state
         self._monitoring_active = False
-        self._monitor_task: Optional[asyncio.Task] = None
+        self._monitor_task: asyncio.Task | None = None
 
         # Resource history and alerts
-        self.resource_history: List[ResourceSnapshot] = []
-        self.active_alerts: Dict[str, ResourceAlert] = {}
-        self.alert_history: List[ResourceAlert] = []
+        self.resource_history: list[ResourceSnapshot] = []
+        self.active_alerts: dict[str, ResourceAlert] = {}
+        self.alert_history: list[ResourceAlert] = []
 
         # Alert callbacks
-        self.alert_callbacks: List[Callable[[ResourceAlert], None]] = []
+        self.alert_callbacks: list[Callable[[ResourceAlert], None]] = []
 
         # Network baseline (for calculating usage)
-        self._network_baseline: Optional[Dict[str, float]] = None
+        self._network_baseline: dict[str, float] | None = None
 
         logger.info("ResourceMonitor initialized")
 
@@ -384,15 +385,15 @@ class ResourceMonitor:
             alert for alert in self.alert_history if alert.timestamp > cutoff_time
         ]
 
-    def get_current_usage(self) -> Optional[ResourceSnapshot]:
+    def get_current_usage(self) -> ResourceSnapshot | None:
         """Get the most recent resource snapshot."""
         return self.resource_history[-1] if self.resource_history else None
 
     def get_usage_history(
         self,
         hours: int = 1,
-        resource_type: Optional[str] = None,
-    ) -> List[ResourceSnapshot]:
+        resource_type: str | None = None,
+    ) -> list[ResourceSnapshot]:
         """Get resource usage history.
 
         Args:
@@ -410,11 +411,11 @@ class ResourceMonitor:
 
         return history
 
-    def get_active_alerts(self) -> List[ResourceAlert]:
+    def get_active_alerts(self) -> list[ResourceAlert]:
         """Get currently active alerts."""
         return [alert for alert in self.active_alerts.values() if not alert.resolved]
 
-    def get_alert_history(self, hours: int = 24) -> List[ResourceAlert]:
+    def get_alert_history(self, hours: int = 24) -> list[ResourceAlert]:
         """Get alert history.
 
         Args:
@@ -453,7 +454,7 @@ class ResourceMonitor:
             logger.warning(f"Alert callback not found: {callback.__name__}")
             return False
 
-    def get_resource_statistics(self) -> Dict[str, Any]:
+    def get_resource_statistics(self) -> dict[str, Any]:
         """Get resource usage statistics.
 
         Returns:

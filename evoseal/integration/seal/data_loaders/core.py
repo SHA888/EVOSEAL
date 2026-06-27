@@ -26,7 +26,7 @@ class DataLoaders:
     and formats with a consistent API.
     """
 
-    def __init__(self, cache: Optional[DataCache] = None):
+    def __init__(self, cache: DataCache | None = None):
         """
         Initialize the DataLoaders with an optional cache.
 
@@ -34,14 +34,14 @@ class DataLoaders:
             cache: Optional DataCache instance to use for caching
         """
         self.cache = cache or default_cache
-        self._loaders: Dict[DataFormat, Type[DataLoader]] = {
+        self._loaders: dict[DataFormat, type[DataLoader]] = {
             DataFormat.JSON: JSONLoader,
             DataFormat.YAML: YAMLLoader,
             DataFormat.YML: YAMLLoader,  # Alias for YAML
             DataFormat.CSV: CSVLoader,
         }
 
-    def get_loader(self, format: Union[str, DataFormat]) -> Type[DataLoader]:
+    def get_loader(self, format: str | DataFormat) -> type[DataLoader]:
         """
         Get the appropriate loader for the given format.
 
@@ -59,11 +59,11 @@ class DataLoaders:
     @cached
     def load(
         self,
-        source: Union[str, Path],
-        model: Type[T],
-        format: Optional[Union[str, DataFormat]] = None,
+        source: str | Path,
+        model: type[T],
+        format: str | DataFormat | None = None,
         **kwargs: Any,
-    ) -> List[T]:
+    ) -> list[T]:
         """
         Load data from a source with automatic format detection.
 
@@ -80,11 +80,11 @@ class DataLoaders:
 
     def load_batch(
         self,
-        sources: Union[str, Path, List[Union[str, Path]]],
-        model: Type[T],
+        sources: str | Path | list[str | Path],
+        model: type[T],
         max_workers: int = 4,
         **kwargs: Any,
-    ) -> List[T]:
+    ) -> list[T]:
         """
         Load multiple files or directories in parallel.
 

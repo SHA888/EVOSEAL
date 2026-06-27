@@ -55,7 +55,7 @@ class EventSystemDemo:
     """Demonstrates the enhanced event system capabilities."""
 
     def __init__(self):
-        self.event_counts: Dict[str, int] = {}
+        self.event_counts: dict[str, int] = {}
         self.error_events: list[ErrorEvent] = []
         self.progress_events: list[ProgressEvent] = []
 

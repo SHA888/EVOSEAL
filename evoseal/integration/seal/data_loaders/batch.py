@@ -38,9 +38,7 @@ class BatchLoader:
         self.loader_kwargs = loader_kwargs
         self.logger = logging.getLogger(__name__)
 
-    def load_files(
-        self, file_paths: Iterable[Union[str, Path]], model: Type[T], **kwargs
-    ) -> List[T]:
+    def load_files(self, file_paths: Iterable[str | Path], model: type[T], **kwargs) -> list[T]:
         """Load multiple files in parallel.
 
         Args:
@@ -58,7 +56,7 @@ class BatchLoader:
         # Merge instance kwargs with method kwargs
         loader_kwargs = {**self.loader_kwargs, **kwargs}
 
-        results: List[T] = []
+        results: list[T] = []
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all tasks
@@ -94,7 +92,7 @@ class BatchLoader:
 
         return results
 
-    def _load_single_file(self, file_path: Union[str, Path], model: Type[T], **kwargs) -> List[T]:
+    def _load_single_file(self, file_path: str | Path, model: type[T], **kwargs) -> list[T]:
         """Load a single file with error handling."""
         try:
             return load_data(file_path, model, **kwargs)
@@ -105,12 +103,12 @@ class BatchLoader:
     @cached
     def load_directory(
         self,
-        directory: Union[str, Path],
-        model: Type[T],
+        directory: str | Path,
+        model: type[T],
         pattern: str = "*",
         recursive: bool = True,
         **kwargs,
-    ) -> List[T]:
+    ) -> list[T]:
         """Load all matching files from a directory.
 
         Args:
@@ -148,11 +146,11 @@ default_batch_loader = BatchLoader()
 
 
 def load_batch(
-    sources: Union[str, Path, Iterable[Union[str, Path]]],
-    model: Type[T],
+    sources: str | Path | Iterable[str | Path],
+    model: type[T],
     max_workers: int = 4,
     **kwargs,
-) -> List[T]:
+) -> list[T]:
     """Load multiple files or directories in parallel.
 
     Args:
@@ -171,7 +169,7 @@ def load_batch(
 
     loader = BatchLoader(max_workers=max_workers, **kwargs)
 
-    results: List[T] = []
+    results: list[T] = []
     for source in sources:
         source_path = Path(source)
         if source_path.is_dir():

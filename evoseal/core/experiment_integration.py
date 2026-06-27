@@ -11,7 +11,7 @@ import logging
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from ..models.experiment import (
     Experiment,
@@ -52,19 +52,19 @@ class ExperimentIntegration:
         self.auto_tag = auto_tag
         self.track_metrics = track_metrics
 
-        self.current_experiment: Optional[Experiment] = None
+        self.current_experiment: Experiment | None = None
         self._iteration_count = 0
         self._generation_count = 0
 
     def create_evolution_experiment(
         self,
         name: str,
-        config: Dict[str, Any],
-        repository_name: Optional[str] = None,
-        branch: Optional[str] = None,
+        config: dict[str, Any],
+        repository_name: str | None = None,
+        branch: str | None = None,
         description: str = "",
-        tags: Optional[List[str]] = None,
-        created_by: Optional[str] = None,
+        tags: list[str] | None = None,
+        created_by: str | None = None,
         **metadata: Any,
     ) -> Experiment:
         """Create an experiment for an evolution run.
@@ -101,7 +101,7 @@ class ExperimentIntegration:
         logger.info(f"Created evolution experiment {experiment.id}: {name}")
         return experiment
 
-    def start_evolution_experiment(self, experiment_id: Optional[str] = None) -> Experiment:
+    def start_evolution_experiment(self, experiment_id: str | None = None) -> Experiment:
         """Start an evolution experiment.
 
         Args:
@@ -134,8 +134,8 @@ class ExperimentIntegration:
 
     def complete_evolution_experiment(
         self,
-        result: Optional[ExperimentResult] = None,
-        experiment_id: Optional[str] = None,
+        result: ExperimentResult | None = None,
+        experiment_id: str | None = None,
     ) -> Experiment:
         """Complete an evolution experiment.
 
@@ -172,7 +172,7 @@ class ExperimentIntegration:
         return experiment
 
     def fail_evolution_experiment(
-        self, error: Exception, experiment_id: Optional[str] = None
+        self, error: Exception, experiment_id: str | None = None
     ) -> Experiment:
         """Mark an evolution experiment as failed.
 
@@ -228,8 +228,8 @@ class ExperimentIntegration:
     def track_iteration_complete(
         self,
         iteration: int,
-        fitness_scores: Optional[List[float]] = None,
-        best_fitness: Optional[float] = None,
+        fitness_scores: list[float] | None = None,
+        best_fitness: float | None = None,
         **metrics: Any,
     ) -> None:
         """Track the completion of an evolution iteration.
@@ -300,7 +300,7 @@ class ExperimentIntegration:
         source: str,
         test_results: Any,
         eval_score: float,
-        parent_ids: Optional[List[str]] = None,
+        parent_ids: list[str] | None = None,
         **metadata: Any,
     ) -> None:
         """Track creation of a code variant.
@@ -371,7 +371,7 @@ class ExperimentIntegration:
         # Save experiment
         self.version_tracker.experiment_db.save_experiment(self.current_experiment)
 
-    def create_checkpoint(self, checkpoint_name: Optional[str] = None) -> str:
+    def create_checkpoint(self, checkpoint_name: str | None = None) -> str:
         """Create a checkpoint of the current experiment.
 
         Args:
@@ -396,10 +396,10 @@ class ExperimentIntegration:
         self,
         name: str,
         artifact_type: str,
-        file_path: Optional[str] = None,
-        content: Optional[str] = None,
+        file_path: str | None = None,
+        content: str | None = None,
         **metadata: Any,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Add an artifact to the current experiment.
 
         Args:
@@ -428,7 +428,7 @@ class ExperimentIntegration:
 
         return artifact.id
 
-    def get_experiment_summary(self, experiment_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_experiment_summary(self, experiment_id: str | None = None) -> dict[str, Any]:
         """Get a summary of an experiment.
 
         Args:
@@ -476,7 +476,7 @@ class ExperimentIntegration:
             "total_metrics": len(experiment.metrics),
         }
 
-    def _convert_to_experiment_config(self, config: Dict[str, Any]) -> ExperimentConfig:
+    def _convert_to_experiment_config(self, config: dict[str, Any]) -> ExperimentConfig:
         """Convert a configuration dictionary to ExperimentConfig.
 
         Args:
@@ -579,7 +579,7 @@ class ExperimentIntegration:
 
 
 def create_experiment_integration(
-    work_dir: Union[str, Path],
+    work_dir: str | Path,
     auto_commit: bool = True,
     auto_tag: bool = True,
     track_metrics: bool = True,

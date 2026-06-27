@@ -34,7 +34,6 @@ def test_initialization():
         patch("transformers.AutoModelForCausalLM.from_pretrained") as mock_model,
         patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer,
     ):
-
         # Setup mocks
         mock_tokenizer.return_value.pad_token = "[PAD]"
         mock_tokenizer.return_value.eos_token = "</s>"
@@ -53,7 +52,6 @@ def test_add_and_clear_examples():
         patch("transformers.AutoModelForCausalLM.from_pretrained") as mock_model,
         patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer,
     ):
-
         # Setup mocks
         mock_tokenizer.return_value.pad_token = "[PAD]"
         mock_tokenizer.return_value.eos_token = "</s>"
@@ -78,7 +76,6 @@ def test_format_prompt():
         patch("transformers.AutoModelForCausalLM.from_pretrained") as mock_model,
         patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer,
     ):
-
         # Setup mocks
         mock_tokenizer.return_value.pad_token = "[PAD]"
         mock_tokenizer.return_value.eos_token = "</s>"

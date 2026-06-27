@@ -13,7 +13,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
@@ -55,8 +55,8 @@ class WorkflowOrchestrator:
         workspace_dir: str = ".evoseal",
         checkpoint_interval: int = 5,
         execution_strategy: ExecutionStrategy = ExecutionStrategy.ADAPTIVE,
-        recovery_strategy: Optional[RecoveryStrategy] = None,
-        resource_thresholds: Optional[ResourceThresholds] = None,
+        recovery_strategy: RecoveryStrategy | None = None,
+        resource_thresholds: ResourceThresholds | None = None,
         monitoring_interval: float = 30.0,
     ):
         """Initialize the workflow orchestrator.
@@ -91,9 +91,9 @@ class WorkflowOrchestrator:
 
         # Initialize state
         self.state = OrchestrationState.IDLE
-        self.execution_context: Optional[ExecutionContext] = None
-        self.workflow_steps: List[WorkflowStep] = []
-        self.step_results: Dict[str, StepResult] = {}
+        self.execution_context: ExecutionContext | None = None
+        self.workflow_steps: list[WorkflowStep] = []
+        self.step_results: dict[str, StepResult] = {}
 
         # Initialize components
         self.console = Console()
@@ -110,7 +110,7 @@ class WorkflowOrchestrator:
 
     async def initialize_workflow(
         self,
-        workflow_config: Dict[str, Any],
+        workflow_config: dict[str, Any],
     ) -> bool:
         """Initialize a new workflow.
 
@@ -179,7 +179,7 @@ class WorkflowOrchestrator:
             )
             return False
 
-    def _parse_workflow_steps(self, steps_config: List[Dict[str, Any]]) -> List[WorkflowStep]:
+    def _parse_workflow_steps(self, steps_config: list[dict[str, Any]]) -> list[WorkflowStep]:
         """Parse workflow steps from configuration."""
         steps = []
         for step_config in steps_config:
@@ -258,7 +258,7 @@ class WorkflowOrchestrator:
     async def execute_workflow(
         self,
         pipeline_instance: Any,
-        resume_from_checkpoint: Optional[str] = None,
+        resume_from_checkpoint: str | None = None,
     ) -> WorkflowResult:
         """Execute the complete workflow with orchestration.
 
@@ -328,7 +328,7 @@ class WorkflowOrchestrator:
     async def _execute_workflow_iterations(
         self,
         pipeline_instance: Any,
-    ) -> List[IterationResult]:
+    ) -> list[IterationResult]:
         """Execute workflow iterations with orchestration."""
         iterations = []
 
@@ -339,7 +339,6 @@ class WorkflowOrchestrator:
             TaskProgressColumn(),
             console=self.console,
         ) as progress:
-
             task = progress.add_task(
                 "Executing workflow iterations...",
                 total=self.execution_context.total_iterations,
@@ -471,7 +470,7 @@ class WorkflowOrchestrator:
     async def _execute_steps_sequential(
         self,
         pipeline_instance: Any,
-    ) -> Dict[str, StepResult]:
+    ) -> dict[str, StepResult]:
         """Execute workflow steps sequentially."""
         results = {}
 
@@ -495,7 +494,7 @@ class WorkflowOrchestrator:
     async def _execute_steps_parallel(
         self,
         pipeline_instance: Any,
-    ) -> Dict[str, StepResult]:
+    ) -> dict[str, StepResult]:
         """Execute workflow steps in parallel where possible."""
         results = {}
         executed_steps = set()
@@ -519,7 +518,7 @@ class WorkflowOrchestrator:
             step_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Process results
-            for step, result in zip(ready_steps, step_results):
+            for step, result in zip(ready_steps, step_results, strict=False):
                 if isinstance(result, Exception):
                     logger.error(f"Step {step.step_id} execution failed: {result}")
                     step_result = StepResult(
@@ -636,7 +635,7 @@ class WorkflowOrchestrator:
         pipeline_instance: Any,
         component: str,
         operation: str,
-        parameters: Dict[str, Any],
+        parameters: dict[str, Any],
     ) -> Any:
         """Call a method on a pipeline component."""
         # Get component from pipeline
@@ -657,7 +656,7 @@ class WorkflowOrchestrator:
         else:
             return method(**parameters)
 
-    def _topological_sort_steps(self) -> List[WorkflowStep]:
+    def _topological_sort_steps(self) -> list[WorkflowStep]:
         """Sort workflow steps topologically based on dependencies."""
         # Kahn's algorithm
         in_degree = {step.step_id: 0 for step in self.workflow_steps}
@@ -827,7 +826,7 @@ class WorkflowOrchestrator:
             return True
         return False
 
-    def get_workflow_status(self) -> Dict[str, Any]:
+    def get_workflow_status(self) -> dict[str, Any]:
         """Get current workflow status."""
         status = {
             "state": self.state.value,

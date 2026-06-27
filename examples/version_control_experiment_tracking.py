@@ -41,7 +41,7 @@ class MockEvolutionPipeline:
         self.population_size = 20
         self.max_iterations = 10
 
-    async def run_evolution(self, config: Dict) -> Dict:
+    async def run_evolution(self, config: dict) -> dict:
         """Run a mock evolution process."""
         print("🚀 Starting evolution run...")
 

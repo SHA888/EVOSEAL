@@ -23,7 +23,7 @@ from evoseal.core.rollback_manager import RollbackManager
 from evoseal.core.safety_integration import SafetyIntegration
 
 
-def create_sample_test_results(version: str, success_rate: float = 0.95) -> List[Dict[str, Any]]:
+def create_sample_test_results(version: str, success_rate: float = 0.95) -> list[dict[str, Any]]:
     """Create sample test results for demonstration."""
     return [
         {
@@ -65,7 +65,7 @@ def create_sample_test_results(version: str, success_rate: float = 0.95) -> List
     ]
 
 
-def create_sample_version_data(version_id: str) -> Dict[str, Any]:
+def create_sample_version_data(version_id: str) -> dict[str, Any]:
     """Create sample version data for demonstration."""
     return {
         "version_id": version_id,

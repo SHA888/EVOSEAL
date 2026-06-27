@@ -18,7 +18,7 @@ class GitStorageError(Exception):
 
 
 class GitStorage:
-    def __init__(self, repo_path: Union[str, Path]) -> None:
+    def __init__(self, repo_path: str | Path) -> None:
         self.repo_path = Path(repo_path)
         if not (self.repo_path / ".git").exists():
             raise GitStorageError(f"Not a git repository: {self.repo_path}")
@@ -76,9 +76,7 @@ class GitStorage:
         except FileNotFoundError as e:
             raise GitStorageError("Git executable not found") from e
 
-    def save_model(
-        self, model: Any, rel_path: str, message: str, branch: Optional[str] = None
-    ) -> str:
+    def save_model(self, model: Any, rel_path: str, message: str, branch: str | None = None) -> str:
         """Save a model (as JSON) to the repo and commit it. Optionally on a branch."""
         file_path = self.repo_path / rel_path
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,7 +99,7 @@ class GitStorage:
         commit_hash = self._run_git(["rev-parse", "HEAD"]).stdout.strip()
         return str(commit_hash)
 
-    def load_model(self, rel_path: str, ref: Optional[str] = None) -> dict[str, Any]:
+    def load_model(self, rel_path: str, ref: str | None = None) -> dict[str, Any]:
         """Load a model file (JSON) from the repo at a given ref (branch/tag/commit)."""
         if ref:
             args = ["show", f"{ref}:{rel_path}"]

@@ -7,42 +7,42 @@ results, and their relationships in the evolution pipeline.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from collections import ChainMap, Counter
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterable,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    MutableSet,
+    Sequence,
+)
+from datetime import UTC, datetime, timezone
 from enum import Enum
+from re import Match, Pattern
 from typing import (
     IO,
     TYPE_CHECKING,
     Any,
     AnyStr,
-    AsyncGenerator,
-    AsyncIterable,
-    AsyncIterator,
-    Awaitable,
     BinaryIO,
-    Callable,
-    ChainMap,
     ClassVar,
-    Coroutine,
-    Counter,
     DefaultDict,
     Deque,
     Dict,
     Final,
     FrozenSet,
     Generic,
-    Iterable,
-    Iterator,
     List,
     Literal,
-    Mapping,
-    Match,
-    MutableMapping,
-    MutableSequence,
-    MutableSet,
     Optional,
-    Pattern,
     Protocol,
-    Sequence,
     Set,
     TextIO,
     Tuple,
@@ -121,20 +121,20 @@ class ExperimentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     experiment_type: ExperimentType = ExperimentType.EVOLUTION
-    seed: Optional[int] = None
+    seed: int | None = None
     max_iterations: int = 100
     population_size: int = 50
-    dgm_config: Dict[str, Any] = Field(default_factory=dict)
-    openevolve_config: Dict[str, Any] = Field(default_factory=dict)
-    seal_config: Dict[str, Any] = Field(default_factory=dict)
+    dgm_config: dict[str, Any] = Field(default_factory=dict)
+    openevolve_config: dict[str, Any] = Field(default_factory=dict)
+    seal_config: dict[str, Any] = Field(default_factory=dict)
     mutation_rate: float = Field(default=0.1, ge=0.0, le=1.0)
     crossover_rate: float = Field(default=0.8, ge=0.0, le=1.0)
     selection_pressure: float = Field(default=2.0, ge=1.0)
     fitness_function: str = "default"
     evaluation_timeout: int = 300
-    environment: Dict[str, Any] = Field(default_factory=dict)
-    resources: Dict[str, Any] = Field(default_factory=dict)
-    custom_params: Dict[str, Any] = Field(default_factory=dict)
+    environment: dict[str, Any] = Field(default_factory=dict)
+    resources: dict[str, Any] = Field(default_factory=dict)
+    custom_params: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("mutation_rate", "crossover_rate")
     @classmethod
@@ -159,20 +159,20 @@ class ExperimentMetric(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    value: Union[float, int, str, bool]
+    value: float | int | str | bool
     metric_type: MetricType = MetricType.CUSTOM
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    iteration: Optional[int] = None
-    step: Optional[int] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    iteration: int | None = None
+    step: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("timestamp")
     @classmethod
     def ensure_timezone_aware(cls, v: datetime) -> datetime:
         """Ensure timestamp is timezone-aware."""
         if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v.astimezone(timezone.utc)  # Convert to UTC if in different timezone
+            return v.replace(tzinfo=UTC)
+        return v.astimezone(UTC)  # Convert to UTC if in different timezone
 
 
 class ExperimentArtifact(BaseModel):
@@ -183,20 +183,20 @@ class ExperimentArtifact(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
     artifact_type: str
-    file_path: Optional[str] = None
-    content: Optional[str] = None
-    size_bytes: Optional[int] = None
-    checksum: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    file_path: str | None = None
+    content: str | None = None
+    size_bytes: int | None = None
+    checksum: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("created_at")
     @classmethod
     def ensure_timezone_aware(cls, v: datetime) -> datetime:
         """Ensure timestamp is timezone-aware."""
         if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v.astimezone(timezone.utc)  # Convert to UTC if in different timezone
+            return v.replace(tzinfo=UTC)
+        return v.astimezone(UTC)  # Convert to UTC if in different timezone
 
 
 class ExperimentResult(BaseModel):
@@ -204,46 +204,46 @@ class ExperimentResult(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    final_metrics: Dict[str, Union[float, int, str, bool]] = Field(default_factory=dict)
-    best_individual: Optional[Dict[str, Any]] = None
-    best_fitness: Optional[float] = None
+    final_metrics: dict[str, float | int | str | bool] = Field(default_factory=dict)
+    best_individual: dict[str, Any] | None = None
+    best_fitness: float | None = None
     generations_completed: int = 0
     total_evaluations: int = 0
-    convergence_iteration: Optional[int] = None
-    execution_time: Optional[float] = Field(
+    convergence_iteration: int | None = None
+    execution_time: float | None = Field(
         default=None, description="Execution time in seconds", json_schema_extra={"example": 123.45}
     )
-    memory_peak: Optional[float] = Field(
+    memory_peak: float | None = Field(
         default=None, description="Peak memory usage in MB", json_schema_extra={"example": 1024.5}
     )
-    cpu_usage: Optional[float] = Field(
+    cpu_usage: float | None = Field(
         default=None,
         description="Average CPU usage as a percentage",
         ge=0.0,
         le=100.0,
         json_schema_extra={"example": 85.5},
     )
-    code_quality_score: Optional[float] = Field(
+    code_quality_score: float | None = Field(
         default=None,
         description="Code quality score (0-100)",
         ge=0.0,
         le=100.0,
         json_schema_extra={"example": 92.3},
     )
-    test_coverage: Optional[float] = Field(
+    test_coverage: float | None = Field(
         default=None,
         description="Test coverage percentage (0-100)",
         ge=0.0,
         le=100.0,
         json_schema_extra={"example": 78.5},
     )
-    summary: Dict[str, Any] = Field(
+    summary: dict[str, Any] = Field(
         default_factory=dict, description="Additional summary statistics and metrics"
     )
-    error_message: Optional[str] = Field(
+    error_message: str | None = Field(
         default=None, description="Error message if the experiment failed"
     )
-    error_traceback: Optional[str] = Field(
+    error_traceback: str | None = Field(
         default=None, description="Full error traceback if the experiment failed"
     )
 
@@ -258,73 +258,69 @@ class Experiment(BaseModel):
     )
     name: str = Field(..., description="Name of the experiment")
     description: str = Field(default="", description="Description of the experiment")
-    tags: List[str] = Field(
+    tags: list[str] = Field(
         default_factory=list, description="Tags for categorizing the experiment"
     )
     status: ExperimentStatus = Field(
         default=ExperimentStatus.CREATED, description="Current status of the experiment"
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When the experiment was created",
     )
-    started_at: Optional[datetime] = Field(
-        default=None, description="When the experiment was started"
-    )
-    completed_at: Optional[datetime] = Field(
+    started_at: datetime | None = Field(default=None, description="When the experiment was started")
+    completed_at: datetime | None = Field(
         default=None, description="When the experiment was completed"
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When the experiment was last updated",
     )
     config: ExperimentConfig = Field(..., description="Configuration for the experiment")
-    result: Optional[ExperimentResult] = Field(
-        default=None, description="Results of the experiment"
-    )
-    metrics: List[ExperimentMetric] = Field(
+    result: ExperimentResult | None = Field(default=None, description="Results of the experiment")
+    metrics: list[ExperimentMetric] = Field(
         default_factory=list, description="Metrics recorded during the experiment"
     )
-    artifacts: List[ExperimentArtifact] = Field(
+    artifacts: list[ExperimentArtifact] = Field(
         default_factory=list, description="Artifacts produced by the experiment"
     )
-    git_commit: Optional[str] = Field(
+    git_commit: str | None = Field(
         default=None, description="Git commit hash when the experiment was created"
     )
-    git_branch: Optional[str] = Field(
+    git_branch: str | None = Field(
         default=None, description="Git branch when the experiment was created"
     )
-    git_repository: Optional[str] = Field(default=None, description="URL of the git repository")
-    code_version: Optional[str] = Field(
+    git_repository: str | None = Field(default=None, description="URL of the git repository")
+    code_version: str | None = Field(
         default=None, description="Version of the code used for the experiment"
     )
-    parent_experiment_id: Optional[str] = Field(
+    parent_experiment_id: str | None = Field(
         default=None, description="ID of the parent experiment if this is a continuation"
     )
-    child_experiment_ids: List[str] = Field(
+    child_experiment_ids: list[str] = Field(
         default_factory=list, description="IDs of child experiments that continue from this one"
     )
-    created_by: Optional[str] = Field(
+    created_by: str | None = Field(
         default=None, description="User or system that created the experiment"
     )
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict, description="Additional metadata for the experiment"
     )
 
-    @field_validator("created_at", "started_at", "completed_at", "updated_at", mode='before')
+    @field_validator("created_at", "started_at", "completed_at", "updated_at", mode="before")
     @classmethod
     def ensure_timezone_aware(
-        cls, v: Optional[datetime], info: FieldValidationInfo
-    ) -> Optional[datetime]:
+        cls, v: datetime | None, info: FieldValidationInfo
+    ) -> datetime | None:
         """Ensure datetime fields are timezone-aware."""
         if v is None:
             return None
         if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v.astimezone(timezone.utc)  # Convert to UTC if in different timezone
+            return v.replace(tzinfo=UTC)
+        return v.astimezone(UTC)  # Convert to UTC if in different timezone
 
-    @model_validator(mode='after')
-    def validate_timing(self) -> 'Experiment':
+    @model_validator(mode="after")
+    def validate_timing(self) -> Experiment:
         """Validate timing constraints."""
         if self.started_at and self.started_at < self.created_at:
             raise ValueError("started_at cannot be before created_at")
@@ -335,10 +331,10 @@ class Experiment(BaseModel):
     def add_metric(
         self,
         name: str,
-        value: Union[float, int, str, bool],
+        value: float | int | str | bool,
         metric_type: MetricType = MetricType.CUSTOM,
-        iteration: Optional[int] = None,
-        step: Optional[int] = None,
+        iteration: int | None = None,
+        step: int | None = None,
         **metadata: Any,
     ) -> None:
         """Add a metric to the experiment."""
@@ -351,14 +347,14 @@ class Experiment(BaseModel):
             metadata=metadata,
         )
         self.metrics.append(metric)
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def add_artifact(
         self,
         name: str,
         artifact_type: str,
-        file_path: Optional[str] = None,
-        content: Optional[str] = None,
+        file_path: str | None = None,
+        content: str | None = None,
         **metadata: Any,
     ) -> ExperimentArtifact:
         """Add an artifact to the experiment."""
@@ -370,7 +366,7 @@ class Experiment(BaseModel):
             metadata=metadata,
         )
         self.artifacts.append(artifact)
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
         return artifact
 
     def start(self) -> None:
@@ -378,23 +374,23 @@ class Experiment(BaseModel):
         if self.status != ExperimentStatus.CREATED:
             raise ValueError(f"Cannot start experiment in status {self.status}")
         self.status = ExperimentStatus.RUNNING
-        self.started_at = datetime.now(timezone.utc)
+        self.started_at = datetime.now(UTC)
         self.updated_at = self.started_at
 
-    def complete(self, result: Optional[ExperimentResult] = None) -> None:
+    def complete(self, result: ExperimentResult | None = None) -> None:
         """Mark the experiment as completed."""
         if self.status not in [ExperimentStatus.RUNNING, ExperimentStatus.PAUSED]:
             raise ValueError(f"Cannot complete experiment in status {self.status}")
         self.status = ExperimentStatus.COMPLETED
-        self.completed_at = datetime.now(timezone.utc)
+        self.completed_at = datetime.now(UTC)
         self.updated_at = self.completed_at
         if result:
             self.result = result
 
-    def fail(self, error_message: str, error_traceback: Optional[str] = None) -> None:
+    def fail(self, error_message: str, error_traceback: str | None = None) -> None:
         """Mark the experiment as failed."""
         self.status = ExperimentStatus.FAILED
-        self.completed_at = datetime.now(timezone.utc)
+        self.completed_at = datetime.now(UTC)
         self.updated_at = self.completed_at
         if not self.result:
             self.result = ExperimentResult()
@@ -406,46 +402,46 @@ class Experiment(BaseModel):
         if self.status != ExperimentStatus.RUNNING:
             raise ValueError(f"Cannot pause experiment in status {self.status}")
         self.status = ExperimentStatus.PAUSED
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def resume(self) -> None:
         """Resume the experiment."""
         if self.status != ExperimentStatus.PAUSED:
             raise ValueError(f"Cannot resume experiment in status {self.status}")
         self.status = ExperimentStatus.RUNNING
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def cancel(self) -> None:
         """Cancel the experiment."""
         if self.status in [ExperimentStatus.COMPLETED, ExperimentStatus.FAILED]:
             raise ValueError(f"Cannot cancel experiment in status {self.status}")
         self.status = ExperimentStatus.CANCELLED
-        self.completed_at = datetime.now(timezone.utc)
+        self.completed_at = datetime.now(UTC)
         self.updated_at = self.completed_at
 
-    def get_metric_history(self, metric_name: str) -> List[ExperimentMetric]:
+    def get_metric_history(self, metric_name: str) -> list[ExperimentMetric]:
         """Get the history of a specific metric."""
         return [m for m in self.metrics if m.name == metric_name]
 
-    def get_latest_metric(self, metric_name: str) -> Optional[ExperimentMetric]:
+    def get_latest_metric(self, metric_name: str) -> ExperimentMetric | None:
         """Get the latest value of a specific metric."""
         history = self.get_metric_history(metric_name)
         if not history:
             return None
         return max(history, key=lambda m: m.timestamp)
 
-    def get_artifacts_by_type(self, artifact_type: str) -> List[ExperimentArtifact]:
+    def get_artifacts_by_type(self, artifact_type: str) -> list[ExperimentArtifact]:
         """Get all artifacts of a specific type."""
         return [a for a in self.artifacts if a.artifact_type == artifact_type]
 
-    def duration(self) -> Optional[float]:
+    def duration(self) -> float | None:
         """Get the duration of the experiment in seconds."""
         if not self.started_at:
             return None
-        end_time = self.completed_at or datetime.now(timezone.utc)
+        end_time = self.completed_at or datetime.now(UTC)
         return (end_time - self.started_at).total_seconds()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return self.model_dump(mode="json")
 
@@ -454,7 +450,7 @@ class Experiment(BaseModel):
         return self.model_dump_json()
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Experiment:
+    def from_dict(cls, data: dict[str, Any]) -> Experiment:
         """Create from dictionary."""
         return cls.model_validate(data)
 
@@ -468,8 +464,8 @@ def create_experiment(
     name: str,
     config: ExperimentConfig,
     description: str = "",
-    tags: Optional[List[str]] = None,
-    created_by: Optional[str] = None,
+    tags: list[str] | None = None,
+    created_by: str | None = None,
     **metadata: Any,
 ) -> Experiment:
     """Create a new experiment.

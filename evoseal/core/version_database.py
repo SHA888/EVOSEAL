@@ -8,9 +8,9 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 
 # Type definitions
 VariantID = str
@@ -43,7 +43,7 @@ class VersionDatabase:
         eval_score: float,
         parent_ids: list[str] | None = None,
         metadata: Mapping[str, Any] | None = None,
-        experiment_id: Optional[str] = None,
+        experiment_id: str | None = None,
     ) -> None:
         """Store a new code variant and its associated data."""
         variant_data = {
@@ -53,7 +53,7 @@ class VersionDatabase:
             "eval_score": eval_score,
             "parent_ids": parent_ids or [],
             "metadata": metadata or {},
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "experiment_id": experiment_id,
         }
 
@@ -118,7 +118,7 @@ class VersionDatabase:
         """
         return self.experiment_variants.get(experiment_id, [])
 
-    def get_variant_experiment(self, variant_id: str) -> Optional[str]:
+    def get_variant_experiment(self, variant_id: str) -> str | None:
         """Get the experiment ID associated with a variant.
 
         Args:
@@ -130,7 +130,7 @@ class VersionDatabase:
         return self.variant_experiments.get(variant_id)
 
     def get_best_variants(
-        self, experiment_id: Optional[str] = None, limit: int = 10
+        self, experiment_id: str | None = None, limit: int = 10
     ) -> list[dict[str, Any]]:
         """Get the best variants by evaluation score.
 
@@ -160,7 +160,7 @@ class VersionDatabase:
 
         return sorted_variants[:limit]
 
-    def get_variant_statistics(self, experiment_id: Optional[str] = None) -> dict[str, Any]:
+    def get_variant_statistics(self, experiment_id: str | None = None) -> dict[str, Any]:
         """Get statistics about variants.
 
         Args:
@@ -231,8 +231,8 @@ class VersionDatabase:
         return distribution
 
     def export_variants(
-        self, experiment_id: Optional[str] = None, file_path: Optional[Path] = None
-    ) -> Union[str, None]:
+        self, experiment_id: str | None = None, file_path: Path | None = None
+    ) -> str | None:
         """Export variants to JSON format.
 
         Args:
@@ -255,7 +255,7 @@ class VersionDatabase:
             "lineage": {
                 vid: self.lineage[vid] for vid in variants_to_export.keys() if vid in self.lineage
             },
-            "export_timestamp": datetime.now(timezone.utc).isoformat(),
+            "export_timestamp": datetime.now(UTC).isoformat(),
             "experiment_id": experiment_id,
         }
 
@@ -269,7 +269,7 @@ class VersionDatabase:
         else:
             return json_data
 
-    def import_variants(self, json_data: Union[str, Path]) -> int:
+    def import_variants(self, json_data: str | Path) -> int:
         """Import variants from JSON format.
 
         Args:

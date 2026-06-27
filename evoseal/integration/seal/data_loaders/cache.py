@@ -9,10 +9,11 @@ import hashlib
 import json
 import os
 import pickle  # nosec - Using in a controlled environment with trusted cache files
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TypeVar, Union, cast
+from typing import Any, Dict, Optional, TypeVar, Union, cast
 
 from pydantic import BaseModel
 
@@ -23,7 +24,7 @@ class CacheEntry(BaseModel):
     """A single cache entry with expiration."""
 
     data: Any
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
     created_at: datetime
     version: str = "1.0"
 
@@ -40,8 +41,8 @@ class DataCache:
 
     def __init__(
         self,
-        cache_dir: Optional[Union[str, Path]] = None,
-        default_ttl: Optional[timedelta] = None,
+        cache_dir: str | Path | None = None,
+        default_ttl: timedelta | None = None,
         max_size: int = 1000,
     ) -> None:
         """Initialize the cache.
@@ -51,7 +52,7 @@ class DataCache:
             default_ttl: Default time-to-live for cache entries.
             max_size: Maximum number of in-memory cache entries.
         """
-        self.memory_cache: Dict[str, CacheEntry] = {}
+        self.memory_cache: dict[str, CacheEntry] = {}
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
         self.default_ttl = default_ttl or timedelta(hours=1)
         self.max_size = max_size
@@ -64,7 +65,7 @@ class DataCache:
         """Generate a cache key from a string using SHA-256."""
         return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
-    def _get_cache_path(self, key: str) -> Optional[Path]:
+    def _get_cache_path(self, key: str) -> Path | None:
         """Get the filesystem path for a cache key."""
         if self.cache_dir is None:
             return None
@@ -92,9 +93,7 @@ class DataCache:
         if cache_path and cache_path.exists():
             try:
                 with open(cache_path, "rb") as f:
-                    entry: CacheEntry = pickle.load(
-                        f
-                    )  # nosec - Using trusted cache files in a controlled environment
+                    entry: CacheEntry = pickle.load(f)  # nosec - Using trusted cache files in a controlled environment
                     if entry.is_expired:
                         cache_path.unlink()
                         return None
@@ -111,7 +110,7 @@ class DataCache:
         self,
         key: str,
         value: Any,
-        ttl: Optional[timedelta] = None,
+        ttl: timedelta | None = None,
         persist: bool = False,
     ) -> None:
         """Set a value in the cache.
@@ -167,9 +166,7 @@ class DataCache:
                 for cache_file in self.cache_dir.glob("*.pkl"):
                     try:
                         with open(cache_file, "rb") as f:
-                            entry: CacheEntry = pickle.load(
-                                f
-                            )  # nosec - Using trusted cache files in a controlled environment
+                            entry: CacheEntry = pickle.load(f)  # nosec - Using trusted cache files in a controlled environment
                             if entry.is_expired:
                                 cache_file.unlink()
                     except (pickle.PickleError, EOFError, AttributeError):
@@ -192,10 +189,10 @@ default_cache = DataCache(
 
 
 def cached(
-    func: Optional[Callable[..., T]] = None,
-    key: Optional[str] = None,
-    ttl: Optional[timedelta] = None,
-    cache: Optional[DataCache] = None,
+    func: Callable[..., T] | None = None,
+    key: str | None = None,
+    ttl: timedelta | None = None,
+    cache: DataCache | None = None,
     use_args: bool = True,
     use_kwargs: bool = True,
     persist: bool = False,

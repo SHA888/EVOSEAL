@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Optional
 
 from .types import CheckpointType, ExecutionContext, OrchestrationState
 
@@ -29,7 +30,7 @@ class RecoveryStrategy:
     checkpoint_rollback: bool = True
     component_restart: bool = True
     state_validation: bool = True
-    custom_recovery_actions: List[Callable] = field(default_factory=list)
+    custom_recovery_actions: list[Callable] = field(default_factory=list)
     recovery_timeout: float = 600.0  # 10 minutes
     critical_error_threshold: int = 5
     auto_recovery_enabled: bool = True
@@ -46,8 +47,8 @@ class RecoveryAttempt:
     recovery_action: str
     success: bool
     execution_time: float
-    checkpoint_used: Optional[str] = None
-    details: Dict[str, Any] = field(default_factory=dict)
+    checkpoint_used: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class RecoveryManager:
@@ -60,8 +61,8 @@ class RecoveryManager:
 
     def __init__(
         self,
-        recovery_strategy: Optional[RecoveryStrategy] = None,
-        checkpoint_manager: Optional[Any] = None,
+        recovery_strategy: RecoveryStrategy | None = None,
+        checkpoint_manager: Any | None = None,
     ):
         """Initialize the recovery manager.
 
@@ -73,9 +74,9 @@ class RecoveryManager:
         self.checkpoint_manager = checkpoint_manager
 
         # Recovery tracking
-        self.recovery_attempts: List[RecoveryAttempt] = []
+        self.recovery_attempts: list[RecoveryAttempt] = []
         self.critical_error_count = 0
-        self.last_recovery_time: Optional[datetime] = None
+        self.last_recovery_time: datetime | None = None
 
         logger.info("RecoveryManager initialized")
 
@@ -84,7 +85,7 @@ class RecoveryManager:
         error: Exception,
         execution_context: ExecutionContext,
         iteration: int,
-        step_id: Optional[str] = None,
+        step_id: str | None = None,
     ) -> bool:
         """Attempt to recover from an error.
 
@@ -156,7 +157,7 @@ class RecoveryManager:
                 else:
                     logger.warning(f"Recovery strategy {strategy_name} failed")
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.error(f"Recovery strategy {strategy_name} timed out")
             except Exception as recovery_error:
                 logger.error(f"Recovery strategy {strategy_name} raised error: {recovery_error}")
@@ -171,7 +172,7 @@ class RecoveryManager:
         error: Exception,
         execution_context: ExecutionContext,
         iteration: int,
-        step_id: Optional[str],
+        step_id: str | None,
     ) -> bool:
         """Implement retry with exponential backoff."""
         for attempt in range(self.recovery_strategy.max_retries):
@@ -204,7 +205,7 @@ class RecoveryManager:
         error: Exception,
         execution_context: ExecutionContext,
         iteration: int,
-        step_id: Optional[str],
+        step_id: str | None,
     ) -> bool:
         """Attempt recovery by rolling back to a previous checkpoint."""
         if not self.recovery_strategy.checkpoint_rollback or not self.checkpoint_manager:
@@ -258,7 +259,7 @@ class RecoveryManager:
         error: Exception,
         execution_context: ExecutionContext,
         iteration: int,
-        step_id: Optional[str],
+        step_id: str | None,
     ) -> bool:
         """Attempt recovery by restarting components."""
         if not self.recovery_strategy.component_restart:
@@ -285,7 +286,7 @@ class RecoveryManager:
         error: Exception,
         execution_context: ExecutionContext,
         iteration: int,
-        step_id: Optional[str],
+        step_id: str | None,
     ) -> bool:
         """Attempt recovery by validating and fixing state."""
         if not self.recovery_strategy.state_validation:
@@ -313,7 +314,7 @@ class RecoveryManager:
         error: Exception,
         execution_context: ExecutionContext,
         iteration: int,
-        step_id: Optional[str],
+        step_id: str | None,
     ) -> bool:
         """Execute custom recovery actions."""
         if not self.recovery_strategy.custom_recovery_actions:
@@ -367,7 +368,7 @@ class RecoveryManager:
             logger.error(f"Context validation error: {e}")
             return False
 
-    def get_recovery_statistics(self) -> Dict[str, Any]:
+    def get_recovery_statistics(self) -> dict[str, Any]:
         """Get statistics about recovery attempts.
 
         Returns:

@@ -15,8 +15,8 @@ class Metrics:
     error_count: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
-    processing_times: List[float] = field(default_factory=list)
-    errors_by_type: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    processing_times: list[float] = field(default_factory=list)
+    errors_by_type: dict[str, int] = field(default_factory=lambda: defaultdict(int))
 
     def record_processing_time(self, duration: float) -> None:
         """Record processing time for a request."""
@@ -28,7 +28,7 @@ class Metrics:
         error_type = error.__class__.__name__
         self.errors_by_type[error_type] += 1
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> dict[str, Any]:
         """Get a summary of collected metrics."""
         return {
             "request_count": self.request_count,

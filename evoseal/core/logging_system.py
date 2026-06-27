@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import structlog
 from rich.console import Console
@@ -62,12 +62,12 @@ class LogEntry:
     category: LogCategory
     component: str
     message: str
-    context: Dict[str, Any] = field(default_factory=dict)
-    correlation_id: Optional[str] = None
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    trace_id: Optional[str] = None
-    error_details: Optional[Dict[str, Any]] = None
+    context: dict[str, Any] = field(default_factory=dict)
+    correlation_id: str | None = None
+    user_id: str | None = None
+    session_id: str | None = None
+    trace_id: str | None = None
+    error_details: dict[str, Any] | None = None
 
 
 @dataclass
@@ -75,14 +75,14 @@ class LogMetrics:
     """Metrics for log analysis."""
 
     total_logs: int = 0
-    logs_by_level: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    logs_by_component: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    logs_by_category: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    logs_by_level: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    logs_by_component: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    logs_by_category: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     error_rate: float = 0.0
     warning_rate: float = 0.0
     avg_logs_per_minute: float = 0.0
-    last_error: Optional[datetime] = None
-    last_critical: Optional[datetime] = None
+    last_error: datetime | None = None
+    last_critical: datetime | None = None
 
 
 class LogAggregator:
@@ -165,10 +165,10 @@ class LogAggregator:
     def get_recent_logs(
         self,
         count: int = 50,
-        level: Optional[LogLevel] = None,
-        component: Optional[str] = None,
-        category: Optional[LogCategory] = None,
-    ) -> List[LogEntry]:
+        level: LogLevel | None = None,
+        component: str | None = None,
+        category: LogCategory | None = None,
+    ) -> list[LogEntry]:
         """Get recent log entries with optional filtering."""
         with self._lock:
             logs = list(self.log_buffer)
@@ -184,7 +184,7 @@ class LogAggregator:
             # Return most recent
             return logs[-count:] if logs else []
 
-    def check_alerts(self) -> List[Dict[str, Any]]:
+    def check_alerts(self) -> list[dict[str, Any]]:
         """Check for alert conditions."""
         alerts = []
 
@@ -231,7 +231,7 @@ class StructuredLogger:
     def __init__(
         self,
         name: str,
-        log_dir: Optional[Path] = None,
+        log_dir: Path | None = None,
         enable_console: bool = True,
         enable_file: bool = True,
         enable_json: bool = True,
@@ -400,7 +400,7 @@ class StructuredLogger:
         level: LogLevel,
         message: str,
         category: LogCategory = LogCategory.SYSTEM,
-        component: Optional[str] = None,
+        component: str | None = None,
         **context,
     ) -> LogEntry:
         """Create a structured log entry."""
@@ -423,7 +423,7 @@ class StructuredLogger:
         level: LogLevel,
         message: str,
         category: LogCategory = LogCategory.SYSTEM,
-        component: Optional[str] = None,
+        component: str | None = None,
         **context,
     ):
         """Log a message with structured data."""
@@ -467,7 +467,7 @@ class StructuredLogger:
         self,
         stage: str,
         status: str,
-        iteration: Optional[int] = None,
+        iteration: int | None = None,
         **context,
     ):
         """Log pipeline stage information."""
@@ -490,7 +490,7 @@ class StructuredLogger:
         component: str,
         operation: str,
         status: str,
-        duration: Optional[float] = None,
+        duration: float | None = None,
         **context,
     ):
         """Log component operation."""
@@ -512,9 +512,9 @@ class StructuredLogger:
     def log_performance_metric(
         self,
         metric_name: str,
-        value: Union[int, float],
+        value: int | float,
         unit: str = "",
-        component: Optional[str] = None,
+        component: str | None = None,
         **context,
     ):
         """Log performance metric."""
@@ -534,8 +534,8 @@ class StructuredLogger:
     def log_error_with_context(
         self,
         error: Exception,
-        component: Optional[str] = None,
-        operation: Optional[str] = None,
+        component: str | None = None,
+        operation: str | None = None,
         **context,
     ):
         """Log error with full context."""
@@ -560,11 +560,11 @@ class StructuredLogger:
             **context,
         )
 
-    def get_metrics(self) -> Optional[LogMetrics]:
+    def get_metrics(self) -> LogMetrics | None:
         """Get logging metrics."""
         return self.aggregator.get_metrics() if self.aggregator else None
 
-    def get_recent_logs(self, count: int = 50, **filters) -> List[LogEntry]:
+    def get_recent_logs(self, count: int = 50, **filters) -> list[LogEntry]:
         """Get recent log entries."""
         if not self.aggregator:
             return []
@@ -598,9 +598,9 @@ class StructuredLogger:
 class LoggingManager:
     """Centralized logging manager for the entire pipeline."""
 
-    def __init__(self, base_log_dir: Optional[Path] = None):
+    def __init__(self, base_log_dir: Path | None = None):
         self.base_log_dir = base_log_dir or Path("logs")
-        self.loggers: Dict[str, StructuredLogger] = {}
+        self.loggers: dict[str, StructuredLogger] = {}
         self.global_aggregator = LogAggregator(window_size=5000)
 
         # Create main pipeline logger
@@ -621,7 +621,7 @@ class LoggingManager:
             )
         return self.loggers[name]
 
-    def get_global_metrics(self) -> Dict[str, Any]:
+    def get_global_metrics(self) -> dict[str, Any]:
         """Get global logging metrics across all loggers."""
         all_metrics = {}
 

@@ -84,8 +84,8 @@ async def main():
                 self.total = total
 
         aiohttp_ns = types.SimpleNamespace(ClientSession=_FakeSession, ClientTimeout=_FakeTimeout)
-        setattr(dgm_mod, "aiohttp", aiohttp_ns)
-        setattr(oe_mod, "aiohttp", aiohttp_ns)
+        dgm_mod.aiohttp = aiohttp_ns
+        oe_mod.aiohttp = aiohttp_ns
 
     await orch.initialize(orch._component_configs)
     await orch.start()

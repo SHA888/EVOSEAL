@@ -9,7 +9,7 @@ from typing import Dict, List
 from ..types import PromptTemplate
 
 # Base templates that can be extended or used directly
-BASE_TEMPLATES: Dict[str, str] = {
+BASE_TEMPLATES: dict[str, str] = {
     "instruction": (
         "You are a helpful AI assistant. Use the following information to answer the question.\n\n"
         "{knowledge}\n\n"
@@ -37,7 +37,7 @@ BASE_TEMPLATES: Dict[str, str] = {
 }
 
 # Domain-specific templates
-DOMAIN_TEMPLATES: Dict[str, str] = {
+DOMAIN_TEMPLATES: dict[str, str] = {
     "code_generation": (
         "You are an expert programming assistant. Generate code based on the following requirements.\n\n"
         "Context:\n{knowledge}\n\n"
@@ -59,7 +59,7 @@ DOMAIN_TEMPLATES: Dict[str, str] = {
 }
 
 # System message templates
-SYSTEM_TEMPLATES: Dict[str, str] = {
+SYSTEM_TEMPLATES: dict[str, str] = {
     "default_system": (
         "You are a helpful AI assistant. Your responses should be accurate, concise, and helpful. "
         "Use the provided knowledge to inform your answers when available."
@@ -77,7 +77,7 @@ SYSTEM_TEMPLATES: Dict[str, str] = {
 }
 
 
-def get_all_templates() -> Dict[str, PromptTemplate]:
+def get_all_templates() -> dict[str, PromptTemplate]:
     """Get all default templates as PromptTemplate objects.
 
     Returns:

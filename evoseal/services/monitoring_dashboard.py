@@ -32,7 +32,7 @@ class MonitoringDashboard:
 
     def __init__(
         self,
-        evolution_service: Optional[ContinuousEvolutionService] = None,
+        evolution_service: ContinuousEvolutionService | None = None,
         host: str = "localhost",
         port: int = 8081,
         update_interval: int = 30,
@@ -248,7 +248,7 @@ class MonitoringDashboard:
 
         return ws
 
-    async def _get_current_metrics(self) -> Dict[str, Any]:
+    async def _get_current_metrics(self) -> dict[str, Any]:
         """Get current system metrics."""
         try:
             if not self.evolution_service:
@@ -261,9 +261,7 @@ class MonitoringDashboard:
             evolution_status = self.evolution_service.bidirectional_manager.get_evolution_status()
 
             # Get training manager status
-            training_status = (
-                await self.evolution_service.bidirectional_manager.training_manager.get_training_status()
-            )
+            training_status = await self.evolution_service.bidirectional_manager.training_manager.get_training_status()
 
             # Combine metrics
             metrics = {

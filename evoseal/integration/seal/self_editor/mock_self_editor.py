@@ -12,10 +12,10 @@ class MockSelfEditor:
         self,
         prompt: str,
         response: str,
-        knowledge: List[Dict[str, Any]],
-        context: Optional[Dict[str, Any]] = None,
+        knowledge: list[dict[str, Any]],
+        context: dict[str, Any] | None = None,
         **kwargs,  # Accept any additional kwargs
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Mock implementation of suggest_edits."""
         # In a real implementation, this would analyze the response and knowledge
         # to suggest improvements
@@ -38,7 +38,7 @@ class MockSelfEditor:
     async def apply_edit(
         self,
         text: str,
-        edit_suggestion: Dict[str, Any],
+        edit_suggestion: dict[str, Any],
         **kwargs,  # Accept context and any other kwargs
     ) -> str:
         """Mock implementation of apply_edit."""

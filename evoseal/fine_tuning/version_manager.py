@@ -24,7 +24,7 @@ class ModelVersionManager:
     deployment management for fine-tuned Devstral models.
     """
 
-    def __init__(self, versions_dir: Optional[Path] = None):
+    def __init__(self, versions_dir: Path | None = None):
         """
         Initialize the model version manager.
 
@@ -44,7 +44,7 @@ class ModelVersionManager:
             f"ModelVersionManager initialized with {len(self.registry.get('versions', []))} versions"
         )
 
-    def _load_registry(self) -> Dict[str, Any]:
+    def _load_registry(self) -> dict[str, Any]:
         """Load the version registry from disk."""
         if self.registry_file.exists():
             try:
@@ -75,11 +75,11 @@ class ModelVersionManager:
 
     async def register_version(
         self,
-        training_results: Dict[str, Any],
-        validation_results: Optional[Dict[str, Any]] = None,
-        data_prep_results: Optional[Dict[str, Any]] = None,
-        version_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        training_results: dict[str, Any],
+        validation_results: dict[str, Any] | None = None,
+        data_prep_results: dict[str, Any] | None = None,
+        version_name: str | None = None,
+    ) -> dict[str, Any]:
         """
         Register a new model version.
 
@@ -154,7 +154,7 @@ class ModelVersionManager:
             logger.error(f"Error registering model version: {e}")
             return {"error": str(e)}
 
-    def _generate_version_id(self, timestamp: datetime, training_results: Dict[str, Any]) -> str:
+    def _generate_version_id(self, timestamp: datetime, training_results: dict[str, Any]) -> str:
         """Generate a unique version ID."""
         # Create hash from timestamp and training results
         content = (
@@ -165,9 +165,9 @@ class ModelVersionManager:
 
     def _extract_performance_metrics(
         self,
-        training_results: Dict[str, Any],
-        validation_results: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        training_results: dict[str, Any],
+        validation_results: dict[str, Any] | None,
+    ) -> dict[str, Any]:
         """Extract key performance metrics from results."""
         metrics = {}
 
@@ -190,7 +190,7 @@ class ModelVersionManager:
 
         return metrics
 
-    def get_version_info(self, version_id: str) -> Optional[Dict[str, Any]]:
+    def get_version_info(self, version_id: str) -> dict[str, Any] | None:
         """
         Get information about a specific version.
 
@@ -206,8 +206,8 @@ class ModelVersionManager:
         return None
 
     def list_versions(
-        self, limit: Optional[int] = None, status_filter: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, limit: int | None = None, status_filter: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         List model versions.
 
@@ -233,14 +233,14 @@ class ModelVersionManager:
 
         return versions
 
-    def get_current_version(self) -> Optional[Dict[str, Any]]:
+    def get_current_version(self) -> dict[str, Any] | None:
         """Get the current deployed version."""
         current_id = self.registry.get("current_version")
         if current_id:
             return self.get_version_info(current_id)
         return None
 
-    def get_version_statistics(self) -> Dict[str, Any]:
+    def get_version_statistics(self) -> dict[str, Any]:
         """Get statistics about model versions."""
         versions = self.registry["versions"]
 
@@ -281,7 +281,7 @@ class ModelVersionManager:
 
         return stats
 
-    def export_version_history(self, output_file: Optional[Path] = None) -> Path:
+    def export_version_history(self, output_file: Path | None = None) -> Path:
         """
         Export version history to a file.
 

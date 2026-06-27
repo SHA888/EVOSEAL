@@ -8,7 +8,7 @@ with existing EVOSEAL components and workflows.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from evoseal.core.events import event_bus
 
@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 def create_evolution_workflow_config(
     workflow_id: str,
     iterations: int = 10,
-    experiment_id: Optional[str] = None,
+    experiment_id: str | None = None,
     execution_strategy: ExecutionStrategy = ExecutionStrategy.SEQUENTIAL,
-    custom_steps: Optional[List[Dict[str, Any]]] = None,
-) -> Dict[str, Any]:
+    custom_steps: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Create a standard evolution workflow configuration.
 
     Args:
@@ -112,8 +112,8 @@ def create_evolution_workflow_config(
 def create_parallel_evolution_workflow_config(
     workflow_id: str,
     iterations: int = 10,
-    experiment_id: Optional[str] = None,
-) -> Dict[str, Any]:
+    experiment_id: str | None = None,
+) -> dict[str, Any]:
     """Create a parallel evolution workflow configuration.
 
     Args:
@@ -264,7 +264,7 @@ class OrchestrationEventHandler:
         )
         logger.error(f"Error event: {event.data.get('error_message', 'Unknown error')}")
 
-    def get_events_by_type(self, event_type: str) -> List[Dict[str, Any]]:
+    def get_events_by_type(self, event_type: str) -> list[dict[str, Any]]:
         """Get events filtered by type."""
         return [event for event in self.events_received if event["type"] == event_type]
 
@@ -275,10 +275,10 @@ class OrchestrationEventHandler:
 
 async def run_orchestrated_evolution(
     pipeline_instance: Any,
-    workflow_config: Dict[str, Any],
-    orchestrator: Optional[WorkflowOrchestrator] = None,
-    event_handler: Optional[OrchestrationEventHandler] = None,
-) -> Dict[str, Any]:
+    workflow_config: dict[str, Any],
+    orchestrator: WorkflowOrchestrator | None = None,
+    event_handler: OrchestrationEventHandler | None = None,
+) -> dict[str, Any]:
     """Run an orchestrated evolution workflow.
 
     Args:
@@ -374,7 +374,7 @@ async def run_orchestrated_evolution(
         }
 
 
-def validate_orchestration_setup() -> Dict[str, bool]:
+def validate_orchestration_setup() -> dict[str, bool]:
     """Validate that the orchestration system is properly set up.
 
     Returns:
@@ -428,7 +428,7 @@ async def run_simple_evolution(
     workflow_id: str,
     iterations: int = 10,
     checkpoint_interval: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run a simple sequential evolution workflow.
 
     Args:
@@ -464,7 +464,7 @@ async def run_parallel_evolution(
     workflow_id: str,
     iterations: int = 10,
     checkpoint_interval: int = 3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run a parallel evolution workflow.
 
     Args:

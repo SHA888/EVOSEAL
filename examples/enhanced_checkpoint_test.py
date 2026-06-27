@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 from evoseal.core.checkpoint_manager import CheckpointManager
 
 
-def create_sample_experiment_data() -> Dict[str, Any]:
+def create_sample_experiment_data() -> dict[str, Any]:
     """Create sample experiment data with model parameters."""
     return {
         "id": "exp_001",

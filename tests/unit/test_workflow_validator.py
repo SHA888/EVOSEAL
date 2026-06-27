@@ -347,8 +347,8 @@ class TestConvenienceFunctions:
                     i,
                     issue.message,
                     issue.code,
-                    getattr(issue, 'path', 'N/A'),
-                    str(issue.exception) if hasattr(issue, 'exception') else 'None',
+                    getattr(issue, "path", "N/A"),
+                    str(issue.exception) if hasattr(issue, "exception") else "None",
                 )
 
         # Debug: Print the schema being used
@@ -357,7 +357,7 @@ class TestConvenienceFunctions:
         validator = _get_non_strict_validator()
         logger.debug(
             "Schema additionalProperties: %s",
-            validator.schema.get('additionalProperties', 'Not set'),
+            validator.schema.get("additionalProperties", "Not set"),
         )
 
         assert result.is_valid, f"Validation failed with {len(result.issues)} issues"

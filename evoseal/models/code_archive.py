@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from enum import Enum
 from typing import Any, ClassVar, TypeVar, cast
 from uuid import UUID, uuid4
@@ -96,8 +96,8 @@ class CodeArchive(BaseModel):
     title: str = Field(..., min_length=1)
     description: str = ""
     author_id: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     version: str = "1.0.0"
     tags: list[str] = Field(default_factory=list)
     visibility: CodeVisibility = CodeVisibility.PRIVATE
@@ -134,7 +134,7 @@ class CodeArchive(BaseModel):
         if "id" not in data:
             data["id"] = str(uuid4())
         if "created_at" not in data:
-            data["created_at"] = datetime.now(timezone.utc)
+            data["created_at"] = datetime.now(UTC)
         if "updated_at" not in data:
             data["updated_at"] = data["created_at"]
         if "version" not in data:
@@ -221,7 +221,7 @@ class CodeArchive(BaseModel):
 
         # Ensure timezone is set to UTC if not already set
         if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
+            return dt.replace(tzinfo=UTC)
         return dt
 
     @field_serializer("created_at", "updated_at", when_used="json")
@@ -437,7 +437,7 @@ class CodeArchive(BaseModel):
                 setattr(self, field, value)
 
         # Always update the updated_at timestamp
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def add_tag(self, tag: str) -> None:
         """Add a tag to the code archive.
@@ -488,12 +488,12 @@ class CodeArchive(BaseModel):
     def archive(self) -> None:
         """Mark the code archive as archived/read-only."""
         self.is_archived = True
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def unarchive(self) -> None:
         """Mark the code archive as not archived."""
         self.is_archived = False
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def fork(self, new_author_id: str, **updates: Any) -> CodeArchive:
         """Create a fork of this code archive.
@@ -511,8 +511,8 @@ class CodeArchive(BaseModel):
                 "id": str(uuid4()),
                 "parent_id": self.id,
                 "author_id": new_author_id,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
                 "version": "1.0.0",  # Reset version for the fork
             }
         )

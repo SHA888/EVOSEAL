@@ -44,7 +44,7 @@ def create_mock_evolution_config() -> EvolutionConfig:
     )
 
 
-def create_mock_safety_config() -> Dict[str, Any]:
+def create_mock_safety_config() -> dict[str, Any]:
     """Create a mock safety configuration for testing."""
     return {
         "auto_checkpoint": True,
@@ -76,7 +76,7 @@ def create_mock_safety_config() -> Dict[str, Any]:
 class MockEvolutionPipeline(EvolutionPipeline):
     """Mock evolution pipeline for testing safety integration."""
 
-    def __init__(self, config: EvolutionConfig, safety_config: Dict[str, Any]):
+    def __init__(self, config: EvolutionConfig, safety_config: dict[str, Any]):
         """Initialize mock evolution pipeline with safety integration."""
         super().__init__(config)
 
@@ -88,7 +88,7 @@ class MockEvolutionPipeline(EvolutionPipeline):
         # Mock iteration counter
         self.iteration_counter = 0
 
-    async def _run_single_iteration(self, iteration: int) -> Dict[str, Any]:
+    async def _run_single_iteration(self, iteration: int) -> dict[str, Any]:
         """Mock implementation of single iteration for testing."""
         self.iteration_counter += 1
 
@@ -132,7 +132,7 @@ class MockEvolutionPipeline(EvolutionPipeline):
         success_rate: float,
         performance_improvement: float,
         memory_usage: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a mock iteration result."""
         version_id = f"v1.{iteration}"
 

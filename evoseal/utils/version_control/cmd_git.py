@@ -8,8 +8,9 @@ import logging
 import os
 import re
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from .exceptions import (
     AuthenticationError,
@@ -39,10 +40,10 @@ class CmdGit(GitInterface):
 
     def __init__(
         self,
-        repo_path: Optional[Union[str, Path]] = None,
-        ssh_key_path: Optional[Union[str, Path]] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        repo_path: str | Path | None = None,
+        ssh_key_path: str | Path | None = None,
+        username: str | None = None,
+        password: str | None = None,
         timeout: int = 300,  # 5 minutes default timeout
     ):
         """
@@ -75,10 +76,10 @@ class CmdGit(GitInterface):
 
     def initialize(
         self,
-        repo_url: Optional[str] = None,
-        clone_path: Optional[Union[str, Path]] = None,
+        repo_url: str | None = None,
+        clone_path: str | Path | None = None,
         bare: bool = False,
-        initial_branch: Optional[str] = None,
+        initial_branch: str | None = None,
     ) -> "CmdGit":
         """
         Initialize the Git repository.
@@ -144,10 +145,10 @@ class CmdGit(GitInterface):
     def clone(
         self,
         repo_url: str,
-        target_path: Optional[Union[str, Path]] = None,
-        branch: Optional[str] = None,
-        depth: Optional[int] = None,
-        progress_callback: Optional[ProgressCallback] = None,
+        target_path: str | Path | None = None,
+        branch: str | None = None,
+        depth: int | None = None,
+        progress_callback: ProgressCallback | None = None,
     ) -> "CmdGit":
         """
         Clone a Git repository with enhanced options and progress reporting.
@@ -237,9 +238,9 @@ class CmdGit(GitInterface):
     def pull(
         self,
         remote: str = "origin",
-        branch: Optional[str] = None,
+        branch: str | None = None,
         rebase: bool = False,
-        progress_callback: Optional[ProgressCallback] = None,
+        progress_callback: ProgressCallback | None = None,
     ) -> GitResult:
         """
         Pull changes from a remote repository with enhanced options.
@@ -305,10 +306,10 @@ class CmdGit(GitInterface):
     def push(
         self,
         remote: str = "origin",
-        branch: Optional[str] = None,
+        branch: str | None = None,
         force: bool = False,
         set_upstream: bool = False,
-        progress_callback: Optional[ProgressCallback] = None,
+        progress_callback: ProgressCallback | None = None,
     ) -> GitResult:
         """
         Push changes to a remote repository with enhanced options.
@@ -379,7 +380,7 @@ class CmdGit(GitInterface):
     def commit(
         self,
         message: str,
-        files: Optional[List[Union[str, Path]]] = None,
+        files: list[str | Path] | None = None,
         allow_empty: bool = False,
         amend: bool = False,
         no_verify: bool = False,
@@ -448,7 +449,7 @@ class CmdGit(GitInterface):
         self,
         branch: str,
         create: bool = False,
-        start_point: Optional[str] = None,
+        start_point: str | None = None,
         force: bool = False,
     ) -> GitResult:
         """
@@ -605,12 +606,12 @@ class CmdGit(GitInterface):
 
     def log(
         self,
-        n: Optional[int] = None,
-        max_count: Optional[int] = None,
-        since: Optional[str] = None,
-        until: Optional[str] = None,
-        author: Optional[str] = None,
-        grep: Optional[str] = None,
+        n: int | None = None,
+        max_count: int | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        author: str | None = None,
+        grep: str | None = None,
         oneline: bool = True,
         **kwargs,
     ) -> GitResult:
@@ -679,11 +680,11 @@ class CmdGit(GitInterface):
 
     def branch(
         self,
-        name: Optional[str] = None,
+        name: str | None = None,
         delete: bool = False,
         force: bool = False,
-        track: Optional[str] = None,
-        set_upstream_to: Optional[str] = None,
+        track: str | None = None,
+        set_upstream_to: str | None = None,
     ) -> GitResult:
         """
         List, create, or delete branches with enhanced options.
@@ -749,7 +750,7 @@ class CmdGit(GitInterface):
                 raise
             raise GitError(f"Failed to perform branch operation: {e}") from e
 
-    def list_remotes(self, verbose: bool = False) -> Dict[str, str]:
+    def list_remotes(self, verbose: bool = False) -> dict[str, str]:
         """
         List all remotes for the repository.
 
@@ -927,13 +928,13 @@ class CmdGit(GitInterface):
 
     def tag(
         self,
-        name: Optional[str] = None,
-        message: Optional[str] = None,
+        name: str | None = None,
+        message: str | None = None,
         delete: bool = False,
         force: bool = False,
         sign: bool = False,
-        sign_key: Optional[str] = None,
-        commit: Optional[str] = None,
+        sign_key: str | None = None,
+        commit: str | None = None,
     ) -> GitResult:
         """
         List, create, or delete tags with enhanced options.
@@ -1004,10 +1005,10 @@ class CmdGit(GitInterface):
     def stash(
         self,
         action: str = "save",
-        message: Optional[str] = None,
+        message: str | None = None,
         include_untracked: bool = False,
         keep_index: bool = False,
-        stash_id: Optional[Union[int, str]] = None,
+        stash_id: int | str | None = None,
         **kwargs,
     ) -> GitResult:
         """
@@ -1095,10 +1096,10 @@ class CmdGit(GitInterface):
 
     def get_file_content(
         self,
-        file_path: Union[str, Path],
-        ref: Optional[str] = None,
+        file_path: str | Path,
+        ref: str | None = None,
         encoding: str = "utf-8",
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get the content of a file in the repository.
 
@@ -1154,11 +1155,11 @@ class CmdGit(GitInterface):
 
     def write_file_content(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         content: str,
         encoding: str = "utf-8",
         create_parents: bool = True,
-        mode: Optional[int] = None,
+        mode: int | None = None,
     ) -> bool:
         """
         Write content to a file in the repository.
@@ -1214,12 +1215,12 @@ class CmdGit(GitInterface):
 
     def get_repository_structure(
         self,
-        ref: Optional[str] = None,
-        path: Optional[Union[str, Path]] = None,
+        ref: str | None = None,
+        path: str | Path | None = None,
         recursive: bool = True,
         include_hidden: bool = False,
-        max_depth: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        max_depth: int | None = None,
+    ) -> dict[str, Any]:
         """
         Get the structure of the repository with detailed information.
 
@@ -1251,7 +1252,7 @@ class CmdGit(GitInterface):
                     raise ValueError(f"Path not found: {path}")
                 base_path = path
 
-            def get_structure(current_path: Path, current_depth: int = 0) -> Dict[str, Any]:
+            def get_structure(current_path: Path, current_depth: int = 0) -> dict[str, Any]:
                 """Recursively build the repository structure."""
                 logger.debug(
                     f"Processing path: {current_path}, depth: {current_depth}, recursive: {recursive}"
@@ -1426,10 +1427,10 @@ class CmdGit(GitInterface):
 
     def get_file_history(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         limit: int = 10,
-        ref: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        ref: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Get the commit history for a specific file.
 
@@ -1511,9 +1512,9 @@ class CmdGit(GitInterface):
         self,
         branch1: str,
         branch2: str,
-        path: Optional[Union[str, Path]] = None,
+        path: str | Path | None = None,
         include_unchanged: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Compare repository structures between two branches.
 
@@ -1583,10 +1584,10 @@ class CmdGit(GitInterface):
 
     def find_file_references(
         self,
-        file_path: Union[str, Path],
-        ref: Optional[str] = None,
-        file_types: Optional[List[str]] = None,
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        file_path: str | Path,
+        ref: str | None = None,
+        file_types: list[str] | None = None,
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Find references to a file in the repository.
 
@@ -1622,9 +1623,9 @@ class CmdGit(GitInterface):
 
     def generate_structure_diagram(
         self,
-        ref: Optional[str] = None,
-        path: Optional[Union[str, Path]] = None,
-        max_depth: Optional[int] = 3,
+        ref: str | None = None,
+        path: str | Path | None = None,
+        max_depth: int | None = 3,
         include_hidden: bool = False,
     ) -> str:
         """
@@ -1659,7 +1660,7 @@ class CmdGit(GitInterface):
             logger.error(f"Error generating structure diagram: {e}")
             raise GitError(f"Failed to generate structure diagram: {e}") from e
 
-    def _file_exists_in_ref(self, file_path: Union[str, Path], ref: str) -> bool:
+    def _file_exists_in_ref(self, file_path: str | Path, ref: str) -> bool:
         """Check if a file exists in a specific git reference."""
         try:
             cmd = ["ls-tree", "--name-only", ref, str(file_path)]
@@ -1670,10 +1671,10 @@ class CmdGit(GitInterface):
 
     def _flatten_structure(
         self,
-        structure: Dict[str, Any],
+        structure: dict[str, Any],
         parent_path: str = "",
-        result: Optional[Dict[str, Dict[str, Any]]] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+        result: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """Flatten a nested directory structure into a dictionary of paths to file info."""
         if result is None:
             result = {}
@@ -1690,10 +1691,10 @@ class CmdGit(GitInterface):
 
     def _find_imports(
         self,
-        file_path: Union[str, Path],
-        ref: Optional[str],
-        file_types: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        file_path: str | Path,
+        ref: str | None,
+        file_types: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Find imports in a file."""
         try:
             content = self.get_file_content(file_path, ref=ref)
@@ -1738,10 +1739,10 @@ class CmdGit(GitInterface):
 
     def _find_referenced_by(
         self,
-        file_path: Union[str, Path],
-        ref: Optional[str],
-        file_types: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        file_path: str | Path,
+        ref: str | None,
+        file_types: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Find files that reference the given file."""
         try:
             # Get the base filename without extension for searching
@@ -1782,8 +1783,8 @@ class CmdGit(GitInterface):
             return []
 
     def _get_matching_lines(
-        self, file_path: str, pattern: str, ref: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        self, file_path: str, pattern: str, ref: str | None
+    ) -> list[dict[str, Any]]:
         """Get matching lines containing the pattern in a file."""
         try:
             content = self.get_file_content(file_path, ref=ref)
@@ -1800,7 +1801,7 @@ class CmdGit(GitInterface):
             return []
 
     def _format_structure(
-        self, contents: Dict[str, Any], lines: List[str], prefix: str = ""
+        self, contents: dict[str, Any], lines: list[str], prefix: str = ""
     ) -> None:
         """Recursively format directory structure into ASCII tree."""
         if not contents:

@@ -45,7 +45,7 @@ class CodeMetrics:
     memory_usage: float
     readability_score: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -71,7 +71,7 @@ class EvolutionResult:
     improved_metrics: CodeMetrics
 
     # Classification
-    improvement_types: List[ImprovementType]
+    improvement_types: list[ImprovementType]
     success: bool
 
     # Context
@@ -80,9 +80,9 @@ class EvolutionResult:
     model_version: str
 
     # Additional metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         result = asdict(self)
         # Convert enums to strings
@@ -92,7 +92,7 @@ class EvolutionResult:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EvolutionResult":
+    def from_dict(cls, data: dict[str, Any]) -> "EvolutionResult":
         """Create from dictionary."""
         # Convert string enums back
         data["strategy"] = EvolutionStrategy(data["strategy"])
@@ -121,10 +121,10 @@ class PatternMatch:
     pattern_type: str
     frequency: int
     confidence: float
-    examples: List[str]
+    examples: list[str]
     description: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -139,10 +139,10 @@ class TrainingExample:
     quality_score: float
     source_evolution_id: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
-    def to_alpaca_format(self) -> Dict[str, str]:
+    def to_alpaca_format(self) -> dict[str, str]:
         """Convert to Alpaca instruction format."""
         return {
             "instruction": self.instruction,
@@ -150,7 +150,7 @@ class TrainingExample:
             "output": self.output_code,
         }
 
-    def to_chat_format(self) -> List[Dict[str, str]]:
+    def to_chat_format(self) -> list[dict[str, str]]:
         """Convert to chat format for training."""
         return [
             {

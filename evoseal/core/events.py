@@ -16,9 +16,9 @@ from collections.abc import Awaitable, Callable, Collection, Coroutine
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import wraps
-from typing import Any, Optional, TypeVar, Union, cast, overload
+from typing import Any, Optional, TypeAlias, TypeVar, Union, cast, overload
 
-from typing_extensions import TypeAlias, TypedDict
+from typing_extensions import TypedDict
 
 logger = logging.getLogger(__name__)
 
@@ -179,12 +179,12 @@ class Event:
 
 
 # Define the handler type after Event is defined
-EventHandler: TypeAlias = Union[
-    Callable[[Event], None],
-    Callable[[Event], Awaitable[None]],
-    Callable[[Event], Coroutine[Any, Any, None]],
-    Callable[[Event], Optional[Awaitable[None]]],
-]
+EventHandler: TypeAlias = (
+    Callable[[Event], None]
+    | Callable[[Event], Awaitable[None]]
+    | Callable[[Event], Coroutine[Any, Any, None]]
+    | Callable[[Event], Awaitable[None] | None]
+)
 
 
 # Specialized Event Classes
@@ -371,7 +371,9 @@ class EventBus:
         event_str = (
             event_type.value
             if isinstance(event_type, EventType)
-            else str(event_type) if event_type is not None else None
+            else str(event_type)
+            if event_type is not None
+            else None
         )
 
         def decorator(handler_func: EventHandler) -> EventHandler:
@@ -542,7 +544,7 @@ class EventBus:
                     handler(event)
             except Exception as e:
                 handler_name = getattr(
-                    handler_info['handler'], "__name__", str(handler_info['handler'])
+                    handler_info["handler"], "__name__", str(handler_info["handler"])
                 )
                 logger.error(
                     f"Error in {handler_name} " f"for event {event.event_type}: {str(e)}",

@@ -2,10 +2,10 @@
 
 import ast
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from .base_strategy import BaseEditStrategy
@@ -128,7 +128,7 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
         (r"(?i)credential\s*[=:]\s*[\'\"].*?[\'\"]", "Hardcoded credential"),
     ]
 
-    def __init__(self, config: Optional[SecurityConfig] = None):
+    def __init__(self, config: SecurityConfig | None = None):
         """Initialize the security analysis strategy.
 
         Args:
@@ -310,7 +310,6 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and node.args
                 and isinstance(node.args[0], (ast.JoinedStr, ast.BinOp, ast.Mod))
             ):
-
                 suggestions.append(
                     EditSuggestion(
                         operation=EditOperation.REWRITE,
@@ -340,7 +339,6 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and getattr(d.func, "attr", "") == "route"
                 for d in node.decorator_list
             ):
-
                 # Look for return statements with f-strings or string formatting
                 for stmt in ast.walk(node):
                     if isinstance(stmt, ast.Return) and stmt.value:
@@ -349,7 +347,6 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                             and isinstance(stmt.value.func, ast.Attribute)
                             and stmt.value.func.attr in ["format", "format_map"]
                         ):
-
                             # Get the source line for context
                             source_line = ast.get_source_segment(content, stmt) or str(stmt)
 
@@ -379,7 +376,6 @@ class SecurityAnalysisStrategy(BaseEditStrategy):
                 and node.func.attr in ["write", "send", "respond"]
                 and any(isinstance(arg, (ast.JoinedStr, ast.FormattedValue)) for arg in node.args)
             ):
-
                 source_line = ast.get_source_segment(content, node) or str(node)
                 node_text = source_line or f"Potential XSS in {node.func.attr} call"
                 suggestions.append(

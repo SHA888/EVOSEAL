@@ -113,7 +113,7 @@ class OpenEvolveAdapter(BaseComponentAdapter):
             self.logger.exception("OpenEvolve evolve operation error")
             return ComponentResult(success=False, error=str(e), execution_time=exec_time)
 
-    async def get_metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> dict[str, Any]:
         return {
             "mode": self._mode,
             "evolutions_started": self._stats.evolutions_started,
@@ -123,7 +123,7 @@ class OpenEvolveAdapter(BaseComponentAdapter):
 
     # --- Implementation helpers ---
 
-    async def _evolve_package(self, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    async def _evolve_package(self, data: dict[str, Any], **kwargs) -> dict[str, Any]:
         cfg = {**self.config.config.get("package", {}), **data, **kwargs}
         initial_program_path = cfg.get("initial_program_path")
         evaluation_file = cfg.get("evaluation_file")
@@ -208,7 +208,7 @@ class OpenEvolveAdapter(BaseComponentAdapter):
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def _evolve_remote(self, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    async def _evolve_remote(self, data: dict[str, Any], **kwargs) -> dict[str, Any]:
         if aiohttp is None:
             return {"success": False, "error": "aiohttp not installed; remote mode unavailable"}
 

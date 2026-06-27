@@ -5,6 +5,7 @@ Comprehensive test suite for the EVOSEAL CLI.
 This script tests the functionality of the EVOSEAL CLI commands,
 including edge cases and error conditions.
 """
+
 from __future__ import annotations
 
 import json

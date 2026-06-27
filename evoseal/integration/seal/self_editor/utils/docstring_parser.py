@@ -27,7 +27,7 @@ class ParsedDocstring:
         self,
         summary: str = "",
         description: str = "",
-        sections: Optional[dict[str, str]] = None,
+        sections: dict[str, str] | None = None,
         style: DocstringStyle = DocstringStyle.GOOGLE,
     ):
         self.summary = summary
@@ -143,7 +143,7 @@ def parse_docstring(
 
 def _parse_google_docstring(rest: str, parsed: ParsedDocstring) -> None:
     """Parse the rest of a Google-style docstring."""
-    current_section: Optional[str] = None
+    current_section: str | None = None
     current_content: list[str] = []
 
     for line in rest.split("\n"):
@@ -226,7 +226,6 @@ def _parse_rest_docstring(rest: str, parsed: ParsedDocstring) -> None:
             and len(set(lines[i])) == 1
             and len(lines[i]) >= len(lines[i - 1])
         ):
-
             section = lines[i - 1].strip()
             i += 1  # Skip the underline
 

@@ -15,7 +15,7 @@ import time
 import traceback
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from types import TracebackType
 from typing import Any, TypeVar, cast
 
@@ -334,7 +334,7 @@ def create_error_response(
             "type": error.__class__.__name__,
             "message": str(error),
             "status": status_code,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "traceback": traceback.format_exc() if include_traceback else None,
         }
     }

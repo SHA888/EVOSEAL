@@ -5,11 +5,10 @@ This module contains type definitions and base classes used by the workflow vali
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Literal, Protocol, TypedDict, Union
-
-from typing_extensions import TypeAlias
+from typing import Any, Literal, Protocol, TypeAlias, TypedDict, Union
 
 # Type aliases for JSON data structures
 JSONPrimitive = Union[str, int, float, bool, None]

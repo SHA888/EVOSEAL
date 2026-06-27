@@ -32,7 +32,7 @@ class AdvancedMockMetricsTracker:
         # Generate realistic time series data with trends and anomalies
         self.metrics_data = self._generate_realistic_metrics()
 
-    def _generate_realistic_metrics(self) -> Dict[str, Dict[str, float]]:
+    def _generate_realistic_metrics(self) -> dict[str, dict[str, float]]:
         """Generate realistic metrics data with trends, noise, and anomalies."""
         data = {}
 
@@ -107,7 +107,7 @@ class AdvancedMockMetricsTracker:
         return comparison
 
 
-def print_statistical_analysis(metric_name: str, stats: Dict[str, Any]) -> None:
+def print_statistical_analysis(metric_name: str, stats: dict[str, Any]) -> None:
     """Print formatted statistical analysis results."""
     logger.info(f"\n📊 Statistical Analysis for {metric_name}:")
     logger.info(f"  Mean: {stats.get('mean', 0):.4f}")
@@ -143,7 +143,7 @@ def print_statistical_analysis(metric_name: str, stats: Dict[str, Any]) -> None:
             )
 
 
-def print_enhanced_regression_analysis(metric_name: str, analysis: Dict[str, Any]) -> None:
+def print_enhanced_regression_analysis(metric_name: str, analysis: dict[str, Any]) -> None:
     """Print formatted enhanced regression analysis."""
     logger.info(f"\n🔍 Enhanced Regression Analysis for {metric_name}:")
 

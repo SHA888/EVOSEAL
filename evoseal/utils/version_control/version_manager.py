@@ -25,7 +25,7 @@ class CommitInfo:
     author: str
     date: datetime
     message: str
-    files_changed: List[str] = field(default_factory=list)
+    files_changed: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -35,9 +35,9 @@ class BranchInfo:
     name: str
     is_current: bool = False
     is_remote: bool = False
-    upstream: Optional[str] = None
-    last_commit_hash: Optional[str] = None
-    last_commit_message: Optional[str] = None
+    upstream: str | None = None
+    last_commit_hash: str | None = None
+    last_commit_message: str | None = None
 
 
 class VersionManager:
@@ -46,7 +46,7 @@ class VersionManager:
     for common version control operations.
     """
 
-    def __init__(self, repo_path: Union[str, Path], git_implementation=None):
+    def __init__(self, repo_path: str | Path, git_implementation=None):
         """
         Initialize the VersionManager.
 
@@ -78,9 +78,7 @@ class VersionManager:
             logger.error(f"Failed to initialize repository: {e}")
             return False
 
-    def clone_repository(
-        self, repo_url: str, target_path: Optional[Union[str, Path]] = None
-    ) -> bool:
+    def clone_repository(self, repo_url: str, target_path: str | Path | None = None) -> bool:
         """
         Clone a remote repository.
 
@@ -100,7 +98,7 @@ class VersionManager:
             return False
 
     # Branch operations
-    def get_current_branch(self) -> Optional[str]:
+    def get_current_branch(self) -> str | None:
         """
         Get the name of the current branch.
 
@@ -116,7 +114,7 @@ class VersionManager:
                 return line[2:].strip()
         return None
 
-    def list_branches(self, include_remote: bool = False) -> List[BranchInfo]:
+    def list_branches(self, include_remote: bool = False) -> list[BranchInfo]:
         """
         List all branches.
 
@@ -187,7 +185,7 @@ class VersionManager:
         return result.success
 
     # Commit operations
-    def get_commit_history(self, limit: int = 10) -> List[CommitInfo]:
+    def get_commit_history(self, limit: int = 10) -> list[CommitInfo]:
         """
         Get commit history.
 
@@ -231,7 +229,7 @@ class VersionManager:
 
         return commits
 
-    def create_commit(self, message: str, files: Optional[List[Union[str, Path]]] = None) -> bool:
+    def create_commit(self, message: str, files: list[str | Path] | None = None) -> bool:
         """
         Create a new commit.
 
@@ -246,9 +244,7 @@ class VersionManager:
         return result.success
 
     # File operations
-    def get_file_content(
-        self, file_path: Union[str, Path], revision: str = "HEAD"
-    ) -> Optional[str]:
+    def get_file_content(self, file_path: str | Path, revision: str = "HEAD") -> str | None:
         """
         Get the content of a file at a specific revision.
 
@@ -268,7 +264,7 @@ class VersionManager:
             return result[1]
         return None
 
-    def write_file(self, file_path: Union[str, Path], content: str) -> bool:
+    def write_file(self, file_path: str | Path, content: str) -> bool:
         """
         Write content to a file in the repository.
 
@@ -281,7 +277,7 @@ class VersionManager:
         """
         return self.git.write_file_content(file_path, content)
 
-    def get_repository_structure(self) -> Dict[str, Any]:
+    def get_repository_structure(self) -> dict[str, Any]:
         """
         Get the structure of the repository.
 
@@ -305,7 +301,7 @@ class VersionManager:
         result = self.git._run_git_command(["remote", "add", name, url])
         return result[0]
 
-    def list_remotes(self) -> Dict[str, str]:
+    def list_remotes(self) -> dict[str, str]:
         """
         List all remote repositories.
 
@@ -366,7 +362,7 @@ class VersionManager:
         return result.success
 
     # Status and diff
-    def get_status(self) -> Dict[str, List[str]]:
+    def get_status(self) -> dict[str, list[str]]:
         """
         Get the status of the working directory.
 

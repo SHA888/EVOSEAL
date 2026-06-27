@@ -15,7 +15,7 @@ class TestRepositoryManager:
     def test_clone_repository(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
     ):
         """Test cloning a repository."""
         repo_path, _, _ = test_repo
@@ -37,7 +37,7 @@ class TestRepositoryManager:
     def test_clone_repository_already_exists(
         self,
         repository_manager: RepositoryManager,
-        test_repo: Tuple[Path, "git.Repo", str],
+        test_repo: tuple[Path, "git.Repo", str],
     ):
         """Test cloning to an existing repository."""
         repo_path, _, _ = test_repo

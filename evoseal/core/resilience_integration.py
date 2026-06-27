@@ -311,7 +311,7 @@ class ResilienceOrchestrator:
                 }
             )
 
-    async def _process_alert(self, alert: Dict[str, Any]):
+    async def _process_alert(self, alert: dict[str, Any]):
         """Process an alert through registered handlers."""
         alert["timestamp"] = datetime.utcnow().isoformat()
 
@@ -333,7 +333,7 @@ class ResilienceOrchestrator:
             )
         )
 
-    async def _handle_high_error_rate_alert(self, alert: Dict[str, Any]):
+    async def _handle_high_error_rate_alert(self, alert: dict[str, Any]):
         """Handle high error rate alerts."""
         if alert["type"] == "high_error_rate":
             component = alert.get("component", "unknown")
@@ -345,7 +345,7 @@ class ResilienceOrchestrator:
             if error_rate > 0.25:  # 25% error rate
                 await self._enable_degraded_mode(f"High error rate: {error_rate:.2%}")
 
-    async def _handle_component_failure_alert(self, alert: Dict[str, Any]):
+    async def _handle_component_failure_alert(self, alert: dict[str, Any]):
         """Handle component failure alerts."""
         if alert["type"] == "component_unhealthy":
             component = alert.get("component", "unknown")
@@ -358,7 +358,7 @@ class ResilienceOrchestrator:
                 logger.info(f"Attempting to restart critical component: {component}")
                 # Could trigger component restart here
 
-    async def _handle_resource_exhaustion_alert(self, alert: Dict[str, Any]):
+    async def _handle_resource_exhaustion_alert(self, alert: dict[str, Any]):
         """Handle resource exhaustion alerts."""
         if alert["type"] in ["high_memory_usage", "high_cpu_usage"]:
             logger.warning(f"Resource exhaustion detected: {alert['type']}")
@@ -366,7 +366,7 @@ class ResilienceOrchestrator:
             # Enable resource conservation mode
             await self._enable_resource_conservation()
 
-    async def _handle_circuit_breaker_alert(self, alert: Dict[str, Any]):
+    async def _handle_circuit_breaker_alert(self, alert: dict[str, Any]):
         """Handle circuit breaker alerts."""
         if alert["type"] == "circuit_breaker_open":
             component = alert.get("component", "unknown")
@@ -420,7 +420,7 @@ class ResilienceOrchestrator:
         # - Enable fallback mode for that component
         # - Adjust workflow to skip that component
 
-    async def get_comprehensive_status(self) -> Dict[str, Any]:
+    async def get_comprehensive_status(self) -> dict[str, Any]:
         """Get comprehensive resilience status."""
         return {
             "resilience_orchestrator": {
@@ -467,7 +467,7 @@ async def initialize_resilience_system():
     logger.info("Resilience system initialized successfully")
 
 
-def get_resilience_status() -> Dict[str, Any]:
+def get_resilience_status() -> dict[str, Any]:
     """Get comprehensive resilience status."""
     if not resilience_orchestrator.is_initialized:
         return {"error": "Resilience system not initialized"}

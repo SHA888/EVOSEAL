@@ -11,7 +11,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -24,7 +24,7 @@ class EVOSEALLogger:
         self,
         name: str = "evoseal",
         level: str = "INFO",
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
         console_output: bool = True,
         rich_formatting: bool = True,
     ):
@@ -123,7 +123,7 @@ class EVOSEALLogger:
         ]
         self.log_file = None
 
-    def log_command_start(self, command: str, args: Dict[str, Any]):
+    def log_command_start(self, command: str, args: dict[str, Any]):
         """Log the start of a command execution."""
         self.logger.info(f"Starting command: {command}")
         if args:
@@ -138,7 +138,7 @@ class EVOSEALLogger:
         """Log pipeline stage information."""
         self.logger.info(f"Pipeline iteration {iteration}: {stage} - {status}")
 
-    def log_error_with_context(self, error: Exception, context: Dict[str, Any]):
+    def log_error_with_context(self, error: Exception, context: dict[str, Any]):
         """Log an error with additional context."""
         self.logger.error(f"Error: {str(error)}")
         if context:
@@ -147,13 +147,13 @@ class EVOSEALLogger:
 
 
 # Global logger instance
-_global_logger: Optional[EVOSEALLogger] = None
+_global_logger: EVOSEALLogger | None = None
 
 
 def get_logger(
     name: str = "evoseal",
     level: str = "INFO",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
     console_output: bool = True,
     rich_formatting: bool = True,
 ) -> EVOSEALLogger:
@@ -172,7 +172,7 @@ def get_logger(
     return _global_logger
 
 
-def setup_logging_from_config(config: Dict[str, Any]) -> EVOSEALLogger:
+def setup_logging_from_config(config: dict[str, Any]) -> EVOSEALLogger:
     """Setup logging from configuration dictionary."""
     logging_config = config.get("logging", {})
 

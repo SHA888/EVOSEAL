@@ -17,7 +17,9 @@ from pathlib import Path
 def run_command(cmd, capture_output=True):
     """Run a shell command and return the output."""
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=capture_output, text=True)
+        result = subprocess.run(
+            cmd, shell=True, capture_output=capture_output, text=True, check=False
+        )
         return result.stdout.strip() if capture_output else None
     except Exception as e:
         print(f"Error running command '{cmd}': {e}")
@@ -34,12 +36,12 @@ def get_git_log_between_tags(from_tag, to_tag):
     output = run_command(cmd)
     commits = []
 
-    for line in output.split('\n'):
+    for line in output.split("\n"):
         if line.strip():
-            parts = line.split('|')
+            parts = line.split("|")
             if len(parts) >= 4:
                 commits.append(
-                    {'hash': parts[0], 'message': parts[1], 'author': parts[2], 'date': parts[3]}
+                    {"hash": parts[0], "message": parts[1], "author": parts[2], "date": parts[3]}
                 )
 
     return commits
@@ -48,28 +50,28 @@ def get_git_log_between_tags(from_tag, to_tag):
 def categorize_commits(commits):
     """Categorize commits by type based on conventional commit patterns."""
     categories = {
-        'features': [],
-        'fixes': [],
-        'security': [],
-        'performance': [],
-        'docs': [],
-        'ci': [],
-        'refactor': [],
-        'other': [],
+        "features": [],
+        "fixes": [],
+        "security": [],
+        "performance": [],
+        "docs": [],
+        "ci": [],
+        "refactor": [],
+        "other": [],
     }
 
     patterns = {
-        'features': [r'^feat', r'^add', r'^implement', r'✨', r'🚀'],
-        'fixes': [r'^fix', r'^bug', r'🐛', r'🔧'],
-        'security': [r'^security', r'^sec', r'🔒', r'🛡️'],
-        'performance': [r'^perf', r'^optimize', r'⚡', r'🚀'],
-        'docs': [r'^docs?', r'^documentation', r'📝', r'📚'],
-        'ci': [r'^ci', r'^build', r'^deploy', r'👷', r'🔨'],
-        'refactor': [r'^refactor', r'^clean', r'^improve', r'♻️', r'🎨'],
+        "features": [r"^feat", r"^add", r"^implement", r"✨", r"🚀"],
+        "fixes": [r"^fix", r"^bug", r"🐛", r"🔧"],
+        "security": [r"^security", r"^sec", r"🔒", r"🛡️"],
+        "performance": [r"^perf", r"^optimize", r"⚡", r"🚀"],
+        "docs": [r"^docs?", r"^documentation", r"📝", r"📚"],
+        "ci": [r"^ci", r"^build", r"^deploy", r"👷", r"🔨"],
+        "refactor": [r"^refactor", r"^clean", r"^improve", r"♻️", r"🎨"],
     }
 
     for commit in commits:
-        message = commit['message'].lower()
+        message = commit["message"].lower()
         categorized = False
 
         for category, pattern_list in patterns.items():
@@ -82,7 +84,7 @@ def categorize_commits(commits):
                 break
 
         if not categorized:
-            categories['other'].append(commit)
+            categories["other"].append(commit)
 
     return categories
 
@@ -102,8 +104,8 @@ def extract_changelog_section(version):
     if match:
         section = match.group(0)
         # Clean up the section
-        lines = section.split('\n')[1:]  # Skip the version header
-        return '\n'.join(line for line in lines if line.strip())
+        lines = section.split("\n")[1:]  # Skip the version header
+        return "\n".join(line for line in lines if line.strip())
 
     return ""
 
@@ -123,12 +125,12 @@ def generate_release_notes(version, previous_version=None):
     if tag_date and tag_date.strip():
         try:
             # Parse the git date format (e.g., "2025-07-27 01:36:33 +0000")
-            date_part = tag_date.split(' ')[0]  # Get just the date part
+            date_part = tag_date.split(" ")[0]  # Get just the date part
             release_date = date_part
         except (ValueError, IndexError):
-            release_date = datetime.now().strftime('%Y-%m-%d')
+            release_date = datetime.now().strftime("%Y-%m-%d")
     else:
-        release_date = datetime.now().strftime('%Y-%m-%d')
+        release_date = datetime.now().strftime("%Y-%m-%d")
 
     # Generate release notes content
     content = f"""# EVOSEAL v{version} Release Notes
@@ -145,50 +147,50 @@ def generate_release_notes(version, previous_version=None):
 """
 
     # Add categorized changes
-    if categorized['features']:
+    if categorized["features"]:
         content += "## ✨ New Features\n\n"
-        for commit in categorized['features']:
+        for commit in categorized["features"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
-    if categorized['fixes']:
+    if categorized["fixes"]:
         content += "## 🐛 Bug Fixes\n\n"
-        for commit in categorized['fixes']:
+        for commit in categorized["fixes"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
-    if categorized['security']:
+    if categorized["security"]:
         content += "## 🔒 Security Improvements\n\n"
-        for commit in categorized['security']:
+        for commit in categorized["security"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
-    if categorized['performance']:
+    if categorized["performance"]:
         content += "## ⚡ Performance Improvements\n\n"
-        for commit in categorized['performance']:
+        for commit in categorized["performance"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
-    if categorized['ci']:
+    if categorized["ci"]:
         content += "## 👷 CI/CD & Infrastructure\n\n"
-        for commit in categorized['ci']:
+        for commit in categorized["ci"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
-    if categorized['docs']:
+    if categorized["docs"]:
         content += "## 📝 Documentation\n\n"
-        for commit in categorized['docs']:
+        for commit in categorized["docs"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
-    if categorized['refactor']:
+    if categorized["refactor"]:
         content += "## ♻️ Code Improvements\n\n"
-        for commit in categorized['refactor']:
+        for commit in categorized["refactor"]:
             content += f"- {commit['message']} ([{commit['hash']}](https://github.com/SHA888/EVOSEAL/commit/{commit['hash']}))\n"
         content += "\n"
 
     # Add other changes if any
-    other_commits = categorized['other']
+    other_commits = categorized["other"]
     if other_commits:
         content += "## 🔧 Other Changes\n\n"
         for commit in other_commits:
@@ -196,7 +198,7 @@ def generate_release_notes(version, previous_version=None):
         content += "\n"
 
     # Add footer
-    content += f"""## 🔗 Useful Links
+    content += """## 🔗 Useful Links
 
 - [📚 Documentation](https://sha888.github.io/EVOSEAL/)
 - [🐙 GitHub Repository](https://github.com/SHA888/EVOSEAL)
@@ -210,7 +212,7 @@ Thanks to all contributors who made this release possible:
 """
 
     # Add unique contributors
-    contributors = set(commit['author'] for commit in commits)
+    contributors = set(commit["author"] for commit in commits)
     for contributor in sorted(contributors):
         content += f"- {contributor}\n"
 
@@ -234,18 +236,18 @@ pip install --upgrade evoseal
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate EVOSEAL release notes')
-    parser.add_argument('version', help='Version to generate notes for (e.g., 0.3.2)')
-    parser.add_argument('--previous-version', help='Previous version for comparison')
+    parser = argparse.ArgumentParser(description="Generate EVOSEAL release notes")
+    parser.add_argument("version", help="Version to generate notes for (e.g., 0.3.2)")
+    parser.add_argument("--previous-version", help="Previous version for comparison")
     parser.add_argument(
-        '--output-dir', default='releases', help='Output directory for release files'
+        "--output-dir", default="releases", help="Output directory for release files"
     )
-    parser.add_argument('--commit', action='store_true', help='Commit the generated files to git')
+    parser.add_argument("--commit", action="store_true", help="Commit the generated files to git")
 
     args = parser.parse_args()
 
     # Ensure we're in the project root
-    if not Path('pyproject.toml').exists():
+    if not Path("pyproject.toml").exists():
         print("Error: Must be run from the project root directory")
         sys.exit(1)
 

@@ -1,7 +1,7 @@
 """Unit tests for the CodeArchive model."""
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
 import pytest
@@ -70,7 +70,7 @@ def test_code_archive_update():
     """Test updating a code archive."""
     # Store initial values for protected fields
     old_id = "test_id_123"
-    old_created_at = datetime.now(timezone.utc) - timedelta(days=1)
+    old_created_at = datetime.now(UTC) - timedelta(days=1)
     old_author_id = "user123"
 
     # Create with explicit timezone-aware datetime
@@ -88,7 +88,7 @@ def test_code_archive_update():
     old_updated_at = archive.updated_at
 
     # Update some fields
-    update_time = datetime.now(timezone.utc)
+    update_time = datetime.now(UTC)
     archive.update(
         content="new content",
         title="New Title",
@@ -169,7 +169,7 @@ def test_code_archive_dependencies():
 def test_code_archive_archiving():
     """Test archive/unarchive functionality."""
     # Create with explicit timezone-aware datetime
-    created_at = datetime.now(timezone.utc) - timedelta(days=1)
+    created_at = datetime.now(UTC) - timedelta(days=1)
     archive = create_code_archive(
         content="test",
         language=CodeLanguage.PYTHON,
@@ -198,8 +198,8 @@ def test_code_archive_archiving():
 def test_code_archive_fork():
     """Test forking a code archive."""
     # Create original with explicit timestamps
-    original_created = datetime.now(timezone.utc) - timedelta(days=1)
-    original_updated = datetime.now(timezone.utc) - timedelta(hours=1)
+    original_created = datetime.now(UTC) - timedelta(days=1)
+    original_updated = datetime.now(UTC) - timedelta(hours=1)
 
     original = create_code_archive(
         content="original content",
@@ -214,7 +214,7 @@ def test_code_archive_fork():
     )
 
     # Fork the archive
-    fork_time = datetime.now(timezone.utc)
+    fork_time = datetime.now(UTC)
     fork = original.fork(
         new_author_id="user2",
         title="Forked Version",
@@ -243,8 +243,8 @@ def test_code_archive_fork():
 def test_code_archive_serialization():
     """Test serialization and deserialization."""
     # Create with explicit timestamps for consistent comparison
-    created_at = datetime.now(timezone.utc) - timedelta(days=1)
-    updated_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC) - timedelta(days=1)
+    updated_at = datetime.now(UTC)
 
     archive = create_code_archive(
         content="test",

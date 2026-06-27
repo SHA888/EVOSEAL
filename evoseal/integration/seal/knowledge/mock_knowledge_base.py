@@ -8,17 +8,17 @@ from typing import Any, Dict, List, Optional
 class MockKnowledgeBase:
     """Mock implementation of KnowledgeBase for testing."""
 
-    def __init__(self, storage_path: Optional[str] = None):
+    def __init__(self, storage_path: str | None = None):
         """Initialize the mock knowledge base."""
         self.storage_path = storage_path
 
     def search(
         self,
         query: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
         limit: int = 5,
         min_score: float = 0.3,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Mock implementation of search."""
         # Simple keyword matching for demonstration
         query = query.lower()
@@ -52,12 +52,12 @@ class MockKnowledgeBase:
         # Apply limit
         return filtered[:limit]
 
-    def add_document(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+    def add_document(self, content: str, metadata: dict[str, Any] | None = None) -> str:
         """Mock implementation of add_document."""
         # In a real implementation, this would add a document to the knowledge base
         doc_id = f"doc_{len(self._get_mock_documents()) + 1}"
         return doc_id
 
-    def _get_mock_documents(self) -> List[Dict[str, Any]]:
+    def _get_mock_documents(self) -> list[dict[str, Any]]:
         """Helper method to get mock documents."""
         return []  # Not implemented in mock

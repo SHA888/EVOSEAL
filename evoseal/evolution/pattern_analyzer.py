@@ -28,7 +28,7 @@ class CodeTransformation:
     after_pattern: str
     frequency: int
     confidence: float
-    examples: List[Tuple[str, str]]  # (before, after) pairs
+    examples: list[tuple[str, str]]  # (before, after) pairs
 
 
 class PatternAnalyzer:
@@ -51,20 +51,20 @@ class PatternAnalyzer:
         self.min_confidence = min_confidence
 
         # Pattern storage
-        self.detected_patterns: List[PatternMatch] = []
-        self.transformations: List[CodeTransformation] = []
+        self.detected_patterns: list[PatternMatch] = []
+        self.transformations: list[CodeTransformation] = []
 
         # Analysis caches
-        self._ast_cache: Dict[str, ast.AST] = {}
-        self._diff_cache: Dict[Tuple[str, str], List[str]] = {}
+        self._ast_cache: dict[str, ast.AST] = {}
+        self._diff_cache: dict[tuple[str, str], list[str]] = {}
 
         logger.info("Pattern analyzer initialized")
 
-    def analyze_patterns(self, results: List[EvolutionResult]) -> Dict[str, Any]:
+    def analyze_patterns(self, results: list[EvolutionResult]) -> dict[str, Any]:
         """Alias for analyze_results for backward compatibility."""
         return self.analyze_results(results)
 
-    def analyze_results(self, results: List[EvolutionResult]) -> Dict[str, Any]:
+    def analyze_results(self, results: list[EvolutionResult]) -> dict[str, Any]:
         """
         Analyze a collection of evolution results to extract patterns.
 
@@ -96,7 +96,7 @@ class PatternAnalyzer:
         logger.info(f"Pattern analysis complete. Found {len(self.detected_patterns)} patterns")
         return analysis
 
-    def _generate_summary(self, results: List[EvolutionResult]) -> Dict[str, Any]:
+    def _generate_summary(self, results: list[EvolutionResult]) -> dict[str, Any]:
         """Generate summary statistics."""
         fitness_scores = [r.fitness_score for r in results]
         improvements = [r.improvement_percentage for r in results]
@@ -113,7 +113,7 @@ class PatternAnalyzer:
             ).days,
         }
 
-    def _analyze_transformations(self, results: List[EvolutionResult]) -> Dict[str, int]:
+    def _analyze_transformations(self, results: list[EvolutionResult]) -> dict[str, int]:
         """Analyze common code transformations."""
         transformations = Counter()
 
@@ -133,7 +133,7 @@ class PatternAnalyzer:
 
         return dict(transformations.most_common(20))
 
-    def _detect_transformation_patterns(self, original: str, improved: str) -> List[str]:
+    def _detect_transformation_patterns(self, original: str, improved: str) -> list[str]:
         """Detect specific transformation patterns between code versions."""
         patterns = []
 
@@ -188,7 +188,7 @@ class PatternAnalyzer:
         return patterns
 
     def _create_transformation_pattern(
-        self, pattern_name: str, frequency: int, results: List[EvolutionResult]
+        self, pattern_name: str, frequency: int, results: list[EvolutionResult]
     ):
         """Create a transformation pattern object."""
         examples = []
@@ -234,7 +234,7 @@ class PatternAnalyzer:
         }
         return descriptions.get(pattern_name, f"Pattern: {pattern_name.replace('_', ' ').title()}")
 
-    def _analyze_strategies(self, results: List[EvolutionResult]) -> Dict[str, Dict[str, float]]:
+    def _analyze_strategies(self, results: list[EvolutionResult]) -> dict[str, dict[str, float]]:
         """Analyze effectiveness of different evolution strategies."""
         strategy_scores = defaultdict(list)
 
@@ -253,7 +253,7 @@ class PatternAnalyzer:
 
         return strategy_effectiveness
 
-    def _calculate_std_dev(self, values: List[float]) -> float:
+    def _calculate_std_dev(self, values: list[float]) -> float:
         """Calculate standard deviation."""
         if len(values) < 2:
             return 0.0
@@ -262,7 +262,7 @@ class PatternAnalyzer:
         variance = sum((x - mean) ** 2 for x in values) / len(values)
         return variance**0.5
 
-    def _analyze_improvement_types(self, results: List[EvolutionResult]) -> Dict[str, int]:
+    def _analyze_improvement_types(self, results: list[EvolutionResult]) -> dict[str, int]:
         """Analyze types of improvements made."""
         improvement_counts = Counter()
 
@@ -272,7 +272,7 @@ class PatternAnalyzer:
 
         return dict(improvement_counts)
 
-    def _analyze_code_patterns(self, results: List[EvolutionResult]) -> Dict[str, Any]:
+    def _analyze_code_patterns(self, results: list[EvolutionResult]) -> dict[str, Any]:
         """Analyze code-level patterns using AST analysis."""
         patterns = {
             "function_extraction": 0,
@@ -333,7 +333,7 @@ class PatternAnalyzer:
 
         return patterns
 
-    def _get_ast(self, code: str) -> Optional[ast.AST]:
+    def _get_ast(self, code: str) -> ast.AST | None:
         """Get AST for code with caching."""
         if code in self._ast_cache:
             return self._ast_cache[code]
@@ -346,7 +346,7 @@ class PatternAnalyzer:
             self._ast_cache[code] = None
             return None
 
-    def _identify_common_fixes(self, results: List[EvolutionResult]) -> List[Dict[str, Any]]:
+    def _identify_common_fixes(self, results: list[EvolutionResult]) -> list[dict[str, Any]]:
         """Identify common fixes applied across results."""
         fixes = []
         fix_patterns = Counter()
@@ -405,7 +405,7 @@ class PatternAnalyzer:
         }
         return descriptions.get(fix_type, f"Applied fix: {fix_type.replace('_', ' ').title()}")
 
-    def get_training_patterns(self) -> List[Dict[str, Any]]:
+    def get_training_patterns(self) -> list[dict[str, Any]]:
         """Get patterns suitable for training data generation."""
         training_patterns = []
 
@@ -414,7 +414,6 @@ class PatternAnalyzer:
                 transformation.frequency >= self.min_pattern_frequency
                 and transformation.confidence >= self.min_confidence
             ):
-
                 training_patterns.append(
                     {
                         "name": transformation.name,

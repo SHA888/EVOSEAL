@@ -37,10 +37,10 @@ class ErrorContext:
 
     operation: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    command: Optional[str] = None
-    details: Dict[str, Any] = field(default_factory=dict)
-    stack_trace: Optional[str] = None
-    recovery_suggestions: List[str] = field(default_factory=list)
+    command: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+    stack_trace: str | None = None
+    recovery_suggestions: list[str] = field(default_factory=list)
 
 
 class GitError(Exception):
@@ -51,8 +51,8 @@ class GitError(Exception):
         message: str,
         category: ErrorCategory = ErrorCategory.OPERATION,
         severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        context: Optional[ErrorContext] = None,
-        cause: Optional[Exception] = None,
+        context: ErrorContext | None = None,
+        cause: Exception | None = None,
     ):
         self.message = message
         self.category = category
@@ -304,8 +304,8 @@ class GitOperationError(GitError):
         self,
         operation: str,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
-        cause: Optional[Exception] = None,
+        details: dict[str, Any] | None = None,
+        cause: Exception | None = None,
         **kwargs,
     ):
         context = ErrorContext(

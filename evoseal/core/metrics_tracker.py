@@ -8,16 +8,16 @@ import statistics
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
+from typing import Any, Literal, Optional, TypedDict, Union
 
 import numpy as np
 from rich.console import Console
 from rich.table import Table
 
 # Type aliases
-TestResult = Dict[str, Any]
-TestResults = List[TestResult]
-MetricComparison = Dict[str, Dict[str, Union[float, str]]]
+TestResult = dict[str, Any]
+TestResults = list[TestResult]
+MetricComparison = dict[str, dict[str, float | str]]
 
 
 class TrendAnalysis(TypedDict):
@@ -33,10 +33,10 @@ class ComparisonResult(TypedDict):
     difference: float
     change_pct: float
     direction: str
-    significant: Optional[bool]
-    effect_size: Optional[float]
-    status: Optional[Literal["improvement", "regression", "neutral"]]
-    threshold_exceeded: Optional[bool]
+    significant: bool | None
+    effect_size: float | None
+    status: Literal["improvement", "regression", "neutral"] | None
+    threshold_exceeded: bool | None
 
 
 # Default thresholds for different metrics
@@ -70,10 +70,10 @@ class TestMetrics:
     memory_mb: float = 0.0
     io_read_mb: float = 0.0
     io_write_mb: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metrics to dictionary."""
         return asdict(self)
 
@@ -116,8 +116,8 @@ class MetricsTracker:
 
     def __init__(
         self,
-        storage_path: Optional[Union[str, Path]] = None,
-        thresholds: Optional[Dict[str, Dict[str, float]]] = None,
+        storage_path: str | Path | None = None,
+        thresholds: dict[str, dict[str, float]] | None = None,
         significance_level: float = 0.05,
     ):
         """Initialize the MetricsTracker.
@@ -128,7 +128,7 @@ class MetricsTracker:
             significance_level: Alpha level for statistical tests (default: 0.05).
         """
         self.storage_path = Path(storage_path) if storage_path else None
-        self.metrics_history: List[TestMetrics] = []
+        self.metrics_history: list[TestMetrics] = []
         self.thresholds = thresholds or DEFAULT_THRESHOLDS
         self.significance_level = significance_level
 
@@ -136,7 +136,7 @@ class MetricsTracker:
         if self.storage_path and self.storage_path.exists():
             self._load_metrics()
 
-    def add_metrics(self, test_results: Union[TestResult, List[TestResult]]) -> None:
+    def add_metrics(self, test_results: TestResult | list[TestResult]) -> None:
         """Add test results to the metrics history.
 
         Args:
@@ -153,7 +153,7 @@ class MetricsTracker:
         if self.storage_path:
             self._save_metrics()
 
-    def get_latest_metrics(self, test_type: Optional[str] = None) -> Optional[TestMetrics]:
+    def get_latest_metrics(self, test_type: str | None = None) -> TestMetrics | None:
         """Get the most recent metrics for a test type.
 
         Args:
@@ -165,7 +165,7 @@ class MetricsTracker:
         filtered = self._filter_metrics_by_type(test_type)
         return filtered[-1] if filtered else None
 
-    def get_metrics_history(self, test_type: Optional[str] = None) -> List[TestMetrics]:
+    def get_metrics_history(self, test_type: str | None = None) -> list[TestMetrics]:
         """Get all metrics, optionally filtered by test type.
 
         Args:
@@ -178,10 +178,10 @@ class MetricsTracker:
 
     def compare_metrics(
         self,
-        baseline_id: Union[int, str],
-        comparison_id: Union[int, str],
-        test_type: Optional[str] = None,
-    ) -> Dict[str, ComparisonResult]:
+        baseline_id: int | str,
+        comparison_id: int | str,
+        test_type: str | None = None,
+    ) -> dict[str, ComparisonResult]:
         """Compare metrics between two test runs with statistical significance.
 
         Args:
@@ -202,10 +202,10 @@ class MetricsTracker:
 
     def find_regressions(
         self,
-        baseline_id: Union[int, str],
-        comparison_id: Union[int, str],
-        test_type: Optional[str] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+        baseline_id: int | str,
+        comparison_id: int | str,
+        test_type: str | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """Find metrics that have regressed between two test runs.
 
         Args:
@@ -225,10 +225,10 @@ class MetricsTracker:
 
     def find_improvements(
         self,
-        baseline_id: Union[int, str],
-        comparison_id: Union[int, str],
-        test_type: Optional[str] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+        baseline_id: int | str,
+        comparison_id: int | str,
+        test_type: str | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """Find metrics that have improved between two test runs.
 
         Args:
@@ -247,8 +247,8 @@ class MetricsTracker:
         }
 
     def get_summary_statistics(
-        self, test_type: Optional[str] = None, limit: Optional[int] = None
-    ) -> Dict[str, Dict[str, float]]:
+        self, test_type: str | None = None, limit: int | None = None
+    ) -> dict[str, dict[str, float]]:
         """Calculate summary statistics for metrics.
 
         Args:
@@ -277,9 +277,9 @@ class MetricsTracker:
         ]
 
         stats = {}
-        for field in numeric_fields:
-            values = [getattr(m, field) for m in metrics]
-            stats[field] = {
+        for field_name in numeric_fields:
+            values = [getattr(m, field_name) for m in metrics]
+            stats[field_name] = {
                 "mean": float(np.mean(values)),
                 "median": float(np.median(values)),
                 "min": float(np.min(values)),
@@ -292,9 +292,9 @@ class MetricsTracker:
 
     def display_comparison_table(
         self,
-        baseline_id: Union[int, str],
-        comparison_id: Union[int, str],
-        test_type: Optional[str] = None,
+        baseline_id: int | str,
+        comparison_id: int | str,
+        test_type: str | None = None,
         show_statistics: bool = True,
     ) -> None:
         """Display a formatted table comparing two test runs with statistical insights.
@@ -400,7 +400,9 @@ class MetricsTracker:
                 sig_style = (
                     "green"
                     if status == "improvement"
-                    else "red" if status == "regression" else "white"
+                    else "red"
+                    if status == "regression"
+                    else "white"
                 )
                 row.extend([f"[{sig_style}]{significance_str}[/{sig_style}]", effect_str])
 
@@ -430,7 +432,7 @@ class MetricsTracker:
                 "\n[dim]Legend: ✓ = significant improvement, ✗ = significant regression, • = not significant[/dim]"
             )
 
-    def _filter_metrics_by_type(self, test_type: Optional[str] = None) -> List[TestMetrics]:
+    def _filter_metrics_by_type(self, test_type: str | None = None) -> list[TestMetrics]:
         """Filter metrics by test type."""
         if test_type is None:
             return sorted(self.metrics_history, key=lambda x: x.timestamp)
@@ -440,8 +442,8 @@ class MetricsTracker:
         )
 
     def _get_metrics_by_id(
-        self, metric_id: Union[int, str], test_type: Optional[str] = None
-    ) -> Optional[TestMetrics]:
+        self, metric_id: int | str, test_type: str | None = None
+    ) -> TestMetrics | None:
         """Get metrics by index or timestamp."""
         metrics = self._filter_metrics_by_type(test_type)
 
@@ -464,7 +466,7 @@ class MetricsTracker:
 
     def _calculate_metrics_comparison(
         self, baseline: TestMetrics, comparison: TestMetrics
-    ) -> Dict[str, ComparisonResult]:
+    ) -> dict[str, ComparisonResult]:
         """Calculate comparison metrics between two test runs with statistical significance.
 
         Args:
@@ -474,11 +476,11 @@ class MetricsTracker:
         Returns:
             Dictionary containing comparison results with statistical significance
         """
-        comparison_data: Dict[str, ComparisonResult] = {}
+        comparison_data: dict[str, ComparisonResult] = {}
 
         # Get recent metrics for statistical testing
         recent_metrics = self._filter_metrics_by_type(baseline.test_type)
-        recent_values: Dict[str, List[float]] = {
+        recent_values: dict[str, list[float]] = {
             "success_rate": [],
             "duration_sec": [],
             "cpu_percent": [],
@@ -489,8 +491,8 @@ class MetricsTracker:
 
         # Collect recent values for each metric
         for metric in recent_metrics[-10:]:  # Use last 10 runs for statistics
-            for field in recent_values:
-                recent_values[field].append(getattr(metric, field, 0))
+            for field_name in recent_values:
+                recent_values[field_name].append(getattr(metric, field_name, 0))
 
         # Numeric fields to compare
         numeric_fields = [
@@ -617,10 +619,10 @@ class MetricsTracker:
 
     def get_percentiles(
         self,
-        test_type: Optional[str] = None,
-        percentiles: List[float] = [90, 95, 99],
-        limit: Optional[int] = None,
-    ) -> Dict[str, Dict[float, float]]:
+        test_type: str | None = None,
+        percentiles: list[float] = [90, 95, 99],
+        limit: int | None = None,
+    ) -> dict[str, dict[float, float]]:
         """Calculate percentile values for metrics.
 
         Args:
@@ -650,8 +652,8 @@ class MetricsTracker:
 
         # Calculate percentiles for each metric
         percentiles_dict = {}
-        for field in numeric_fields:
-            values = [getattr(m, field) for m in metrics]
+        for field_name in numeric_fields:
+            values = [getattr(m, field_name) for m in metrics]
             if not values:
                 continue
 
@@ -660,8 +662,8 @@ class MetricsTracker:
         return percentiles_dict
 
     def normalize_metrics(
-        self, metrics: TestMetrics, baseline: Optional[TestMetrics] = None
-    ) -> Dict[str, float]:
+        self, metrics: TestMetrics, baseline: TestMetrics | None = None
+    ) -> dict[str, float]:
         """Normalize metrics against a baseline.
 
         Args:
@@ -690,8 +692,8 @@ class MetricsTracker:
             "io_write_mb",
         ]
 
-        for field in numeric_fields:
-            base_val = getattr(baseline, field, 0)
+        for field_name in numeric_fields:
+            base_val = getattr(baseline, field_name, 0)
             if base_val == 0:
                 normalized[field] = 0.0
             else:
@@ -704,10 +706,10 @@ class MetricsTracker:
 
     def detect_trends(
         self,
-        test_type: Optional[str] = None,
+        test_type: str | None = None,
         window_size: int = 5,
         threshold: float = 0.1,
-    ) -> Dict[str, TrendAnalysis]:
+    ) -> dict[str, TrendAnalysis]:
         """Detect trends in metrics over time.
 
         Args:

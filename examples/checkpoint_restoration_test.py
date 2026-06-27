@@ -80,7 +80,7 @@ def process_data(data):
     )
 
 
-def create_enhanced_experiment_data() -> Dict[str, Any]:
+def create_enhanced_experiment_data() -> dict[str, Any]:
     """Create enhanced experiment data for checkpoint."""
     return {
         "id": "restoration_test_v2.0",

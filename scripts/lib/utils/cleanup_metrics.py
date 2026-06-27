@@ -7,6 +7,7 @@ This script:
 2. Removes duplicate or temporary release notes
 3. Maintains a clean directory structure
 """
+
 import json
 import os
 import shutil
@@ -22,7 +23,7 @@ KEEP_LAST_N = 3  # Number of metrics files to keep per version
 KEEP_DAYS = 30  # Keep files newer than this many days
 
 
-def parse_version_timestamp(filename: str) -> Optional[tuple]:
+def parse_version_timestamp(filename: str) -> tuple | None:
     """Parse version and timestamp from filename."""
     if not filename.startswith("evolution_") or not filename.endswith(".json"):
         return None
@@ -47,7 +48,7 @@ def cleanup_metrics():
     ARCHIVE_DIR.mkdir(exist_ok=True)
 
     # Group files by version
-    version_files: Dict[str, List[Path]] = {}
+    version_files: dict[str, list[Path]] = {}
 
     for file in METRICS_DIR.glob("evolution_*.json"):
         parsed = parse_version_timestamp(file.name)
