@@ -1,13 +1,16 @@
 """Safety integration system for EVOSEAL evolution pipeline.
 
 This module provides comprehensive safety integration that coordinates
-checkpoint management, rollback capabilities, and regression detection
-to ensure safe evolution pipeline execution.
+checkpoint management, rollback capabilities, regression detection,
+and edit-scope enforcement to ensure safe evolution pipeline execution.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import UTC
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from .checkpoint_manager import CheckpointManager
+from .edit_scope_validator import EditScopeError, EditScopeValidator
 from .logging_system import get_logger
 from .metrics_tracker import MetricsTracker
 from .regression_detector import RegressionDetector
@@ -25,9 +28,10 @@ class SafetyIntegration:
 
     def __init__(
         self,
-        config: Dict[str, Any],
-        metrics_tracker: Optional[MetricsTracker] = None,
-        version_manager: Optional[Any] = None,
+        config: dict[str, Any],
+        metrics_tracker: MetricsTracker | None = None,
+        version_manager: Any | None = None,
+        repo_root: Path | None = None,
     ):
         """Initialize the safety integration system.
 
@@ -35,9 +39,11 @@ class SafetyIntegration:
             config: Configuration dictionary
             metrics_tracker: MetricsTracker instance
             version_manager: Version manager instance
+            repo_root: Repository root path (for edit scope validation)
         """
         self.config = config
         self.version_manager = version_manager
+        self.repo_root = repo_root or Path.cwd()
 
         # Initialize components
         checkpoint_config = config.get("checkpoints", {})
@@ -56,18 +62,22 @@ class SafetyIntegration:
 
         self.regression_detector = RegressionDetector(regression_config, self.metrics_tracker)
 
+        # Initialize edit scope validator (Tier 1, T1 window control)
+        self.edit_scope_validator = EditScopeValidator()
+
         # Safety configuration
         self.auto_checkpoint = config.get("auto_checkpoint", True)
         self.auto_rollback = config.get("auto_rollback", True)
         self.safety_checks_enabled = config.get("safety_checks_enabled", True)
+        self.enforce_edit_scope = config.get("enforce_edit_scope", True)
 
         logger.info("SafetyIntegration initialized with all safety components")
 
     def create_safety_checkpoint(
         self,
         version_id: str,
-        version_data: Union[Dict[str, Any], Any],
-        test_results: Optional[List[Dict[str, Any]]] = None,
+        version_data: dict[str, Any] | Any,
+        test_results: list[dict[str, Any]] | None = None,
     ) -> str:
         """Create a safety checkpoint with test results and metrics.
 
@@ -105,8 +115,8 @@ class SafetyIntegration:
         self,
         current_version_id: str,
         new_version_id: str,
-        test_results: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        test_results: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Validate the safety of a new version against the current version.
 
         Args:
@@ -179,10 +189,10 @@ class SafetyIntegration:
     def execute_safe_evolution_step(
         self,
         current_version_id: str,
-        new_version_data: Union[Dict[str, Any], Any],
+        new_version_data: dict[str, Any] | Any,
         new_version_id: str,
-        test_results: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        test_results: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Execute a single evolution step with full safety mechanisms.
 
         Args:
@@ -258,7 +268,35 @@ class SafetyIntegration:
             execution_results["error"] = str(e)
             return execution_results
 
-    def get_safety_status(self) -> Dict[str, Any]:
+    def validate_edit_path(self, file_path: str) -> None:
+        """Validate that a file edit is within the allowed scope (Tier 1, T1 window).
+
+        This enforces the edit-scope allowlist before any generated edit is written
+        to disk. Prevents modifications to safety-critical files like configs/safety.yaml,
+        .env, Makefile, and .github/workflows/.
+
+        Args:
+            file_path: Absolute path to the file being edited
+
+        Raises:
+            EditScopeError: If the path is forbidden or outside the repo
+            ValueError: If edit scope validation is disabled or path is invalid
+        """
+        if not self.enforce_edit_scope:
+            logger.debug("Edit scope validation disabled (enforce_edit_scope=False)")
+            return
+
+        try:
+            self.edit_scope_validator.validate_edit_path(file_path, self.repo_root)
+            logger.debug(f"Edit path validated: {file_path}")
+        except EditScopeError as e:
+            logger.error(f"Edit scope violation: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error validating edit path {file_path}: {e}")
+            raise ValueError(f"Failed to validate edit path: {e}") from e
+
+    def get_safety_status(self) -> dict[str, Any]:
         """Get comprehensive safety system status.
 
         Returns:
@@ -271,6 +309,7 @@ class SafetyIntegration:
             "safety_enabled": self.safety_checks_enabled,
             "auto_checkpoint": self.auto_checkpoint,
             "auto_rollback": self.auto_rollback,
+            "edit_scope_enforced": self.enforce_edit_scope,
             "checkpoint_manager": {
                 "total_checkpoints": checkpoint_stats["total_checkpoints"],
                 "total_size_mb": checkpoint_stats["total_size_mb"],
@@ -287,7 +326,7 @@ class SafetyIntegration:
             },
         }
 
-    def cleanup_old_safety_data(self, keep_checkpoints: int = 50) -> Dict[str, int]:
+    def cleanup_old_safety_data(self, keep_checkpoints: int = 50) -> dict[str, int]:
         """Clean up old safety data to free space.
 
         Args:
@@ -296,6 +335,7 @@ class SafetyIntegration:
         Returns:
             Dictionary with cleanup statistics
         """
+        max_rollback_history = 100
         cleanup_stats = {"checkpoints_deleted": 0, "rollback_history_cleared": False}
 
         try:
@@ -305,9 +345,9 @@ class SafetyIntegration:
 
             # Optionally clear old rollback history (keep last 100 entries)
             rollback_history = self.rollback_manager.get_rollback_history()
-            if len(rollback_history) > 100:
+            if len(rollback_history) > max_rollback_history:
                 # Keep only the most recent 100 entries
-                recent_history = rollback_history[:100]
+                recent_history = rollback_history[:max_rollback_history]
                 self.rollback_manager.rollback_history = recent_history
                 self.rollback_manager._save_rollback_history()
                 cleanup_stats["rollback_history_cleared"] = True
@@ -322,9 +362,9 @@ class SafetyIntegration:
 
     def _calculate_safety_score(
         self,
-        validation_results: Dict[str, Any],
-        test_results: List[Dict[str, Any]],
-        regressions: Dict[str, Any],
+        validation_results: dict[str, Any],
+        test_results: list[dict[str, Any]],
+        regressions: dict[str, Any],
     ) -> float:
         """Calculate a safety score for the version.
 
@@ -368,7 +408,7 @@ class SafetyIntegration:
         """Get current timestamp in ISO format."""
         from datetime import datetime, timezone
 
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def __str__(self) -> str:
         """String representation of the safety integration."""
