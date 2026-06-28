@@ -8,6 +8,7 @@ import concurrent.futures
 import json
 import os
 import re
+import resource
 import shutil
 import signal
 import subprocess
@@ -609,6 +610,11 @@ class SandboxedTestRunner(TestRunner):
     See task 2.14 in Plans.md for requirements.
     """
 
+    # Default resource limits for test subprocess (task 2.15)
+    DEFAULT_CPU_LIMIT_SECS = 120
+    DEFAULT_MEMORY_LIMIT_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
+    DEFAULT_FD_LIMIT = 256
+
     def __init__(
         self,
         config: TestConfig | None = None,
@@ -616,6 +622,9 @@ class SandboxedTestRunner(TestRunner):
         sandbox_enabled: bool = True,
         stripped_secrets: list[str] | None = None,
         readonly_files: list[str] | None = None,
+        cpu_limit_secs: int | None = None,
+        memory_limit_bytes: int | None = None,
+        fd_limit: int | None = None,
     ) -> None:
         """Initialize the sandboxed test runner.
 
@@ -625,6 +634,9 @@ class SandboxedTestRunner(TestRunner):
             sandbox_enabled: Enable/disable sandboxing
             stripped_secrets: List of environment variable names to strip
             readonly_files: List of files to make read-only (relative to repo_root)
+            cpu_limit_secs: CPU time limit in seconds (default 120s)
+            memory_limit_bytes: Address space limit in bytes (default 2GB)
+            fd_limit: Open file descriptor limit (default 256)
         """
         super().__init__(config)
 
@@ -645,6 +657,11 @@ class SandboxedTestRunner(TestRunner):
             "configs/safety.yaml",
             ".env",
         ]
+
+        # Resource limits for test subprocess (task 2.15)
+        self.cpu_limit_secs = cpu_limit_secs or self.DEFAULT_CPU_LIMIT_SECS
+        self.memory_limit_bytes = memory_limit_bytes or self.DEFAULT_MEMORY_LIMIT_BYTES
+        self.fd_limit = fd_limit or self.DEFAULT_FD_LIMIT
 
         # Track file permission changes for cleanup
         self._permission_backup: dict[str, int] = {}
@@ -792,9 +809,10 @@ class SandboxedTestRunner(TestRunner):
     def _execute_test_command(
         self, cmd: list[str], config: TestConfig
     ) -> subprocess.CompletedProcess:
-        """Execute test command with optional sandboxed environment.
+        """Execute test command with optional sandboxed environment and resource limits.
 
-        Overrides parent to use sanitized environment if available.
+        Overrides parent to use sanitized environment if available and enforce
+        resource limits on the test subprocess (task 2.15).
 
         Args:
             cmd: Command to execute
@@ -811,6 +829,11 @@ class SandboxedTestRunner(TestRunner):
 
         env["PYTHONPATH"] = os.pathsep.join([str(Path.cwd())] + sys.path)
 
+        # Apply resource limits to subprocess if sandboxing is enabled
+        preexec_fn = None
+        if self.sandbox_enabled:
+            preexec_fn = self._get_resource_limiter()
+
         return subprocess.run(
             cmd,
             capture_output=config.capture_output,
@@ -819,4 +842,29 @@ class SandboxedTestRunner(TestRunner):
             check=False,
             shell=False,
             env=env,
+            preexec_fn=preexec_fn,  # type: ignore
         )
+
+    def _get_resource_limiter(self) -> callable:  # type: ignore
+        """Get a preexec_fn that applies resource limits to subprocess.
+
+        Returns:
+            A callable to be used as preexec_fn in subprocess.run().
+            This applies CPU, memory, and file descriptor limits.
+        """
+        cpu_limit = self.cpu_limit_secs
+        memory_limit = self.memory_limit_bytes
+        fd_limit = self.fd_limit
+
+        def apply_limits() -> None:
+            """Apply resource limits to the subprocess."""
+            # CPU time limit (in seconds)
+            resource.setrlimit(resource.RLIMIT_CPU, (cpu_limit, cpu_limit))
+
+            # Address space limit (virtual memory) in bytes
+            resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+
+            # File descriptor limit
+            resource.setrlimit(resource.RLIMIT_NOFILE, (fd_limit, fd_limit))
+
+        return apply_limits

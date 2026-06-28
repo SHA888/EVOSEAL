@@ -79,6 +79,10 @@ class EvolutionConfig:
     # Version Control Configuration
     version_control_config: dict[str, Any] = field(default_factory=dict)
 
+    # Runaway Control Configuration (task 2.15)
+    max_iterations: int = 1000  # Hard cap on evolution iterations
+    max_consecutive_rejections: int = 5  # Stuck generator circuit threshold
+
 
 class EvolutionPipeline:
     """
@@ -512,17 +516,27 @@ class EvolutionPipeline:
 
             logger.info(f"Starting safety-aware evolution cycle with {iterations} iterations")
 
-            for i in range(iterations):
+            # Enforce hard iteration cap (task 2.15)
+            actual_iterations = min(iterations, self.config.max_iterations)
+            if iterations > actual_iterations:
+                logger.warning(
+                    f"Iteration count {iterations} exceeds max_iterations cap "
+                    f"({self.config.max_iterations}), limiting to {actual_iterations}"
+                )
+
+            consecutive_rejections = 0  # Track for stuck generator circuit (task 2.15)
+
+            for i in range(actual_iterations):
                 iteration_num = i + 1
 
                 # Publish iteration started event
                 await event_bus.publish(
                     create_progress_event(
                         current=i,
-                        total=iterations,
+                        total=actual_iterations,
                         stage="safe_evolution_iteration",
                         source="evolution_pipeline",
-                        message=f"Starting safe iteration {iteration_num} of {iterations}",
+                        message=f"Starting safe iteration {iteration_num} of {actual_iterations}",
                         event_type=EventType.ITERATION_STARTED,
                         iteration=iteration_num,
                     )
@@ -566,11 +580,22 @@ class EvolutionPipeline:
 
                     results.append(combined_result)
 
+                    # Track stuck generator circuit (task 2.15)
+                    version_accepted = safety_result.get("version_accepted", False)
+
                     # Update current version if accepted
-                    if safety_result.get("version_accepted", False):
+                    if version_accepted:
                         current_version_id = new_version_id
+                        consecutive_rejections = 0  # Reset rejection counter on acceptance
                         logger.info(f"Version {new_version_id} accepted and set as current")
-                    elif safety_result.get("rollback_performed", False):
+                    else:
+                        consecutive_rejections += 1
+                        logger.debug(
+                            f"Variant rejected (consecutive rejections: {consecutive_rejections} "
+                            f"/ {self.config.max_consecutive_rejections})"
+                        )
+
+                    if safety_result.get("rollback_performed", False):
                         logger.warning(f"Rolled back from version {new_version_id}")
                         # Keep current_version_id unchanged after rollback
 
@@ -578,15 +603,24 @@ class EvolutionPipeline:
                     await event_bus.publish(
                         create_progress_event(
                             current=i + 1,
-                            total=iterations,
+                            total=actual_iterations,
                             stage="safe_evolution_iteration",
                             source="evolution_pipeline",
-                            message=f"Completed safe iteration {iteration_num} of {iterations}",
+                            message=f"Completed safe iteration {iteration_num} of {actual_iterations}",
                             event_type=EventType.ITERATION_COMPLETED,
                             iteration=iteration_num,
                             result=combined_result,
                         )
                     )
+
+                    # Check stuck generator circuit (task 2.15)
+                    if consecutive_rejections >= self.config.max_consecutive_rejections:
+                        logger.warning(
+                            f"Stuck generator detected: {consecutive_rejections} consecutive "
+                            f"rejections (threshold: {self.config.max_consecutive_rejections}). "
+                            "Halting evolution."
+                        )
+                        break
 
                     # Check if we should continue based on safety results
                     if not iteration_result.get("should_continue", True):
