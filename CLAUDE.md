@@ -41,31 +41,32 @@ Model access goes through `evoseal/providers/` (OpenAI, Anthropic, Ollama/Devstr
 
 ## Common commands
 
+**Note:** This project uses **`uv`** as its package manager and task runner (not `pip`). All Python commands should use `uv run`.
+
 Install (editable, with dev + test tooling):
 ```bash
-pip install -e ".[dev,test]"
+uv sync
 git submodule update --init --recursive
 pre-commit install && pre-commit install --hook-type pre-push
 ```
 
 Tests (pytest, `asyncio_mode = strict`, `testpaths = tests`):
 ```bash
-make test                 # pytest tests/
-make test-cov             # with coverage (term + xml)
-pytest tests/unit/core/test_foo.py::TestClass::test_method   # single test
-pytest -m "not slow"      # skip slow tests
-pytest -m integration     # run only one marker
-pytest -n auto            # parallel (pytest-xdist is available)
+uv run pytest tests/                          # Run all tests
+uv run pytest tests/unit/core/test_foo.py::TestClass::test_method   # Single test
+uv run pytest -m "not slow"                   # Skip slow tests
+uv run pytest -m integration                  # Run only one marker
+uv run pytest -n auto                         # Parallel (pytest-xdist)
 ```
 Markers (defined in `pytest.ini`): `slow`, `integration`, `unit`, `regression`, `e2e`, `requires_gpu`, `requires_dgm`, `requires_openevolve`.
 
 Format / lint / type-check (line length **100**, black with `skip-string-normalization`):
 ```bash
-make format        # black . && isort .
-make type-check    # mypy evoseal/   (config in mypy.ini, not pyproject)
-make check         # check-format + lint + type-check + test  (run before pushing)
+uv run black evoseal tests/
+uv run isort evoseal tests/
+uv run mypy evoseal/                          # (config in mypy.ini, not pyproject)
+uv run ruff check evoseal/                    # Modern linter (preferred over flake8/pylint)
 ```
-Note: the `make lint` target has a shell typo in the Makefile; if it fails, run the linters directly: `flake8 evoseal tests/` and `pylint evoseal/` (or `ruff check evoseal/`).
 
 ## Conventions
 
