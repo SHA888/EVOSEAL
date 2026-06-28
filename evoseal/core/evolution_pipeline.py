@@ -581,23 +581,24 @@ class EvolutionPipeline:
                     results.append(combined_result)
 
                     # Track stuck generator circuit (task 2.15)
+                    # Track stuck generator circuit (task 2.15)
                     version_accepted = safety_result.get("version_accepted", False)
+                    rollback_performed = safety_result.get("rollback_performed", False)
 
                     # Update current version if accepted
                     if version_accepted:
                         current_version_id = new_version_id
                         consecutive_rejections = 0  # Reset rejection counter on acceptance
                         logger.info(f"Version {new_version_id} accepted and set as current")
+                    elif rollback_performed:
+                        logger.warning(f"Rolled back from version {new_version_id}")
+                        # Keep current_version_id unchanged after rollback
                     else:
                         consecutive_rejections += 1
                         logger.debug(
                             f"Variant rejected (consecutive rejections: {consecutive_rejections} "
                             f"/ {self.config.max_consecutive_rejections})"
                         )
-
-                    if safety_result.get("rollback_performed", False):
-                        logger.warning(f"Rolled back from version {new_version_id}")
-                        # Keep current_version_id unchanged after rollback
 
                     # Publish iteration completed event
                     await event_bus.publish(
@@ -606,7 +607,10 @@ class EvolutionPipeline:
                             total=actual_iterations,
                             stage="safe_evolution_iteration",
                             source="evolution_pipeline",
-                            message=f"Completed safe iteration {iteration_num} of {actual_iterations}",
+                            message=(
+                                f"Completed safe iteration {iteration_num} of "
+                                f"{actual_iterations}"
+                            ),
                             event_type=EventType.ITERATION_COMPLETED,
                             iteration=iteration_num,
                             result=combined_result,
@@ -643,7 +647,7 @@ class EvolutionPipeline:
                             source="evolution_pipeline",
                             event_type=EventType.ITERATION_FAILED,
                             iteration=iteration_num,
-                            total_iterations=iterations,
+                            total_iterations=actual_iterations,
                         )
                     )
 
