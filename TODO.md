@@ -42,30 +42,30 @@
 
 ### Safety Hardening
 
-- [ ] **Write adversarial self-modification tests**
+- [x] **Write adversarial self-modification tests** _(done — Plans.md 2.4, commit 58fafa1)_
   - Create test cases where the DGM loop attempts to modify "immutable core" components
   - Verify that `configs/safety.yaml` constraints actually block these modifications
   - Test that rollback triggers correctly when a self-edit breaks regression tests
-- [ ] **Add a safety test CI job**
+- [x] **Add a safety test CI job** _(done — Plans.md 2.5, commit ea5d57b)_
   - Run adversarial safety tests in GitHub Actions on every PR
-- [ ] **Document the threat model**
+- [x] **Document the threat model** _(done — Plans.md 2.1, commit 67cd127)_
   - What can go wrong with a self-modifying agent?
   - What does EVOSEAL protect against, and what is explicitly out of scope?
   - Add as `docs/safety/threat_model.md`
-- [ ] **Sandbox self-modifications** _(inspired by OpenClaw's Docker sandbox model)_
+- [x] **Sandbox self-modifications** _(done — decision in Plans.md 2.2/commit 2d48347; implemented via 2.13 edit-scope allowlist/commit f45d923 and 2.14 sandboxed test execution/commit c0cbc59)_ _(inspired by OpenClaw's Docker sandbox model)_
   - OpenClaw sandboxes non-main sessions in per-session Docker containers to contain untrusted execution
   - Apply similar principle: DGM-generated pipeline variants should execute in isolated environments before touching the main codebase
   - Evaluate whether the current Git-based rollback is sufficient or whether a container-based isolation layer is needed
 
 ### Integration Testing
 
-- [ ] **End-to-end loop test**
+- [x] **End-to-end loop test** _(done — Plans.md 2.6, commit 3eb6f8a)_
   - Write an integration test that exercises the full cycle: generate variant → evaluate → select → self-modify → verify no regression
   - Should be runnable with mock LLM responses (no API keys needed)
-- [ ] **Add a `--dry-run` mode**
+- [x] **Add a `--dry-run` mode** _(done — Plans.md 2.7, commit b6f19c5)_
   - Simulate the evolution loop with deterministic mock responses
   - Useful for CI, demos, and exploring architecture without API costs
-- [ ] **Add `evoseal doctor` command** _(inspired by OpenClaw's `openclaw doctor`)_
+- [x] **Add `evoseal doctor` command** _(done — Plans.md 2.11, commit 46d9b4a)_ _(inspired by OpenClaw's `openclaw doctor`)_
   - Validate API keys are set and reachable
   - Check `configs/safety.yaml` is present and well-formed
   - Verify the evolution loop can start (dependencies, permissions, Git state)
@@ -74,11 +74,11 @@
 
 ### Cost Management
 
-- [ ] **Add token/cost estimation**
+- [x] **Add token/cost estimation** _(done — Plans.md 2.9, commit 8538321)_
   - Log token usage per evolution cycle (prompt + completion tokens)
   - Add a `evoseal estimate-cost --iterations N` command or config option
   - Document rough cost expectations in README (e.g., "10 iterations ≈ X tokens ≈ $Y with GPT-4")
-- [ ] **Add configurable token budget / API rate limits**
+- [x] **Add configurable token budget / API rate limits** _(done — Plans.md 2.10, commit 0c49b42)_
   - Allow users to set a max spend per run in config
   - Graceful stop when budget is exhausted
 
@@ -179,10 +179,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
-| 🟠 P1    | 9     | 0    | Next focus |
-| 🟡 P2    | 9     | 0    | |
+| 🟠 P1    | 9     | 9    | All complete — see Plans.md Phase 2 (2.1-2.15) |
+| 🟡 P2    | 9     | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
 | 🟢 P3    | 10    | 4    | Makefile, pre-commit, Docker, CHANGELOG pending |
-| **Total** | **33** | **9** | |
+| **Total** | **33** | **18** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
