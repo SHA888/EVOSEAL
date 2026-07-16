@@ -32,7 +32,7 @@ async def test_component_imports():
     try:
         from evoseal.fine_tuning import (
             BidirectionalEvolutionManager,
-            DevstralFineTuner,
+            ModelFineTuner,
             ModelValidator,
             ModelVersionManager,
             TrainingManager,
@@ -46,18 +46,18 @@ async def test_component_imports():
         return {"success": False, "error": str(e)}
 
 
-async def test_devstral_fine_tuner():
-    """Test DevstralFineTuner basic functionality."""
-    logger.info("=== Testing DevstralFineTuner ===")
+async def test_model_fine_tuner():
+    """Test ModelFineTuner basic functionality."""
+    logger.info("=== Testing ModelFineTuner ===")
 
     try:
-        from evoseal.fine_tuning import DevstralFineTuner
+        from evoseal.fine_tuning import ModelFineTuner
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
             # Initialize fine-tuner
-            fine_tuner = DevstralFineTuner(output_dir=temp_path)
+            fine_tuner = ModelFineTuner(output_dir=temp_path)
 
             # Test GPU availability check
             gpu_available = fine_tuner._check_gpu_availability()
@@ -98,7 +98,7 @@ async def test_devstral_fine_tuner():
             }
 
     except Exception as e:
-        logger.error(f"DevstralFineTuner test failed: {e}")
+        logger.error(f"ModelFineTuner test failed: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -235,7 +235,7 @@ async def main():
 
     # Run tests
     test_results["imports"] = await test_component_imports()
-    test_results["devstral_fine_tuner"] = await test_devstral_fine_tuner()
+    test_results["model_fine_tuner"] = await test_model_fine_tuner()
     test_results["model_validator"] = await test_model_validator()
     test_results["version_manager"] = await test_version_manager()
     test_results["bidirectional_manager"] = await test_bidirectional_manager()

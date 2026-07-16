@@ -2,8 +2,8 @@
 Evolution data collection and analysis components for bidirectional evolution.
 
 This module provides the infrastructure for collecting evolution patterns from EVOSEAL
-and preparing them for fine-tuning Devstral, enabling mutual improvement between
-the framework and the AI model.
+and preparing them for fine-tuning the local coding model, enabling mutual
+improvement between the framework and the model.
 """
 
 from .data_collector import EvolutionDataCollector, create_evolution_result

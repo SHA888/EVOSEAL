@@ -438,7 +438,7 @@ class MonitoringDashboard:
 <body>
     <div class="header">
         <h1>🧬 EVOSEAL Continuous Evolution Dashboard</h1>
-        <p class="subtitle">Real-time monitoring of bidirectional evolution between EVOSEAL and Devstral</p>
+        <p class="subtitle">Real-time monitoring of bidirectional evolution between EVOSEAL and its coding model</p>
     </div>
 
     <div class="dashboard">

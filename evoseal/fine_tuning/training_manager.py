@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..evolution import EvolutionDataCollector
-from .model_fine_tuner import DevstralFineTuner
+from .model_fine_tuner import ModelFineTuner
 from .model_validator import ModelValidator
 from .version_manager import ModelVersionManager
 
@@ -30,7 +30,7 @@ class TrainingManager:
     def __init__(
         self,
         data_collector: EvolutionDataCollector | None = None,
-        fine_tuner: DevstralFineTuner | None = None,
+        fine_tuner: ModelFineTuner | None = None,
         validator: ModelValidator | None = None,
         version_manager: ModelVersionManager | None = None,
         output_dir: Path | None = None,
@@ -52,7 +52,7 @@ class TrainingManager:
 
         # Initialize components
         self.data_collector = data_collector
-        self.fine_tuner = fine_tuner or DevstralFineTuner(output_dir=self.output_dir / "models")
+        self.fine_tuner = fine_tuner or ModelFineTuner(output_dir=self.output_dir / "models")
         self.validator = validator or ModelValidator()
         self.version_manager = version_manager or ModelVersionManager(
             versions_dir=self.output_dir / "versions"

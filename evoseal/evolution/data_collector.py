@@ -2,7 +2,7 @@
 Evolution data collector for tracking EVOSEAL's improvement patterns.
 
 This module collects and stores evolution results that can later be used
-to fine-tune Devstral, creating a bidirectional improvement loop.
+to fine-tune the local coding model, creating a bidirectional improvement loop.
 """
 
 import asyncio
@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from ..providers.local_models import AgentRole, resolve_model
 from .models import CodeMetrics, EvolutionResult, EvolutionStrategy, ImprovementType
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,8 @@ class EvolutionDataCollector:
     Collects and manages evolution data for model fine-tuning.
 
     This class tracks successful evolution patterns from EVOSEAL and prepares
-    them for use in fine-tuning Devstral, enabling bidirectional improvement.
+    them for use in fine-tuning the local coding model, enabling bidirectional
+    improvement.
     """
 
     def __init__(
@@ -364,6 +366,6 @@ def create_evolution_result(
         success=fitness_score >= 0.7,
         task_description=task_description,
         provider_used=provider_used,
-        model_version=kwargs.get("model_version", "devstral:latest"),
+        model_version=kwargs.get("model_version") or resolve_model(AgentRole.CODER),
         metadata=kwargs.get("metadata", {}),
     )
