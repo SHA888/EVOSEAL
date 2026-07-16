@@ -87,14 +87,18 @@ def test_temp_env_vars():
     """Test the temp_env_vars context manager."""
     # Set an initial value
     os.environ["TEST_VAR"] = "initial_value"
+    try:
+        with temp_env_vars({"TEST_VAR": "new_value", "ANOTHER_VAR": "test"}):
+            assert os.environ["TEST_VAR"] == "new_value"
+            assert os.environ["ANOTHER_VAR"] == "test"
 
-    with temp_env_vars({"TEST_VAR": "new_value", "ANOTHER_VAR": "test"}):
-        assert os.environ["TEST_VAR"] == "new_value"
-        assert os.environ["ANOTHER_VAR"] == "test"
-
-    # Original environment should be restored
-    assert os.environ["TEST_VAR"] == "initial_value"
-    assert "ANOTHER_VAR" not in os.environ
+        # Original environment should be restored
+        assert os.environ["TEST_VAR"] == "initial_value"
+        assert "ANOTHER_VAR" not in os.environ
+    finally:
+        # Do not leak TEST_VAR into other tests (test_temp_environment asserts
+        # it is absent afterwards).
+        os.environ.pop("TEST_VAR", None)
 
 
 def test_temp_environment():
