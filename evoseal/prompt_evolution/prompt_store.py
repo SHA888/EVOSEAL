@@ -85,6 +85,10 @@ class PromptStore:
             raise ValueError("Cannot register an empty prompt")
 
         registry = self._load_registry(role)
+        # An explicitly supplied parent must reference a real version; a dangling
+        # parent_id would break rollback lineage. (None falls back to the active id.)
+        if parent_id is not None and parent_id not in registry["versions"]:
+            raise KeyError(f"Unknown parent version: {parent_id}")
         role_name = _role_value(role)
         seq = len(registry["versions"]) + 1
         version_id = f"{role_name}-v{seq}-{datetime.now().strftime('%Y%m%d%H%M%S')}"

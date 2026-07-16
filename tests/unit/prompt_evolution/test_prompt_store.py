@@ -42,6 +42,18 @@ def test_register_empty_prompt_rejected(store):
         store.register(AgentRole.CODER, "   ")
 
 
+def test_register_unknown_parent_rejected(store):
+    store.seed(AgentRole.CODER, "v1 prompt")
+    with pytest.raises(KeyError):
+        store.register(AgentRole.CODER, "v2 prompt", parent_id="coder-vX-nonexistent")
+
+
+def test_register_valid_parent_accepted(store):
+    v1 = store.seed(AgentRole.CODER, "v1 prompt")
+    v2 = store.register(AgentRole.CODER, "v2 prompt", parent_id=v1.version_id)
+    assert v2.parent_id == v1.version_id
+
+
 def test_rollback_reverts_to_parent(store):
     v1 = store.seed(AgentRole.CODER, "v1 prompt")
     v2 = store.register(AgentRole.CODER, "v2 prompt")
