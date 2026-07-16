@@ -18,6 +18,32 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _git_identity() -> Generator[None, None, None]:
+    """Ensure git has an author/committer identity for tests that commit.
+
+    CI runners have no global git user configured, so commits (in fixtures and in
+    RepositoryManager clones) fail with ``GitCommandError 128``. GitPython and the
+    git CLI both honor these env vars, so set them for the whole test session.
+    """
+    identity = {
+        "GIT_AUTHOR_NAME": "EVOSEAL Test",
+        "GIT_AUTHOR_EMAIL": "test@evoseal.local",
+        "GIT_COMMITTER_NAME": "EVOSEAL Test",
+        "GIT_COMMITTER_EMAIL": "test@evoseal.local",
+    }
+    saved = {k: os.environ.get(k) for k in identity}
+    os.environ.update(identity)
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 @pytest.fixture(scope="function")
 def temp_workdir() -> Generator[Path, None, None]:
     """Create a temporary working directory for tests."""
