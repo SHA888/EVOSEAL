@@ -65,8 +65,10 @@ class TestBudgetExhaustion:
         budget_tracker.record_cycle_completion()
         assert budget_tracker.cycle_count == 1
 
-        # Start new cycle
+        # Start new cycle - the run total accumulates across cycle boundaries
+        # (record_cycle_completion resets only the per-cycle accumulators).
         budget_tracker.record_dgm_tokens(DGM_TOKENS_PER_CYCLE)
+        budget_tracker.record_seal_tokens(SEAL_TOKENS_PER_CYCLE)
         assert budget_tracker.tokens_consumed_this_run == 2 * TOKENS_PER_CYCLE
 
     def test_budget_tracker_estimated_cycles(self, budget_tracker: BudgetTracker) -> None:
