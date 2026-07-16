@@ -57,25 +57,33 @@ class PipelineState:
         """Ensure the state directory exists."""
         os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
 
+    @staticmethod
+    def _default_state() -> dict[str, Any]:
+        """Return a fresh, not-started pipeline state."""
+        return {
+            "status": "not_started",
+            "current_iteration": 0,
+            "total_iterations": 0,
+            "start_time": None,
+            "pause_time": None,
+            "current_stage": None,
+            "progress": {},
+            "config": {},
+        }
+
     def load_state(self) -> dict[str, Any]:
         """Load pipeline state from file."""
         if not os.path.exists(self.state_file):
-            return {
-                "status": "not_started",
-                "current_iteration": 0,
-                "total_iterations": 0,
-                "start_time": None,
-                "pause_time": None,
-                "current_stage": None,
-                "progress": {},
-                "config": {},
-            }
+            return self._default_state()
 
         try:
             with open(self.state_file) as f:
                 return json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
-            return self.load_state()  # Return default state
+            # Corrupt or unreadable state file: fall back to the default state.
+            # (Must NOT recurse here -- the file still exists, so re-entering
+            # load_state would loop forever.)
+            return self._default_state()
 
     def save_state(self, state: dict[str, Any]):
         """Save pipeline state to file."""

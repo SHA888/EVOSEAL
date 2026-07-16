@@ -106,7 +106,7 @@ def test_dry_run_no_actual_edits(dry_run_env, tmp_path, monkeypatch):
 
 def test_dry_run_cli_integration():
     """Test that --dry-run flag can be passed to pipeline start command."""
-    from click.testing import CliRunner
+    from typer.testing import CliRunner
 
     from evoseal.cli.main import app
 
