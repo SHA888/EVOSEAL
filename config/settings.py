@@ -83,6 +83,10 @@ class SEALConfig(BaseModel):
 
     # Provider configuration
     default_provider: str = Field("ollama", description="Default provider to use")
+    # No model is pinned here: OllamaProvider discovers the concrete model from
+    # what is installed in Ollama, per role (see evoseal.providers.local_models).
+    # This keeps the config durable across model swaps/re-quantizations and avoids
+    # importing evoseal.providers from this foundational module (import cycle).
     providers: dict[str, SEALProviderConfig] = Field(
         default_factory=lambda: {
             "ollama": SEALProviderConfig(
@@ -91,9 +95,21 @@ class SEALConfig(BaseModel):
                 priority=10,
                 config={
                     "base_url": "http://localhost:11434",
-                    "model": "devstral:latest",
+                    "role": "coder",
                     "timeout": 90,
                     "temperature": 0.7,
+                    "max_tokens": 2048,
+                },
+            ),
+            "ollama_reviewer": SEALProviderConfig(
+                name="ollama_reviewer",
+                enabled=True,
+                priority=9,
+                config={
+                    "base_url": "http://localhost:11434",
+                    "role": "reviewer",
+                    "timeout": 90,
+                    "temperature": 0.3,
                     "max_tokens": 2048,
                 },
             ),
@@ -230,15 +246,21 @@ class Settings(BaseSettings):
         )
 
     @model_validator(mode="before")
-    def validate_settings(self, values: dict[str, Any]) -> dict[str, Any]:
+    @classmethod
+    def validate_settings(cls, values: Any) -> Any:
         """Validate settings after loading.
 
         Args:
-            values: Dictionary of field values to validate
+            values: Raw field values to validate (a mapping for the normal path).
 
         Returns:
-            Validated dictionary of field values
+            Validated field values
         """
+        # A ``mode="before"`` validator can receive non-dict input; only apply the
+        # dict-based production checks when we actually got a mapping.
+        if not isinstance(values, dict):
+            return values
+
         # Ensure secret key is set in production
         env = values.get("env", "development")
         if (

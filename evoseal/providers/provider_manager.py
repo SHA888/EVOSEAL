@@ -23,6 +23,8 @@ class ProviderManager:
         self._providers: dict[str, SEALProvider] = {}
         self._provider_classes: dict[str, type[SEALProvider]] = {
             "ollama": OllamaProvider,
+            # Reviewer role runs on the same Ollama backend, different model.
+            "ollama_reviewer": OllamaProvider,
         }
 
         # Import DummySEALProvider if available

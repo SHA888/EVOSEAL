@@ -11,6 +11,12 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from evoseal.providers.local_models import (
+    DEFAULT_OLLAMA_BASE_URL,
+    AgentRole,
+    resolve_model,
+)
+
 
 class SEALProviderConfig(BaseModel):
     """Configuration for SEAL providers."""
@@ -48,10 +54,22 @@ class SEALConfig(BaseSettings):
                 priority=10,
                 enabled=True,
                 config={
-                    "base_url": "http://localhost:11434",
-                    "model": "devstral:latest",
+                    "base_url": DEFAULT_OLLAMA_BASE_URL,
+                    # Discovered from installed Ollama models, not hardcoded.
+                    "model": resolve_model(AgentRole.CODER),
                     "timeout": 90,
                     "temperature": 0.7,
+                },
+            ),
+            SEALProviderConfig(
+                name="ollama_reviewer",
+                priority=9,
+                enabled=True,
+                config={
+                    "base_url": DEFAULT_OLLAMA_BASE_URL,
+                    "model": resolve_model(AgentRole.REVIEWER),
+                    "timeout": 90,
+                    "temperature": 0.3,
                 },
             ),
             SEALProviderConfig(name="dummy", priority=1, enabled=True, config={}),
