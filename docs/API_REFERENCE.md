@@ -464,7 +464,7 @@ Response:
   "checks": {
     "service": "ok",
     "ollama": "ok",
-    "devstral": "ok",
+    "coder_model": "ok",
     "database": "ok"
   },
   "timestamp": "2025-01-27T01:52:56Z"

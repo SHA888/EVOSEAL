@@ -1,8 +1,20 @@
 # Phase 3: Bidirectional Continuous Evolution System
 
+> **Two co-evolution paths.** This document describes the **weight-level** path
+> (LoRA/QLoRA fine-tuning), which **requires a CUDA GPU** and historically targeted
+> Mistral AI's Devstral — it is **not runnable on a CPU-only host**. For CPU hosts,
+> EVOSEAL ships a **prompt-level** co-evolution loop (a coder model writes code, a
+> reviewer model critiques it, and the critique evolves the coder's system prompt,
+> regression-gated with rollback). See
+> [`architecture/local_coevolution.md`](architecture/local_coevolution.md). Both
+> paths share the same "improve → validate → roll back on regression" premise.
+
 ## Overview
 
-EVOSEAL Phase 3 implements a complete bidirectional evolution system where EVOSEAL and Mistral AI's Devstral coding model continuously improve each other through automated evolution cycles, fine-tuning, and validation.
+EVOSEAL Phase 3 implements a bidirectional evolution system where EVOSEAL and its
+coding model continuously improve each other through automated evolution cycles,
+self-improvement (prompt-level on CPU, or weight-level fine-tuning on GPU), and
+validation.
 
 ## Architecture
 
@@ -15,11 +27,11 @@ EVOSEAL Phase 3 implements a complete bidirectional evolution system where EVOSE
 - **Data Models**: Comprehensive type-safe models for evolution tracking
 
 #### Phase 2: Fine-tuning Infrastructure ✅
-- **DevstralFineTuner**: LoRA/QLoRA fine-tuning of Devstral using evolution patterns
+- **ModelFineTuner**: LoRA/QLoRA fine-tuning of the discovered coding model using evolution patterns (deprecated alias: `DevstralFineTuner`)
 - **ModelValidator**: 5-category validation (functionality, quality, instruction following, safety, performance)
 - **ModelVersionManager**: Version tracking, rollback, and comparison capabilities
 - **TrainingManager**: Complete training pipeline coordination
-- **BidirectionalEvolutionManager**: EVOSEAL ↔ Devstral orchestration
+- **BidirectionalEvolutionManager**: EVOSEAL ↔ local coding model orchestration
 
 #### Phase 3: Continuous Improvement Loop ✅
 - **ContinuousEvolutionService**: Main service orchestrating the complete evolution cycle
@@ -89,20 +101,22 @@ systemctl --user disable evoseal.service
 
 ## Model Integration
 
-### Ollama + Devstral
+### Ollama + local models (auto-discovered)
 
-EVOSEAL Phase 3 integrates with Ollama running Mistral AI's Devstral model:
+EVOSEAL Phase 3 integrates with Ollama and **discovers** its models by family
+(see `evoseal/providers/local_models.py`), so it is not tied to any single tag.
+Defaults on a CPU host:
 
-- **Model**: `devstral:latest` (Mistral AI's specialized coding model)
-- **Performance**: 46.8% on SWE-Bench Verified benchmark
-- **Capabilities**: Designed for agentic software development and code generation
-- **License**: Apache 2.0 for community use
-- **Hardware Requirements**: Single RTX 4090 or Mac with 32GB RAM
-- **Model Size**: ~14GB download
+- **Coder** (writes code): `deepseek-coder-v2:16b-lite-instruct-q8_0` (~16GB)
+- **Reviewer** (critiques code): `qwen2.5-coder:7b-instruct-q6_K` (~6GB)
+- **Override**: `EVOSEAL_CODER_MODEL` / `EVOSEAL_REVIEWER_MODEL`
+- **Hardware**: prompt-level co-evolution runs CPU-only; the optional weight
+  fine-tuning path needs a CUDA GPU (e.g. a single RTX 4090 or a 32GB Mac).
 
 ### Provider System
 
 - **OllamaProvider**: Direct integration with local Ollama instance
+- **local_models**: Per-role model discovery/resolution (matched by family)
 - **Provider Manager**: Automatic provider selection and fallback
 - **Health Checks**: Continuous monitoring of model availability
 - **Configuration**: Configurable timeouts, temperature, and model parameters
@@ -112,9 +126,11 @@ EVOSEAL Phase 3 integrates with Ollama running Mistral AI's Devstral model:
 ### Quick Start
 
 ```bash
-# Install Ollama and Devstral
+# Install Ollama and pull the coder + reviewer models (any coder/reviewer
+# family works; EVOSEAL discovers them):
 curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull devstral:latest
+ollama pull deepseek-coder-v2:16b-lite-instruct-q8_0
+ollama pull qwen2.5-coder:7b-instruct-q6_K
 ollama serve &
 
 # Install Python dependencies
@@ -179,7 +195,7 @@ python3 scripts/run_phase3_continuous_evolution.py \
 ### Health Monitoring
 
 - **Service Health**: Continuous monitoring of service components
-- **Model Health**: Regular checks of Ollama/Devstral availability
+- **Model Health**: Regular checks of Ollama/coding-model availability
 - **Error Recovery**: Automatic restart and error handling
 - **Logging**: Comprehensive logging to files and systemd journal
 
@@ -192,7 +208,7 @@ EVOSEAL Evolution → Data Collection → Pattern Analysis → Training Data
                                                               ↓
 Model Deployment ← Validation ← Fine-tuning ← Training Manager
         ↓
-Improved Devstral → Better EVOSEAL Performance → More Evolution Data
+Improved coding model → Better EVOSEAL Performance → More Evolution Data
 ```
 
 ### Data Storage
@@ -233,8 +249,10 @@ Improved Devstral → Better EVOSEAL Performance → More Evolution Data
    - Solution: Start Ollama with `ollama serve &`
    - Check: `curl http://localhost:11434/api/tags`
 
-3. **Devstral model not found**
-   - Solution: Pull model with `ollama pull devstral:latest`
+3. **Coder/reviewer model not found**
+   - Solution: pull a coder + reviewer model, e.g.
+     `ollama pull deepseek-coder-v2:16b-lite-instruct-q8_0` and
+     `ollama pull qwen2.5-coder:7b-instruct-q6_K`
    - Check: `ollama list`
 
 4. **systemd service failing**
@@ -323,6 +341,6 @@ The Phase 3 system is designed for extensibility:
 
 ## Conclusion
 
-EVOSEAL Phase 3 represents a complete bidirectional continuous evolution system that enables EVOSEAL and Devstral to continuously improve each other through automated evolution cycles, fine-tuning, and validation. The system is production-ready with comprehensive monitoring, error handling, and systemd integration.
+EVOSEAL Phase 3 represents a complete bidirectional continuous evolution system that enables EVOSEAL and its local coding model to continuously improve each other through automated evolution cycles, self-improvement, and validation. The system is production-ready with comprehensive monitoring, error handling, and systemd integration.
 
-The real-time monitoring dashboard provides full visibility into the evolution process, while the systemd integration ensures reliable operation in production environments. The bidirectional nature of the system creates a positive feedback loop where improvements in one system benefit the other, leading to continuous advancement in both EVOSEAL's capabilities and Devstral's performance on coding tasks.
+The real-time monitoring dashboard provides full visibility into the evolution process, while the systemd integration ensures reliable operation in production environments. The bidirectional nature of the system creates a positive feedback loop where improvements in one system benefit the other, leading to continuous advancement in both EVOSEAL's capabilities and the coding model's performance on coding tasks.

@@ -42,13 +42,16 @@ pip install aiohttp aiohttp-cors pydantic-settings
 pip install -e .
 ```
 
-### Step 3: Ollama and Devstral Setup
+### Step 3: Ollama and Local Model Setup
 ```bash
 # Install Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Pull Devstral model (14GB download)
-ollama pull devstral:latest
+# Pull the coder and reviewer models (CPU-friendly prompt-level path).
+# EVOSEAL auto-discovers these from Ollama by family, so any coder/reviewer
+# model works; these are the defaults:
+ollama pull deepseek-coder-v2:16b-lite-instruct-q8_0   # coder (~16GB)
+ollama pull qwen2.5-coder:7b-instruct-q6_K             # reviewer (~6GB)
 
 # Start Ollama service
 ollama serve &
@@ -138,8 +141,10 @@ export EVOSEAL_TRAINING_INTERVAL="1800"   # 30 minutes
 export EVOSEAL_MIN_SAMPLES="50"
 
 # Ollama Configuration
+# Models are auto-discovered from Ollama per role; override only to pin a tag.
 export OLLAMA_HOST="http://localhost:11434"
-export OLLAMA_MODEL="devstral:latest"
+export EVOSEAL_CODER_MODEL="deepseek-coder-v2:16b-lite-instruct-q8_0"
+export EVOSEAL_REVIEWER_MODEL="qwen2.5-coder:7b-instruct-q6_K"
 ```
 
 ### Command Line Options
@@ -355,8 +360,8 @@ curl http://localhost:11434/api/tags
 # Start Ollama
 ollama serve &
 
-# Check if Devstral is available
-ollama list | grep devstral
+# Check that a coder-family model is available
+ollama list | grep -iE 'coder|code'
 ```
 
 #### Service Won't Start
@@ -486,4 +491,4 @@ For additional support and troubleshooting, refer to:
 - [systemd Integration Guide](SYSTEMD_INTEGRATION.md)
 - [Main README](../README.md)
 
-The Phase 3 system is designed for continuous operation and will automatically evolve and improve both EVOSEAL and Devstral through the bidirectional evolution loop.
+The Phase 3 system is designed for continuous operation and will automatically evolve and improve both EVOSEAL and its local coding model through the bidirectional evolution loop.
