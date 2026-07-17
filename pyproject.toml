@@ -38,6 +38,8 @@ dependencies = [
 
     # HTTP clients
     "aiohttp>=3.8.0",
+    # Required by evoseal.services.monitoring_dashboard (imported unconditionally).
+    "aiohttp-cors>=0.7.0",
     "httpx>=0.24.0",
 
     # Data science

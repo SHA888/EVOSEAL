@@ -20,7 +20,11 @@ HOST="${EV_DASHBOARD_HOST:-0.0.0.0}"
 PORT="${EV_DASHBOARD_PORT:-9613}"
 
 # Allow overriding command
-if [ "${1:-}" = "bash" ] || [ "${1:-}" = "sh" ]; then
+# If the first argument is an executable (bash, sh, python, evoseal, ...), run it
+# instead of the service. Otherwise the args are treated as flags for the service
+# below -- e.g. `docker run IMAGE python -c '...'` must run python, not append
+# "python -c ..." to the dashboard command line.
+if [ $# -gt 0 ] && command -v "$1" >/dev/null 2>&1; then
   exec "$@"
 fi
 

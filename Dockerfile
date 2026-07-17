@@ -24,17 +24,23 @@ WORKDIR /app
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
  && mv /root/.local/bin/uv /usr/local/bin/uv
 
-# Copy pyproject.toml first for better layer caching
-COPY pyproject.toml ./
+# Copy source before installing: `pip install -e` runs setuptools package
+# discovery ([tool.setuptools.packages.find]), so evoseal/ must already exist.
+# Installing with only pyproject.toml present produced an editable install with
+# an empty mapping -- `import evoseal` then only worked from /app (via cwd on
+# sys.path) and failed for any script run from another directory.
+COPY . .
 
 # Install Python deps from pyproject.toml (include benchmarks extra for scripts)
 RUN uv pip install -e ".[benchmarks]"
 
-# Copy source
-COPY . .
-
-# Ensure entrypoint is executable
+# Ensure entrypoint is executable, and pre-create the writable dirs. These must
+# exist in the image *before* the chown: config/settings.py creates logs/,
+# data/knowledge/ and checkpoints/openevolve/ at import time, and the VOLUME
+# paths below would otherwise be created root-owned at runtime, leaving the
+# non-root evoseal user unable to write them.
 RUN chmod +x /app/scripts/docker/entrypoint.sh || true \
+ && mkdir -p /app/logs /app/data/knowledge /app/checkpoints/openevolve /app/reports \
  && chown -R evoseal:evoseal /app
 
 USER evoseal
