@@ -1754,7 +1754,7 @@ class CmdGit(GitInterface):
 
             # Add file type filters if specified
             if file_types:
-                patterns = " ".join(f'*.{ft.lstrip(".")}' for ft in file_types)
+                patterns = " ".join(f"*.{ft.lstrip('.')}" for ft in file_types)
                 cmd.extend(["--"] + patterns.split())
 
             success, stdout, _ = self._run_git_command(cmd, ref=ref)

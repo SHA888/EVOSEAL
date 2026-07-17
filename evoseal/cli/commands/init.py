@@ -186,7 +186,7 @@ def init_project(
         if project_dir.exists():
             if any(project_dir.iterdir()) and not force:
                 raise ProjectInitializationError(
-                    f"Directory '{project_dir}' is not empty. " "Use --force to initialize anyway."
+                    f"Directory '{project_dir}' is not empty. Use --force to initialize anyway."
                 )
         else:
             if verbose:

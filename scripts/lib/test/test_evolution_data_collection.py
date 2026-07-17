@@ -305,7 +305,7 @@ def test_training_data_builder(sample_results, analysis):
 
     # Show sample examples
     for i, example in enumerate(training_examples[:2]):
-        logger.info(f"Sample training example {i+1}:")
+        logger.info(f"Sample training example {i + 1}:")
         logger.info(f"  Instruction: {example.instruction}")
         logger.info(f"  Quality Score: {example.quality_score:.3f}")
         logger.info(f"  Input Code Length: {len(example.input_code)} chars")

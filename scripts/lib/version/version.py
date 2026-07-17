@@ -65,11 +65,11 @@ def bump_version(version: str, bump_type: str) -> str:
     try:
         major, minor, patch = map(int, version.split("."))
         if bump_type == "major":
-            return f"{major+1}.0.0"
+            return f"{major + 1}.0.0"
         elif bump_type == "minor":
-            return f"{major}.{minor+1}.0"
+            return f"{major}.{minor + 1}.0"
         elif bump_type == "patch":
-            return f"{major}.{minor}.{patch+1}"
+            return f"{major}.{minor}.{patch + 1}"
         elif re.match(r"^\d+\.\d+\.\d+$", bump_type):
             return bump_type
         raise ValueError(f"Invalid version: {bump_type}")

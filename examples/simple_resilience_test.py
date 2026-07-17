@@ -126,9 +126,9 @@ class SimpleResilienceTest:
         for i in range(8):
             try:
                 result = await self.run_component_with_resilience("unreliable", f"request_{i}")
-                logger.info(f"Call {i+1}: SUCCESS - {result}")
+                logger.info(f"Call {i + 1}: SUCCESS - {result}")
             except Exception as e:
-                logger.warning(f"Call {i+1}: FAILED - {e}")
+                logger.warning(f"Call {i + 1}: FAILED - {e}")
 
             await asyncio.sleep(0.5)
 

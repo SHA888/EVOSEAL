@@ -60,9 +60,9 @@ def git_remote_repo(temp_dir: Path) -> Path:
     remote_path.mkdir(parents=True, exist_ok=True)
 
     # Verify the directory was created
-    assert (
-        remote_path.exists() and remote_path.is_dir()
-    ), f"Failed to create directory: {remote_path}"
+    assert remote_path.exists() and remote_path.is_dir(), (
+        f"Failed to create directory: {remote_path}"
+    )
 
     try:
         # Initialize bare repository

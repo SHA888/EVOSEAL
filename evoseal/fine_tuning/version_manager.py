@@ -104,8 +104,7 @@ class ModelVersionManager:
                 raw_name = str(training_results.get("model_name", "model"))
                 slug = raw_name.split(":")[0].split("/")[-1] or "model"
                 version_name = (
-                    f"{slug}-v{len(self.registry['versions']) + 1}-"
-                    f"{timestamp.strftime('%Y%m%d')}"
+                    f"{slug}-v{len(self.registry['versions']) + 1}-{timestamp.strftime('%Y%m%d')}"
                 )
 
             # Create version entry

@@ -133,12 +133,12 @@ class TestEditScopeAllowlist:
 
         # The validator should not expose mutable setters; check that the patterns
         # are defined as constants or read-only properties
-        assert hasattr(
-            validator, "forbidden_paths"
-        ), "forbidden_paths should be a defined attribute"
-        assert hasattr(
-            validator, "allowed_patterns"
-        ), "allowed_patterns should be a defined attribute"
+        assert hasattr(validator, "forbidden_paths"), (
+            "forbidden_paths should be a defined attribute"
+        )
+        assert hasattr(validator, "allowed_patterns"), (
+            "allowed_patterns should be a defined attribute"
+        )
 
         # After validator operations, the rules should not have changed
         try:

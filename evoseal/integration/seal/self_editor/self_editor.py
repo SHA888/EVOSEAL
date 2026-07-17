@@ -194,7 +194,7 @@ class DefaultEditStrategy:
                         original_text=line,
                         suggested_text=line,  # Actual line wrapping would be done in apply_edit
                         confidence=0.7,
-                        explanation=f"Line {i+1} exceeds 88 characters (PEP 8 recommendation)",
+                        explanation=f"Line {i + 1} exceeds 88 characters (PEP 8 recommendation)",
                     )
                 )
 
@@ -262,7 +262,7 @@ class DefaultEditStrategy:
 
         if suggestion.original_text:
             logger.debug(
-                f"{op_name} - Original text in content: " f"{suggestion.original_text in content}"
+                f"{op_name} - Original text in content: {suggestion.original_text in content}"
             )
 
     def _handle_rewrite(self, content: str, suggestion: EditSuggestion) -> str:

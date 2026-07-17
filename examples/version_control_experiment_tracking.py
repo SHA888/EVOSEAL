@@ -98,7 +98,9 @@ class MockEvolutionPipeline:
                             source=source_code,
                             test_results={"passed": random.choice([True, False])},
                             eval_score=new_fitness_val,
-                            parent_ids=([f"variant_{iteration-1}_{i}"] if iteration > 1 else None),
+                            parent_ids=(
+                                [f"variant_{iteration - 1}_{i}"] if iteration > 1 else None
+                            ),
                             generation=iteration,
                             individual_index=i,
                         )
@@ -129,7 +131,7 @@ class MockEvolutionPipeline:
                     print(f"    💾 Created checkpoint: {checkpoint_id}")
 
                 print(
-                    f"    📈 Best fitness: {current_best:.4f}, Avg: {sum(population_fitness)/len(population_fitness):.4f}"
+                    f"    📈 Best fitness: {current_best:.4f}, Avg: {sum(population_fitness) / len(population_fitness):.4f}"
                 )
 
             # Add final artifacts
@@ -223,7 +225,7 @@ async def demonstrate_version_control_tracking():
         print("-" * 30)
 
         for i in range(3):
-            print(f"\n🧪 Experiment {i+1}/3")
+            print(f"\n🧪 Experiment {i + 1}/3")
 
             # Different configurations for each experiment
             configs = [
@@ -265,7 +267,7 @@ async def demonstrate_version_control_tracking():
         # Get experiment summaries
         for i, exp_id in enumerate(experiments):
             summary = integration.get_experiment_summary(exp_id)
-            print(f"\n🧪 Experiment {i+1}: {summary['name']}")
+            print(f"\n🧪 Experiment {i + 1}: {summary['name']}")
             print(f"   Status: {summary['status']}")
             print(
                 f"   Duration: {summary['duration']:.2f}s"
@@ -299,7 +301,7 @@ async def demonstrate_version_control_tracking():
 
         for i, exp_id in enumerate(experiments):
             stats = version_tracker.version_db.get_variant_statistics(exp_id)
-            print(f"\nExperiment {i+1} variants:")
+            print(f"\nExperiment {i + 1} variants:")
             print(f"  Total: {stats['total_variants']}")
             if stats["total_variants"] > 0:
                 print(f"  Best score: {stats['best_score']:.4f}")

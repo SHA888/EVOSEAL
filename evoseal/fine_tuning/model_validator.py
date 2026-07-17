@@ -225,7 +225,7 @@ class ModelValidator:
                         successful_responses += 1
 
                 except Exception as e:
-                    logger.debug(f"Basic functionality test {i+1} failed: {e}")
+                    logger.debug(f"Basic functionality test {i + 1} failed: {e}")
                     continue
 
             score = successful_responses / total_tests if total_tests > 0 else 0.0

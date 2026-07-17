@@ -148,8 +148,7 @@ class CoevolutionManager:
             result.accepted = True
             result.prompt_after_id = new_version.version_id
             result.reason = (
-                f"accepted prompt {new_version.version_id}: "
-                f"{score_before:.2f} -> {score_after:.2f}"
+                f"accepted prompt {new_version.version_id}: {score_before:.2f} -> {score_after:.2f}"
             )
         else:
             result.reason = (

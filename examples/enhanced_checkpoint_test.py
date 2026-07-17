@@ -182,7 +182,7 @@ async def test_enhanced_checkpoint_functionality():
         checkpoints = checkpoint_manager_compressed.list_checkpoints()
         for checkpoint in checkpoints:
             print(f"   Version: {checkpoint['version_id']}")
-            print(f"   Size: {checkpoint.get('checkpoint_size', 0) / (1024*1024):.2f} MB")
+            print(f"   Size: {checkpoint.get('checkpoint_size', 0) / (1024 * 1024):.2f} MB")
             print(f"   Files: {checkpoint.get('file_count', 0)}")
             print(f"   System State: {'Yes' if checkpoint.get('system_state_captured') else 'No'}")
             print(f"   Compression: {'Yes' if checkpoint.get('compression_enabled') else 'No'}")
@@ -258,7 +258,7 @@ async def test_enhanced_checkpoint_functionality():
                 compressed_stats["total_size_mb"] / uncompressed_stats["total_size_mb"]
             )
             print(
-                f"   Compression ratio: {compression_ratio:.2f} ({(1-compression_ratio)*100:.1f}% reduction)"
+                f"   Compression ratio: {compression_ratio:.2f} ({(1 - compression_ratio) * 100:.1f}% reduction)"
             )
 
         # Verify restored files exist

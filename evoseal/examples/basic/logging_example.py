@@ -95,14 +95,14 @@ def main() -> None:
 
     # Process multiple requests
     for i in range(5):
-        user_id = f"user_{i+1}"
+        user_id = f"user_{i + 1}"
         logger.debug(f"Processing request for {user_id}")
 
         try:
             result = handle_request(user_id, test_data)
-            print(f"Request {i+1} result: {result}")
+            print(f"Request {i + 1} result: {result}")
         except Exception as e:
-            print(f"Request {i+1} failed: {e}")
+            print(f"Request {i + 1} failed: {e}")
 
         # Add a small delay between requests
         time.sleep(0.5)

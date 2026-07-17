@@ -115,21 +115,21 @@ def test_discover_tests(test_environment):
 
     # Discover unit tests
     unit_tests = runner.discover_tests("unit")
-    assert (
-        len(unit_tests) >= 1
-    ), f"No unit tests found in {test_environment['test_dir']}. Expected at least one test matching 'test_*.py'"
-    assert any(
-        "test_sample.py" in str(test) for test in unit_tests
-    ), f"Expected 'test_sample.py' in discovered tests: {unit_tests}"
+    assert len(unit_tests) >= 1, (
+        f"No unit tests found in {test_environment['test_dir']}. Expected at least one test matching 'test_*.py'"
+    )
+    assert any("test_sample.py" in str(test) for test in unit_tests), (
+        f"Expected 'test_sample.py' in discovered tests: {unit_tests}"
+    )
 
     # Discover performance tests
     perf_tests = runner.discover_tests("performance")
-    assert (
-        len(perf_tests) >= 1
-    ), f"No performance tests found in {test_environment['test_dir']}. Expected at least one test matching 'test_*_perf.py'"
-    assert any(
-        "test_sample_perf.py" in str(test) for test in perf_tests
-    ), f"Expected 'test_sample_perf.py' in discovered tests: {perf_tests}"
+    assert len(perf_tests) >= 1, (
+        f"No performance tests found in {test_environment['test_dir']}. Expected at least one test matching 'test_*_perf.py'"
+    )
+    assert any("test_sample_perf.py" in str(test) for test in perf_tests), (
+        f"Expected 'test_sample_perf.py' in discovered tests: {perf_tests}"
+    )
 
 
 def test_run_unit_tests(test_environment, capsys):

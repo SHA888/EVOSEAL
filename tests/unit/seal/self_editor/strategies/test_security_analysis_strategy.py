@@ -58,9 +58,9 @@ result = system('ls -la')
         has_system_import = any(
             "from os import system" in str(s.original_text) for s in suggestions
         )
-        assert (
-            has_os_import or has_system_import
-        ), f"Expected to find either 'import os' or 'from os import system' in suggestions, but got: {suggestions}"
+        assert has_os_import or has_system_import, (
+            f"Expected to find either 'import os' or 'from os import system' in suggestions, but got: {suggestions}"
+        )
 
     def test_check_unsafe_functions(self, strategy):
         """Test detection of unsafe function calls."""

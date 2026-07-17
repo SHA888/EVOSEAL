@@ -83,7 +83,7 @@ def run_baseline(model: str, api_key: str, problems: list) -> dict:
         try:
             prompt = f"""You are an expert Python programmer. Complete this function:
 
-{problem['prompt']}
+{problem["prompt"]}
     '''Your code here'''
     pass
 
@@ -188,8 +188,8 @@ def main():
 ## Single-Shot Baseline Results
 
 **Model:** `{model}`
-**Dataset:** Synthetic coding tasks ({baseline['total']} problems)
-**Pass Rate (valid syntax):** {baseline['passed']}/{baseline['total']} ({pass_rate:.1f}%)
+**Dataset:** Synthetic coding tasks ({baseline["total"]} problems)
+**Pass Rate (valid syntax):** {baseline["passed"]}/{baseline["total"]} ({pass_rate:.1f}%)
 
 ### Benchmark Details
 
@@ -203,10 +203,10 @@ def main():
 
 | Metric | Value |
 |--------|-------|
-| Passed (valid Python) | {baseline['passed']} |
-| Failed (syntax errors) | {baseline['failed']} |
-| Errors (API/runtime) | {baseline['errors']} |
-| **Total** | **{baseline['total']}** |
+| Passed (valid Python) | {baseline["passed"]} |
+| Failed (syntax errors) | {baseline["failed"]} |
+| Errors (API/runtime) | {baseline["errors"]} |
+| **Total** | **{baseline["total"]}** |
 
 ### Detailed Results
 

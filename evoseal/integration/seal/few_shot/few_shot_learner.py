@@ -477,7 +477,7 @@ class FewShotLearner:
             return [self.examples[i] for i in top_indices]
 
         raise ValueError(
-            f"Unknown strategy: {strategy}. " "Must be one of: 'first_k', 'random', 'similarity'"
+            f"Unknown strategy: {strategy}. Must be one of: 'first_k', 'random', 'similarity'"
         )
 
     def generate(

@@ -203,9 +203,9 @@ def system_status(
 
         typer.echo("\nResource Usage:")
         resources = status_info["resources"]
-        typer.echo(f"  CPU: {resources['cpu']*100:.1f}%")
-        typer.echo(f"  Memory: {resources['memory']*100:.1f}%")
-        typer.echo(f"  Disk: {resources['disk']*100:.1f}%")
+        typer.echo(f"  CPU: {resources['cpu'] * 100:.1f}%")
+        typer.echo(f"  Memory: {resources['memory'] * 100:.1f}%")
+        typer.echo(f"  Disk: {resources['disk'] * 100:.1f}%")
 
 
 if __name__ == "__main__":

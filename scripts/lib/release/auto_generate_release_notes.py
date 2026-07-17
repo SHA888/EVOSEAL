@@ -229,7 +229,7 @@ pip install evoseal=={version}
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*
+*This release was automatically generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}*
 """
 
     return content
@@ -301,7 +301,7 @@ def main():
 - [ ] Document rollback steps
 - [ ] Test rollback procedure
 
-*Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*
+*Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}*
 """
 
     checklist_path = output_dir / "RELEASE_CHECKLIST.md"
