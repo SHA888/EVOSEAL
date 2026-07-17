@@ -20,10 +20,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 @pytest.fixture(autouse=True, scope="session")
 def _git_identity() -> Generator[None, None, None]:
-    """Ensure git has an author/committer identity for tests that commit.
+    """Give git a deterministic, non-interactive environment for tests.
 
     CI runners have no global git user configured, so commits (in fixtures and in
-    RepositoryManager clones) fail with ``GitCommandError 128``. GitPython and the
+    RepositoryManager clones) fail with ``GitCommandError 128``. They also have no
+    editor, so ``git merge --continue`` would try to open one. GitPython and the
     git CLI both honor these env vars, so set them for the whole test session.
     """
     identity = {
@@ -31,6 +32,9 @@ def _git_identity() -> Generator[None, None, None]:
         "GIT_AUTHOR_EMAIL": "test@evoseal.local",
         "GIT_COMMITTER_NAME": "EVOSEAL Test",
         "GIT_COMMITTER_EMAIL": "test@evoseal.local",
+        # Never open an editor (no tty on CI); take the default merge message.
+        "GIT_EDITOR": "true",
+        "GIT_MERGE_AUTOEDIT": "no",
     }
     saved = {k: os.environ.get(k) for k in identity}
     os.environ.update(identity)
