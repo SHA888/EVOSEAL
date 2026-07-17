@@ -5,9 +5,6 @@ This example demonstrates the key features of the EVOSEAL logging system,
 including structured logging, context tracking, and performance monitoring.
 """
 
-import logging
-import pathlib
-import random
 import secrets
 import time
 from pathlib import Path

@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from evoseal.agents.agentic_system import Agent, AgenticSystem
+from evoseal.agents.agentic_system import AgenticSystem
 
 
 @pytest.fixture

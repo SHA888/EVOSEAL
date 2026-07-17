@@ -9,12 +9,11 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, cast
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 
 # Type variable for generic model typing
 T = TypeVar("T", bound=BaseModel)

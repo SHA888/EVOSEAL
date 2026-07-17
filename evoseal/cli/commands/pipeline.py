@@ -11,9 +11,7 @@ import asyncio
 import json
 import logging
 import os
-import sys
 import time
-from pathlib import Path
 from typing import Annotated, Any
 
 import typer
@@ -25,14 +23,10 @@ from rich.progress import (
     MofNCompleteColumn,
     Progress,
     SpinnerColumn,
-    TaskID,
     TextColumn,
     TimeElapsedColumn,
 )
 from rich.table import Table
-from rich.text import Text
-
-from ..base import EVOSEALCommand
 
 # Initialize the Typer app
 app = typer.Typer(name="pipeline", help="Pipeline control and monitoring")

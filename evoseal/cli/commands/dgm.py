@@ -9,8 +9,6 @@ from typing import Annotated
 
 import typer
 
-from ..base import EVOSEALCommand
-
 app = typer.Typer(name="dgm", help="DGM code improvement workflows")
 
 

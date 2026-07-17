@@ -8,10 +8,9 @@ file output, and level-based filtering.
 from __future__ import annotations
 
 import logging
-import os
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.logging import RichHandler

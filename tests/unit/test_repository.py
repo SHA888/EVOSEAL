@@ -1,12 +1,8 @@
 """Tests for the repository management module."""
 
 from pathlib import Path
-from typing import Tuple
-from unittest.mock import MagicMock, patch
 
-import pytest
-
-from evoseal.core.repository import RepositoryError, RepositoryManager
+from evoseal.core.repository import RepositoryManager
 
 
 class TestRepositoryManager:

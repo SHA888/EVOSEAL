@@ -8,7 +8,7 @@ a simple workflow with multiple steps and components.
 import logging
 
 from evoseal.core.events import Event
-from evoseal.core.workflow import WorkflowEngine, WorkflowStatus
+from evoseal.core.workflow import WorkflowEngine
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

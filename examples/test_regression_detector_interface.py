@@ -10,14 +10,12 @@ This script shows how to use the RegressionDetector for:
 """
 
 import asyncio
-import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
-from evoseal.core.events import EventType, publish, subscribe
+from evoseal.core.events import EventType, subscribe
 from evoseal.core.logging_system import get_logger
-from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.regression_detector import RegressionDetector
 
 logger = get_logger(__name__)

@@ -5,27 +5,21 @@ This module provides an implementation of GitInterface using the git command-lin
 """
 
 import logging
-import os
 import re
-import shutil
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any
 
 from .exceptions import (
     AuthenticationError,
     BranchNotFoundError,
-    GitCommandError,
     GitError,
-    GitOperationError,
     HTTPSAuthenticationError,
-    InvalidGitRepositoryError,
     MergeConflictError,
     PushRejectedError,
     RepositoryNotFoundError,
     SSHAuthenticationError,
 )
-from .git_interface import GitInterface, GitOperation, GitResult, ProgressCallback
+from .git_interface import GitInterface, GitResult, ProgressCallback
 
 logger = logging.getLogger(__name__)
 

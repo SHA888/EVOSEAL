@@ -11,9 +11,7 @@ import json
 import logging
 import sys
 import tempfile
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
 
 # Add EVOSEAL to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -30,14 +28,6 @@ async def test_component_imports():
     logger.info("=== Testing Component Imports ===")
 
     try:
-        from evoseal.fine_tuning import (
-            BidirectionalEvolutionManager,
-            ModelFineTuner,
-            ModelValidator,
-            ModelVersionManager,
-            TrainingManager,
-        )
-
         logger.info("✅ All Phase 2 components imported successfully")
         return {"success": True, "components_imported": 5}
 

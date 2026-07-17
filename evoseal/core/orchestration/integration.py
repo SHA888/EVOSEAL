@@ -8,12 +8,12 @@ with existing EVOSEAL components and workflows.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from evoseal.core.events import event_bus
 
 from .orchestrator import WorkflowOrchestrator
-from .types import ExecutionStrategy, OrchestrationState
+from .types import ExecutionStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -408,9 +408,6 @@ def validate_orchestration_setup() -> dict[str, bool]:
 
     try:
         # Test imports
-        from .checkpoint_manager import CheckpointManager
-        from .recovery_manager import RecoveryManager
-        from .resource_monitor import ResourceMonitor
 
         validation_results["component_imports"] = True
     except Exception as e:

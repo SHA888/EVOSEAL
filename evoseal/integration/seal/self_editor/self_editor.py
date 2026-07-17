@@ -6,14 +6,10 @@ This module provides the SelfEditor class that enables the system to review and 
 
 from __future__ import annotations
 
-import json
 import logging
-import sys
-from dataclasses import dataclass, field
-from datetime import UTC, datetime, timezone
-from enum import Enum, auto
-from pathlib import Path
-from typing import Any, Optional, Protocol, TypeVar, Union
+from datetime import UTC, datetime
+from enum import Enum
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 

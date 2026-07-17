@@ -9,7 +9,6 @@ to orchestrate DGM, OpenEvolve, and SEAL components in an evolution pipeline.
 import asyncio
 import json
 import logging
-import os
 import tempfile
 from pathlib import Path
 
@@ -25,12 +24,6 @@ async def main():
     """Main example function."""
     try:
         # Import EVOSEAL components
-        from evoseal.core.evolution_pipeline import EvolutionConfig, EvolutionPipeline
-        from evoseal.integration import (
-            ComponentType,
-            IntegrationOrchestrator,
-            create_integration_orchestrator,
-        )
 
         logger.info("Starting EVOSEAL Integration Example")
 

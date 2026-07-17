@@ -10,9 +10,9 @@ import math
 import statistics
 from collections import defaultdict, deque
 from collections.abc import Callable
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from .events import EventType, publish
 from .logging_system import get_logger

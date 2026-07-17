@@ -12,14 +12,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 from evoseal.core.errors import (
-    BaseError,
-    ErrorCategory,
     ErrorSeverity,
     IntegrationError,
-    RetryableError,
 )
 from evoseal.core.events import Event, EventBus, create_error_event
 

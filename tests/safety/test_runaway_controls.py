@@ -10,16 +10,7 @@ Closes threat model §4 (infinite-loop risks) and §6 (resource exhaustion).
 See task 2.15 in Plans.md for DoD context.
 """
 
-import os
 import resource
-import signal
-import subprocess
-import sys
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
 
 from evoseal.core.testrunner import SandboxedTestRunner, TestConfig
 

@@ -5,11 +5,10 @@ regression detection, and the integrated safety-aware evolution pipeline.
 """
 
 import asyncio
-import json
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -6,17 +6,12 @@ This module provides commands for exporting data from the EVOSEAL system.
 
 from __future__ import annotations
 
-import csv
 import json
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
 
 import typer
-import yaml
-
-from ..base import EVOSEALCommand
 
 # Initialize the Typer app
 app = typer.Typer(name="export", help="Export results/variants")

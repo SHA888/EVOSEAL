@@ -5,11 +5,11 @@ automatic rollback on failures, and rollback history tracking.
 """
 
 import json
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .checkpoint_manager import CheckpointError, CheckpointManager
+from .checkpoint_manager import CheckpointManager
 from .events import EventType, publish
 from .logging_system import get_logger
 

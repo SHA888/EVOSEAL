@@ -9,9 +9,9 @@ import logging
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
-from .exceptions import GitCommandError, GitError
+from .exceptions import GitCommandError
 
 logger = logging.getLogger(__name__)
 

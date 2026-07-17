@@ -12,7 +12,7 @@ import asyncio
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

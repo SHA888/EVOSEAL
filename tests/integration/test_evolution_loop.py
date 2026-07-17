@@ -12,7 +12,6 @@ All components run in mock mode (EVOSEAL_MOCK_MODE=true) with no external API ca
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,7 +19,6 @@ import pytest
 from evoseal.core.controller import Controller
 from evoseal.core.evaluator import Evaluator
 from evoseal.core.testrunner import TestRunner
-from evoseal.integration import ComponentType, create_integration_orchestrator
 from evoseal.testing.mock_components import (
     create_mock_dgm_adapter,
     create_mock_openevolve_adapter,

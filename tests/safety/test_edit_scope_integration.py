@@ -5,8 +5,6 @@ Verifies that the SafetyIntegration class properly validates edits
 before they are applied to the filesystem.
 """
 
-from pathlib import Path
-
 import pytest
 
 from evoseal.core.edit_scope_validator import EditScopeError

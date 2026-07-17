@@ -9,7 +9,7 @@ import shutil
 
 # Add the project root to the Python path
 import sys
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -28,7 +28,6 @@ sys.modules["openevolve"] = MagicMock()
 # Import after path setup
 from evoseal.integration.seal.seal_interface import SEALInterface
 from evoseal.models import Program
-from evoseal.providers.seal_providers import SEALProvider
 
 
 # Define SEALProvider protocol for type checking

@@ -9,13 +9,12 @@ import logging
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, TypeVar
 
 from tqdm import tqdm
 
 from .cache import cached
 from .loaders import load_data
-from .types import DataFormat
 
 T = TypeVar("T")
 

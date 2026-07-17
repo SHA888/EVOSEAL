@@ -2,8 +2,6 @@
 Unit tests for SEALInterface and DummySEALProvider.
 """
 
-import asyncio
-
 import pytest
 
 from evoseal.integration.seal.seal_interface import SEALInterface

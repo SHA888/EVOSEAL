@@ -10,18 +10,15 @@ import asyncio
 import dataclasses
 import json
 import logging
-import os
-from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from jsonschema import Draft7Validator
 from jsonschema import ValidationError as JSONSchemaValidationError
 
 # Import Validator type
-from .validation_types import JSONArray, JSONObject, JSONValue, ValidationLevel, ValidationResult
+from .validation_types import ValidationLevel, ValidationResult
 from .validation_types import Validator as ValidatorType
 
 # Configure logging

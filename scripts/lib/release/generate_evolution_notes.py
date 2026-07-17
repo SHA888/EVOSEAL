@@ -8,9 +8,6 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
-
-import yaml
 
 
 def get_git_changes(since_tag: str) -> list[dict]:

@@ -8,18 +8,12 @@ without requiring the full pipeline setup.
 
 import asyncio
 import logging
-from typing import Any, Dict
 
 from evoseal.core.events import (
-    ComponentEvent,
-    EnhancedEventBus,
     ErrorEvent,
     Event,
-    EventBus,
     EventType,
-    MetricsEvent,
     ProgressEvent,
-    StateChangeEvent,
     create_component_event,
     create_error_event,
     create_event_filter,

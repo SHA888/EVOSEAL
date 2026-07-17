@@ -4,7 +4,6 @@ Organize release notes into their respective version directories.
 Moves files from metrics/ to releases/<version>/RELEASE_NOTES.md
 """
 
-import os
 import re
 import shutil
 from pathlib import Path

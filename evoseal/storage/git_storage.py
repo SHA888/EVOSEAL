@@ -6,11 +6,10 @@ with support for versioning, diffs, merges, and querying by Git references (bran
 """
 
 import json
-import os
 import shutil
 import subprocess  # nosec - Required for git operations, with proper input validation
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 
 class GitStorageError(Exception):

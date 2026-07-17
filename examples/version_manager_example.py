@@ -5,7 +5,6 @@ This example demonstrates how to use the VersionManager to perform common
 version control operations on a Git repository.
 """
 
-import os
 import tempfile
 from pathlib import Path
 

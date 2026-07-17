@@ -41,17 +41,13 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
-import numpy as np
 import torch
 from datasets import Dataset
 from peft import LoraConfig, get_peft_model
-from tqdm import tqdm
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,

@@ -8,7 +8,6 @@ without complex mocking, focusing on the core integration functionality.
 
 import asyncio
 import logging
-import tempfile
 from pathlib import Path
 
 # Configure logging
@@ -17,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Import EVOSEAL components
 from evoseal.core.evolution_pipeline import EvolutionConfig, EvolutionPipeline
-from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.safety_integration import SafetyIntegration
 
 

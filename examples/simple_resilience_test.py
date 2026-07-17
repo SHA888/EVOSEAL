@@ -1,10 +1,7 @@
 """Simple test of EVOSEAL's error handling and resilience features."""
 
 import asyncio
-import logging
 import secrets
-import time
-from datetime import datetime
 
 # EVOSEAL imports
 from evoseal.core.error_recovery import (
@@ -14,13 +11,10 @@ from evoseal.core.error_recovery import (
     error_recovery_manager,
     with_error_recovery,
 )
-from evoseal.core.errors import BaseError, ErrorCategory, ErrorSeverity
 from evoseal.core.logging_system import get_logger, logging_manager
-from evoseal.core.resilience import CircuitBreakerConfig, ComponentHealth, resilience_manager
+from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
 from evoseal.core.resilience_integration import (
     get_resilience_status,
-    initialize_resilience_system,
-    resilience_orchestrator,
 )
 
 # Set up logging

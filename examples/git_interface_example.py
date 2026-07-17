@@ -5,11 +5,10 @@ This example demonstrates how to use the CmdGit implementation of GitInterface
 to perform common Git operations.
 """
 
-import os
 import tempfile
 from pathlib import Path
 
-from evoseal.utils.version_control import CmdGit, GitResult
+from evoseal.utils.version_control import CmdGit
 
 
 def main():

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timezone
-from typing import Any, ClassVar, Optional, cast
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class TestCaseResult(BaseModel):

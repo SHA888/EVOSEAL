@@ -4,11 +4,10 @@ Provides functionality to store, analyze, and compare test execution metrics.
 """
 
 import json
-import statistics
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal, Optional, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
 import numpy as np
 from rich.console import Console

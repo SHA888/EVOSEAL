@@ -5,17 +5,16 @@ fallback mechanisms, and intelligent error analysis for pipeline resilience.
 """
 
 import asyncio
-import logging
 import time
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
-from evoseal.core.errors import BaseError, ErrorCategory, ErrorSeverity
-from evoseal.core.events import Event, EventBus, create_error_event
+from evoseal.core.errors import ErrorCategory
+from evoseal.core.events import Event, EventBus
 from evoseal.core.logging_system import get_logger
 
 logger = get_logger("error_recovery")

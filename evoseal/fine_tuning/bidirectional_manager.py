@@ -5,12 +5,11 @@ This module orchestrates the complete bidirectional evolution loop where EVOSEAL
 its discovered coding model continuously improve each other (weight-level, GPU-only).
 """
 
-import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..evolution import EvolutionDataCollector
 from .training_manager import TrainingManager

@@ -9,11 +9,9 @@ import asyncio
 import json
 import logging
 import weakref
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Any
 
-import aiohttp
 import aiohttp_cors
 from aiohttp import WSMsgType, web
 

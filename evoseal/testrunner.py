@@ -8,10 +8,8 @@ import concurrent.futures
 
 # nosec B404: Required for test execution in isolated environments
 import subprocess  # nosec B404: Required for test execution in a controlled environment
-import threading
 import time
-from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 DEFAULT_TIMEOUT = 60  # seconds
 

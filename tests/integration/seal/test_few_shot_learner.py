@@ -1,9 +1,8 @@
 """Lightweight tests for FewShotLearner to avoid WSL crashes."""
 
-import os
 import sys
 from pathlib import Path
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -12,7 +11,6 @@ import pytest
 for _dep in ("torch", "transformers", "peft", "datasets"):
     pytest.importorskip(_dep)
 
-import torch
 
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
@@ -146,7 +144,6 @@ def test_fine_tune_basic(tmp_path):
         mock_learner.fine_tune.side_effect = mock_fine_tune
 
         # Import after patching to use our mock
-        from evoseal.integration.seal.few_shot.few_shot_learner import FewShotLearner
 
         # Test the fine_tune method
         output_dir = tmp_path / "output"

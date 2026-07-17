@@ -12,13 +12,11 @@ capabilities including:
 
 import asyncio
 import json
-import math
 import secrets
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
-from evoseal.core.events import EventType, publish, subscribe
 from evoseal.core.logging_system import get_logger
 from evoseal.core.regression_detector import RegressionDetector
 

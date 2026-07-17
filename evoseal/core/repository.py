@@ -5,14 +5,11 @@ This module provides utilities for managing git repositories in the EVOSEAL syst
 """
 
 import logging
-import os
 import shutil
-from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
-from git import GitCommandError, Head, RemoteReference, Repo
+from git import GitCommandError, Repo
 
 # Configure logging
 logger = logging.getLogger(__name__)

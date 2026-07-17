@@ -9,12 +9,12 @@ import csv
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Generic, TypeVar
 
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from .types import DataFormat, ModelType
+from .types import DataFormat
 
 T = TypeVar("T", bound=BaseModel)
 

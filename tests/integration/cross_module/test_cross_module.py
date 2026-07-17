@@ -8,11 +8,10 @@ and error handling across module boundaries.
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -33,7 +32,7 @@ sys.modules["docker.errors"] = MagicMock()
 from evoseal.core.controller import Controller
 
 # Import after path setup
-from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
+from evoseal.integration.seal.seal_interface import SEALInterface
 from evoseal.models import Program
 
 

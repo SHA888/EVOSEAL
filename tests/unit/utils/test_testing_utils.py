@@ -4,8 +4,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from evoseal.utils.testing import (
     TestDataManager,
     TestEnvironment,

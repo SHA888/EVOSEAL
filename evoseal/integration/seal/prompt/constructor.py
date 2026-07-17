@@ -6,7 +6,7 @@ knowledge and examples, supporting different prompt styles and formats.
 """
 
 import re
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 from ..types import PromptStyle
 from ..types import PromptTemplate as BasePromptTemplate

@@ -7,7 +7,7 @@ and edit-scope enforcement to ensure safe evolution pipeline execution.
 
 from datetime import UTC
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from .checkpoint_manager import CheckpointManager
 from .edit_scope_validator import EditScopeError, EditScopeValidator
@@ -437,7 +437,7 @@ class SafetyIntegration:
 
     def _get_current_timestamp(self) -> str:
         """Get current timestamp in ISO format."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         return datetime.now(UTC).isoformat()
 

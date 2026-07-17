@@ -6,9 +6,8 @@ This module provides utilities for loading and managing configuration settings.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 
 import yaml
 
@@ -71,8 +70,6 @@ def get_config(config_path: str | Path | None = None) -> ConfigDict:
     try:
         import ast
         from ast import Assign, Dict, List, Name, Num, Str, Tuple, UnaryOp, USub
-        from typing import Any
-        from typing import Dict as TDict
 
         class ConfigExtractor(ast.NodeVisitor):
             """AST visitor that extracts simple variable assignments from a module."""

@@ -8,9 +8,8 @@ import os
 import shutil
 import tempfile
 import unittest
-from pathlib import Path
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 

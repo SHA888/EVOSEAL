@@ -1,7 +1,7 @@
 """Strategy for enforcing code style rules."""
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from .base_strategy import BaseEditStrategy

@@ -1,6 +1,6 @@
 """Tests for the SEAL (Self-Adapting Language Models) prompt templates and construction."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -10,7 +10,6 @@ from evoseal.integration.seal.prompt import (
     DOMAIN_TEMPLATES,
     SYSTEM_TEMPLATES,
     PromptConstructor,
-    PromptStyle,
     PromptTemplate,
 )
 

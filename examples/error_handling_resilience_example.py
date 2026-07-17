@@ -5,11 +5,10 @@ circuit breakers, health monitoring, and logging systems in the EVOSEAL pipeline
 """
 
 import asyncio
-import logging
 import random
 import time
-from datetime import datetime
-from pathlib import Path
+
+from evoseal.models.evolution_config import EvolutionConfig
 
 # EVOSEAL imports
 from evoseal.core.error_recovery import (
@@ -19,16 +18,14 @@ from evoseal.core.error_recovery import (
     error_recovery_manager,
     with_error_recovery,
 )
-from evoseal.core.errors import BaseError, ErrorCategory, ErrorSeverity
 from evoseal.core.evolution_pipeline import EvolutionPipeline
 from evoseal.core.logging_system import get_logger, logging_manager
-from evoseal.core.resilience import CircuitBreakerConfig, ComponentHealth, resilience_manager
+from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
 from evoseal.core.resilience_integration import (
     get_resilience_status,
     initialize_resilience_system,
     resilience_orchestrator,
 )
-from evoseal.models.evolution_config import EvolutionConfig
 
 # Set up logging
 logger = get_logger("resilience_example")

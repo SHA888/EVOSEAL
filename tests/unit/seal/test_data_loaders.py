@@ -3,7 +3,6 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
 
 from pydantic import BaseModel
 
@@ -11,7 +10,6 @@ from evoseal.integration.seal.data_loaders import (
     CSVLoader,
     DataCache,
     DataFormat,
-    DataLoader,
     JSONLoader,
     YAMLLoader,
     cached,

@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..base_adapter import BaseComponentAdapter, ComponentConfig, ComponentResult, ComponentType
 

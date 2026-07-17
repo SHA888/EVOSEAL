@@ -9,10 +9,9 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from .config import default_git_implementation
-from .git_interface import GitInterface, GitResult
 
 logger = logging.getLogger(__name__)
 

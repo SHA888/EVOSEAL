@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime, timezone
+from collections.abc import Mapping
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional, TypedDict, Union
+from typing import Any
 
 # Type definitions
 VariantID = str
