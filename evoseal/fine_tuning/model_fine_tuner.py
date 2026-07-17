@@ -332,8 +332,8 @@ echo "Training data prepared at: {training_data_path}"
                 with open(script_path, "w") as f:
                     f.write(script_content)
 
-                # Generated helper script must be executable.
-                os.chmod(script_path, 0o755)  # nosec B103
+                # Generated helper script must be executable by its owner only.
+                os.chmod(script_path, 0o700)  # nosec B103
 
                 return {
                     "success": True,
