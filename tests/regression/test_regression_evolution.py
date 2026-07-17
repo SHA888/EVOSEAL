@@ -7,25 +7,42 @@ Ensures previously fixed bugs/invariants remain fixed.
 from unittest.mock import MagicMock, patch
 import sys
 
-# Patch major external dependencies, including openevolve and submodules
-sys.modules["docker"] = MagicMock()
-sys.modules["docker.errors"] = MagicMock()
-sys.modules["docker.models"] = MagicMock()
-sys.modules["docker.models.containers"] = MagicMock()
-sys.modules["anthropic"] = MagicMock()
-sys.modules["backoff"] = MagicMock()
-sys.modules["datasets"] = MagicMock()
-sys.modules["swebench"] = MagicMock()
-sys.modules["swebench.harness"] = MagicMock()
-sys.modules["swebench.harness.test_spec"] = MagicMock()
-sys.modules["swebench.harness.docker_build"] = MagicMock()
-sys.modules["swebench.harness.utils"] = MagicMock()
-sys.modules["git"] = MagicMock()
-sys.modules["openevolve"] = MagicMock()
-sys.modules["openevolve.prompt"] = MagicMock()
-sys.modules["openevolve.prompt.templates"] = MagicMock()
+# Major external dependencies that evolution_manager imports but that we do not
+# want to require (or actually execute) for this regression test.
+_MOCKED_MODULES = (
+    "docker",
+    "docker.errors",
+    "docker.models",
+    "docker.models.containers",
+    "anthropic",
+    "backoff",
+    "datasets",
+    "swebench",
+    "swebench.harness",
+    "swebench.harness.test_spec",
+    "swebench.harness.docker_build",
+    "swebench.harness.utils",
+    "git",
+    "openevolve",
+    "openevolve.prompt",
+    "openevolve.prompt.templates",
+)
 
-from evoseal.integration.dgm.evolution_manager import EvolutionManager
+# Install the mocks ONLY for the duration of the import below, then restore.
+# pytest-xdist workers import every test module during collection, so leaving
+# these in sys.modules would poison unrelated tests in the same process -- e.g.
+# a mocked `git` makes the shared `test_repo` fixture's Repo.init a no-op.
+_saved_modules = {name: sys.modules.get(name) for name in _MOCKED_MODULES}
+for _name in _MOCKED_MODULES:
+    sys.modules[_name] = MagicMock()
+try:
+    from evoseal.integration.dgm.evolution_manager import EvolutionManager
+finally:
+    for _name, _module in _saved_modules.items():
+        if _module is None:
+            sys.modules.pop(_name, None)
+        else:
+            sys.modules[_name] = _module
 
 
 def test_no_duplicate_in_archive(tmp_path):

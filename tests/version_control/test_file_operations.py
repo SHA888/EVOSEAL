@@ -239,7 +239,7 @@ class TestFileOperations:
         """Test getting file blame information."""
         # Mock the git blame output
         blame_output = (
-            "1234567890abcdef 1 1 2\n"
+            "testcommit1234567890abcdef 1 1 2\n"
             "author John Doe\n"
             "author-mail <john@example.com>\n"
             "author-time 1609459200\n"
@@ -250,7 +250,7 @@ class TestFileOperations:
             "committer-tz +0000\n"
             "summary Initial commit\n"
             "\tLine 1 content\n"
-            "testcommit1234567890abcdef 2 2 1\n"
+            "testcommit0987654321fedcba 2 2 1\n"
             "author John Doe\n"
             "author-mail <john@example.com>\n"
             "author-time 1609459200\n"
