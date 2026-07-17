@@ -7,6 +7,12 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
+# Optional heavy deps: the few_shot_learner module imports the fine-tuning stack
+# (torch/transformers/peft/datasets), which CI's base test extra does not install.
+# Skip the module cleanly when any is absent.
+for _dep in ("torch", "transformers", "peft", "datasets"):
+    pytest.importorskip(_dep)
+
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 

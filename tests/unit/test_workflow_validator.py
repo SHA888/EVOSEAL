@@ -50,8 +50,13 @@ def async_test(func: AsyncTestFunc[None]) -> Callable[..., None]:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> None:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(func(*args, **kwargs))
+        # Create a fresh loop rather than asyncio.get_event_loop(), which raises
+        # "no current event loop" on Python 3.11+ when none is running.
+        loop = asyncio.new_event_loop()
+        try:
+            loop.run_until_complete(func(*args, **kwargs))
+        finally:
+            loop.close()
 
     # Copy pytest markers if they exist
     if hasattr(func, "pytestmark"):

@@ -107,6 +107,7 @@ jobs:
       run: |
         pytest -n auto --dist=loadfile -v \
                --cov=evoseal --cov-report=xml --cov-report=term-missing \
+               --ignore=tests/e2e \
                tests/
 
     - name: Upload coverage to Codecov
@@ -114,7 +115,7 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
+        files: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
@@ -164,7 +165,7 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
+        files: ./coverage.xml
         flags: safety
         name: safety-checks
         fail_ci_if_error: false

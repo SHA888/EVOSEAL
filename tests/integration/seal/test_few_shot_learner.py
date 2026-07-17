@@ -6,6 +6,12 @@ from pathlib import Path
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
+
+# Optional heavy deps: skip the whole module when the fine-tuning stack is not
+# installed (CI installs only the base test extra).
+for _dep in ("torch", "transformers", "peft", "datasets"):
+    pytest.importorskip(_dep)
+
 import torch
 
 # Add the project root to the Python path
