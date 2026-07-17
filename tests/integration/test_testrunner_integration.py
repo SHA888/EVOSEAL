@@ -7,11 +7,9 @@ including test discovery, execution, and result collection.
 
 import os
 import shutil
-import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, List
 
 import pytest
 from rich.console import Console

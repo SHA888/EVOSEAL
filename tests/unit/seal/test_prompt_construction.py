@@ -1,7 +1,5 @@
 """Tests for prompt construction functionality."""
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from evoseal.integration.seal.prompt import (

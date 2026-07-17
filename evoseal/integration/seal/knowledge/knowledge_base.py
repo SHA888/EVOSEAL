@@ -11,10 +11,10 @@ import fcntl
 import json
 import os
 import time
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from threading import Lock, RLock
-from typing import Any, Literal
+from threading import RLock
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field

@@ -1,8 +1,6 @@
 """Unit tests for the CodeArchive model."""
 
-import json
-from datetime import UTC, datetime, timedelta, timezone
-from uuid import UUID
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError

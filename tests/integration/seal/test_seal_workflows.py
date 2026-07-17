@@ -5,13 +5,10 @@ Tests complete workflows including program evaluation, optimization,
 and interaction with external services.
 """
 
-import asyncio
-import json
-import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -37,7 +34,7 @@ EXPECTED_SUCCESSFUL_ITERATIONS = 3  # Expected successful iterations (one fails)
 sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
-from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
+from evoseal.integration.seal.seal_interface import SEALInterface
 from evoseal.models import Program
 
 

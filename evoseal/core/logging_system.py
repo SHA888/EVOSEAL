@@ -7,23 +7,21 @@ log aggregation, real-time monitoring, alerting, and log analysis features.
 import json
 import logging
 import logging.handlers
-import os
-import sys
 import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import structlog
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
-from evoseal.core.events import Event, EventBus, create_error_event
+from evoseal.core.events import Event, EventBus
 
 # Initialize event bus
 event_bus = EventBus()

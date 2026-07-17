@@ -2,7 +2,6 @@
 Tests for file_operations.py
 """
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

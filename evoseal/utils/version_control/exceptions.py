@@ -5,7 +5,7 @@ Git-related exceptions for the EVOSEAL version control system.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any
 
 
 class ErrorSeverity(Enum):

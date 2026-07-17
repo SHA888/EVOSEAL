@@ -5,8 +5,6 @@ Generates comprehensive release notes from git history, changelog, and commits.
 """
 
 import argparse
-import json
-import os
 import re
 import subprocess
 import sys

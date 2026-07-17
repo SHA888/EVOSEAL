@@ -8,11 +8,8 @@ for a simple evolutionary optimization task.
 
 from __future__ import annotations
 
-import json
-import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from typer.testing import CliRunner

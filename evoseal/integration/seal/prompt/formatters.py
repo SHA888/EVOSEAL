@@ -5,7 +5,7 @@ This module provides functions for formatting different parts of prompts,
 such as knowledge, examples, and context, in a consistent way.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 
 def format_knowledge(

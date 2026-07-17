@@ -6,19 +6,16 @@ enabling reproducible experiments with full version history and artifact managem
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import shutil
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ..models.experiment import (
     Experiment,
-    ExperimentArtifact,
     ExperimentConfig,
-    ExperimentStatus,
     create_experiment,
 )
 from .experiment_database import ExperimentDatabase

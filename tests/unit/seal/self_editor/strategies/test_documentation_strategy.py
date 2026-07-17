@@ -1,11 +1,8 @@
 """Tests for the DocumentationStrategy class."""
 
-import ast
-from unittest.mock import MagicMock, patch
-
 import pytest
 
-from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation, EditSuggestion
+from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation
 from evoseal.integration.seal.self_editor.strategies.documentation_strategy import (
     DocstringStyle,
     DocumentationConfig,

@@ -3,14 +3,11 @@ Concurrent and performance tests for the KnowledgeBase component.
 """
 
 import concurrent.futures
-import json
-import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from threading import Thread
-from typing import Any, Final
+from typing import Final
 
 import pytest
 

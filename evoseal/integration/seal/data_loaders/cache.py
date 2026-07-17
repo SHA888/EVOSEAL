@@ -7,13 +7,12 @@ frequently accessed data.
 
 import hashlib
 import json
-import os
 import pickle  # nosec - Using in a controlled environment with trusted cache files
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, Optional, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel
 

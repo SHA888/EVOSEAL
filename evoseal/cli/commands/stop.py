@@ -4,13 +4,9 @@ Stop background processes for the EVOSEAL CLI.
 
 from __future__ import annotations
 
-import signal
-import sys
 from typing import Annotated
 
 import typer
-
-from ..base import EVOSEALCommand
 
 app = typer.Typer(name="stop", help="Stop background processes")
 

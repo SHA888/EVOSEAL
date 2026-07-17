@@ -5,15 +5,11 @@ and parallel execution.
 """
 
 import concurrent.futures
-import json
 import os
 import re
 import resource
-import shutil
-import signal
 import subprocess
 import sys
-import tempfile
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -22,7 +18,6 @@ from typing import Any
 
 # nosec B404: Required for test execution in isolated environments
 import psutil  # type: ignore
-import pytest  # type: ignore
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 

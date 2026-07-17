@@ -11,46 +11,27 @@ import asyncio
 import hashlib
 import json
 import logging
-import os
 import time
 from collections import defaultdict, deque
-from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from typing import (
     Any,
-    Deque,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
-    cast,
 )
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, field_validator
 
-from evoseal.integration.seal.exceptions import SelfEditingError, ValidationError
-from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 from evoseal.integration.seal.knowledge.mock_knowledge_base import MockKnowledgeBase
 from evoseal.integration.seal.prompt import PromptConstructor, PromptStyle
 
 # Import formatters
 from evoseal.integration.seal.prompt.formatters import (
-    format_context,
-    format_knowledge,
     format_prompt,
 )
 
 # Import mock implementations
 from evoseal.integration.seal.self_editor.mock_self_editor import MockSelfEditor
-from evoseal.integration.seal.self_editor.self_editor import SelfEditor
-from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import (
-    KnowledgeAwareStrategy,
-)
 
 # Type variable for generic typing
 T = TypeVar("T")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase, KnowledgeEntry
+from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 
 
 class SEALKnowledge:

@@ -8,12 +8,9 @@ This script:
 3. Maintains a clean directory structure
 """
 
-import json
-import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # Configuration
 METRICS_DIR = Path("metrics")

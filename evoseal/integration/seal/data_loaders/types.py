@@ -2,8 +2,8 @@
 Shared types and enums for the data loaders module.
 """
 
-from enum import Enum, auto
-from typing import Type, TypeVar, Union, get_args, get_origin
+from enum import Enum
+from typing import TypeVar, Union
 
 from pydantic import BaseModel
 

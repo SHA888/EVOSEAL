@@ -7,7 +7,7 @@ context-aware editing suggestions.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
 from evoseal.integration.seal.self_editor.self_editor import (

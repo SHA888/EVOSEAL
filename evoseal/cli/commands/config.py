@@ -11,8 +11,6 @@ from typing import Annotated, Any
 import typer
 import yaml
 
-from ..base import EVOSEALCommand
-
 app = typer.Typer(name="config", help="Manage EVOSEAL configuration")
 
 # Supported configuration formats

@@ -2,7 +2,7 @@ import types
 
 import pytest
 
-from evoseal.integration import ComponentType, create_integration_orchestrator
+from evoseal.integration import create_integration_orchestrator
 
 pytestmark = [pytest.mark.integration]
 

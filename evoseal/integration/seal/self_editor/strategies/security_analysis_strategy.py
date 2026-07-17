@@ -2,10 +2,10 @@
 
 import ast
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from .base_strategy import BaseEditStrategy

@@ -4,8 +4,6 @@ This module contains pre-defined prompt templates for common use cases in the SE
 Templates are organized by style and purpose for easy reuse and maintenance.
 """
 
-from typing import Dict, List
-
 from ..types import PromptTemplate
 
 # Base templates that can be extended or used directly

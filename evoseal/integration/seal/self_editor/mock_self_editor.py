@@ -2,7 +2,7 @@
 Mock implementation of SelfEditor for testing purposes.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class MockSelfEditor:

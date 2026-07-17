@@ -6,7 +6,6 @@ and interaction with the evolutionary process.
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -22,7 +21,6 @@ sys.modules["docker"] = MagicMock()
 sys.modules["docker.errors"] = MagicMock()
 
 from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
-from evoseal.models import Program
 
 # Test constants
 TEST_FITNESS = 0.9

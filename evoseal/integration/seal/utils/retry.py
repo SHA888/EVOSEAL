@@ -6,9 +6,9 @@ import secrets
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, TypeVar
 
-from ..exceptions import RateLimitError, RetryableError, TimeoutError
+from ..exceptions import RateLimitError
 
 T = TypeVar("T")
 

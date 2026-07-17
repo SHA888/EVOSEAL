@@ -9,8 +9,6 @@ from typing import Annotated
 
 import typer
 
-from ..base import EVOSEALCommand
-
 app = typer.Typer(name="openevolve", help="OpenEvolve processes")
 
 

@@ -1,19 +1,12 @@
 """Unit tests for the retry utility."""
 
-import asyncio
-import secrets
-import time
 import unittest
 from unittest.mock import MagicMock, patch
 
 from evoseal.integration.seal.exceptions import (
-    KnowledgeBaseError,
     RateLimitError,
     RetryableError,
-    SEALError,
-    SelfEditingError,
     TemplateError,
-    TimeoutError,
     ValidationError,
 )
 from evoseal.integration.seal.utils.retry import retry

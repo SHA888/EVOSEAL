@@ -1,10 +1,9 @@
 """Tests for the event system functionality."""
 
 import asyncio
-import logging
-from collections.abc import Awaitable, Callable
-from typing import Any, cast
-from unittest.mock import AsyncMock, MagicMock, Mock
+from collections.abc import Callable
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

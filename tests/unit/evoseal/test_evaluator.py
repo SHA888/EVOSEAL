@@ -4,8 +4,6 @@ Unit tests for the Evaluator class in evoseal.
 Covers default strategy, feedback, weights, and extensibility.
 """
 
-import pytest
-
 from evoseal.core.evaluator import Evaluator
 
 TOLERANCE = 1e-6

@@ -8,8 +8,6 @@ from typing import Annotated
 
 import typer
 
-from ..base import EVOSEALCommand
-
 app = typer.Typer(name="start", help="Start background processes")
 
 

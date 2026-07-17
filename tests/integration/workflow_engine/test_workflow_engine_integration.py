@@ -1,13 +1,10 @@
 """Integration tests for the WorkflowEngine class."""
 
-import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from evoseal.core.errors import ValidationError
-from evoseal.core.workflow import Event, EventType, WorkflowEngine, WorkflowStatus
+from evoseal.core.workflow import EventType, WorkflowEngine, WorkflowStatus
 
 
 class TestWorkflowEngineIntegration:

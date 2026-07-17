@@ -12,10 +12,9 @@ This script demonstrates the new rollback logic features:
 import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
 
 from evoseal.core.checkpoint_manager import CheckpointManager
-from evoseal.core.events import EventBus, EventType, event_bus, subscribe
+from evoseal.core.events import EventType, subscribe
 from evoseal.core.rollback_manager import RollbackManager
 
 

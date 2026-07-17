@@ -8,15 +8,12 @@ Ollama (see :mod:`evoseal.providers.local_models`). Requires a CUDA GPU; on a
 CPU-only host use the prompt-level path in :mod:`evoseal.prompt_evolution`.
 """
 
-import asyncio
 import json
 import logging
 import os
-import subprocess
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +40,6 @@ except ImportError as e:
         pass
 
 
-from ..evolution.models import TrainingExample
 from ..providers.local_models import AgentRole, resolve_model
 
 
@@ -336,8 +332,8 @@ echo "Training data prepared at: {training_data_path}"
                 with open(script_path, "w") as f:
                     f.write(script_content)
 
-                # Generated helper script must be executable.
-                os.chmod(script_path, 0o755)  # nosec B103
+                # Generated helper script must be executable by its owner only.
+                os.chmod(script_path, 0o700)  # nosec B103
 
                 return {
                     "success": True,

@@ -5,11 +5,10 @@ This module orchestrates the complete training workflow from data preparation
 to model validation and versioning.
 """
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..evolution import EvolutionDataCollector
 from .model_fine_tuner import ModelFineTuner

@@ -7,24 +7,20 @@ interface that can be implemented by different backends.
 
 import logging
 import os
-import shutil
 import subprocess  # nosec
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import Any, TypeVar
 
 from .exceptions import (
-    AuthenticationError,
     BranchNotFoundError,
     GitCommandError,
     GitError,
-    GitOperationError,
     HTTPSAuthenticationError,
-    InvalidGitRepositoryError,
     MergeConflictError,
     PushRejectedError,
     RepositoryNotFoundError,

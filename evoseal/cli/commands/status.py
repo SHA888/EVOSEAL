@@ -9,8 +9,6 @@ from typing import Annotated, Any
 
 import typer
 
-from ..base import EVOSEALCommand
-
 # Initialize the Typer app
 app = typer.Typer(name="status", help="Show system status")
 
@@ -114,7 +112,6 @@ def system_status(
 ) -> None:
     """Show overall system status."""
     import os
-    from pathlib import Path
 
     import psutil
 

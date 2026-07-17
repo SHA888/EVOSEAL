@@ -1,10 +1,9 @@
 """Strategy for generating and improving documentation."""
 
 import ast
-import inspect
 import re
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any
 
 from ..models import EditCriteria, EditOperation, EditSuggestion
 from ..utils import DocstringStyle, ParsedDocstring, parse_docstring
@@ -119,11 +118,8 @@ class DocumentationStrategy(BaseEditStrategy):
         Returns:
             List of documentation improvement suggestions with no None values
         """
-        from collections.abc import Iterator, Sequence
 
         # No need to import List as we use built-in list type
-        from typing import Any, TypeVar, cast
-        from typing import Optional as Opt
 
         # Initialize with explicit type annotation to ensure we only store EditSuggestion
         suggestions: list[EditSuggestion] = []
@@ -292,7 +288,6 @@ class DocumentationStrategy(BaseEditStrategy):
             An EditSuggestion for adding the missing parameter documentation, or None if not needed
         """
         try:
-            import inspect
             from inspect import Parameter
 
             # Get parameter name and type
@@ -445,7 +440,7 @@ class DocumentationStrategy(BaseEditStrategy):
         Returns:
             List of suggestions for improving parameter documentation, with no None values
         """
-        from typing import Any, cast
+        from typing import Any
 
         # No need to import List as we use built-in list type
         # Initialize with explicit type annotation to ensure we only store EditSuggestion

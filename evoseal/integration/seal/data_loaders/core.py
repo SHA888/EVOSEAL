@@ -6,14 +6,14 @@ for all data loading operations.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from .batch import BatchLoader, default_batch_loader, load_batch
+from .batch import BatchLoader, load_batch
 from .cache import DataCache, cached, default_cache
 from .loaders import CSVLoader, DataLoader, JSONLoader, YAMLLoader, get_loader, load_data
-from .types import DataFormat, ModelType
+from .types import DataFormat
 
 T = TypeVar("T", bound=BaseModel)
 

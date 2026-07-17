@@ -1,13 +1,8 @@
 """Tests for the KnowledgeBase class."""
 
-import json
-import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Final
-
-import pytest
 
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase, KnowledgeEntry
 

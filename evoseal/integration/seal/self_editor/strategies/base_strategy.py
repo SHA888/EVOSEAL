@@ -1,9 +1,9 @@
 """Base strategy class for all editing strategies."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
-from ..models import EditCriteria, EditOperation, EditSuggestion
+from ..models import EditSuggestion
 
 
 class BaseEditStrategy(ABC):

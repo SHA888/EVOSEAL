@@ -9,8 +9,7 @@ from __future__ import annotations
 import logging
 import secrets
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol, TypeVar
+from typing import Any, TypeVar
 
 # Type variables for generic types
 T = TypeVar("T")

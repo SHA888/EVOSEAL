@@ -6,7 +6,7 @@ Handles provider selection, instantiation, and management.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from config.settings import settings
 from evoseal.providers.ollama_provider import OllamaProvider

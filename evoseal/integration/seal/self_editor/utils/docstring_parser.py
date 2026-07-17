@@ -2,7 +2,7 @@
 
 import re
 from enum import Enum
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple
 
 
 class DocstringStyle(Enum):

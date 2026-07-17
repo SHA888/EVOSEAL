@@ -5,18 +5,15 @@ by analyzing test results and performance metrics.
 """
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Literal, Optional, TypedDict, Union
+from typing import Any
 
 import numpy as np
 from rich.console import Console
-from rich.panel import Panel
-from rich.progress import track
 from rich.table import Table
-from rich.text import Text
 
 from evoseal.core.metrics_tracker import MetricsTracker, TestMetrics
 

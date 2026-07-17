@@ -12,9 +12,6 @@ See task 2.14 in Plans.md for DoD context.
 """
 
 import os
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 

@@ -10,13 +10,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ..base_adapter import (
     BaseComponentAdapter,
     ComponentConfig,
     ComponentResult,
-    ComponentState,
     ComponentType,
 )
 from .seal_interface import SEALInterface, SEALProvider

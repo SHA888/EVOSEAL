@@ -1,9 +1,7 @@
-import asyncio
 import types
 
 import pytest
 
-from evoseal.integration import dgmr as _dgmr_pkg  # type: ignore
 from evoseal.integration.dgmr.dgm_adapter import create_dgm_adapter
 
 pytestmark = pytest.mark.unit

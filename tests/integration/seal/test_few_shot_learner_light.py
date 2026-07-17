@@ -1,9 +1,8 @@
 """Lightweight tests for FewShotLearner to avoid WSL crashes."""
 
-import os
 import sys
 from pathlib import Path
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 

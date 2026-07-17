@@ -5,12 +5,11 @@ including error handling, recovery, logging, monitoring, and health checks.
 """
 
 import asyncio
-import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any
 
 from evoseal.core.error_recovery import error_recovery_manager
-from evoseal.core.events import Event, EventBus, create_error_event
+from evoseal.core.events import Event, EventBus
 from evoseal.core.logging_system import get_logger, logging_manager
 from evoseal.core.resilience import resilience_manager
 

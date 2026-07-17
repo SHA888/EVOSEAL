@@ -6,8 +6,7 @@ The framework is designed to be extensible for different agent types and behavio
 """
 
 import inspect
-from collections.abc import Callable
-from typing import Any, Optional, Protocol, Union
+from typing import Any, Protocol
 
 from evoseal.utils.logging import Logger
 

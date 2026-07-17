@@ -5,7 +5,6 @@ This module collects and stores evolution results that can later be used
 to fine-tune the local coding model, creating a bidirectional improvement loop.
 """
 
-import asyncio
 import json
 import logging
 import uuid
@@ -13,7 +12,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..providers.local_models import AgentRole, resolve_model
 from .models import CodeMetrics, EvolutionResult, EvolutionStrategy, ImprovementType

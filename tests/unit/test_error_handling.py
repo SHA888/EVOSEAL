@@ -1,13 +1,9 @@
 """Unit tests for the error handling framework."""
 
-import io
 import logging
 import sys
-import time
 import unittest
-from datetime import datetime
 from io import StringIO
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 from evoseal.core.errors import (

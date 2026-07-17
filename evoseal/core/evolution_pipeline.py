@@ -29,7 +29,7 @@ from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.repository import ConflictError, RepositoryError
 from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
 from evoseal.core.safety_integration import SafetyIntegration
-from evoseal.core.testrunner import SandboxedTestRunner, TestRunner
+from evoseal.core.testrunner import SandboxedTestRunner
 from evoseal.core.version_database import VersionDatabase
 from evoseal.core.workflow import WorkflowEngine
 from evoseal.integration.base_adapter import ComponentType

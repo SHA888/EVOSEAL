@@ -3,9 +3,7 @@ Benchmark for the DGM evolutionary loop using pytest-benchmark.
 Run with: pytest benchmarks/test_evolution_benchmark.py --benchmark-only
 """
 
-import os
 import sys
-import time
 from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock, patch

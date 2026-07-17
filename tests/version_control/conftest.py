@@ -1,6 +1,5 @@
 """Pytest configuration and fixtures for version control tests."""
 
-import os
 import shutil
 import tempfile
 from collections.abc import Generator

@@ -3,10 +3,9 @@ Base command class for EVOSEAL CLI commands.
 """
 
 import abc
-import logging
 import typing
 from collections.abc import Callable
-from typing import Any, Optional, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 import typer
 from click import Group as ClickGroup

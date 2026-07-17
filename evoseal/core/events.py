@@ -9,16 +9,12 @@ control, and error handling.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
-from collections.abc import Awaitable, Callable, Collection, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import wraps
-from typing import Any, Optional, TypeAlias, TypeVar, Union, cast, overload
-
-from typing_extensions import TypedDict
+from typing import Any, TypeAlias, TypeVar, cast, overload
 
 logger = logging.getLogger(__name__)
 

@@ -8,9 +8,7 @@ including edge cases and error conditions.
 
 from __future__ import annotations
 
-import json
 import os
-import shutil
 
 # nosec B404: Required for testing CLI commands in a controlled environment
 import subprocess  # nosec B404
@@ -19,7 +17,6 @@ from pathlib import Path
 
 # Import all packages first
 import pytest
-import yaml
 from typer.testing import CliRunner
 
 try:
@@ -29,8 +26,6 @@ try:
         sys.path.insert(0, str(project_root))
 
     # Import local modules after path manipulation
-    from evoseal import __version__
-    from evoseal.cli.main import app
 except Exception as e:
     error_msg = f"Error importing modules: {e}"
     print(error_msg, file=sys.stderr)

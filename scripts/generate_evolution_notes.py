@@ -8,7 +8,6 @@ Please update your scripts to use the new location:
 This file is kept for backward compatibility and will be removed in a future release.
 """
 
-import os
 import sys
 
 

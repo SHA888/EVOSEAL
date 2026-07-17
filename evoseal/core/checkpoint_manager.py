@@ -8,12 +8,11 @@ and experiment tracking integration.
 import gzip
 import hashlib
 import json
-import os
 import pickle  # nosec B403 - Used for internal system state serialization only
 import shutil
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ..models.experiment import Experiment
 from .logging_system import get_logger

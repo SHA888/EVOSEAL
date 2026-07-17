@@ -8,12 +8,11 @@ improvement strategies that can be used to train the local coding model.
 import ast
 import difflib
 import logging
-import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
-from .models import EvolutionResult, EvolutionStrategy, ImprovementType, PatternMatch
+from .models import EvolutionResult, PatternMatch
 
 logger = logging.getLogger(__name__)
 

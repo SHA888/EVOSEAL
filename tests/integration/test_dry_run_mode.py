@@ -8,7 +8,6 @@ actual edits to disk.
 from __future__ import annotations
 
 import os
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -154,7 +153,6 @@ async def test_dry_run_evolution_cycle(dry_run_env):
 
 def test_dry_run_mode_state():
     """Test that dry-run mode is tracked in pipeline state."""
-    import json
     import tempfile
 
     from evoseal.cli.commands.pipeline import PipelineState

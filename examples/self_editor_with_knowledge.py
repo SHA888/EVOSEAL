@@ -13,10 +13,9 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
-from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, List, Optional, Union, cast
+from typing import Any, Union, cast
 
 # Add the project root to the path so we can import evoseal
 project_root = str(Path(__file__).parent.parent)
@@ -25,19 +24,17 @@ if project_root not in sys.path:
 
 # Third-party imports
 # Local application imports
+from evoseal.integration.seal.self_editor.utils.code_utils import (
+    apply_edit,
+)
+
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase
-from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation
+from evoseal.integration.seal.self_editor.models import EditOperation
 from evoseal.integration.seal.self_editor.models import EditSuggestion as ModelsEditSuggestion
 from evoseal.integration.seal.self_editor.self_editor import EditSuggestion as EditorEditSuggestion
 from evoseal.integration.seal.self_editor.self_editor import SelfEditor
 from evoseal.integration.seal.self_editor.strategies.knowledge_aware_strategy import (
     KnowledgeAwareStrategy,
-)
-from evoseal.integration.seal.self_editor.utils.code_utils import (
-    apply_edit,
-    apply_edits,
-    get_line_range,
-    get_line_ranges,
 )
 
 # Type alias for either type of EditSuggestion

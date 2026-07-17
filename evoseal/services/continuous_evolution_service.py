@@ -13,7 +13,7 @@ import signal
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..config import SEALConfig
 from ..evolution import EvolutionDataCollector

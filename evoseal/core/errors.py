@@ -12,11 +12,10 @@ import inspect
 import logging
 import sys
 import time
-import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, TypeVar, cast, overload
+from datetime import datetime
+from typing import Any, TypeVar, cast
 
 T = TypeVar("T", bound="BaseError")
 F = TypeVar("F", bound=Callable[..., Any])

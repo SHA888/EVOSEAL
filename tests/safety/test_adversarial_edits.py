@@ -19,11 +19,7 @@ APIs match the mock interfaces defined here.
 Reference: threat_model.md §3 and §4 for security properties being tested.
 """
 
-import os
-import tempfile
-from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 

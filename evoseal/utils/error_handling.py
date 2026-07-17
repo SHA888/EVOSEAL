@@ -8,26 +8,20 @@ from __future__ import annotations
 
 import functools
 import inspect
-import json
 import logging
 import sys
 import time
 import traceback
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from datetime import UTC, datetime, timezone
-from types import TracebackType
+from datetime import UTC, datetime
 from typing import Any, TypeVar, cast
 
 from evoseal.core.errors import (
     BaseError,
-    ConfigurationError,
     ErrorCategory,
     ErrorContext,
     ErrorSeverity,
-    IntegrationError,
-    RetryableError,
-    ValidationError,
 )
 
 T = TypeVar("T")

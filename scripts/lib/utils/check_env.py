@@ -7,7 +7,6 @@ Checks for required environment variables and dependencies.
 import logging
 import os
 import sys
-from pathlib import Path
 
 # Set up logging
 logging.basicConfig(

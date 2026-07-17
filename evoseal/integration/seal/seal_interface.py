@@ -7,8 +7,7 @@ References: /SEAL (Self-Adapting Language Models) folder, https://github.com/SHA
 """
 
 import asyncio
-from collections.abc import Awaitable, Callable
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 
 class SEALProvider(Protocol):

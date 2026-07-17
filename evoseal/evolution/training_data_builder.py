@@ -11,10 +11,9 @@ import random
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from .models import EvolutionResult, ImprovementType, TrainingExample
-from .pattern_analyzer import PatternAnalyzer
 
 logger = logging.getLogger(__name__)
 

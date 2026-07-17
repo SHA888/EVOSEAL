@@ -1,15 +1,11 @@
 """Tests for the SecurityAnalysisStrategy class."""
 
-import ast
-from unittest.mock import MagicMock
-
 import pytest
 
 from evoseal.integration.seal.self_editor.models import EditCriteria, EditOperation, EditSuggestion
 from evoseal.integration.seal.self_editor.strategies.security_analysis_strategy import (
     SecurityAnalysisStrategy,
     SecurityConfig,
-    SecurityIssueSeverity,
 )
 
 

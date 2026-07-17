@@ -1,12 +1,8 @@
 """Unit tests for core Git operations."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from evoseal.utils.version_control.cmd_git import CmdGit
-from evoseal.utils.version_control.exceptions import GitError
 
 
 def test_initialize_new_repo(temp_dir: Path):

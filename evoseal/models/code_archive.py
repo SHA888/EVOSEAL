@@ -6,12 +6,11 @@ with associated metadata.
 
 from __future__ import annotations
 
-import json
 import re
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, ClassVar, TypeVar, cast
-from uuid import UUID, uuid4
+from typing import Any, TypeVar
+from uuid import uuid4
 
 from packaging import version as pkg_version
 from pydantic import (
@@ -20,10 +19,7 @@ from pydantic import (
     Field,
     field_serializer,
     field_validator,
-    model_validator,
 )
-from pydantic.alias_generators import to_camel
-from pydantic.functional_validators import ModelWrapValidatorHandler
 
 # Type variables for the model class
 ModelT = TypeVar("ModelT", bound="CodeArchive")
