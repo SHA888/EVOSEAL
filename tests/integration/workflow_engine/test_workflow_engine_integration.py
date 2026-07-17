@@ -248,23 +248,23 @@ class TestWorkflowEngineIntegration:
         ]
 
         # Check that we have exactly the expected number of unique events
-        assert len(event_order) == len(
-            expected_events
-        ), f"Expected {len(expected_events)} unique events, got {len(event_order)}: {event_order}"
+        assert len(event_order) == len(expected_events), (
+            f"Expected {len(expected_events)} unique events, got {len(event_order)}: {event_order}"
+        )
 
         # Check that all expected events are present in the correct order
         for i, expected in enumerate(expected_events):
-            assert (
-                event_order[i] == expected
-            ), f"Expected {expected} at position {i}, got {event_order[i]}"
+            assert event_order[i] == expected, (
+                f"Expected {expected} at position {i}, got {event_order[i]}"
+            )
 
         # Verify that each event type appears the expected number of times
         # (should be exactly once for each event type)
         event_counts = {event: published_events.count(event) for event in set(published_events)}
         for event_type, count in event_counts.items():
-            assert (
-                count == 1
-            ), f"Expected {event_type} to appear exactly once, but it appeared {count} times"
+            assert count == 1, (
+                f"Expected {event_type} to appear exactly once, but it appeared {count} times"
+            )
 
     @pytest.mark.asyncio
     async def test_workflow_cleanup(self, engine, mock_component):

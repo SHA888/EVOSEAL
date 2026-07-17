@@ -1,5 +1,5 @@
 """
-Model validator for fine-tuned Devstral models.
+Model validator for fine-tuned local coding models.
 
 This module validates fine-tuned models to ensure they maintain quality
 and don't regress before deployment in the bidirectional evolution system.
@@ -21,6 +21,7 @@ except ImportError:
     TRANSFORMERS_AVAILABLE = False
 
 from ..evolution.models import TrainingExample
+from ..providers.local_models import AgentRole, resolve_model
 from ..providers.ollama_provider import OllamaProvider
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class ModelValidator:
 
     def __init__(
         self,
-        baseline_model: str = "devstral:latest",
+        baseline_model: str | None = None,
         validation_timeout: int = 300,
         min_quality_threshold: float = 0.7,
     ):
@@ -44,11 +45,12 @@ class ModelValidator:
         Initialize the model validator.
 
         Args:
-            baseline_model: Baseline model for comparison
+            baseline_model: Baseline model for comparison. When ``None``, the coder
+                model is discovered from the installed Ollama models.
             validation_timeout: Timeout for validation tests in seconds
             min_quality_threshold: Minimum quality score to pass validation
         """
-        self.baseline_model = baseline_model
+        self.baseline_model = baseline_model or resolve_model(AgentRole.CODER)
         self.validation_timeout = validation_timeout
         self.min_quality_threshold = min_quality_threshold
 
@@ -223,7 +225,7 @@ class ModelValidator:
                         successful_responses += 1
 
                 except Exception as e:
-                    logger.debug(f"Basic functionality test {i+1} failed: {e}")
+                    logger.debug(f"Basic functionality test {i + 1} failed: {e}")
                     continue
 
             score = successful_responses / total_tests if total_tests > 0 else 0.0

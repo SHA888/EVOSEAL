@@ -608,8 +608,7 @@ class EvolutionPipeline:
                             stage="safe_evolution_iteration",
                             source="evolution_pipeline",
                             message=(
-                                f"Completed safe iteration {iteration_num} of "
-                                f"{actual_iterations}"
+                                f"Completed safe iteration {iteration_num} of {actual_iterations}"
                             ),
                             event_type=EventType.ITERATION_COMPLETED,
                             iteration=iteration_num,
@@ -935,8 +934,7 @@ class EvolutionPipeline:
         # Check if budget already exhausted
         if current_tokens >= budget:
             logger.warning(
-                f"Budget exhausted: {current_tokens} / {budget} tokens. "
-                f"Stopping evolution loop."
+                f"Budget exhausted: {current_tokens} / {budget} tokens. Stopping evolution loop."
             )
             return {
                 "iteration": iteration_num,
@@ -1929,7 +1927,7 @@ class WorkflowCoordinator:
 
             results = []
             for i in range(iterations):
-                logger.info(f"Starting evolution iteration {i+1}/{iterations}")
+                logger.info(f"Starting evolution iteration {i + 1}/{iterations}")
 
                 # Run a single evolution iteration
                 result = await self._run_evolution_iteration(i)

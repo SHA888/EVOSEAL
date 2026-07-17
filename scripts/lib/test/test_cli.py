@@ -132,9 +132,9 @@ def test_cli_version() -> None:
     # Check that the output contains the version string
     from evoseal import __version__
 
-    assert (
-        f"EVOSEAL v{__version__}" in output
-    ), f"Version string not found in output: {output}".lower()
+    assert f"EVOSEAL v{__version__}" in output, (
+        f"Version string not found in output: {output}".lower()
+    )
 
     # The exit code should be 0 for success
     # Note: The test runner might handle exit codes differently, so we'll log this
@@ -183,9 +183,9 @@ class TestInitCommand:
             assert (project_dir / file_path).is_file(), f"Expected file {file_path} not found"
 
         # Check that the output contains success message
-        assert (
-            "Successfully initialized EVOSEAL project" in output
-        ), f"Success message not found in output: {output}"
+        assert "Successfully initialized EVOSEAL project" in output, (
+            f"Success message not found in output: {output}"
+        )
 
     def test_init_in_non_empty_dir_fails(self, tmp_path: Path) -> None:
         """Test that init fails in non-empty directory without --force."""
@@ -276,9 +276,9 @@ class TestConfigCommands:
 
         # Verify it's gone
         exit_code, output = run_cli(["config", "show", "test.key"])
-        assert (
-            exit_code != 0
-        ), f"Expected command to fail after unsetting the key, but it succeeded with output: {output}"
+        assert exit_code != 0, (
+            f"Expected command to fail after unsetting the key, but it succeeded with output: {output}"
+        )
         assert "not found" in output.lower(), f"Expected 'not found' in output, got: {output}"
 
 
@@ -289,9 +289,9 @@ class TestComponentCommands:
         """Test that the SEAL (Self-Adapting Language Models) command has help text."""
         exit_code, output = run_cli(["seal", "--help"])
         assert exit_code == 0, f"Command failed with output: {output}"
-        assert (
-            "seal model operations".lower() in output.lower()
-        ), f"Expected 'seal model operations' in output, got: {output}"
+        assert "seal model operations".lower() in output.lower(), (
+            f"Expected 'seal model operations' in output, got: {output}"
+        )
 
     @pytest.mark.skip(reason="OpenEvolve command not yet implemented")
     def test_openevolve_command_help(self) -> None:
@@ -320,24 +320,24 @@ class TestErrorConditions:
         """Test handling of non-existent commands."""
         exit_code, output = run_cli(["nonexistent-command"])
         assert exit_code != 0, "Expected command to fail with non-existent command"
-        assert (
-            "no such command" in output.lower()
-        ), f"Expected 'no such command' in output, got: {output}"
+        assert "no such command" in output.lower(), (
+            f"Expected 'no such command' in output, got: {output}"
+        )
 
     def test_missing_required_arguments(self) -> None:
         """Test handling of missing required arguments."""
         exit_code, output = run_cli(["config", "set"])
         assert exit_code != 0, "Expected command to fail with missing arguments"
-        assert (
-            "missing argument" in output.lower()
-        ), f"Expected 'missing argument' in output, got: {output}"
+        assert "missing argument" in output.lower(), (
+            f"Expected 'missing argument' in output, got: {output}"
+        )
 
     def test_invalid_config_key(self) -> None:
         """Test handling of invalid config keys."""
         exit_code, output = run_cli(["config", "show", "invalid..key"])
-        assert (
-            exit_code != 0
-        ), f"Expected command to fail with invalid key, but it succeeded with output: {output}"
+        assert exit_code != 0, (
+            f"Expected command to fail with invalid key, but it succeeded with output: {output}"
+        )
         assert "invalid" in output.lower(), f"Expected 'invalid' in output, got: {output}"
 
 

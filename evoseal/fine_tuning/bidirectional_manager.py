@@ -1,8 +1,8 @@
 """
-Bidirectional evolution manager for coordinating EVOSEAL ↔ Devstral improvement.
+Bidirectional evolution manager coordinating EVOSEAL ↔ local coding model improvement.
 
-This module orchestrates the complete bidirectional evolution loop where
-EVOSEAL and Devstral continuously improve each other.
+This module orchestrates the complete bidirectional evolution loop where EVOSEAL and
+its discovered coding model continuously improve each other (weight-level, GPU-only).
 """
 
 import asyncio
@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 
 class BidirectionalEvolutionManager:
     """
-    Manages the bidirectional evolution between EVOSEAL and Devstral.
+    Manages the bidirectional evolution between EVOSEAL and its coding model.
 
     This class orchestrates the complete loop:
-    1. EVOSEAL evolves using Devstral
+    1. EVOSEAL evolves using the coding model
     2. Collect successful evolution patterns
-    3. Fine-tune Devstral with patterns
-    4. Deploy improved Devstral
-    5. Repeat with better model
+    3. Fine-tune the coding model with patterns
+    4. Deploy the improved model
+    5. Repeat with the better model
     """
 
     def __init__(

@@ -38,6 +38,8 @@ dependencies = [
 
     # HTTP clients
     "aiohttp>=3.8.0",
+    # Required by evoseal.services.monitoring_dashboard (imported unconditionally).
+    "aiohttp-cors>=0.7.0",
     "httpx>=0.24.0",
 
     # Data science
@@ -72,6 +74,14 @@ cli = [
     "typer[all]>=0.12.0",
     "rich>=13.0.0",
     "shellingham>=1.5.0",
+]
+
+# Everything mkdocs.yml needs to build the site (theme, plugins, extensions).
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocs-git-revision-date-localized-plugin>=1.2.0",
+    "pymdown-extensions>=10.0",
 ]
 
 test = [

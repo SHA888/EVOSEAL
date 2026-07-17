@@ -151,9 +151,9 @@ class ResilienceDemo:
         for i in range(10):
             try:
                 result = await self.run_component_with_resilience("unreliable", f"request_{i}")
-                logger.info(f"Call {i+1}: {result}")
+                logger.info(f"Call {i + 1}: {result}")
             except Exception as e:
-                logger.warning(f"Call {i+1} failed: {e}")
+                logger.warning(f"Call {i + 1} failed: {e}")
 
             await asyncio.sleep(0.5)
 

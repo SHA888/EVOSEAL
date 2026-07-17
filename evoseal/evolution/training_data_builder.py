@@ -2,7 +2,7 @@
 Training data builder for converting evolution patterns into fine-tuning datasets.
 
 This module converts successful evolution patterns into high-quality training
-examples that can be used to fine-tune Devstral.
+examples that can be used to fine-tune the local coding model.
 """
 
 import json
@@ -24,7 +24,7 @@ class TrainingDataBuilder:
     Builds training datasets from evolution patterns.
 
     This class converts successful evolution results into structured training
-    examples suitable for fine-tuning Devstral using various training formats.
+    examples suitable for fine-tuning the local coding model using various training formats.
     """
 
     def __init__(

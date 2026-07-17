@@ -130,9 +130,9 @@ class TestRollbackSafetyCritical:
 
                 # Verify safe fallback directory was created
                 safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
-                assert (
-                    safe_dir.exists()
-                ), f"Safe fallback directory should be created for {dangerous_dir}"
+                assert safe_dir.exists(), (
+                    f"Safe fallback directory should be created for {dangerous_dir}"
+                )
 
     def test_safe_fallback_directory_creation(self):
         """Test that safe fallback directory is created when no version manager is provided."""
@@ -280,9 +280,9 @@ class TestRollbackSafetyCritical:
             # Verify safe fallback directory exists if expected
             if scenario["should_use_fallback"]:
                 safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
-                assert (
-                    safe_dir.exists()
-                ), f"Safe fallback should be created for {scenario['description']}"
+                assert safe_dir.exists(), (
+                    f"Safe fallback should be created for {scenario['description']}"
+                )
 
     def test_safety_mechanisms_cannot_be_bypassed(self):
         """Test that safety mechanisms cannot be easily bypassed."""
@@ -324,9 +324,9 @@ class TestRollbackSafetyCritical:
 
         # Verify safe fallback directory was created
         safe_dir = Path.cwd() / ".evoseal" / "rollback_target"
-        assert (
-            safe_dir.exists()
-        ), f"Safe fallback directory should be created for path: {dangerous_path}"
+        assert safe_dir.exists(), (
+            f"Safe fallback directory should be created for path: {dangerous_path}"
+        )
 
     def test_dead_success_check_regression(self):
         """Regression test for dead success-check in rollback_manager.py:91-93.

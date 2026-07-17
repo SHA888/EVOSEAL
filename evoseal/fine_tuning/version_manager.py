@@ -21,7 +21,7 @@ class ModelVersionManager:
     Manages versions of fine-tuned models.
 
     This class handles version tracking, rollback capabilities, and
-    deployment management for fine-tuned Devstral models.
+    deployment management for fine-tuned local coding models.
     """
 
     def __init__(self, versions_dir: Path | None = None):
@@ -98,10 +98,13 @@ class ModelVersionManager:
             # Generate version ID
             version_id = self._generate_version_id(timestamp, training_results)
 
-            # Generate version name if not provided
+            # Generate version name if not provided. Derive a model-agnostic prefix
+            # from the trained model's name (family slug) rather than hardcoding one.
             if not version_name:
+                raw_name = str(training_results.get("model_name", "model"))
+                slug = raw_name.split(":")[0].split("/")[-1] or "model"
                 version_name = (
-                    f"devstral-v{len(self.registry['versions']) + 1}-{timestamp.strftime('%Y%m%d')}"
+                    f"{slug}-v{len(self.registry['versions']) + 1}-{timestamp.strftime('%Y%m%d')}"
                 )
 
             # Create version entry
@@ -160,7 +163,8 @@ class ModelVersionManager:
         content = (
             f"{timestamp.isoformat()}{json.dumps(training_results, sort_keys=True, default=str)}"
         )
-        hash_object = hashlib.md5(content.encode())
+        # Not a security hash -- just a short, stable id for the version folder.
+        hash_object = hashlib.md5(content.encode(), usedforsecurity=False)
         return f"v{timestamp.strftime('%Y%m%d_%H%M%S')}_{hash_object.hexdigest()[:8]}"
 
     def _extract_performance_metrics(

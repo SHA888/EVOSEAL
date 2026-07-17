@@ -200,7 +200,7 @@ class CheckpointManager:
                 f"Created comprehensive checkpoint for version {version_id} at {checkpoint_path}"
             )
             logger.info(
-                f"Checkpoint size: {checkpoint_size / (1024*1024):.2f} MB, Integrity: {integrity_hash[:8]}..."
+                f"Checkpoint size: {checkpoint_size / (1024 * 1024):.2f} MB, Integrity: {integrity_hash[:8]}..."
             )
             return str(checkpoint_path)
 

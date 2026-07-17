@@ -629,12 +629,12 @@ class ImprovementValidator:
                 json.dump(result_to_save, f, indent=2)
         else:  # txt format
             with open(output_path, "w") as f:
-                f.write(f"Validation Report\n{'='*80}\n")
+                f.write(f"Validation Report\n{'=' * 80}\n")
                 f.write(f"Result: {'PASSED' if result_to_save['is_improvement'] else 'FAILED'}\n")
                 f.write(
                     f"Score: {result_to_save['score']:.1f}/100 (Threshold: {self.min_improvement_score})\n"
                 )
-                f.write(f"Confidence Level: {result_to_save['confidence_level']*100:.0f}%\n")
+                f.write(f"Confidence Level: {result_to_save['confidence_level'] * 100:.0f}%\n")
                 f.write(
                     f"Statistical Significance: {'Yes' if result_to_save.get('has_statistical_significance', True) else 'No'}\n"
                 )
@@ -673,7 +673,7 @@ class ImprovementValidator:
                         if "confidence_interval" in detail and detail["confidence_interval"]:
                             ci = detail["confidence_interval"]
                             f.write(
-                                f"\n  {self.confidence_level*100:.0f}% CI: [{ci[0]:.2f}, {ci[1]:.2f}]"
+                                f"\n  {self.confidence_level * 100:.0f}% CI: [{ci[0]:.2f}, {ci[1]:.2f}]"
                             )
                         f.write(
                             f"\n  Score: {detail['score']:.1f}/100 (Weight: {detail['weight']}x)"
@@ -728,7 +728,7 @@ class ImprovementValidator:
         )
         summary_table.add_row(
             "Confidence Level",
-            f"{validation_result.get('confidence_level', 0.95)*100:.0f}%",
+            f"{validation_result.get('confidence_level', 0.95) * 100:.0f}%",
         )
         summary_table.add_row("Baseline ID", str(validation_result["baseline_id"]))
         summary_table.add_row("Comparison ID", str(validation_result["comparison_id"]))

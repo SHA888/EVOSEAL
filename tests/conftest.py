@@ -18,6 +18,36 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _git_identity() -> Generator[None, None, None]:
+    """Give git a deterministic, non-interactive environment for tests.
+
+    CI runners have no global git user configured, so commits (in fixtures and in
+    RepositoryManager clones) fail with ``GitCommandError 128``. They also have no
+    editor, so ``git merge --continue`` would try to open one. GitPython and the
+    git CLI both honor these env vars, so set them for the whole test session.
+    """
+    identity = {
+        "GIT_AUTHOR_NAME": "EVOSEAL Test",
+        "GIT_AUTHOR_EMAIL": "test@evoseal.local",
+        "GIT_COMMITTER_NAME": "EVOSEAL Test",
+        "GIT_COMMITTER_EMAIL": "test@evoseal.local",
+        # Never open an editor (no tty on CI); take the default merge message.
+        "GIT_EDITOR": "true",
+        "GIT_MERGE_AUTOEDIT": "no",
+    }
+    saved = {k: os.environ.get(k) for k in identity}
+    os.environ.update(identity)
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 @pytest.fixture(scope="function")
 def temp_workdir() -> Generator[Path, None, None]:
     """Create a temporary working directory for tests."""

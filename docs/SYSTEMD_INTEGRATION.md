@@ -197,7 +197,7 @@ When the service is running, the monitoring dashboard is available at:
 The systemd service runs the complete Phase 3 system:
 - **ContinuousEvolutionService**: Main orchestration service
 - **MonitoringDashboard**: Real-time web dashboard
-- **BidirectionalEvolutionManager**: EVOSEAL ↔ Devstral coordination
+- **BidirectionalEvolutionManager**: EVOSEAL ↔ local coding model coordination
 - **Health Monitoring**: Continuous system health checks
 
 ### Configuration
@@ -321,7 +321,7 @@ The Phase 3 service replaces the legacy `evoseal-unified-runner.sh` script:
 
 ### Migration Benefits
 - **Real-time Dashboard**: Live monitoring with WebSocket updates
-- **Bidirectional Evolution**: EVOSEAL ↔ Devstral improvement loop
+- **Bidirectional Evolution**: EVOSEAL ↔ local coding model improvement loop
 - **Advanced Monitoring**: Comprehensive metrics and analytics
 - **Better Error Handling**: Graceful error recovery and reporting
 - **Modern Architecture**: Async/await throughout for better performance

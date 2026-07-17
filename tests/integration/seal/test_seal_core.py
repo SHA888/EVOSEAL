@@ -77,17 +77,17 @@ async def test_seal_interface_submit(seal_interface, mock_seal_provider):
     assert result is not None
     for key in EXPECTED_RESULT_KEYS:
         assert key in result, f"Expected key '{key}' not found in result"
-    assert (
-        result["fitness"] == TEST_FITNESS
-    ), f"Expected fitness {TEST_FITNESS}, got {result['fitness']}"
+    assert result["fitness"] == TEST_FITNESS, (
+        f"Expected fitness {TEST_FITNESS}, got {result['fitness']}"
+    )
     for key in EXPECTED_METRICS_KEYS:
         assert key in result["metrics"], f"Expected metric '{key}' not found"
-    assert (
-        result["metrics"]["accuracy"] == TEST_ACCURACY
-    ), f"Expected accuracy {TEST_ACCURACY}, got {result['metrics']['accuracy']}"
-    assert (
-        result["metrics"]["latency"] == TEST_LATENCY
-    ), f"Expected latency {TEST_LATENCY}, got {result['metrics']['latency']}"
+    assert result["metrics"]["accuracy"] == TEST_ACCURACY, (
+        f"Expected accuracy {TEST_ACCURACY}, got {result['metrics']['accuracy']}"
+    )
+    assert result["metrics"]["latency"] == TEST_LATENCY, (
+        f"Expected latency {TEST_LATENCY}, got {result['metrics']['latency']}"
+    )
 
     # Verify the provider methods were called
     mock_seal_provider.submit_prompt.assert_called_once_with(test_prompt)

@@ -1,8 +1,11 @@
 """
-Model fine-tuner for Devstral using LoRA/QLoRA.
+Weight-level model fine-tuner using LoRA/QLoRA (GPU-only).
 
-This module handles the fine-tuning of Devstral models with evolution patterns
-collected from EVOSEAL, enabling bidirectional improvement.
+This module handles the fine-tuning of a local coding model with evolution
+patterns collected from EVOSEAL, enabling bidirectional improvement. The model is
+model-agnostic: by default it targets whichever coder model is discovered from
+Ollama (see :mod:`evoseal.providers.local_models`). Requires a CUDA GPU; on a
+CPU-only host use the prompt-level path in :mod:`evoseal.prompt_evolution`.
 """
 
 import asyncio
@@ -41,35 +44,38 @@ except ImportError as e:
 
 
 from ..evolution.models import TrainingExample
+from ..providers.local_models import AgentRole, resolve_model
 
 
-class DevstralFineTuner:
+class ModelFineTuner:
     """
-    Fine-tuner for Devstral models using LoRA/QLoRA.
+    Fine-tuner for a local coding model using LoRA/QLoRA.
 
-    This class handles the fine-tuning process for Devstral models using
-    Parameter-Efficient Fine-Tuning (PEFT) techniques like LoRA.
+    This class handles the fine-tuning process using Parameter-Efficient
+    Fine-Tuning (PEFT) techniques like LoRA. It is model-agnostic: when
+    ``model_name`` is not given it targets the discovered coder model.
     """
 
     def __init__(
         self,
-        model_name: str = "devstral:latest",
+        model_name: str | None = None,
         base_model_path: str | None = None,
         output_dir: Path | None = None,
         use_lora: bool = True,
         use_qlora: bool = False,
     ):
         """
-        Initialize the Devstral fine-tuner.
+        Initialize the fine-tuner.
 
         Args:
-            model_name: Name of the model to fine-tune
+            model_name: Name of the model to fine-tune. When ``None``, the coder
+                model is discovered from the installed Ollama models.
             base_model_path: Path to base model (if using local model)
             output_dir: Directory to save fine-tuned models
             use_lora: Whether to use LoRA fine-tuning
             use_qlora: Whether to use QLoRA (quantized LoRA)
         """
-        self.model_name = model_name
+        self.model_name = model_name or resolve_model(AgentRole.CODER)
         self.base_model_path = base_model_path
         self.output_dir = output_dir or Path("models/fine_tuned")
         self.use_lora = use_lora
@@ -91,7 +97,31 @@ class DevstralFineTuner:
         if not TRANSFORMERS_AVAILABLE:
             logger.warning("Transformers not available. Fine-tuning will be limited.")
 
-        logger.info(f"DevstralFineTuner initialized for {model_name}")
+        logger.info(f"ModelFineTuner initialized for {self.model_name}")
+
+    #: Map an Ollama model *family* (substring) to a Hugging Face base repo for PEFT.
+    HF_BASE_MODEL_BY_FAMILY: dict[str, str] = {
+        "deepseek-coder": "deepseek-ai/deepseek-coder-6.7b-instruct",
+        "qwen2.5-coder": "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "codellama": "codellama/CodeLlama-7b-Instruct-hf",
+        "devstral": "mistralai/Mistral-7B-Instruct-v0.2",
+        "mistral": "mistralai/Mistral-7B-Instruct-v0.2",
+    }
+
+    def _resolve_hf_base_model(self) -> str:
+        """Pick a Hugging Face base repo for the configured (Ollama) model family."""
+        if self.base_model_path:
+            return self.base_model_path
+        name = self.model_name.lower()
+        for family, hf_repo in self.HF_BASE_MODEL_BY_FAMILY.items():
+            if family in name:
+                logger.info("Using base model %s for %s fine-tuning", hf_repo, self.model_name)
+                return hf_repo
+        # Unknown family: fall back to the model name itself (may be a valid HF repo).
+        logger.warning(
+            "No HF base mapping for %s; using it directly as the base model", self.model_name
+        )
+        return self.model_name
 
     def _check_gpu_availability(self) -> bool:
         """
@@ -124,17 +154,14 @@ class DevstralFineTuner:
         try:
             logger.info("Initializing model and tokenizer...")
 
-            # For Ollama models, we need to handle them differently
-            if "ollama" in self.model_name or self.model_name.startswith("devstral"):
-                # Use a compatible base model for fine-tuning
-                # Since Devstral is based on Mistral, we'll use a Mistral model
-                base_model = "mistralai/Mistral-7B-Instruct-v0.2"
-                logger.info(f"Using base model {base_model} for Devstral fine-tuning")
-            else:
-                base_model = self.base_model_path or self.model_name
+            # Ollama tags are not HF repos, so map the discovered model's family to a
+            # compatible Hugging Face base model for PEFT fine-tuning. Extend this map
+            # as new coder families are used.
+            base_model = self._resolve_hf_base_model()
 
-            # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(
+            # Load tokenizer. Base model is operator-configured; revision pinning is
+            # left to the caller via base_model_path.
+            self.tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
                 base_model, trust_remote_code=True, padding_side="right"
             )
 
@@ -149,7 +176,10 @@ class DevstralFineTuner:
                 "device_map": "auto" if torch.cuda.is_available() else None,
             }
 
-            self.model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
+            # Revision pinning is left to the caller (see note above).
+            self.model = AutoModelForCausalLM.from_pretrained(  # nosec B615
+                base_model, **model_kwargs
+            )
 
             # Configure for training
             self.model.config.use_cache = False
@@ -284,10 +314,10 @@ class DevstralFineTuner:
 
                 # Create a training script for external use
                 script_content = f"""#!/bin/bash
-# Fine-tuning script for Devstral
+# Fine-tuning script for {self.model_name}
 # Generated on {datetime.now().isoformat()}
 
-echo "Fine-tuning Devstral model..."
+echo "Fine-tuning {self.model_name} model..."
 echo "Training data: {training_data_path}"
 echo "Epochs: {epochs}"
 echo "Learning rate: {learning_rate}"
@@ -306,7 +336,8 @@ echo "Training data prepared at: {training_data_path}"
                 with open(script_path, "w") as f:
                     f.write(script_content)
 
-                os.chmod(script_path, 0o755)
+                # Generated helper script must be executable.
+                os.chmod(script_path, 0o755)  # nosec B103
 
                 return {
                     "success": True,
@@ -385,3 +416,7 @@ echo "Training data prepared at: {training_data_path}"
         except Exception as e:
             logger.error(f"Error during fine-tuning: {e}")
             return {"success": False, "error": str(e)}
+
+
+# Backwards-compatible alias (deprecated): the fine-tuner is no longer Devstral-specific.
+DevstralFineTuner = ModelFineTuner

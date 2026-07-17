@@ -140,7 +140,7 @@ def _verify_persisted_data(db_path: Path, num_workers: int) -> None:
 
     print(f"Found {len(entries)} total entries in the database")
     for i, entry in enumerate(entries[:10]):  # Only print first 10 entries
-        print(f"Entry {i+1}: {entry.content}")
+        print(f"Entry {i + 1}: {entry.content}")
 
     # Verify we can find entries from at least one worker
     worker_entries_found = set()
@@ -154,9 +154,9 @@ def _verify_persisted_data(db_path: Path, num_workers: int) -> None:
     assert len(worker_entries_found) > 0, "No worker entries found in the database"
 
     # Instead of requiring all workers, just verify we have some worker entries
-    assert (
-        len(worker_entries_found) >= 1
-    ), f"Expected entries from at least 1 worker, got {len(worker_entries_found)}"
+    assert len(worker_entries_found) >= 1, (
+        f"Expected entries from at least 1 worker, got {len(worker_entries_found)}"
+    )
 
 
 @pytest.mark.timeout(30)  # Add a strict 30-second timeout to the entire test
@@ -193,9 +193,9 @@ def test_concurrent_access(tmp_path: Path):
     kb.save_to_disk()  # Ensure initial save
     initial_entries = kb.search_entries(limit=1000)
     print(f"Found {len(initial_entries)} initial entries")
-    assert (
-        len(initial_entries) == TEST_ENTRIES_COUNT
-    ), f"Incorrect number of initial entries: expected {TEST_ENTRIES_COUNT}, got {len(initial_entries)}"
+    assert len(initial_entries) == TEST_ENTRIES_COUNT, (
+        f"Incorrect number of initial entries: expected {TEST_ENTRIES_COUNT}, got {len(initial_entries)}"
+    )
 
     # Run workers sequentially first
     print("\n=== Running sequential workers ===")
@@ -257,7 +257,7 @@ def test_concurrent_access(tmp_path: Path):
 
     # Print sample entries for debugging
     for i, entry in enumerate(entries[:10]):
-        print(f"Entry {i+1}: {entry.content}")
+        print(f"Entry {i + 1}: {entry.content}")
 
     # Collect all worker entries and verify against expected entries
     worker_entries = {}
@@ -285,15 +285,15 @@ def test_concurrent_access(tmp_path: Path):
     # Verify we have entries from at least half of the workers
     # This is a more reasonable expectation for concurrent operations
     min_expected_workers = max(1, num_workers // 2)
-    assert (
-        len(worker_entries) >= min_expected_workers
-    ), f"Expected entries from at least {min_expected_workers} workers, got {len(worker_entries)}"
+    assert len(worker_entries) >= min_expected_workers, (
+        f"Expected entries from at least {min_expected_workers} workers, got {len(worker_entries)}"
+    )
 
     # Verify we found at least some of the expected entries
     min_expected_entries = max(1, len(expected_entries) // 4)  # At least 25% of expected entries
-    assert (
-        entries_found >= min_expected_entries
-    ), f"Found only {entries_found} out of {len(expected_entries)} expected entries"
+    assert entries_found >= min_expected_entries, (
+        f"Found only {entries_found} out of {len(expected_entries)} expected entries"
+    )
 
     # Verify database file still exists and has content
     assert db_path.exists(), "Database file was deleted after test"

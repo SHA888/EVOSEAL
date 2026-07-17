@@ -260,14 +260,14 @@ class TestErrorHandlingUtils(unittest.TestCase):
         # Verify log messages contain correct attempt numbers and error message
         for i in range(max_retries):
             self.assertIn(
-                f"({i+1}/{max_retries})",
+                f"({i + 1}/{max_retries})",
                 retry_logs[i],
-                f"Retry log {i+1} missing attempt number",
+                f"Retry log {i + 1} missing attempt number",
             )
             self.assertIn(
                 "Temporary failure",
                 retry_logs[i],
-                f"Retry log {i+1} missing error message",
+                f"Retry log {i + 1} missing error message",
             )
 
         # Verify the final error log is present

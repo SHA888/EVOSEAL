@@ -85,25 +85,25 @@ jobs:
         id: bump_version
         run: |
           # Install dependencies for the version bump script
-          pip install tomli pyyaml
+          pip install tomli tomli-w pyyaml
 
           # Determine the version bump type or specific version
           if [[ -n "${{ github.event.inputs.version }}" ]]; then
             if [[ "${{ github.event.inputs.version }}" =~ ^(major|minor|patch)$ ]]; then
               # It's a bump type (major, minor, patch)
               echo "Bumping ${{ github.event.inputs.version }} version..."
-              python scripts/bump_version.py ${{ github.event.inputs.version }} --no-push --no-commit
+              python scripts/lib/version/version.py bump ${{ github.event.inputs.version }} --no-commit
               BUMP_TYPE="${{ github.event.inputs.version }}"
             else
               # It's a specific version
               echo "Setting version to ${{ github.event.inputs.version }}..."
-              python scripts/bump_version.py ${{ github.event.inputs.version }} --no-push --no-commit
+              python scripts/lib/version/version.py update ${{ github.event.inputs.version }} --no-commit
               BUMP_TYPE="specific"
             fi
           else
             # Default to patch version bump
             echo "Bumping patch version by default..."
-            python scripts/bump_version.py patch --no-push --no-commit
+            python scripts/lib/version/version.py bump patch --no-commit
             BUMP_TYPE="patch"
           fi
 

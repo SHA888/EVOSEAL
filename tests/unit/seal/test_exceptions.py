@@ -108,15 +108,15 @@ class TestSEALExceptions(unittest.TestCase):
 
         for error in retryable_errors:
             with self.subTest(error=type(error).__name__):
-                assert isinstance(
-                    error, RetryableError
-                ), f"{type(error).__name__} should be retryable"
+                assert isinstance(error, RetryableError), (
+                    f"{type(error).__name__} should be retryable"
+                )
 
         for error in non_retryable_errors:
             with self.subTest(error=type(error).__name__):
-                assert not isinstance(
-                    error, RetryableError
-                ), f"{type(error).__name__} should not be retryable"
+                assert not isinstance(error, RetryableError), (
+                    f"{type(error).__name__} should not be retryable"
+                )
 
 
 if __name__ == "__main__":

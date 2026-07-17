@@ -248,10 +248,19 @@ class TestDataManager:
         _create_items(self.base_dir, structure)
 
     def cleanup(self) -> None:
-        """Remove all test data."""
+        """Remove all test data (and re-create an empty base directory)."""
         if self.base_dir.exists():
             shutil.rmtree(self.base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
+
+    def __enter__(self) -> "TestDataManager":
+        """Enter the context, returning this manager."""
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        """Exit the context, removing the base directory entirely."""
+        if self.base_dir.exists():
+            shutil.rmtree(self.base_dir, ignore_errors=True)
 
 
 def create_test_data_manager() -> TestDataManager:

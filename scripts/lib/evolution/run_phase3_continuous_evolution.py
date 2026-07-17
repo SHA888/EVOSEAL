@@ -182,10 +182,13 @@ async def run_health_check():
                     if response.status == 200:
                         data = await response.json()
                         models = [model["name"] for model in data.get("models", [])]
-                        if "devstral:latest" in models:
-                            logger.info("✅ Ollama and Devstral model available")
+                        from evoseal.providers.local_models import AgentRole, select_model
+
+                        coder = select_model(AgentRole.CODER, models)
+                        if coder:
+                            logger.info(f"✅ Ollama and coder model available: {coder}")
                         else:
-                            logger.warning("⚠️ Devstral model not found in Ollama")
+                            logger.warning("⚠️ No coder-family model found in Ollama")
                     else:
                         logger.warning("⚠️ Ollama API not responding correctly")
             except Exception as e:
@@ -197,7 +200,7 @@ async def run_health_check():
             from evoseal.evolution import EvolutionDataCollector
             from evoseal.fine_tuning import (
                 BidirectionalEvolutionManager,
-                DevstralFineTuner,
+                ModelFineTuner,
                 ModelValidator,
                 ModelVersionManager,
                 TrainingManager,

@@ -1,7 +1,7 @@
 """
 Continuous Evolution Service for EVOSEAL Bidirectional Evolution.
 
-This service orchestrates the continuous improvement loop between EVOSEAL and Devstral,
+This service orchestrates the continuous improvement loop between EVOSEAL and its coding model,
 managing the complete lifecycle of evolution data collection, fine-tuning, validation,
 and deployment.
 """
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class ContinuousEvolutionService:
     """
-    Service for continuous bidirectional evolution between EVOSEAL and Devstral.
+    Service for continuous bidirectional evolution between EVOSEAL and its coding model.
 
     This service runs continuously, monitoring for evolution data, triggering
     fine-tuning when appropriate, and managing the bidirectional improvement cycle.

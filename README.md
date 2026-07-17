@@ -14,13 +14,23 @@
 ![Dashboard](./assets/evoseal-dashboard.png)
 
 **🎉 Phase 3 - Bidirectional Continuous Evolution**:
-- ✅ Bidirectional evolution loop between EVOSEAL and Devstral
+- ✅ Bidirectional co-evolution loop between EVOSEAL and its local coding models
 - ✅ Real-time monitoring dashboard with WebSocket updates
 - ✅ systemd service integration
-- ✅ Fine-tuning infrastructure with LoRA/QLoRA
 - ✅ Model validation, versioning, and rollback capabilities
-- ✅ Ollama integration with Mistral AI's Devstral coding model
-- ✅ Continuous improvement loop with automated training cycles
+- ✅ Ollama integration with local coder/reviewer models (auto-discovered)
+- ✅ Continuous improvement loop with automated cycles
+
+> **Two co-evolution paths, pick by hardware:**
+> - **Prompt-level co-evolution (CPU-friendly, default):** a coder model writes
+>   code, a reviewer model critiques it, and the reviewer's feedback evolves the
+>   coder's *system prompt* — regression-gated, with rollback. Runs on CPU with two
+>   local Ollama models; **no GPU required**. See
+>   [`docs/architecture/local_coevolution.md`](docs/architecture/local_coevolution.md).
+> - **Weight-level fine-tuning (GPU-only):** the original LoRA/QLoRA path that
+>   fine-tunes a coding model from evolution data. This needs a CUDA GPU and is
+>   **not runnable on a CPU-only host**. Historically this targeted Mistral AI's
+>   Devstral; the code lives under `evoseal/fine_tuning/`.
 
 EVOSEAL is an advanced AI agent designed to solve complex tasks through code evolution while continuously improving its own architecture. It integrates three key technologies:
 
@@ -33,11 +43,13 @@ EVOSEAL is an advanced AI agent designed to solve complex tasks through code evo
 ## Features
 
 ### 🚀 Phase 3: Bidirectional Continuous Evolution
-- 🧬 **Bidirectional Evolution**: EVOSEAL ↔ Devstral mutual improvement loop
+- 🧬 **Bidirectional Evolution**: EVOSEAL ↔ local models mutual improvement loop
+- 🤖 **Coder + Reviewer roles**: DeepSeek-Coder writes, Qwen2.5-Coder reviews (auto-discovered from Ollama)
+- ✍️ **Prompt-level self-improvement**: reviewer feedback evolves the coder's system prompt (CPU-friendly, no GPU)
 - 🌐 **Real-time Dashboard**: Live monitoring at http://localhost:9613
-- 🔄 **Continuous Operation**: Automated evolution cycles and training
-- 🎯 **Fine-tuning Infrastructure**: LoRA/QLoRA with comprehensive validation
-- 📊 **Model Versioning**: Automatic version tracking and rollback
+- 🔄 **Continuous Operation**: Automated evolution cycles
+- 🎯 **Fine-tuning Infrastructure (GPU-only)**: LoRA/QLoRA with comprehensive validation
+- 📊 **Prompt & Model Versioning**: Automatic version tracking and rollback
 - 🛡️ **Safety Controls**: Model validation with alignment testing
 - 🔧 **systemd Integration**: systemd service management with hardened security settings
 
@@ -142,8 +154,11 @@ EVOSEAL_VENV=/path/to/venv
 EVOSEAL_LOGS=/path/to/logs
 
 # Provider configuration
+# Models are auto-discovered from what is installed in Ollama (matched by family).
+# Override per role only if you want a specific tag:
 OLLAMA_API_BASE=http://localhost:11434
-OLLAMA_MODEL=devstral:latest
+EVOSEAL_CODER_MODEL=deepseek-coder-v2:16b-lite-instruct-q8_0
+EVOSEAL_REVIEWER_MODEL=qwen2.5-coder:7b-instruct-q6_K
 
 # Logging
 LOG_LEVEL=INFO
@@ -179,12 +194,18 @@ EVOSEAL/
 │   ├── training_builder.py # Training data generation
 │   └── models.py           # Evolution data models
 │
-├── fine_tuning/            # 🎯 Phase 2: Fine-tuning Infrastructure
-│   ├── model_fine_tuner.py     # LoRA/QLoRA fine-tuning with Devstral
+├── prompt_evolution/       # ✍️ Phase 2 (CPU): prompt-level self-improvement
+│   ├── coevolution_manager.py # generate→review→evolve→revalidate→accept/rollback
+│   ├── prompt_evolver.py      # distill reviewer critique into a prompt edit (guardrailed)
+│   ├── prompt_store.py        # versioned system prompts with rollback
+│   └── models.py              # task/critique/prompt-version records
+│
+├── fine_tuning/            # 🎯 Phase 2 (GPU-only): weight fine-tuning
+│   ├── model_fine_tuner.py     # ModelFineTuner: LoRA/QLoRA fine-tuning (model-agnostic)
 │   ├── training_manager.py     # Training pipeline coordination
 │   ├── model_validator.py      # Comprehensive model validation
 │   ├── version_manager.py      # Model version tracking & rollback
-│   └── bidirectional_manager.py # EVOSEAL ↔ Devstral orchestration
+│   └── bidirectional_manager.py # EVOSEAL ↔ model weight-training orchestration
 │
 ├── services/               # 🚀 Phase 3: Continuous Evolution
 │   ├── continuous_evolution_service.py # Main continuous service
@@ -192,7 +213,8 @@ EVOSEAL/
 │
 ├── providers/              # AI/ML model providers
 │   ├── __init__.py
-│   ├── ollama_provider.py  # Ollama/Devstral integration
+│   ├── local_models.py     # Ollama model discovery + per-role resolution
+│   ├── ollama_provider.py  # Ollama integration (coder/reviewer)
 │   ├── provider_manager.py # Provider selection & fallback
 │   └── seal_providers.py   # Legacy provider interfaces
 │
@@ -225,24 +247,30 @@ tests/                      # Test suite
 
 ### Architecture Overview
 
-EVOSEAL Phase 3 implements a complete bidirectional evolution system where EVOSEAL and Mistral AI's Devstral coding model continuously improve each other:
+EVOSEAL Phase 3 implements a bidirectional evolution system where EVOSEAL and its
+local coding models continuously improve each other. There are two co-evolution
+paths; the CPU-friendly prompt-level path is the default (see
+[`docs/architecture/local_coevolution.md`](docs/architecture/local_coevolution.md)),
+and the GPU-only weight fine-tuning path below is optional:
 
 1. **Phase 1**: Evolution Data Collection
    - Async collection of evolution results from EVOSEAL's self-improvement cycles
    - Pattern analysis to extract successful improvement strategies
    - Training data generation in multiple formats (Alpaca, Chat, JSONL)
 
-2. **Phase 2**: Fine-tuning Infrastructure
-   - LoRA/QLoRA fine-tuning of Devstral using evolution patterns
+2. **Phase 2**: Self-improvement Infrastructure
+   - **Prompt-level (CPU):** reviewer feedback evolves the coder's system prompt,
+     regression-gated with rollback (`evoseal/prompt_evolution/`) — no GPU needed.
+   - **Weight-level (GPU-only):** LoRA/QLoRA fine-tuning from evolution patterns
+     (`evoseal/fine_tuning/`) — requires a CUDA GPU; not runnable on a CPU-only host.
    - Comprehensive model validation with 5-category testing
    - Version management with automatic rollback capabilities
-   - Safety controls and alignment testing
 
 3. **Phase 3**: Continuous Improvement Loop
-   - Automated evolution cycles and training orchestration
+   - Automated evolution cycles and orchestration
    - Real-time monitoring dashboard with WebSocket updates
    - systemd service integration for long-running operation
-   - Bidirectional feedback loop: EVOSEAL ↔ Devstral
+   - Bidirectional feedback loop: EVOSEAL ↔ local coder/reviewer models
 
 ### 🌐 Real-time Monitoring Dashboard
 
@@ -275,12 +303,17 @@ journalctl --user -fu evoseal.service       # Follow logs
 
 ### 🎯 Model Integration
 
-**Ollama + Devstral Integration**:
-- **Model**: Mistral AI's Devstral (specialized coding model)
-- **Performance**: 46.8% on SWE-Bench Verified benchmark
-- **Capabilities**: Designed for agentic software development
-- **License**: Apache 2.0 for community use
-- **Requirements**: Single RTX 4090 or Mac with 32GB RAM
+**Ollama local models (auto-discovered)**: EVOSEAL queries Ollama for installed
+models and matches one per role by family — so a re-quantized or renamed tag keeps
+working. Defaults on a typical CPU box:
+- **Coder** (writes code): DeepSeek-Coder-V2-Lite — `deepseek-coder-v2:16b-lite-instruct-q8_0`
+- **Reviewer** (critiques code): Qwen2.5-Coder — `qwen2.5-coder:7b-instruct-q6_K`
+- **Override** per role with `EVOSEAL_CODER_MODEL` / `EVOSEAL_REVIEWER_MODEL`.
+- **Requirements**: runs CPU-only (no GPU). Pull the models with `ollama pull <tag>`.
+
+**Optional GPU fine-tuning** (weight-level path) historically used Mistral AI's
+Devstral and requires a CUDA GPU (e.g. a single RTX 4090 or a 32GB Mac); it is not
+exercised on CPU-only hosts.
 
 ### 📊 Continuous Operation
 

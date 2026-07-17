@@ -117,7 +117,7 @@ def print_statistical_analysis(metric_name: str, stats: dict[str, Any]) -> None:
 
     ci = stats.get("confidence_interval", (0, 0))
     logger.info(
-        f"  {stats.get('confidence_level', 0.95)*100:.0f}% Confidence Interval: [{ci[0]:.4f}, {ci[1]:.4f}]"
+        f"  {stats.get('confidence_level', 0.95) * 100:.0f}% Confidence Interval: [{ci[0]:.4f}, {ci[1]:.4f}]"
     )
 
     # Trend analysis

@@ -198,18 +198,16 @@ async def test_workflow_with_error_recovery(workflow_config):
     assert isinstance(result["final_metrics"], dict)
 
     # The workflow should have completed all iterations despite the error
-    assert (
-        call_count == TOTAL_ITERATIONS
-    ), f"Expected {TOTAL_ITERATIONS} total calls, got {call_count}"  # 4 calls in total
-    assert (
-        mock_provider.submit_prompt.await_count == TOTAL_ITERATIONS
-    ), f"Expected {TOTAL_ITERATIONS} submit_prompt calls, got {mock_provider.submit_prompt.await_count}"
-    assert (
-        mock_provider.parse_response.await_count == TOTAL_ITERATIONS
-    ), f"Expected {TOTAL_ITERATIONS} parse_response calls, got {mock_provider.parse_response.await_count}"
-    assert (
-        len(workflow.results) == EXPECTED_SUCCESSFUL_ITERATIONS
-    ), (
+    assert call_count == TOTAL_ITERATIONS, (
+        f"Expected {TOTAL_ITERATIONS} total calls, got {call_count}"
+    )  # 4 calls in total
+    assert mock_provider.submit_prompt.await_count == TOTAL_ITERATIONS, (
+        f"Expected {TOTAL_ITERATIONS} submit_prompt calls, got {mock_provider.submit_prompt.await_count}"
+    )
+    assert mock_provider.parse_response.await_count == TOTAL_ITERATIONS, (
+        f"Expected {TOTAL_ITERATIONS} parse_response calls, got {mock_provider.parse_response.await_count}"
+    )
+    assert len(workflow.results) == EXPECTED_SUCCESSFUL_ITERATIONS, (
         f"Expected {EXPECTED_SUCCESSFUL_ITERATIONS} successful results, got {len(workflow.results)}"
     )  # 3 results (one error was caught and handled)
 

@@ -61,7 +61,7 @@ async def test_ollama_provider():
     """Test the Ollama provider functionality."""
 
     # Initialize provider with reasonable timeout
-    provider = OllamaProvider(model="devstral:latest", timeout=90)
+    provider = OllamaProvider(role="coder", timeout=90)
 
     # Test health check
     logger.info("Testing Ollama health check...")
@@ -103,7 +103,7 @@ async def test_ollama_provider():
 async def test_code_generation():
     """Test code generation capabilities."""
 
-    provider = OllamaProvider(model="devstral:latest", timeout=90)
+    provider = OllamaProvider(role="coder", timeout=90)
 
     logger.info("Testing code generation...")
 

@@ -12,6 +12,11 @@ from typing import Any
 
 import aiohttp
 
+from evoseal.providers.local_models import (
+    DEFAULT_OLLAMA_BASE_URL,
+    AgentRole,
+    resolve_model,
+)
 from evoseal.providers.seal_providers import SEALProvider
 
 logger = logging.getLogger(__name__)
@@ -22,21 +27,27 @@ class OllamaProvider(SEALProvider):
 
     def __init__(
         self,
-        base_url: str = "http://localhost:11434",
-        model: str = "devstral:latest",
+        base_url: str = DEFAULT_OLLAMA_BASE_URL,
+        model: str | None = None,
         timeout: int = 120,
+        role: AgentRole | str = AgentRole.CODER,
         **kwargs: Any,
     ) -> None:
         """Initialize the Ollama provider.
 
         Args:
             base_url: Base URL for Ollama API (default: http://localhost:11434)
-            model: Model name to use (default: devstral:latest)
+            model: Model name to use. When ``None``, the model is discovered from
+                the installed Ollama models for ``role`` (durable across swaps).
             timeout: Request timeout in seconds (default: 120)
+            role: Role ("coder"/"reviewer") to resolve a default model for when
+                ``model`` is None. Accepts an :class:`AgentRole` or its string value.
             **kwargs: Additional configuration options
         """
         self.base_url = base_url.rstrip("/")
-        self.model = model
+        resolved_role = role if isinstance(role, AgentRole) else AgentRole(role)
+        # Resolve against what is actually installed rather than assuming a tag.
+        self.model = model or resolve_model(resolved_role, base_url=self.base_url)
         self.timeout = timeout
         self.config = kwargs
 
@@ -49,7 +60,7 @@ class OllamaProvider(SEALProvider):
             "stop": kwargs.get("stop_sequences", []),
         }
 
-        logger.info(f"Initialized Ollama provider with model {model} at {base_url}")
+        logger.info(f"Initialized Ollama provider with model {self.model} at {base_url}")
 
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str:
         """Submit a prompt to the Ollama instance.

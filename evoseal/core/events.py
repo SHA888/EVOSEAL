@@ -547,7 +547,7 @@ class EventBus:
                     handler_info["handler"], "__name__", str(handler_info["handler"])
                 )
                 logger.error(
-                    f"Error in {handler_name} " f"for event {event.event_type}: {str(e)}",
+                    f"Error in {handler_name} for event {event.event_type}: {str(e)}",
                     exc_info=True,
                 )
 

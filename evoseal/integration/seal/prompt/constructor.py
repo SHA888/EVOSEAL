@@ -103,7 +103,7 @@ class PromptConstructor:
             "chain_of_thought": PromptTemplate(
                 name="chain_of_thought",
                 template=(
-                    "Question: {question}\n" "Knowledge:\n{knowledge}\n" "Let's think step by step."
+                    "Question: {question}\nKnowledge:\n{knowledge}\nLet's think step by step."
                 ),
                 style=PromptStyle.CHAIN_OF_THOUGHT,
                 required_fields=["question"],

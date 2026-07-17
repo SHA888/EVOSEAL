@@ -2,7 +2,7 @@
 Pattern analyzer for extracting generalizable knowledge from evolution results.
 
 This module analyzes successful evolution patterns to identify common
-improvement strategies that can be used to train Devstral.
+improvement strategies that can be used to train the local coding model.
 """
 
 import ast
@@ -36,7 +36,7 @@ class PatternAnalyzer:
     Analyzes evolution patterns to extract generalizable knowledge.
 
     This class identifies common patterns in successful code transformations
-    that can be used to create training data for fine-tuning Devstral.
+    that can be used to create training data for fine-tuning the local coding model.
     """
 
     def __init__(self, min_pattern_frequency: int = 3, min_confidence: float = 0.7):

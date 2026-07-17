@@ -266,7 +266,7 @@ async def example_parallel_operations():
 
         # Display results
         for i, result in enumerate(results):
-            logger.info(f"Operation {i+1}: {'Success' if result.success else 'Failed'}")
+            logger.info(f"Operation {i + 1}: {'Success' if result.success else 'Failed'}")
             if result.success:
                 logger.info(f"  Data: {str(result.data)[:100]}...")
                 logger.info(f"  Execution time: {result.execution_time:.2f}s")

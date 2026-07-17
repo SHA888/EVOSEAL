@@ -17,7 +17,10 @@ import tomli
 import tomli_w
 
 # Project paths
-ROOT_DIR = Path(__file__).parent.parent
+# This file lives at <repo>/scripts/lib/version/version.py, so the repo root is
+# three levels up. (parent.parent resolved to <repo>/scripts/lib, which made
+# `bump` fail with "No such file or directory: scripts/lib/pyproject.toml".)
+ROOT_DIR = Path(__file__).resolve().parents[3]
 PYPROJECT_PATH = ROOT_DIR / "pyproject.toml"
 CHANGELOG_PATH = ROOT_DIR / "CHANGELOG.md"
 VERSION_FILE = ROOT_DIR / "evoseal" / "__init__.py"
@@ -65,11 +68,11 @@ def bump_version(version: str, bump_type: str) -> str:
     try:
         major, minor, patch = map(int, version.split("."))
         if bump_type == "major":
-            return f"{major+1}.0.0"
+            return f"{major + 1}.0.0"
         elif bump_type == "minor":
-            return f"{major}.{minor+1}.0"
+            return f"{major}.{minor + 1}.0"
         elif bump_type == "patch":
-            return f"{major}.{minor}.{patch+1}"
+            return f"{major}.{minor}.{patch + 1}"
         elif re.match(r"^\d+\.\d+\.\d+$", bump_type):
             return bump_type
         raise ValueError(f"Invalid version: {bump_type}")

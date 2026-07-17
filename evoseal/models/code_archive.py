@@ -242,7 +242,11 @@ class CodeArchive(BaseModel):
         Returns:
             The string representation of the enum value.
         """
-        return str(value.value)
+        # With ``use_enum_values=True`` the stored field is already the enum's
+        # value (a plain str), so guard against calling ``.value`` on a str.
+        if isinstance(value, Enum):
+            return str(value.value)
+        return str(value)
 
     def to_dict(self: CodeArchive, **kwargs: Any) -> dict[str, Any]:
         """Convert the model to a dictionary.
