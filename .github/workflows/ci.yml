@@ -48,7 +48,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies
       run: uv pip install --system -e ".[test,dev]"
@@ -94,7 +94,7 @@ jobs:
         git lfs install
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies
       run: uv pip install --system -e ".[test]"
@@ -146,7 +146,7 @@ jobs:
         git lfs install
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies
       run: uv pip install --system -e ".[test]"
@@ -191,7 +191,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies
       run: uv pip install --system -e ".[test]"
@@ -245,7 +245,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install documentation dependencies
       run: uv pip install --system -e ".[docs]"
@@ -285,7 +285,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install development dependencies
       run: uv pip install --system -e ".[test,dev]"
@@ -318,7 +318,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install safety
       run: uv pip install --system safety
@@ -357,7 +357,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Install build tools
       run: uv pip install --system build
