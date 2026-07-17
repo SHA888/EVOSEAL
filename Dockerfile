@@ -14,6 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
+# Upgrade the base image's Python packaging toolchain. python:3.11-slim ships
+# with pip 24.0 / setuptools / wheel that Trivy flags for wheel/archive-unpacking
+# CVEs. Not runtime-exploitable here (deps are installed once at build from our
+# own pyproject.toml, never untrusted packages), but upgrading clears the alerts.
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
 # Create non-root user
 RUN groupadd -g 10001 evoseal \
  && useradd -m -u 10001 -g 10001 -s /bin/bash evoseal
