@@ -235,8 +235,8 @@ Before deploying EVOSEAL in production:
 
 - [RollbackManager Interface](./rollback_manager_interface.md) - Complete interface documentation
 - [Safety & Validation](./safety_validation.md) - Overall safety system documentation
-- [Checkpoint Management](./checkpoint_manager.md) - Checkpoint system documentation
-- [Error Handling](./error_handling_resilience.md) - Error handling and resilience
+- [Enhanced Rollback Logic](./enhanced_rollback_logic.md) - Rollback decision logic
+- [Pipeline Safety Integration](./evolution_pipeline_safety_integration.md) - How safety wraps the evolution pipeline
 
 ---
 

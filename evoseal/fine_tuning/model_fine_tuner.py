@@ -159,8 +159,9 @@ class ModelFineTuner:
             # as new coder families are used.
             base_model = self._resolve_hf_base_model()
 
-            # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(
+            # Load tokenizer. Base model is operator-configured; revision pinning is
+            # left to the caller via base_model_path.
+            self.tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
                 base_model, trust_remote_code=True, padding_side="right"
             )
 
@@ -175,7 +176,10 @@ class ModelFineTuner:
                 "device_map": "auto" if torch.cuda.is_available() else None,
             }
 
-            self.model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
+            # Revision pinning is left to the caller (see note above).
+            self.model = AutoModelForCausalLM.from_pretrained(  # nosec B615
+                base_model, **model_kwargs
+            )
 
             # Configure for training
             self.model.config.use_cache = False
@@ -332,7 +336,8 @@ echo "Training data prepared at: {training_data_path}"
                 with open(script_path, "w") as f:
                     f.write(script_content)
 
-                os.chmod(script_path, 0o755)
+                # Generated helper script must be executable.
+                os.chmod(script_path, 0o755)  # nosec B103
 
                 return {
                     "success": True,

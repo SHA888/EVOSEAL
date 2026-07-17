@@ -248,7 +248,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Install documentation dependencies
-      run: uv pip install --system -r requirements/docs.txt
+      run: uv pip install --system -e ".[docs]"
 
     - name: Build documentation
       run: |
@@ -324,9 +324,13 @@ jobs:
       run: uv pip install --system safety
 
     - name: Run Bandit security linter
-      uses: PyCQA/bandit@main
-      with:
-        args: -r evoseal/ -n 1 --skip B101,B104
+      # PyCQA/bandit is the bandit source repo, not a GitHub Action (it has no
+      # action.yml), so `uses:` always failed. Run the tool directly instead.
+      # Gate on medium+ severity; the low findings here are subprocess/random
+      # usage and a "password" false positive on a 0.7 threshold constant.
+      run: |
+        uv pip install --system bandit
+        bandit -r evoseal/ -n 1 --skip B101,B104 --severity-level medium
 
     - name: Run Safety check
       run: |

@@ -99,7 +99,7 @@ This document outlines the development roadmap for EVOSEAL, including planned fe
 
 ## 🤝 Contributing
 
-We welcome contributions to help achieve these goals! Please see our [Contributing Guidelines](CONTRIBUTING.md) for more information on how to get involved.
+We welcome contributions to help achieve these goals! Please see our [Contributing Guidelines](https://github.com/SHA888/EVOSEAL/blob/main/CONTRIBUTING.md) for more information on how to get involved.
 
 ## 📝 License
 

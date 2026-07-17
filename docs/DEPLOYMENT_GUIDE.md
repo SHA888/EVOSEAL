@@ -489,6 +489,6 @@ This deployment guide provides comprehensive instructions for setting up EVOSEAL
 For additional support and troubleshooting, refer to:
 - [Phase 3 Documentation](PHASE3_BIDIRECTIONAL_EVOLUTION.md)
 - [systemd Integration Guide](SYSTEMD_INTEGRATION.md)
-- [Main README](../README.md)
+- [Main README](index.md)
 
 The Phase 3 system is designed for continuous operation and will automatically evolve and improve both EVOSEAL and its local coding model through the bidirectional evolution loop.

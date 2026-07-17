@@ -103,9 +103,9 @@ evoseal --help
 
 ## Next Steps
 
-- Explore the [User Manual](user/manual.md) for detailed usage instructions
-- Check out the [API Reference](api/index.md) for advanced features
-- Read the [Architecture Overview](architecture/overview.md) to understand how EVOSEAL works
+- Explore the [User Manual](../user/manual.md) for detailed usage instructions
+- Check out the [API Reference](../api/index.md) for advanced features
+- Read the [Architecture Overview](../architecture/overview.md) to understand how EVOSEAL works
 
 ## Getting Help
 

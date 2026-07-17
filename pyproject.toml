@@ -74,6 +74,14 @@ cli = [
     "shellingham>=1.5.0",
 ]
 
+# Everything mkdocs.yml needs to build the site (theme, plugins, extensions).
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocs-git-revision-date-localized-plugin>=1.2.0",
+    "pymdown-extensions>=10.0",
+]
+
 test = [
     # Core testing
     "pytest>=8.0.0",

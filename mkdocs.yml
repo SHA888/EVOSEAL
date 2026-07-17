@@ -5,6 +5,11 @@ repo_url: https://github.com/SHA888/EVOSEAL
 repo_name: SHA888/EVOSEAL
 edit_uri: edit/main/docs/
 
+# docs/README.md duplicates index.md as the site home; keep it in the repo
+# but out of the built site (otherwise mkdocs warns and --strict aborts).
+exclude_docs: |
+  README.md
+
 theme:
   name: material
   features:
@@ -87,7 +92,6 @@ nav:
       - Overview: architecture/overview.md
   - API Reference:
       - API Overview: api/index.md
-      - API Reference: api/reference.md
   - Project Information:
       - Maintainers: project/MAINTAINERS.md
       - Contributors: project/CONTRIBUTORS.md

@@ -163,7 +163,8 @@ class ModelVersionManager:
         content = (
             f"{timestamp.isoformat()}{json.dumps(training_results, sort_keys=True, default=str)}"
         )
-        hash_object = hashlib.md5(content.encode())
+        # Not a security hash -- just a short, stable id for the version folder.
+        hash_object = hashlib.md5(content.encode(), usedforsecurity=False)
         return f"v{timestamp.strftime('%Y%m%d_%H%M%S')}_{hash_object.hexdigest()[:8]}"
 
     def _extract_performance_metrics(

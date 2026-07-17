@@ -88,7 +88,8 @@ def list_installed_models(
     """
     url = f"{base_url.rstrip('/')}/api/tags"
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310 (local URL)
+        # Fixed http(s) Ollama endpoint from config, not user input.
+        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310  # nosec B310
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
         logger.warning("Could not query Ollama at %s: %s", url, exc)
