@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -63,9 +64,20 @@ class PromptStore:
             return {"active": None, "versions": {}}
 
     def _save_registry(self, role: AgentRole | str, registry: dict[str, Any]) -> None:
-        self._registry_path(role).write_text(
-            json.dumps(registry, indent=2, default=str), encoding="utf-8"
-        )
+        """Write the registry atomically.
+
+        The registry is what rollback depends on, so it must never be left
+        half-written: serialize first, write to a temp file in the same
+        directory, then os.replace() (atomic on POSIX and Windows).
+        """
+        path = self._registry_path(role)
+        payload = json.dumps(registry, indent=2, default=str)
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        try:
+            tmp.write_text(payload, encoding="utf-8")
+            os.replace(tmp, path)
+        finally:
+            tmp.unlink(missing_ok=True)
 
     # -- public api ----------------------------------------------------------
 
@@ -90,7 +102,10 @@ class PromptStore:
         if parent_id is not None and parent_id not in registry["versions"]:
             raise KeyError(f"Unknown parent version: {parent_id}")
         role_name = _role_value(role)
-        seq = len(registry["versions"]) + 1
+        # Monotonic counter rather than len(versions): if a version is ever pruned
+        # the length drops and ids could collide with an existing one (the
+        # timestamp only has second granularity). Older registries lack the key.
+        seq = int(registry.get("next_seq") or len(registry["versions"]) + 1)
         version_id = f"{role_name}-v{seq}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
         version = PromptVersion(
@@ -107,6 +122,7 @@ class PromptStore:
         meta = version.to_dict()
         meta.pop("prompt_text")  # text lives in the .md file, not the registry
         registry["versions"][version_id] = meta
+        registry["next_seq"] = seq + 1
         if make_active:
             registry["active"] = version_id
         self._save_registry(role, registry)

@@ -133,6 +133,76 @@ async def test_guardrail_rejection_skips_revalidation(tmp_path):
     assert len(coder.calls) == 1
 
 
+class ExplodingProvider:
+    """Raises on every call, like an unreachable Ollama."""
+
+    model = "boom"
+
+    def __init__(self, exc: Exception | None = None):
+        self.exc = exc or RuntimeError("ollama unreachable")
+
+    async def submit_prompt(self, prompt: str, **kwargs) -> str:
+        raise self.exc
+
+
+@pytest.mark.asyncio
+async def test_provider_failure_yields_failed_cycle_not_crash(tmp_path):
+    """A provider blip must not take down a long-running loop."""
+    mgr = _manager(tmp_path, ExplodingProvider(), SequenceProvider(["- none\nSCORE: 9/10"]))
+
+    result = await mgr.run_cycle(TaskSpec(id="t1", description="Write add"))
+
+    assert result.failed is True
+    assert not result.evolved
+    assert not result.accepted
+    assert "cycle failed" in result.reason
+    # The active prompt is untouched by a failed cycle.
+    assert len(mgr.store.list_versions(AgentRole.CODER)) == 1
+
+
+@pytest.mark.asyncio
+async def test_reviewer_failure_yields_failed_cycle(tmp_path):
+    mgr = _manager(tmp_path, SequenceProvider([CODE_GOOD]), ExplodingProvider())
+
+    result = await mgr.run_cycle(TaskSpec(id="t1", description="Write add"))
+
+    assert result.failed is True
+    assert "cycle failed" in result.reason
+
+
+@pytest.mark.asyncio
+async def test_exactly_meeting_the_gain_is_accepted(tmp_path):
+    """A candidate that exactly meets min_score_gain must not be lost to float error.
+
+    0.05 + 0.1 == 0.15000000000000002 in binary floating point, so a score_after of
+    exactly 0.15 fails a naive `>=` and the improvement would be rolled back.
+    """
+    assert 0.05 + 0.1 > 0.15, "guard: this test must exercise the float-rounding case"
+
+    coder = SequenceProvider([CODE_BAD, CODE_GOOD])
+    reviewer = SequenceProvider(
+        [
+            "- wrong operator\nSCORE: 5/100",  # 0.05
+            _wrap(IMPROVED),
+            "- minor\nSCORE: 15/100",  # 0.15 == 0.05 + 0.1 exactly
+        ]
+    )
+    mgr = CoevolutionManager(
+        coder_provider=coder,
+        reviewer_provider=reviewer,
+        prompt_store=PromptStore(tmp_path / "p"),
+        evolver=PromptEvolver(reviewer, protected_markers=("ROLE: coder",)),
+        accept_threshold=0.7,
+        min_score_gain=0.1,
+    )
+
+    result = await mgr.run_cycle(TaskSpec(id="t1", description="Write add"))
+
+    assert result.score_before == pytest.approx(0.05)
+    assert result.score_after == pytest.approx(0.15)
+    assert result.accepted, "candidate exactly meeting min_score_gain must be accepted"
+
+
 def test_score_parsing_variants():
     assert CoevolutionManager._parse_score("blah\nSCORE: 10/10") == pytest.approx(1.0)
     assert CoevolutionManager._parse_score("SCORE: 5/10") == pytest.approx(0.5)

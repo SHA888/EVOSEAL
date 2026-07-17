@@ -138,6 +138,9 @@ class CoevolutionCycleResult:
     prompt_after_id: str | None = None
     score_after: float | None = None
     reason: str = ""
+    #: True when the cycle aborted (e.g. provider/network error) rather than
+    #: completing with a genuine score. Distinguishes failure from a real 0.0.
+    failed: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -152,4 +155,5 @@ class CoevolutionCycleResult:
             "prompt_after_id": self.prompt_after_id,
             "score_after": self.score_after,
             "reason": self.reason,
+            "failed": self.failed,
         }

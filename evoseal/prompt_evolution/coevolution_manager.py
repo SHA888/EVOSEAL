@@ -43,6 +43,9 @@ logger = logging.getLogger(__name__)
 #: Stable header the coder prompt must always keep (guardrail marker).
 CODER_ROLE_MARKER = "ROLE: coder"
 
+#: Tolerance for the accept-threshold comparison (binary float rounding).
+_SCORE_EPSILON = 1e-9
+
 DEFAULT_CODER_PROMPT = (
     f"# {CODER_ROLE_MARKER}\n"
     "You are a precise code-writing agent. For each task:\n"
@@ -100,8 +103,33 @@ class CoevolutionManager:
             active = self.store.seed(AgentRole.CODER, DEFAULT_CODER_PROMPT)
         prompt_before = active.prompt_text
 
-        attempt = await self._generate(task, prompt_before)
-        critique = await self._review(task, attempt)
+        # A provider/network failure must not take down a long-running loop (the
+        # evolve step is already defensive); surface it as a failed cycle instead.
+        try:
+            attempt = await self._generate(task, prompt_before)
+            critique = await self._review(task, attempt)
+        except Exception as exc:
+            logger.error("[%s] cycle failed: %s", cycle_id, exc)
+            return CoevolutionCycleResult(
+                cycle_id=cycle_id,
+                task_id=task.id,
+                attempt=CodeAttempt(
+                    task_id=task.id,
+                    model=getattr(self.coder, "model", "unknown"),
+                    code="",
+                    raw_response="",
+                ),
+                critique=ReviewCritique(
+                    task_id=task.id,
+                    model=getattr(self.reviewer, "model", "unknown"),
+                    score=0.0,
+                    summary=f"cycle failed: {exc}",
+                ),
+                prompt_before_id=active.version_id,
+                score_before=0.0,
+                failed=True,
+                reason=f"cycle failed: {exc}",
+            )
         score_before = critique.score
 
         result = CoevolutionCycleResult(
@@ -136,7 +164,10 @@ class CoevolutionManager:
         score_after = recritique.score
         result.score_after = score_after
 
-        if score_after >= score_before + self.min_score_gain:
+        # Epsilon guard: score_before + min_score_gain can land just above the
+        # intended threshold in binary floating point (0.3 + 0.05 -> 0.35000000000000003),
+        # which would reject a candidate that exactly meets the bar.
+        if score_after >= score_before + self.min_score_gain - _SCORE_EPSILON:
             new_version = self.store.register(
                 AgentRole.CODER,
                 proposal.new_prompt,
