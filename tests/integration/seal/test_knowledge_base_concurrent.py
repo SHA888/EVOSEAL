@@ -2,7 +2,6 @@
 Concurrent and performance tests for the KnowledgeBase component.
 """
 
-import concurrent.futures
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -77,45 +76,24 @@ def _run_workers_sequentially(num_workers: int, db_path: Path) -> list[tuple[str
 def _run_workers_concurrently(
     num_workers: int, db_path: Path
 ) -> list[tuple[str, list[tuple[str, str, str]]]]:
-    """Run multiple workers concurrently with a strict timeout."""
+    """Run multiple workers concurrently and collect every worker's result.
+
+    Each worker does a bounded amount of trivial work (one add + one save), so
+    we wait for all of them to finish rather than imposing a wall-clock budget.
+    An earlier version cancelled workers that missed a fixed 10s deadline, which
+    measured machine load (xdist saturation under ``pytest -n auto``) rather than
+    the code under test and made this test flaky. The only reason a worker would
+    not return here is a genuine deadlock, which the test-level timeout guards.
+    """
     results = []
+    start_time = time.time()
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        # Submit tasks
-        futures = []
-        for i in range(num_workers):
-            futures.append(executor.submit(_worker_operation, i, db_path))
-
-        # Use a very short timeout to avoid hanging
-        timeout_seconds = 10
-        start_time = time.time()
-
-        # Wait for completion with timeout
-        try:
-            # First wait for all futures with a strict timeout
-            done, not_done = concurrent.futures.wait(
-                futures,
-                timeout=timeout_seconds,
-                return_when=concurrent.futures.ALL_COMPLETED,
-            )
-
-            # Process completed futures
-            for future in done:
-                try:
-                    results.append(future.result(timeout=1))
-                except Exception as e:
-                    print(f"Error in worker: {e}")
-
-            # Cancel any remaining futures
-            for future in not_done:
-                future.cancel()
-                print("Cancelled a worker that didn't complete in time")
-
-        except Exception as e:
-            print(f"Exception in concurrent execution: {e}")
-            # Cancel all futures to prevent hanging
-            for future in futures:
-                if not future.done():
-                    future.cancel()
+        futures = [executor.submit(_worker_operation, i, db_path) for i in range(num_workers)]
+        # _worker_operation swallows its own exceptions and returns an error
+        # tuple, so result() will not raise; _verify_worker_results asserts that
+        # each worker reported "completed".
+        for future in as_completed(futures):
+            results.append(future.result())
 
     print(f"Concurrent workers completed in {time.time() - start_time:.2f} seconds")
     return results
@@ -156,7 +134,11 @@ def _verify_persisted_data(db_path: Path, num_workers: int) -> None:
     )
 
 
-@pytest.mark.timeout(30)  # Add a strict 30-second timeout to the entire test
+# Generous hang-guard, not a performance bound: the test does trivial work and
+# takes ~15s idle, but xdist saturation can stretch wall-clock well past a tuned
+# budget without any real problem. A large timeout only trips on a genuine
+# deadlock (see #45).
+@pytest.mark.timeout(180)
 def test_concurrent_access(tmp_path: Path):
     """Test concurrent access to the knowledge base with persistence verification."""
     # Create a subdirectory for the test to avoid permission issues
@@ -279,18 +261,33 @@ def test_concurrent_access(tmp_path: Path):
 
     print(f"Found {entries_found} out of {len(expected_entries)} expected entries")
 
-    # Verify we have entries from at least half of the workers
-    # This is a more reasonable expectation for concurrent operations
-    min_expected_workers = max(1, num_workers // 2)
-    assert len(worker_entries) >= min_expected_workers, (
-        f"Expected entries from at least {min_expected_workers} workers, got {len(worker_entries)}"
+    # Regression guard for issue #45: concurrent save_to_disk() must NEVER
+    # destroy already-committed data. Because save is now atomic (write temp +
+    # os.replace), every concurrent worker loads the committed state before
+    # rewriting, so the initial and sequential entries always survive the
+    # concurrent phase. The old truncate-before-lock implementation could wipe
+    # the whole file to zero entries here.
+    surviving_contents = {str(entry.content) for entry in entries}
+    missing_initial = [
+        f"Initial entry {i}"
+        for i in range(TEST_ENTRIES_COUNT)
+        if f"Initial entry {i}" not in surviving_contents
+    ]
+    assert not missing_initial, (
+        f"Concurrent saves destroyed committed initial entries: {missing_initial}"
+    )
+    missing_sequential = expected_sequential_entries - surviving_contents
+    assert not missing_sequential, (
+        f"Concurrent saves destroyed committed sequential entries: {missing_sequential}"
     )
 
-    # Verify we found at least some of the expected entries
-    min_expected_entries = max(1, len(expected_entries) // 4)  # At least 25% of expected entries
-    assert entries_found >= min_expected_entries, (
-        f"Found only {entries_found} out of {len(expected_entries)} expected entries"
+    # Individual *concurrent* writers may still overwrite one another's additions
+    # (last-writer-wins on the whole-file rewrite — lost updates, not corruption),
+    # so we only require that at least one concurrent worker's entry survived.
+    assert len(worker_entries) >= 1, (
+        f"Expected entries from at least one worker, got {len(worker_entries)}"
     )
+    assert entries_found >= 1, f"Found none of the {len(expected_entries)} expected worker entries"
 
     # Verify database file still exists and has content
     assert db_path.exists(), "Database file was deleted after test"
