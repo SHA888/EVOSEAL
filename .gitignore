@@ -193,10 +193,15 @@ out/
 # EVOSEAL runtime state (pipeline state, rollback targets, logs)
 .evoseal/
 
-# Submodule directories (tracked as gitlinks — listed here for tooling clarity)
-dgm/
-openevolve/
-SEAL/
+# Submodule directories (tracked as gitlinks — listed here for tooling clarity).
+# Anchored to the repo root: an unanchored "openevolve/" matches a dir of that
+# name at ANY depth, and ruff/other gitignore-respecting tools then silently skip
+# tracked package code and tests under evoseal/integration/{dgm,openevolve} and
+# tests/integration/{dgm,openevolve}. The leading slash confines the ignore to
+# the top-level submodules.
+/dgm/
+/openevolve/
+/SEAL/
 
 # Local tooling state
 .claude-plugin/
