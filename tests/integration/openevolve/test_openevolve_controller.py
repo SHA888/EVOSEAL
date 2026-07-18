@@ -53,7 +53,6 @@ try:
                 sys.path.insert(0, path)
 
         # Import the openevolve package
-        import openevolve
         from openevolve.config import Config, LLMConfig, LLMModelConfig, PromptConfig, load_config
 
         # Now import the specific modules we need
@@ -63,6 +62,8 @@ try:
         from openevolve.evaluator import Evaluator
         from openevolve.llm.ensemble import LLMEnsemble
         from openevolve.prompt.sampler import PromptSampler
+
+        import openevolve
 
         # Mock setup_logging since it's not available in the utils package
         def setup_logging(*args, **kwargs):

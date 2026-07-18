@@ -13,9 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from typer.testing import CliRunner
-
 from evoseal.integration.openevolve.cli.main import app
+from typer.testing import CliRunner
 
 # Constants for test values
 GENERATIONS = 5
@@ -250,9 +249,9 @@ def test_fitness_calculation(test_project: Path, metric: str, weight: float):
 
         # Verify the score is calculated correctly
         expected_score = individual.fitness[metric] * weight
-        assert score == pytest.approx(
-            expected_score, abs=1e-6
-        ), f"Fitness score not correctly weighted for {metric}"
+        assert score == pytest.approx(expected_score, abs=1e-6), (
+            f"Fitness score not correctly weighted for {metric}"
+        )
 
     except ImportError as e:
         pytest.skip(f"Could not import OpenEvolve components: {e}")
