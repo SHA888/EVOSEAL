@@ -10,6 +10,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -57,7 +58,6 @@ class KnowledgeBase:
     SAVE_LOCK_TIMEOUT = 2  # seconds
     MAX_RETRIES = 3
     DEFAULT_SEARCH_LIMIT = 10
-    RETRY_BACKOFF_BASE = 0.1  # seconds
     SAVE_RETRY_BACKOFF_BASE = 0.2  # seconds
     JSON_INDENT = 2
 
@@ -313,59 +313,45 @@ class KnowledgeBase:
         if not save_path:
             raise ValueError("No storage path provided")
 
-        # Create a snapshot without holding the lock for too long
-        entries_snapshot = {}
+        # Snapshot the entries under the in-memory lock. If the lock cannot be
+        # acquired, abort the save rather than writing an empty snapshot over
+        # previously persisted data.
+        if not self._lock.acquire(timeout=self.SAVE_LOCK_TIMEOUT):
+            raise RuntimeError("Could not acquire lock to snapshot entries for save")
         try:
-            # Use a non-blocking lock acquisition with timeout
-            if self._lock.acquire(timeout=self.SAVE_LOCK_TIMEOUT):
-                try:
-                    # Create a deep copy of entries to avoid race conditions during serialization
-                    for entry_id, entry in self.entries.items():
-                        entries_snapshot[entry_id] = entry.model_copy(deep=True)
-                finally:
-                    self._lock.release()
-            else:
-                # If we couldn't get the lock, log a warning and continue with empty snapshot
-                print("WARNING: Could not acquire lock for reading entries, using empty snapshot")
-        except Exception as e:
-            print(f"Error acquiring lock: {e}")
-            # Continue with whatever entries we have
+            entries_snapshot = {
+                entry_id: entry.model_copy(deep=True) for entry_id, entry in self.entries.items()
+            }
+        finally:
+            self._lock.release()
 
-        # Then perform file operations
+        data = {"entries": [entry.model_dump() for entry in entries_snapshot.values()]}
+
+        # Write to a temporary file in the same directory, then atomically
+        # replace the target with os.replace(). This guarantees the target is
+        # never truncated in place: a concurrent or failed save can never leave
+        # it empty or half-written. Racing writers may still overwrite one
+        # another's additions (last writer wins), but committed data is never
+        # destroyed. The previous implementation opened the target with mode "w"
+        # (truncating it) *before* taking the file lock, so a lost race wiped the
+        # file entirely -- see issue #45.
+        save_path_abs = os.path.abspath(save_path)
+        directory = os.path.dirname(save_path_abs)
+        os.makedirs(directory, exist_ok=True)
+
+        fd, tmp_path = tempfile.mkstemp(prefix=".kb-", suffix=".tmp", dir=directory)
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
-
-            # Use exclusive lock for writing, but with a timeout
-            with open(save_path, "w") as f:
-                # Use non-blocking lock with retry
-                max_retries = 3
-                for retry in range(max_retries):
-                    try:
-                        # Try to get a non-blocking lock
-                        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        try:
-                            data = {
-                                "entries": [
-                                    entry.model_dump() for entry in entries_snapshot.values()
-                                ]
-                            }
-                            json.dump(data, f, indent=self.JSON_INDENT, default=str)
-                            f.flush()  # Flush to OS buffer
-                            os.fsync(f.fileno())  # Force OS to write to disk
-                            break  # Successfully wrote data, exit retry loop
-                        finally:
-                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
-                    except OSError as e:
-                        if retry < max_retries - 1:
-                            # Wait a bit before retrying
-                            time.sleep(self.RETRY_BACKOFF_BASE * (retry + 1))
-                        else:
-                            # On last retry, raise the exception
-                            raise RuntimeError(
-                                f"Could not acquire file lock after {max_retries} retries"
-                            ) from e
+            with os.fdopen(fd, "w") as f:
+                json.dump(data, f, indent=self.JSON_INDENT, default=str)
+                f.flush()  # Flush to OS buffer
+                os.fsync(f.fileno())  # Force OS to write to disk before rename
+            os.replace(tmp_path, save_path_abs)  # Atomic on POSIX
         except Exception as e:
+            # Never leave the temp file behind or touch the target on failure.
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
             raise RuntimeError(f"Failed to save knowledge base: {e}") from e
 
     def load_from_disk(self, path: str | Path) -> None:
