@@ -98,8 +98,8 @@ checkpoints for fast, safe rollback.
 
 ## 5. References
 
-- [`evoseal/core/checkpoint_manager.py`](../../evoseal/core/checkpoint_manager.py) — checkpoint creation/restoration.
-- [`evoseal/core/rollback_manager.py`](../../evoseal/core/rollback_manager.py) — safe rollback with target validation.
-- [`evoseal/core/version_database.py`](../../evoseal/core/version_database.py) — version tracking.
+- [`evoseal/core/checkpoint_manager.py`](https://github.com/SHA888/EVOSEAL/blob/main/evoseal/core/checkpoint_manager.py) — checkpoint creation/restoration.
+- [`evoseal/core/rollback_manager.py`](https://github.com/SHA888/EVOSEAL/blob/main/evoseal/core/rollback_manager.py) — safe rollback with target validation.
+- [`evoseal/core/version_database.py`](https://github.com/SHA888/EVOSEAL/blob/main/evoseal/core/version_database.py) — version tracking.
 - [`docs/architecture/core/version_control_experiment_tracking.md`](../architecture/core/version_control_experiment_tracking.md) — version control architecture.
 - [`docs/adr/0001-isolation-strategy.md`](0001-isolation-strategy.md) — ADR 0001 (rollback vs sandbox decision).
