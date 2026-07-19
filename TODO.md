@@ -104,7 +104,7 @@
 > generator never consults the fine-tuning registry. These items close those gaps.
 
 - [ ] **Wire daemon to real EvolutionPipeline** — `continuous_evolution_service.py:174` `_run_evolution_cycle` only reads `get_statistics()` and simulates; must invoke `EvolutionPipeline` instead
-- [ ] **FIX: training call uses nonexistent method** — `continuous_evolution_service.py:234` calls `training_manager.start_training()` which does not exist; the real method is `run_training_cycle` at `training_manager.py:195` → `AttributeError` if reached
+- [x] **FIX: training call uses nonexistent method** _(done 2026-07-19, commit fix/training-method-name-bug)_ — `continuous_evolution_service.py:234` called `training_manager.start_training()` which did not exist; changed to `run_training_cycle()` and fixed `validation_passed` → `validation_results.passed`
 - [ ] **validate_model must serve the fine-tuned model, not baseline** — `model_validator.py:211,247,306,371,436` all use `OllamaProvider(model=self.baseline_model)`, ignoring the `model_path` argument; must load the fine-tuned model for validation
 - [ ] **Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry; need actual deployment (Modelfile / `ollama create` / symlink) so the serving layer can load the model
 - [ ] **Generation must consult the fine-tuning registry** — `version_manager.get_current_version()` has zero callers; the generator (`integration/seal/*`, `evolution_pipeline.py`, `providers/local_models.py resolve_model`) must consult it to use the deployed fine-tuned model
@@ -211,9 +211,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 11    | 9    | Safety config path gap + Tier 2 deferred open |
-| 🟡 P2    | 17    | 0    | Co-evolution loop gaps (7 items) + existing P2 |
+| 🟡 P2    | 17    | 1    | Co-evolution loop gaps (7 items, 1 done) + existing P2 |
 | 🟢 P3    | 14    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete |
-| **Total** | **47** | **20** | |
+| **Total** | **47** | **21** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
