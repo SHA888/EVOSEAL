@@ -187,9 +187,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 10    | 9    | Safety config path gap open |
-| 🟡 P2    | 9     | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
-| 🟢 P3    | 10    | 4    | Makefile, pre-commit, Docker, CHANGELOG pending |
-| **Total** | **34** | **18** | |
+| 🟡 P2    | 10    | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
+| 🟢 P3    | 12    | 3    | Makefile, pre-commit, Docker complete |
+| **Total** | **37** | **17** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
