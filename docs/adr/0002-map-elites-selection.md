@@ -78,5 +78,5 @@ ability to explore alternatives. MAP-Elites addresses this by:
   Elites.* arXiv:1504.04909.
 - [`docs/architecture/overview.md`](../architecture/overview.md) — OpenEvolve
   component description.
-- [`evoseal/core/selection.py`](../../evoseal/core/selection.py) — EVOSEAL's
+- [`evoseal/core/selection.py`](https://github.com/SHA888/EVOSEAL/blob/main/evoseal/core/selection.py) — EVOSEAL's
   selection wrapper.

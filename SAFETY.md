@@ -86,4 +86,4 @@ uv run evoseal doctor
 - [AGENT.md](AGENT.md) — agent identity and constraints.
 - [EVOLUTION.md](EVOLUTION.md) — current evolution goals and state.
 - [docs/safety/threat_model.md](docs/safety/threat_model.md) — full threat model.
-- [docs/safety/sandbox_design.md](docs/safety/sandbox_design.md) — sandbox decision record.
+- [docs/adr/0001-isolation-strategy.md](docs/adr/0001-isolation-strategy.md) — sandbox decision record (ADR 0001).
