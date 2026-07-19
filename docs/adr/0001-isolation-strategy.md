@@ -130,7 +130,7 @@ follow-on tasks in Section 6.**
 | Tier | Mechanism | Status | Adopt when |
 |------|-----------|--------|-----------|
 | **Tier 0 — Recovery** | Git/checkpoint rollback (`rollback_manager.py`, `checkpoint_manager.py`) | **In place; keep** | Always on |
-| **Tier 1 — Containment (T1 + T2 windows)** | Edit-scope allowlist (T1) · scrubbed+network-restricted test env, read-only mounts, unprivileged user (T2) · hard iteration cap + stuck-generator circuit · `resource.setrlimit` on the test subprocess | **Implemented & default-on** (tasks 2.13–2.15, landed ~2026-06-28) | Always on |
+| **Tier 1 — Containment (T1 + T2 windows)** | Edit-scope allowlist (T1) · secret-scrubbed test env + read-only chmod of critical files + `resource.setrlimit` (T2) · hard iteration cap + stuck-generator circuit · network isolation + unprivileged-user deferred to Tier 1.5 (see §3) | **Implemented & default-on** (tasks 2.13–2.15, landed ~2026-06-28) | Always on |
 | **Tier 2 — Hard isolation** | Per-variant container/VM, network-off, no host secrets, resource-capped | **Deferred; documented** | Any trigger in Section 5 fires |
 
 > **Current state (honest):** **Tier 0 and Tier 1 are implemented.** All three Tier 1
