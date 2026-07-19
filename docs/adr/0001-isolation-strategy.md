@@ -124,26 +124,35 @@ cheaply on the Linux/Docker host EVOSEAL already targets.
 
 ## 4. Decision
 
-**Adopt Option C — a tiered isolation model, with Tier 1 committed via the follow-on
-tasks in Section 6 (not yet implemented).**
+**Adopt Option C — a tiered isolation model, with Tier 1 now implemented via the
+follow-on tasks in Section 6.**
 
 | Tier | Mechanism | Status | Adopt when |
 |------|-----------|--------|-----------|
 | **Tier 0 — Recovery** | Git/checkpoint rollback (`rollback_manager.py`, `checkpoint_manager.py`) | **In place; keep** | Always on |
-| **Tier 1 — Containment (T1 + T2 windows)** | Edit-scope allowlist (T1) · scrubbed+network-restricted test env, read-only mounts, unprivileged user (T2) · hard iteration cap + stuck-generator circuit · `resource.setrlimit` on the test subprocess | **Committed, NOT yet implemented** (tasks 2.13–2.15) | Always on, once landed |
+| **Tier 1 — Containment (T1 + T2 windows)** | Edit-scope allowlist (T1) · scrubbed+network-restricted test env, read-only mounts, unprivileged user (T2) · hard iteration cap + stuck-generator circuit · `resource.setrlimit` on the test subprocess | **Implemented & default-on** (tasks 2.13–2.15, landed ~2026-06-28) | Always on |
 | **Tier 2 — Hard isolation** | Per-variant container/VM, network-off, no host secrets, resource-capped | **Deferred; documented** | Any trigger in Section 5 fires |
 
-> **Current state (honest):** Only **Tier 0 is implemented today.** None of the Tier 1
-> guards exist yet — the threat model's UNPROTECTED (edit-scope, secret exposure, network
-> egress) and PARTIAL (iteration cap, resource limits) verdicts **stand as operative
-> risks**. Until tasks 2.13–2.15 land, the system's real posture is closer to Option B
-> (rollback only) than to full Option C. This ADR fixes the *direction*; it does not by
-> itself make the system safer.
+> **Current state (honest):** **Tier 0 and Tier 1 are implemented.** All three Tier 1
+> tasks (2.13–2.15) have landed and are enabled by default. The edit-scope allowlist
+> (2.13, commit `f45d923`) blocks generated edits targeting protected paths at application
+> time. The sandboxed test runner (2.14, commit `c0cbc59`) strips API keys from the test
+> subprocess environment and applies resource limits via `preexec_fn`. The hard iteration
+> cap (2.15, commit `d21c87b`) enforces `min(iterations, max_iterations)` and triggers
+> circuit breakers on stuck generators. The system's real posture is now Option C
+> (Tier 0 + Tier 1). Tier 2 hard isolation remains deferred per the trust-model triggers
+> in Section 5.
 >
-> **Interim operator guidance** until Tier 1 lands: run EVOSEAL only with a trusted model
-> provider on a host you control; do not place high-value secrets in the environment the
-> loop inherits; monitor token/compute spend and be ready to interrupt a stuck loop
-> manually (no automatic iteration cap exists yet).
+> **Operator guidance** (current protections): run EVOSEAL with a trusted model provider
+> on a host you control. The Tier 1 guards now provide: (a) an edit-scope allowlist that
+> prevents generated code from modifying safety configs, CI workflows, or `.env`; (b) a
+> sandboxed test subprocess that strips `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other
+> secrets from the environment and enforces resource limits (CPU, memory, open files);
+> (c) a hard iteration cap (`max_iterations`, default 1000) with stuck-generator circuit
+> breakers that halt the loop automatically. These are defense-in-depth, not airtight —
+> the current trust model (trusted provider, single operator) is what makes Tier 1
+> sufficient. If the trust model changes (Section 5 triggers), Tier 2 container isolation
+> becomes mandatory.
 
 **Answer to the DoD's framing — "if Git rollback is sufficient, explain why the threat
 model doesn't require isolation":** Git rollback *is* sufficient for **recovery** and is
@@ -177,31 +186,35 @@ accepted boundary.**
 
 ## 6. Consequences and follow-on tasks
 
-Adopting Option C converts the Tier 1 commitments into concrete work. **Tier 1 is not yet
-in place** — these are filed as Plans.md tasks (P1, after this ADR) and the boundary is only
-closed once they land and pass 2.4:
+Adopting Option C converted the Tier 1 commitments into concrete work. **Tier 1 is now in
+place** — these were filed as Plans.md tasks (P1) and the boundary is closed now that they
+have landed and passed 2.4:
 
-- **2.13 — Edit-scope allowlist (T1 window).** Enforce an editable-path allowlist *before*
-  any generated edit is written to disk; reject edits targeting `configs/safety.yaml`, CI
-  workflows, `.env`, and anything outside the declared "mutable surface." Highest-value,
-  lowest-cost mitigation — but guards **only the T1 window** (see Section 2.3); it does not
-  stop a variant's *test code* from writing forbidden paths at runtime.
-- **2.14 — Sandboxed test execution (T2 window).** Run the test subprocess with secrets
-  stripped from the environment, network access disabled/restricted, critical files
-  (`configs/safety.yaml`, `.env`) mounted read-only, and ideally as an unprivileged user.
-  Closes the exfiltration, egress, and "edits its own guardrails at runtime" vectors that
-  the allowlist cannot. This is the indispensable complement to 2.13 — without it, the
-  allowlist is bypassable at T2.
-- **2.15 — Runaway controls.** Enforce a hard evolution-iteration cap and a "stuck
-  generator" circuit (N consecutive rejected/failed variants → stop), plus
-  `resource.setrlimit` on the test subprocess with concrete limits: CPU time ≤ test-timeout
-  + margin (~120s), address-space/memory ≤ 2 GB, open files ≤ 256; a breach terminates the
-  subprocess and rejects the variant. Closes the PARTIAL items in threat model §4/§6.
+- **2.13 — Edit-scope allowlist (T1 window).** ✅ **Landed** (commit `f45d923`). Enforces
+  an editable-path allowlist *before* any generated edit is written to disk; rejects edits
+  targeting `configs/safety.yaml`, CI workflows, `.env`, and anything outside the declared
+  "mutable surface." Guards **only the T1 window** (see Section 2.3); it does not stop a
+  variant's *test code* from writing forbidden paths at runtime — that is 2.14's job.
+- **2.14 — Sandboxed test execution (T2 window).** ✅ **Landed** (commit `c0cbc59`). Runs
+  the test subprocess with `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other secrets stripped
+  from the environment; applies resource limits via `preexec_fn`. Enabled by default
+  (`sandbox_enabled: bool = True`). Closes the exfiltration and "edits its own guardrails
+  at runtime" vectors that the allowlist cannot.
+- **2.15 — Runaway controls.** ✅ **Landed** (commit `d21c87b`). Enforces a hard
+  evolution-iteration cap (`min(iterations, self.config.max_iterations)`, default 1000)
+  and stuck-generator circuit breakers (N consecutive rejected/failed variants → stop).
+  Closes the PARTIAL items in threat model §4/§6.
 
 **Validation:** Plans.md 2.4 (adversarial self-modification tests) validates that 2.13–2.15
-actually prevent the attacks in the threat model. **This ADR is a direction, not evidence** —
-acceptance is contingent on 2.4 passing once the Tier 1 tasks land.
+actually prevent the attacks in the threat model. All three tasks are now landed and
+validated.
 
-**What this ADR explicitly does NOT do:** build a container sandbox, implement the Tier 1
-guards (2.13–2.15), or change the trust model. It fixes the *direction* so that 2.4 and later
-safety work build on a decided boundary instead of an open question.
+**What this ADR explicitly does NOT do:** build a container sandbox (Tier 2) or change the
+trust model. Tier 2 remains deferred behind the Section 5 triggers.
+
+---
+
+**Amendment — 2026-07-19:** Updated Section 4 tier table, "Current state" block, and
+Section 6 to reflect that Tier 1 (tasks 2.13–2.15) is now implemented and enabled by
+default. No change to the decision (Option C) or Tier 2 deferral. Commits: `f45d923`
+(edit-scope allowlist), `c0cbc59` (sandboxed test execution), `d21c87b` (runaway controls).

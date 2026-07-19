@@ -57,6 +57,8 @@
   - Apply similar principle: DGM-generated pipeline variants should execute in isolated environments before touching the main codebase
   - Evaluate whether the current Git-based rollback is sufficient or whether a container-based isolation layer is needed
 
+- [ ] **Tier 2 container isolation (DEFERRED — trigger-gated per ADR 0001 section 5; implement only if a trust-model trigger fires, e.g. untrusted generation, multi-tenant host)**
+
 - [ ] **Fix missing `configs/safety.yaml` and `config/` vs `configs/` path discrepancy**
   - Multiple safety-critical modules reference `configs/safety.yaml` (plural `configs/`) as the immutable safety configuration, but neither that file nor a `configs/` directory exists
   - Only `config/` (singular) exists, containing `budget.yaml`, `logging.yaml`, etc. — no `safety.yaml`
@@ -162,6 +164,9 @@
 - [x] **Consolidate ADR 0001 into `docs/adr/`** _(done 2026-07-19)_
   - Moved `docs/safety/sandbox_design.md` → `docs/adr/0001-isolation-strategy.md` so all
     ADRs live in one directory; updated the index and all inbound references.
+- [x] **Refresh ADR 0001 to reflect implemented Tier 1 safety state** _(done 2026-07-19)_
+  - Updated tier table, "Current state" block, operator guidance, and Section 6 to reflect that Tier 1 (tasks 2.13–2.15) is now implemented and default-on
+
 - [ ] **Add a "How It Actually Works" tutorial**
   - Walk through a single evolution cycle step by step with real logs
   - Lower the barrier for new contributors
@@ -189,10 +194,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
-| 🟠 P1    | 10    | 9    | Safety config path gap open |
+| 🟠 P1    | 11    | 9    | Safety config path gap + Tier 2 deferred open |
 | 🟡 P2    | 10    | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
-| 🟢 P3    | 13    | 5    | Makefile, pre-commit, Docker, ADRs complete |
-| **Total** | **38** | **19** | |
+| 🟢 P3    | 14    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete |
+| **Total** | **40** | **20** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
