@@ -4,6 +4,8 @@ Start background processes for the EVOSEAL CLI.
 
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -55,6 +57,50 @@ def start_worker(
     typer.echo(f"Starting {worker_type} worker with {concurrency} processes")
     # TODO: Implement worker startup
     typer.echo(f"{worker_type} worker is not yet implemented.")
+
+
+@app.command("evolution")
+def start_evolution(
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Data directory for evolution and training data."),
+    ] = None,
+    evolution_interval: Annotated[
+        int,
+        typer.Option(
+            "--evolution-interval",
+            help="Seconds between evolution cycles.",
+        ),
+    ] = 3600,
+    training_check_interval: Annotated[
+        int,
+        typer.Option(
+            "--training-check-interval",
+            help="Seconds between training readiness checks.",
+        ),
+    ] = 1800,
+) -> None:
+    """Start the continuous evolution service (research-stage)."""
+    typer.echo(
+        "Research-stage: the bidirectional co-evolution loop is NOT yet closed — "
+        "the daemon currently simulates the evolution leg and does not deploy "
+        "fine-tuned weights back to generation. See TODO.md 'Close the bidirectional "
+        "co-evolution loop'. Starting the service for development/monitoring only."
+    )
+    try:
+        from evoseal.services.continuous_evolution_service import (
+            ContinuousEvolutionService,
+        )
+
+        service = ContinuousEvolutionService(
+            data_dir=data_dir,
+            evolution_interval=evolution_interval,
+            training_check_interval=training_check_interval,
+        )
+        asyncio.run(service.start())
+    except KeyboardInterrupt:
+        typer.echo("Stopped.")
+        raise SystemExit(0)
 
 
 if __name__ == "__main__":
