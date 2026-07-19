@@ -50,7 +50,7 @@ These are the next priorities from [TODO.md](TODO.md):
 
 ### P1 — Safety Hardening (done 2026-06-04)
 - Threat model written (`docs/safety/threat_model.md`)
-- Sandbox design decision record (`docs/safety/sandbox_design.md`)
+- Sandbox design decision record (`docs/adr/0001-isolation-strategy.md`)
 - Adversarial self-modification tests
 - Safety test CI job
 - End-to-end loop integration test

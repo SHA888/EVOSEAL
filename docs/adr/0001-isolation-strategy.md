@@ -3,7 +3,7 @@
 **Status:** Accepted (research-stage)
 **Date:** 2026-06-05
 **Deciders:** Project lead
-**Depends on:** [`threat_model.md`](./threat_model.md) (Plans.md 2.1)
+**Depends on:** [`threat_model.md`](../safety/threat_model.md) (Plans.md 2.1)
 **Drives:** Plans.md 2.4 (adversarial tests validate the chosen boundary), and the
 follow-on tasks enumerated in Section 6.
 

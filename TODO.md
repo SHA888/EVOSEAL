@@ -159,6 +159,9 @@
   - Why MAP-Elites over other evolutionary strategies?
   - Why SEAL over pure prompt engineering?
   - Why Git-based version control for self-edits?
+- [x] **Consolidate ADR 0001 into `docs/adr/`** _(done 2026-07-19)_
+  - Moved `docs/safety/sandbox_design.md` → `docs/adr/0001-isolation-strategy.md` so all
+    ADRs live in one directory; updated the index and all inbound references.
 - [ ] **Add a "How It Actually Works" tutorial**
   - Walk through a single evolution cycle step by step with real logs
   - Lower the barrier for new contributors
@@ -188,8 +191,8 @@
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 10    | 9    | Safety config path gap open |
 | 🟡 P2    | 10    | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
-| 🟢 P3    | 12    | 4    | Makefile, pre-commit, Docker, ADRs complete |
-| **Total** | **37** | **18** | |
+| 🟢 P3    | 13    | 5    | Makefile, pre-commit, Docker, ADRs complete |
+| **Total** | **38** | **19** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
