@@ -96,7 +96,7 @@ repos:
       - id: trufflehog
         name: trufflehog
         description: 'Find secrets in git history'
-        entry: trufflehog git file://. --since-commit HEAD --no-update --entropy=False --no-verification
+        entry: trufflehog git file://. --since-commit HEAD --no-update --no-entropy --no-verification
         language: system
         pass_filenames: false
         stages: [pre-push]
