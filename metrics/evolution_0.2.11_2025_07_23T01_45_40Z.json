@@ -26,7 +26,7 @@
   },
   "changes": {
     "features": [],
-    "fixes": [ - fix: slow down evolution frequency and add version control ],
+    "fixes": ["fix: slow down evolution frequency and add version control"],
     "performance_improvements": [],
     "documentation_updates": []
   },
