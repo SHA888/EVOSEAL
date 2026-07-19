@@ -230,15 +230,15 @@ class ContinuousEvolutionService:
             if training_status.get("ready_for_training", False):
                 logger.info("🚀 Starting fine-tuning process")
 
-                # Start training (this will run in background)
-                training_result = await training_manager.start_training()
+                # Run training cycle
+                training_result = await training_manager.run_training_cycle()
 
                 if training_result.get("success", False):
                     logger.info("✅ Training cycle completed successfully")
                     self.service_stats["training_cycles_triggered"] += 1
 
                     # Check if this resulted in an improvement
-                    if training_result.get("validation_passed", False):
+                    if training_result.get("validation_results", {}).get("passed", False):
                         self.service_stats["successful_improvements"] += 1
                         logger.info("🎉 Model improvement achieved!")
                 else:
