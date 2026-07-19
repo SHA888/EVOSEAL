@@ -155,7 +155,7 @@
 
 ### Documentation Polish
 
-- [ ] **Add architecture decision records (ADRs)**
+- [x] **Add architecture decision records (ADRs)** _(done 2026-07-19)_
   - Why MAP-Elites over other evolutionary strategies?
   - Why SEAL over pure prompt engineering?
   - Why Git-based version control for self-edits?
@@ -188,8 +188,8 @@
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 10    | 9    | Safety config path gap open |
 | 🟡 P2    | 10    | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
-| 🟢 P3    | 12    | 3    | Makefile, pre-commit, Docker complete |
-| **Total** | **37** | **17** | |
+| 🟢 P3    | 12    | 4    | Makefile, pre-commit, Docker, ADRs complete |
+| **Total** | **37** | **18** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
