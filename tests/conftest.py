@@ -38,10 +38,25 @@ def _git_identity() -> Generator[None, None, None]:
     }
     saved = {k: os.environ.get(k) for k in identity}
     os.environ.update(identity)
+
+    # A parent process (e.g. pre-commit, which sets these while stashing unstaged
+    # changes during a commit) can leave GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE set.
+    # Fixtures across the suite create isolated repos in temp dirs and shell out to
+    # `git` there; without stripping these, those calls get redirected onto the
+    # real repo instead of the temp dir, silently corrupting its index/working tree.
+    leak_vars = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")
+    saved_leaks = {k: os.environ.get(k) for k in leak_vars}
+    for k in leak_vars:
+        os.environ.pop(k, None)
     try:
         yield
     finally:
         for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        for key, value in saved_leaks.items():
             if value is None:
                 os.environ.pop(key, None)
             else:
@@ -72,19 +87,16 @@ def test_repo(temp_workdir: Path) -> Generator[Path, None, None]:
 
     # Create a sample Python file
     sample_file = repo_path / "sample.py"
-    sample_file.write_text(
-        """def add(a, b):
+    sample_file.write_text("""def add(a, b):
     return a + b
 
 def subtract(a, b):
     return a - b
-"""
-    )
+""")
 
     # Create a test file
     test_file = repo_path / "test_sample.py"
-    test_file.write_text(
-        """import unittest
+    test_file.write_text("""import unittest
 from sample import add, subtract
 
 class TestMath(unittest.TestCase):
@@ -96,8 +108,7 @@ class TestMath(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-"""
-    )
+""")
 
     # Add and commit the files
     repo.index.add(["sample.py", "test_sample.py"])
