@@ -17,6 +17,14 @@ backing model (Devstral via Ollama). The three sub-phases are:
 | Phase 2 | Fine-tuning infrastructure (`evoseal/fine_tuning/`) | Done |
 | Phase 3 | Continuous evolution service + dashboard (`evoseal/services/`) | Done |
 
+> **Maturity caveat (2026-07-19):** The Phase 3 *modules* are built, but the bidirectional
+> loop is not yet closed. Key gaps: the daemon simulates evolution instead of running the
+> pipeline; the training call has a method-name bug; model validation tests the baseline
+> model rather than fine-tuned weights; deployment only writes to a JSON registry with no
+> serving-layer integration; and the generator never consults the fine-tuning registry.
+> Phase 3 is therefore architectural scaffolding, not yet operational co-evolution.
+> See TODO.md ‘Close the bidirectional co-evolution loop’ for the specific gaps.
+
 ## Active goals (P2 — Medium Priority)
 
 These are the next priorities from [TODO.md](TODO.md):
