@@ -57,6 +57,13 @@
   - Apply similar principle: DGM-generated pipeline variants should execute in isolated environments before touching the main codebase
   - Evaluate whether the current Git-based rollback is sufficient or whether a container-based isolation layer is needed
 
+- [ ] **Fix missing `configs/safety.yaml` and `config/` vs `configs/` path discrepancy**
+  - Multiple safety-critical modules reference `configs/safety.yaml` (plural `configs/`) as the immutable safety configuration, but neither that file nor a `configs/` directory exists
+  - Only `config/` (singular) exists, containing `budget.yaml`, `logging.yaml`, etc. — no `safety.yaml`
+  - Referenced by: `evoseal/core/edit_scope_validator.py` (lines 27, 52, 80), `evoseal/core/safety_integration.py` (line 286), `evoseal/core/testrunner.py` (line 652), `evoseal/cli/commands/doctor.py` (line 181), and multiple safety tests
+  - Impact: `evoseal doctor` reports 'safety.yaml not found'; edit-scope allowlist references a nonexistent path; safety tests assert against a file that does not exist on disk
+  - Resolve by deciding whether the canonical path is `config/safety.yaml` or `configs/safety.yaml`, creating the file with appropriate defaults, and updating all references to match
+
 ### Integration Testing
 
 - [x] **End-to-end loop test** _(done — Plans.md 2.6, commit 3eb6f8a)_
@@ -179,10 +186,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
-| 🟠 P1    | 9     | 9    | All complete — see Plans.md Phase 2 (2.1-2.15) |
+| 🟠 P1    | 10    | 9    | Safety config path gap open |
 | 🟡 P2    | 9     | 0    | In progress — see Plans.md Phase 3 (3.1-3.12) |
 | 🟢 P3    | 10    | 4    | Makefile, pre-commit, Docker, CHANGELOG pending |
-| **Total** | **33** | **18** | |
+| **Total** | **34** | **18** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
