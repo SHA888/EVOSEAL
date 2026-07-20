@@ -93,12 +93,6 @@ def main(
 
     A unified command-line interface for the EVOSEAL system.
     """
-    # This will only be reached if no subcommand is provided and --version is not used
-    if len(sys.argv) == 1:
-        # Use the context to show help
-        ctx = typer.Context(typer.main.get_command(app))
-        typer.echo(ctx.get_help())
-        raise typer.Exit()
 
 
 def run() -> None:
