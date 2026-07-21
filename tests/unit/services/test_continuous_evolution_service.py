@@ -348,8 +348,15 @@ async def test_run_evolution_cycle_malformed_item_does_not_abort_batch(tmp_path)
     """
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
     mock_pipeline.run_evolution_cycle.return_value = [
-        # Malformed: metrics is None, which would cause TypeError on 'fitness' not in None
-        {"iteration": 1, "success": True, "metrics": None},
+        # Malformed: metrics is None, which would cause TypeError on metrics.get('fitness')
+        # (requires original_code/improved_code to pass the codeless-result skip)
+        {
+            "iteration": 1,
+            "success": True,
+            "metrics": None,
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
         # Good result should still be processed
         {
             "iteration": 2,
@@ -368,6 +375,8 @@ async def test_run_evolution_cycle_malformed_item_does_not_abort_batch(tmp_path)
     # Cycle must be marked completed (not errored)
     assert svc.service_stats["evolution_cycles_completed"] == 1
     assert svc.service_stats["evolution_cycle_errors"] == 0
+    # The malformed item must have been counted as skipped
+    assert svc.service_stats["results_skipped"] == 1
 
 
 @pytest.mark.unit
@@ -400,6 +409,8 @@ async def test_run_evolution_cycle_non_dict_item_does_not_abort_batch(tmp_path):
     # Cycle must be marked completed (not errored)
     assert svc.service_stats["evolution_cycles_completed"] == 1
     assert svc.service_stats["evolution_cycle_errors"] == 0
+    # The three non-dict items must have been counted as skipped
+    assert svc.service_stats["results_skipped"] == 3
 
 
 @pytest.mark.unit
@@ -457,6 +468,34 @@ def test_get_pipeline_raises_when_config_lacks_model_dump(tmp_path):
 
     with pytest.raises(TypeError, match="has no model_dump"):
         svc._get_pipeline()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_logs_config_error_at_critical(tmp_path):
+    """TypeError from _get_pipeline must be logged at CRITICAL with guidance.
+
+    Without distinct handling, the TypeError is swallowed by the generic
+    `except Exception` and logged as a generic "Error in evolution cycle",
+    burying the actionable guidance.
+    """
+    bad_config = MagicMock(spec=[])  # no model_dump attribute
+    mock_dc = MagicMock()
+    mock_dc.collect_result = AsyncMock()
+    with (
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionDataCollector",
+            return_value=mock_dc,
+        ),
+        patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
+    ):
+        svc = ContinuousEvolutionService(data_dir=tmp_path / "svc", config=bad_config)
+
+    # _run_evolution_cycle must not raise
+    await svc._run_evolution_cycle()
+
+    assert svc.service_stats["evolution_cycles_completed"] == 0
+    assert svc.service_stats["evolution_cycle_errors"] == 1
 
 
 # --- _check_training_readiness key-path tests ---

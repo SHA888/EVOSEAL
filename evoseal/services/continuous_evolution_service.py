@@ -90,6 +90,7 @@ class ContinuousEvolutionService:
         self.service_stats = {
             "evolution_cycles_completed": 0,
             "evolution_cycle_errors": 0,
+            "results_skipped": 0,
             "training_cycles_triggered": 0,
             "successful_improvements": 0,
             "total_uptime_seconds": 0,
@@ -224,6 +225,7 @@ class ContinuousEvolutionService:
                     # aborting the whole batch via AttributeError.
                     if not isinstance(result, dict):
                         logger.warning(f"Skipping non-dict pipeline result: {result!r}")
+                        self.service_stats["results_skipped"] += 1
                         continue
 
                     success = result.get("success")
@@ -238,7 +240,7 @@ class ContinuousEvolutionService:
                             f"failed: {result.get('error', 'unknown')}"
                         )
 
-                    # Only persist successful results with meaningful fitness.
+                    # Only persist successful results with numeric (non-bool) fitness.
                     # Failed iterations have no useful code output for fine-tuning,
                     # and counting them toward total_collected would inflate the
                     # training-readiness sample count with garbage data.
@@ -260,7 +262,7 @@ class ContinuousEvolutionService:
 
                     metrics = result.get("metrics", {})
                     fitness = metrics.get("fitness")
-                    if not isinstance(fitness, (int, float)):
+                    if isinstance(fitness, bool) or not isinstance(fitness, (int, float)):
                         # No real (numeric) fitness signal to persist — defaulting one
                         # in, or trusting a non-numeric placeholder, would inject
                         # fabricated training signal, same reasoning as the
@@ -270,6 +272,7 @@ class ContinuousEvolutionService:
                             f"a numeric 'fitness' (got {fitness!r}); skipping data_collector "
                             "persistence"
                         )
+                        self.service_stats["results_skipped"] += 1
                         continue
 
                     # Persist result to data_collector so training readiness checks see it
@@ -289,11 +292,13 @@ class ContinuousEvolutionService:
                         logger.warning(
                             f"Failed to persist evolution result to data_collector: {collect_err}"
                         )
+                        self.service_stats["results_skipped"] += 1
                 except Exception as item_err:
                     logger.warning(
                         f"Skipping malformed pipeline result {result!r}: {item_err}",
                         exc_info=True,
                     )
+                    self.service_stats["results_skipped"] += 1
 
             # Update statistics
             self.service_stats["evolution_cycles_completed"] += 1
@@ -301,6 +306,13 @@ class ContinuousEvolutionService:
 
             logger.info("✅ Evolution cycle completed")
 
+        except TypeError as e:
+            logger.critical(
+                f"Configuration error in evolution cycle: {e}\n"
+                "Hint: inject a pre-built pipeline via the `pipeline` constructor "
+                "parameter, or pass a config that implements model_dump()."
+            )
+            self.service_stats["evolution_cycle_errors"] += 1
         except Exception as e:
             logger.error(f"Error in evolution cycle: {e}")
             self.service_stats["evolution_cycle_errors"] += 1
