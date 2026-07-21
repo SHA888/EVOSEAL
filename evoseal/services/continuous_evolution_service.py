@@ -9,6 +9,7 @@ and deployment.
 import asyncio
 import json
 import logging
+import math
 import signal
 import sys
 from datetime import datetime, timedelta
@@ -16,7 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from ..config import SEALConfig
+from ..core.evolution_pipeline import EvolutionPipeline
 from ..evolution import EvolutionDataCollector
+from ..evolution.data_collector import create_evolution_result
+from ..evolution.models import EvolutionStrategy
 from ..fine_tuning import BidirectionalEvolutionManager
 
 logger = logging.getLogger(__name__)
@@ -37,6 +41,8 @@ class ContinuousEvolutionService:
         evolution_interval: int = 3600,  # 1 hour
         training_check_interval: int = 1800,  # 30 minutes
         min_evolution_samples: int = 50,
+        pipeline: EvolutionPipeline | None = None,
+        evolution_iterations: int = 1,
     ):
         """
         Initialize the continuous evolution service.
@@ -47,6 +53,11 @@ class ContinuousEvolutionService:
             evolution_interval: Seconds between evolution cycles
             training_check_interval: Seconds between training readiness checks
             min_evolution_samples: Minimum samples needed to trigger training
+            pipeline: Pre-constructed EvolutionPipeline instance.  When *None*
+                (the default) the service creates one lazily on first use via
+                ``_get_pipeline``.
+            evolution_iterations: Number of iterations passed to
+                ``EvolutionPipeline.run_evolution_cycle`` on each cycle.
         """
         self.config = config or SEALConfig()
         self.data_dir = data_dir or Path("data/continuous_evolution")
@@ -56,8 +67,10 @@ class ContinuousEvolutionService:
         self.evolution_interval = timedelta(seconds=evolution_interval)
         self.training_check_interval = timedelta(seconds=training_check_interval)
         self.min_evolution_samples = min_evolution_samples
+        self.evolution_iterations = evolution_iterations
 
         # Initialize components
+        self._pipeline = pipeline
         self.data_collector = EvolutionDataCollector(data_dir=self.data_dir / "evolution_data")
 
         self.bidirectional_manager = BidirectionalEvolutionManager(
@@ -77,6 +90,9 @@ class ContinuousEvolutionService:
         # Statistics
         self.service_stats = {
             "evolution_cycles_completed": 0,
+            "evolution_cycle_errors": 0,
+            "results_skipped": 0,
+            "results_failed": 0,
             "training_cycles_triggered": 0,
             "successful_improvements": 0,
             "total_uptime_seconds": 0,
@@ -171,19 +187,143 @@ class ContinuousEvolutionService:
                 logger.error(f"Error in service loop: {e}")
                 await asyncio.sleep(60)  # Wait before retrying
 
+    def _get_pipeline(self) -> EvolutionPipeline:
+        """Lazily initialise the EvolutionPipeline on first use."""
+        if self._pipeline is None:
+            if hasattr(self.config, "model_dump"):
+                seal_config = self.config.model_dump()
+            else:
+                raise TypeError(
+                    f"Service config {type(self.config).__name__!r} has no model_dump(); "
+                    "cannot serialize seal_config for EvolutionPipeline. "
+                    "Inject a pre-built pipeline via the `pipeline` constructor "
+                    "parameter, or pass a config object that implements model_dump()."
+                )
+            self._pipeline = EvolutionPipeline(config={"seal_config": seal_config})
+        return self._pipeline
+
     async def _run_evolution_cycle(self):
-        """Run an evolution cycle to collect new data."""
+        """Run an evolution cycle using the real EvolutionPipeline."""
         logger.info("🧬 Starting evolution cycle")
 
+        # This try/except is scoped to pipeline construction only, so a TypeError
+        # (or any other exception) raised later — in the pipeline run or result
+        # loop — is a different failure mode and isn't caught here.
         try:
-            # This would typically trigger EVOSEAL to run evolution
-            # For now, we'll simulate by checking for new evolution data
-
-            # Check for new evolution results
-            evolution_stats = self.data_collector.get_statistics()
-            logger.info(
-                f"Evolution data status: {evolution_stats.get('total_results', 0)} total results"
+            pipeline = self._get_pipeline()
+        except TypeError as e:
+            logger.critical(
+                f"Configuration error building pipeline: {e}\n"
+                "Hint: inject a pre-built pipeline via the `pipeline` constructor "
+                "parameter, or pass a config that implements model_dump()."
             )
+            self.service_stats["evolution_cycle_errors"] += 1
+            return
+        except Exception as e:
+            logger.critical(f"Failed to build EvolutionPipeline: {e}")
+            self.service_stats["evolution_cycle_errors"] += 1
+            return
+
+        try:
+            results = await pipeline.run_evolution_cycle(iterations=self.evolution_iterations)
+
+            if not isinstance(results, (list, tuple)):
+                logger.error(
+                    f"Unexpected pipeline return type {type(results).__name__} "
+                    f"(expected list); skipping result processing"
+                )
+                self.service_stats["evolution_cycle_errors"] += 1
+                return
+
+            for result in results:
+                # Per-item guard: a malformed result must not abort the
+                # remaining batch or corrupt cycle-level stats.
+                try:
+                    # Log iteration outcome inside the guard so a non-dict
+                    # entry (None, str, etc.) is caught per-item instead of
+                    # aborting the whole batch via AttributeError.
+                    if not isinstance(result, dict):
+                        logger.warning(f"Skipping non-dict pipeline result: {result!r}")
+                        self.service_stats["results_skipped"] += 1
+                        continue
+
+                    success = result.get("success")
+                    if success:
+                        logger.info(
+                            f"Evolution iteration {result.get('iteration', '?')} "
+                            f"succeeded (improvement={result.get('is_improvement', False)})"
+                        )
+                    else:
+                        logger.warning(
+                            f"Evolution iteration {result.get('iteration', '?')} "
+                            f"failed: {result.get('error', 'unknown')}"
+                        )
+                        self.service_stats["results_failed"] += 1
+
+                    # Only persist successful results with numeric (non-bool) fitness.
+                    # Failed iterations have no useful code output for fine-tuning,
+                    # and counting them toward total_collected would inflate the
+                    # training-readiness sample count with garbage data.
+                    if not success:
+                        continue
+
+                    original_code = result.get("original_code", "")
+                    improved_code = result.get("improved_code", "")
+                    if not (original_code and improved_code):
+                        # EvolutionPipeline doesn't return a code diff yet, so there's
+                        # nothing here to fine-tune on. Skip persisting a codeless
+                        # placeholder — counting it toward training readiness would
+                        # let training fire on records with no actual code.
+                        logger.debug(
+                            f"Evolution iteration {result.get('iteration', '?')} produced no "
+                            "code diff; skipping data_collector persistence"
+                        )
+                        self.service_stats["results_skipped"] += 1
+                        continue
+
+                    metrics = result.get("metrics", {})
+                    fitness = metrics.get("fitness")
+                    if (
+                        isinstance(fitness, bool)
+                        or not isinstance(fitness, (int, float))
+                        or not math.isfinite(fitness)
+                    ):
+                        # No real (numeric) fitness signal to persist — defaulting one
+                        # in, or trusting a non-numeric placeholder, would inject
+                        # fabricated training signal, same reasoning as the
+                        # codeless-result skip above.
+                        logger.warning(
+                            f"Evolution iteration {result.get('iteration', '?')} metrics missing "
+                            f"a numeric 'fitness' (got {fitness!r}); skipping data_collector "
+                            "persistence"
+                        )
+                        self.service_stats["results_skipped"] += 1
+                        continue
+
+                    # Persist result to data_collector so training readiness checks see it
+                    try:
+                        evo_result = create_evolution_result(
+                            original_code=original_code,
+                            improved_code=improved_code,
+                            fitness_score=fitness,
+                            strategy=EvolutionStrategy.PIPELINE,
+                            task_description=f"Pipeline iteration {result.get('iteration', '?')}",
+                            iteration=result.get("iteration", 1),
+                            model_version="pipeline",
+                            metadata={"pipeline_result": result},
+                        )
+                        await self.data_collector.collect_result(evo_result)
+                    except Exception as collect_err:
+                        logger.warning(
+                            f"Failed to persist evolution result to data_collector: {collect_err}"
+                        )
+                        self.service_stats["results_skipped"] += 1
+                except Exception as item_err:
+                    logger.warning(
+                        f"Skipping malformed pipeline result {result!r}: {item_err}",
+                        exc_info=True,
+                    )
+                    self.service_stats["results_skipped"] += 1
 
             # Update statistics
             self.service_stats["evolution_cycles_completed"] += 1
@@ -193,15 +333,19 @@ class ContinuousEvolutionService:
 
         except Exception as e:
             logger.error(f"Error in evolution cycle: {e}")
+            self.service_stats["evolution_cycle_errors"] += 1
 
     async def _check_training_readiness(self):
         """Check if training should be triggered."""
         logger.info("🔍 Checking training readiness")
 
         try:
-            # Check if we have enough evolution data for training
+            # Check if we have enough successful evolution data for training.
+            # Use successful_count (not total_collected) so failed iterations
+            # don't inflate the sample count.
             evolution_stats = self.data_collector.get_statistics()
-            total_results = evolution_stats.get("total_results", 0)
+            collection_stats = evolution_stats.get("collection_stats", {})
+            total_results = collection_stats.get("successful_count", 0)
 
             if total_results >= self.min_evolution_samples:
                 logger.info(

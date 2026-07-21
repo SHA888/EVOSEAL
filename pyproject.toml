@@ -56,6 +56,9 @@ dependencies = [
     "requests>=2.31.0",
     "GitPython>=3.1.40",
     "structlog>=23.1.0",
+    # Core dep (not test-only): evoseal/core/testrunner.py imports it unconditionally
+    # in production code, and the Docker image installs .[benchmarks], not .[test].
+    "psutil>=5.9.0",
 ]
 
 [project.scripts]
@@ -98,7 +101,6 @@ test = [
 
     # Testing utilities
     "jsonschema>=4.0.0",
-    "psutil>=5.9.0",
     "aiohttp>=3.8.0",
     "httpx>=0.24.0",
 
