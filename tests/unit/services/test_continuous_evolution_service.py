@@ -218,6 +218,32 @@ async def test_run_evolution_cycle_skips_missing_fitness(tmp_path):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_run_evolution_cycle_skips_half_code_results(tmp_path):
+    """A result with only original_code (no improved_code) must be skipped.
+
+    With the `and` guard, both fields must be non-empty to persist — a result
+    with only one side has no diff to fine-tune on.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": 0.9},
+            "original_code": "x = 1",
+            "improved_code": "",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    svc.data_collector.collect_result.assert_not_awaited()
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_run_evolution_cycle_persists_with_pipeline_strategy(tmp_path):
     """Persisted results must be tagged EvolutionStrategy.PIPELINE, not GA.
 
@@ -297,6 +323,38 @@ async def test_run_evolution_cycle_malformed_item_does_not_abort_batch(tmp_path)
     await svc._run_evolution_cycle()
 
     # The good result must still have been persisted
+    assert svc.data_collector.collect_result.await_count == 1
+    # Cycle must be marked completed (not errored)
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+    assert svc.service_stats["evolution_cycle_errors"] == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_non_dict_item_does_not_abort_batch(tmp_path):
+    """A non-dict entry (None, str, etc.) must be skipped, not crash the batch.
+
+    This is the specific case where result.get('success') would raise
+    AttributeError outside the per-item try block.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        None,
+        "not a dict",
+        42,
+        {
+            "iteration": 4,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": 0.9},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    # Only the valid result should be persisted
     assert svc.data_collector.collect_result.await_count == 1
     # Cycle must be marked completed (not errored)
     assert svc.service_stats["evolution_cycles_completed"] == 1

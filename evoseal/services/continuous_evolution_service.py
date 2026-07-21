@@ -187,7 +187,9 @@ class ContinuousEvolutionService:
             else:
                 logger.warning(
                     f"Service config {type(self.config).__name__!r} has no model_dump(); "
-                    "EvolutionPipeline will run with an empty seal_config"
+                    "EvolutionPipeline will run with an empty seal_config. "
+                    "If the pipeline requires seal_config keys at runtime, "
+                    "it will fail deep inside the run rather than here."
                 )
                 seal_config = {}
             self._pipeline = EvolutionPipeline(config={"seal_config": seal_config})
@@ -210,21 +212,27 @@ class ContinuousEvolutionService:
                 return
 
             for result in results:
-                # Log iteration outcome (outside try — logging can't fail).
-                if result.get("success"):
-                    logger.info(
-                        f"Evolution iteration {result.get('iteration', '?')} "
-                        f"succeeded (improvement={result.get('is_improvement', False)})"
-                    )
-                else:
-                    logger.warning(
-                        f"Evolution iteration {result.get('iteration', '?')} "
-                        f"failed: {result.get('error', 'unknown')}"
-                    )
-
                 # Per-item guard: a malformed result must not abort the
                 # remaining batch or corrupt cycle-level stats.
                 try:
+                    # Log iteration outcome inside the guard so a non-dict
+                    # entry (None, str, etc.) is caught per-item instead of
+                    # aborting the whole batch via AttributeError.
+                    if not isinstance(result, dict):
+                        logger.warning(f"Skipping non-dict pipeline result: {result!r}")
+                        continue
+
+                    if result.get("success"):
+                        logger.info(
+                            f"Evolution iteration {result.get('iteration', '?')} "
+                            f"succeeded (improvement={result.get('is_improvement', False)})"
+                        )
+                    else:
+                        logger.warning(
+                            f"Evolution iteration {result.get('iteration', '?')} "
+                            f"failed: {result.get('error', 'unknown')}"
+                        )
+
                     # Only persist successful results with meaningful fitness.
                     # Failed iterations have no useful code output for fine-tuning,
                     # and counting them toward total_collected would inflate the
@@ -234,7 +242,7 @@ class ContinuousEvolutionService:
 
                     original_code = result.get("original_code", "")
                     improved_code = result.get("improved_code", "")
-                    if not (original_code or improved_code):
+                    if not (original_code and improved_code):
                         # EvolutionPipeline doesn't return a code diff yet, so there's
                         # nothing here to fine-tune on. Skip persisting a codeless
                         # placeholder — counting it toward training readiness would
