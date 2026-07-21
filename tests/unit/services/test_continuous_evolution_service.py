@@ -520,6 +520,36 @@ async def test_run_evolution_cycle_typeerror_in_pipeline_not_misclassified(tmp_p
     assert svc.service_stats["evolution_cycle_errors"] == 1
 
 
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_handles_non_typeerror_pipeline_construction_failure(
+    tmp_path,
+):
+    """A non-TypeError raised while building EvolutionPipeline must still be
+    caught and counted — not just the missing-model_dump TypeError case.
+    """
+    mock_dc = MagicMock()
+    mock_dc.collect_result = AsyncMock()
+    with (
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionDataCollector",
+            return_value=mock_dc,
+        ),
+        patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionPipeline",
+            side_effect=ValueError("bad seal_config"),
+        ),
+    ):
+        svc = ContinuousEvolutionService(data_dir=tmp_path / "svc")
+
+        # Must not raise
+        await svc._run_evolution_cycle()
+
+    assert svc.service_stats["evolution_cycles_completed"] == 0
+    assert svc.service_stats["evolution_cycle_errors"] == 1
+
+
 # --- _check_training_readiness key-path tests ---
 
 

@@ -206,10 +206,9 @@ class ContinuousEvolutionService:
         """Run an evolution cycle using the real EvolutionPipeline."""
         logger.info("🧬 Starting evolution cycle")
 
-        # Narrow try/except: only _get_pipeline() can raise TypeError for the
-        # configuration-error path (missing model_dump).  A TypeError deeper in
-        # the pipeline run or result loop is a real bug and must not be masked
-        # as a configuration error.
+        # This try/except is scoped to pipeline construction only, so a TypeError
+        # (or any other exception) raised later — in the pipeline run or result
+        # loop — is a different failure mode and isn't caught here.
         try:
             pipeline = self._get_pipeline()
         except TypeError as e:
@@ -218,6 +217,10 @@ class ContinuousEvolutionService:
                 "Hint: inject a pre-built pipeline via the `pipeline` constructor "
                 "parameter, or pass a config that implements model_dump()."
             )
+            self.service_stats["evolution_cycle_errors"] += 1
+            return
+        except Exception as e:
+            logger.critical(f"Failed to build EvolutionPipeline: {e}")
             self.service_stats["evolution_cycle_errors"] += 1
             return
 
