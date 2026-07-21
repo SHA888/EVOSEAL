@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from ..config import SEALConfig
+from ..core.evolution_pipeline import EvolutionPipeline
 from ..evolution import EvolutionDataCollector
 from ..fine_tuning import BidirectionalEvolutionManager
 
@@ -37,6 +38,7 @@ class ContinuousEvolutionService:
         evolution_interval: int = 3600,  # 1 hour
         training_check_interval: int = 1800,  # 30 minutes
         min_evolution_samples: int = 50,
+        pipeline: EvolutionPipeline | None = None,
     ):
         """
         Initialize the continuous evolution service.
@@ -58,6 +60,7 @@ class ContinuousEvolutionService:
         self.min_evolution_samples = min_evolution_samples
 
         # Initialize components
+        self._pipeline = pipeline
         self.data_collector = EvolutionDataCollector(data_dir=self.data_dir / "evolution_data")
 
         self.bidirectional_manager = BidirectionalEvolutionManager(
@@ -171,19 +174,31 @@ class ContinuousEvolutionService:
                 logger.error(f"Error in service loop: {e}")
                 await asyncio.sleep(60)  # Wait before retrying
 
+    def _get_pipeline(self) -> EvolutionPipeline:
+        """Lazily initialise the EvolutionPipeline on first use."""
+        if self._pipeline is None:
+            self._pipeline = EvolutionPipeline()
+        return self._pipeline
+
     async def _run_evolution_cycle(self):
-        """Run an evolution cycle to collect new data."""
+        """Run an evolution cycle using the real EvolutionPipeline."""
         logger.info("🧬 Starting evolution cycle")
 
         try:
-            # This would typically trigger EVOSEAL to run evolution
-            # For now, we'll simulate by checking for new evolution data
+            pipeline = self._get_pipeline()
+            results = await pipeline.run_evolution_cycle(iterations=1)
 
-            # Check for new evolution results
-            evolution_stats = self.data_collector.get_statistics()
-            logger.info(
-                f"Evolution data status: {evolution_stats.get('total_results', 0)} total results"
-            )
+            for result in results:
+                if result.get("success"):
+                    logger.info(
+                        f"Evolution iteration {result.get('iteration', '?')} "
+                        f"succeeded (improvement={result.get('is_improvement', False)})"
+                    )
+                else:
+                    logger.warning(
+                        f"Evolution iteration {result.get('iteration', '?')} "
+                        f"failed: {result.get('error', 'unknown')}"
+                    )
 
             # Update statistics
             self.service_stats["evolution_cycles_completed"] += 1

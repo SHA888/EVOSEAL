@@ -105,7 +105,7 @@
 > step builds on the previous one landing first.
 
 - [x] **1. Merge CLI wiring for `evoseal start evolution`** _(done 2026-07-21)_ — added `evoseal start evolution`, which constructs and runs `ContinuousEvolutionService` (the `api`/`worker` stubs are untouched); prints an explicit research-stage notice since the loop itself is still open per the gaps below. Along the way, fixed a pre-existing bug in `evoseal/cli/__init__.py` that clobbered the app's `--version` callback with a bare `lambda version: None`, breaking dispatch for every CLI subcommand invocation with arguments (the only prior CLI-dispatch test was a false positive that happened to pass regardless)
-- [ ] **2. Wire daemon to real EvolutionPipeline** — `continuous_evolution_service.py:174` `_run_evolution_cycle` only reads `get_statistics()` and simulates; must invoke `EvolutionPipeline` instead
+- [x] **2. Wire daemon to real EvolutionPipeline** _(done 2026-07-21)_ — `continuous_evolution_service.py` `_run_evolution_cycle` now constructs and invokes `EvolutionPipeline.run_evolution_cycle()` instead of simulating; accepts optional `pipeline` param, lazy-inits if not injected
 - [x] **FIX: training call used nonexistent method** _(done 2026-07-19, commit fix/training-method-name-bug, on `main` as of 81156b3)_ — `continuous_evolution_service.py:234` called `training_manager.start_training()` which did not exist; changed to `run_training_cycle()` and fixed `validation_passed` → `validation_results.passed`
 - [ ] **3. validate_model must serve the fine-tuned model, not baseline** — `model_validator.py:211,247,306,371,436` all use `OllamaProvider(model=self.baseline_model)`, ignoring the `model_path` argument; must load the fine-tuned model for validation
 - [ ] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
@@ -213,9 +213,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 12    | 9    | Safety config path gap + Tier 2 deferred + flaky auth test open |
-| 🟡 P2    | 17    | 3    | Co-evolution loop gaps (7 items, 3 done) + existing P2 |
+| 🟡 P2    | 17    | 4    | Co-evolution loop gaps (7 items, 3 done) + existing P2 |
 | 🟢 P3    | 14    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete |
-| **Total** | **48** | **23** | |
+| **Total** | **48** | **24** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

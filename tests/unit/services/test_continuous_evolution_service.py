@@ -69,3 +69,82 @@ def test_trigger_training_validation_failed(tmp_path):
     training_mgr.run_training_cycle.assert_awaited_once()
     assert svc.service_stats["training_cycles_triggered"] == 1
     assert svc.service_stats["successful_improvements"] == 0
+
+
+# --- _run_evolution_cycle wiring tests ---
+
+
+def _make_service_with_pipeline(tmp_path: Path) -> tuple:
+    """Build a ContinuousEvolutionService with a mocked EvolutionPipeline."""
+    mock_pipeline = AsyncMock()
+    with (
+        patch("evoseal.services.continuous_evolution_service.EvolutionDataCollector"),
+        patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
+    ):
+        svc = ContinuousEvolutionService(data_dir=tmp_path / "svc", pipeline=mock_pipeline)
+    return svc, mock_pipeline
+
+
+def test_run_evolution_cycle_invokes_pipeline(tmp_path):
+    """_run_evolution_cycle must call pipeline.run_evolution_cycle()."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {"iteration": 1, "success": True, "is_improvement": True}
+    ]
+
+    asyncio.run(svc._run_evolution_cycle())
+
+    mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+    assert svc.service_stats["last_activity"] is not None
+
+
+def test_run_evolution_cycle_handles_failure(tmp_path):
+    """A failed pipeline iteration must still count as a completed cycle."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {"iteration": 1, "success": False, "error": "boom"}
+    ]
+
+    asyncio.run(svc._run_evolution_cycle())
+
+    mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+
+
+def test_run_evolution_cycle_handles_pipeline_exception(tmp_path):
+    """If the pipeline raises, the cycle must not crash the service."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.side_effect = RuntimeError("pipeline broke")
+
+    # Should not raise
+    asyncio.run(svc._run_evolution_cycle())
+
+    mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
+    # Cycle counter must NOT increment on exception
+    assert svc.service_stats["evolution_cycles_completed"] == 0
+
+
+def test_run_evolution_cycle_lazy_pipeline(tmp_path):
+    """When no pipeline is injected, _get_pipeline creates one lazily."""
+    with (
+        patch("evoseal.services.continuous_evolution_service.EvolutionDataCollector"),
+        patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
+    ):
+        svc = ContinuousEvolutionService(data_dir=tmp_path / "svc")
+
+    assert svc._pipeline is None
+
+    mock_ep = AsyncMock()
+    mock_ep.run_evolution_cycle.return_value = []
+    with patch(
+        "evoseal.services.continuous_evolution_service.EvolutionPipeline",
+        return_value=mock_ep,
+    ) as ep_cls:
+        pipeline = svc._get_pipeline()
+        ep_cls.assert_called_once()
+        assert pipeline is mock_ep
+        # Second call should reuse the same instance
+        pipeline2 = svc._get_pipeline()
+        assert pipeline2 is mock_ep
+        ep_cls.assert_called_once()  # still only one call
