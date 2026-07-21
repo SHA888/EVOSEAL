@@ -90,3 +90,20 @@ class TestStartEvolutionCommand:
 
         assert result.exit_code == 0
         assert "Stopped." in result.output
+
+    @patch(
+        "evoseal.services.continuous_evolution_service.ContinuousEvolutionService",
+    )
+    @patch(
+        "evoseal.cli.commands.start.asyncio.run",
+        side_effect=RuntimeError("bad config"),
+    )
+    def test_start_evolution_runtime_error(self, mock_run, mock_service_cls):
+        """Runtime errors produce a clean CLI message, not a raw traceback."""
+        mock_service_cls.return_value = MagicMock()
+
+        result = runner.invoke(app, ["start", "evolution"])
+
+        assert result.exit_code == 1
+        assert "Error:" in result.output
+        assert "bad config" in result.output

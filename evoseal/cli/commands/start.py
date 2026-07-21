@@ -101,6 +101,9 @@ def start_evolution(
     except KeyboardInterrupt:
         typer.echo("Stopped.")
         raise SystemExit(0)
+    except Exception as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
