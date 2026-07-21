@@ -145,6 +145,7 @@ async def test_run_evolution_cycle_handles_pipeline_exception(tmp_path):
     mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
     # Cycle counter must NOT increment on exception
     assert svc.service_stats["evolution_cycles_completed"] == 0
+    assert svc.service_stats["evolution_cycle_errors"] == 1
 
 
 @pytest.mark.unit
@@ -192,6 +193,58 @@ async def test_run_evolution_cycle_skips_codeless_results(tmp_path):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_run_evolution_cycle_skips_missing_fitness(tmp_path):
+    """A successful result with no metrics.fitness must not be persisted.
+
+    Defaulting to a synthetic fitness would inject fabricated training
+    signal into the dataset.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    svc.data_collector.collect_result.assert_not_awaited()
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_persists_with_pipeline_strategy(tmp_path):
+    """Persisted results must be tagged EvolutionStrategy.PIPELINE, not GA.
+
+    EvolutionPipeline has no strategy selection of its own; tagging results
+    as GENETIC_ALGORITHM would misattribute them in strategy_performance
+    stats.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": 0.9},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    persisted = svc.data_collector.collect_result.await_args.args[0]
+    assert persisted.strategy == EvolutionStrategy.PIPELINE
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_run_evolution_cycle_configurable_iterations(tmp_path):
     """evolution_iterations param must be forwarded to the pipeline."""
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path, evolution_iterations=3)
@@ -214,6 +267,7 @@ async def test_run_evolution_cycle_rejects_non_list_result(tmp_path):
 
     # Cycle counter must NOT increment on bad shape
     assert svc.service_stats["evolution_cycles_completed"] == 0
+    assert svc.service_stats["evolution_cycle_errors"] == 1
 
 
 @pytest.mark.unit

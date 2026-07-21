@@ -17,6 +17,8 @@ class EvolutionStrategy(Enum):
     RANDOM_SEARCH = "random_search"
     GRADIENT_BASED = "gradient_based"
     HYBRID = "hybrid"
+    # Result came from EvolutionPipeline, which has no strategy selection of its own.
+    PIPELINE = "pipeline"
 
 
 class ImprovementType(Enum):

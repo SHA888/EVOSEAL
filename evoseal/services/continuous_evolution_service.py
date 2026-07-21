@@ -84,6 +84,7 @@ class ContinuousEvolutionService:
         # Statistics
         self.service_stats = {
             "evolution_cycles_completed": 0,
+            "evolution_cycle_errors": 0,
             "training_cycles_triggered": 0,
             "successful_improvements": 0,
             "total_uptime_seconds": 0,
@@ -205,6 +206,7 @@ class ContinuousEvolutionService:
                     f"Unexpected pipeline return type {type(results).__name__} "
                     f"(expected list); skipping result processing"
                 )
+                self.service_stats["evolution_cycle_errors"] += 1
                 return
 
             for result in results:
@@ -241,22 +243,23 @@ class ContinuousEvolutionService:
 
                 metrics = result.get("metrics", {})
                 if "fitness" not in metrics:
+                    # No real fitness signal to persist — defaulting one in would
+                    # inject fabricated training signal, same reasoning as the
+                    # codeless-result skip above.
                     logger.warning(
                         f"Evolution iteration {result.get('iteration', '?')} metrics missing "
-                        "'fitness'; defaulting to 0.5"
+                        "'fitness'; skipping data_collector persistence"
                     )
-                fitness = metrics.get("fitness", 0.5)
+                    continue
+                fitness = metrics["fitness"]
 
                 # Persist result to data_collector so training readiness checks see it
                 try:
-                    # NOTE: EvolutionPipeline has no strategy selection; using
-                    # GENETIC_ALGORITHM as a placeholder label.  Revisit if the
-                    # pipeline gains multi-strategy support.
                     evo_result = create_evolution_result(
                         original_code=original_code,
                         improved_code=improved_code,
                         fitness_score=fitness,
-                        strategy=EvolutionStrategy.GENETIC_ALGORITHM,
+                        strategy=EvolutionStrategy.PIPELINE,
                         task_description=f"Pipeline iteration {result.get('iteration', '?')}",
                         iteration=result.get("iteration", 1),
                         model_version="pipeline",
@@ -276,6 +279,7 @@ class ContinuousEvolutionService:
 
         except Exception as e:
             logger.error(f"Error in evolution cycle: {e}")
+            self.service_stats["evolution_cycle_errors"] += 1
 
     async def _check_training_readiness(self):
         """Check if training should be triggered."""
