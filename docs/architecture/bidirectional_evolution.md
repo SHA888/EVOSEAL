@@ -109,15 +109,14 @@ gate before it is accepted:
 | **Prompt path gate** | New prompt score ≥ old score + `min_score_gain` on the *same task* | `evoseal/prompt_evolution/coevolution_manager.py` |
 
 If any gate fails, the change is discarded and the previous version stays active.
-This is the single most important divergence-prevention mechanism: **a change that
-cannot demonstrate measurable improvement is never deployed**.
+This is the single most important divergence-prevention mechanism.
 
-> **Current limitation:** `ModelValidator` currently tests the *baseline* model
-> (it instantiates `OllamaProvider(model=self.baseline_model)` and ignores
-> `model_path`), so the regression gate does not yet validate the fine-tuned
-> candidate. This means the "never deployed without improvement" guarantee is
-> aspirational rather than enforced by the current implementation
-> (see [Known gaps](#known-gaps) #2).
+> **Scope of the guarantee today.** The "never deployed without improvement"
+> guarantee is currently enforced only on the **prompt path**, where the gate
+> directly compares old and new prompt scores on the same task. For the **weight
+> path**, `ModelValidator` always validates against `self.baseline_model` and
+> ignores the `model_path` argument, so the fine-tuned candidate is never actually
+> tested and the gate cannot fail (see [Known gaps](#known-gaps) #2).
 
 ### Versioned lineage with rollback
 
@@ -183,10 +182,12 @@ improvement.
 `RegressionDetector` defines per-metric regression and critical thresholds:
 
 ```python
-# Examples from regression_detector.py
-"pass_rate":    {"regression": -0.05, "critical": -0.1}   # 5% / 10% drop
-"duration_sec": {"regression":  0.10, "critical":  0.25}  # 10% / 25% slower
-"correctness":  {"regression": -0.01, "critical": -0.05}  # 1% / 5% drop
+# Examples from regression_detector.py (inside metric_thresholds dict)
+metric_thresholds = {
+    "pass_rate":    {"regression": -0.05, "critical": -0.1},   # 5% / 10% drop
+    "duration_sec": {"regression":  0.10, "critical":  0.25},  # 10% / 25% slower
+    "correctness":  {"regression": -0.01, "critical": -0.05},  # 1% / 5% drop
+}
 ```
 
 A regression at the "critical" level triggers automatic rollback. A regression at the
