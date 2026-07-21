@@ -9,6 +9,7 @@ and deployment.
 import asyncio
 import json
 import logging
+import math
 import signal
 import sys
 from datetime import datetime, timedelta
@@ -91,6 +92,7 @@ class ContinuousEvolutionService:
             "evolution_cycles_completed": 0,
             "evolution_cycle_errors": 0,
             "results_skipped": 0,
+            "results_failed": 0,
             "training_cycles_triggered": 0,
             "successful_improvements": 0,
             "total_uptime_seconds": 0,
@@ -253,6 +255,7 @@ class ContinuousEvolutionService:
                             f"Evolution iteration {result.get('iteration', '?')} "
                             f"failed: {result.get('error', 'unknown')}"
                         )
+                        self.service_stats["results_failed"] += 1
 
                     # Only persist successful results with numeric (non-bool) fitness.
                     # Failed iterations have no useful code output for fine-tuning,
@@ -277,7 +280,11 @@ class ContinuousEvolutionService:
 
                     metrics = result.get("metrics", {})
                     fitness = metrics.get("fitness")
-                    if isinstance(fitness, bool) or not isinstance(fitness, (int, float)):
+                    if (
+                        isinstance(fitness, bool)
+                        or not isinstance(fitness, (int, float))
+                        or not math.isfinite(fitness)
+                    ):
                         # No real (numeric) fitness signal to persist — defaulting one
                         # in, or trusting a non-numeric placeholder, would inject
                         # fabricated training signal, same reasoning as the

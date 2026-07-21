@@ -611,3 +611,47 @@ async def test_check_training_readiness_with_real_collector(tmp_path):
 
     await svc._check_training_readiness()
     svc._trigger_training_cycle.assert_awaited_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_skips_nan_fitness(tmp_path):
+    """float('nan') must be rejected — it's numeric but not a real fitness signal."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": float("nan")},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    svc.data_collector.collect_result.assert_not_awaited()
+    assert svc.service_stats["results_skipped"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_skips_inf_fitness(tmp_path):
+    """float('inf') must be rejected — it's numeric but not a real fitness signal."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": float("inf")},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    svc.data_collector.collect_result.assert_not_awaited()
+    assert svc.service_stats["results_skipped"] == 1
