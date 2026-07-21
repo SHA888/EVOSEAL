@@ -85,46 +85,53 @@ def _make_service_with_pipeline(tmp_path: Path) -> tuple:
     return svc, mock_pipeline
 
 
-def test_run_evolution_cycle_invokes_pipeline(tmp_path):
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_invokes_pipeline(tmp_path):
     """_run_evolution_cycle must call pipeline.run_evolution_cycle()."""
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
     mock_pipeline.run_evolution_cycle.return_value = [
         {"iteration": 1, "success": True, "is_improvement": True}
     ]
 
-    asyncio.run(svc._run_evolution_cycle())
+    await svc._run_evolution_cycle()
 
     mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
     assert svc.service_stats["evolution_cycles_completed"] == 1
     assert svc.service_stats["last_activity"] is not None
 
 
-def test_run_evolution_cycle_handles_failure(tmp_path):
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_handles_failure(tmp_path):
     """A failed pipeline iteration must still count as a completed cycle."""
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
     mock_pipeline.run_evolution_cycle.return_value = [
         {"iteration": 1, "success": False, "error": "boom"}
     ]
 
-    asyncio.run(svc._run_evolution_cycle())
+    await svc._run_evolution_cycle()
 
     mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
     assert svc.service_stats["evolution_cycles_completed"] == 1
 
 
-def test_run_evolution_cycle_handles_pipeline_exception(tmp_path):
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_handles_pipeline_exception(tmp_path):
     """If the pipeline raises, the cycle must not crash the service."""
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
     mock_pipeline.run_evolution_cycle.side_effect = RuntimeError("pipeline broke")
 
     # Should not raise
-    asyncio.run(svc._run_evolution_cycle())
+    await svc._run_evolution_cycle()
 
     mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=1)
     # Cycle counter must NOT increment on exception
     assert svc.service_stats["evolution_cycles_completed"] == 0
 
 
+@pytest.mark.unit
 def test_run_evolution_cycle_lazy_pipeline(tmp_path):
     """When no pipeline is injected, _get_pipeline creates one lazily."""
     with (
