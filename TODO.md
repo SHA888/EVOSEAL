@@ -97,19 +97,20 @@
 
 ### Close the bidirectional co-evolution loop
 
-> **Audit finding (2026-07-19):** The Phase 3 components/modules exist, but the bidirectional
-> feedback edges are not wired. The daemon simulates evolution instead of running it, the
-> training call has a method-name bug, model validation tests the baseline instead of the
-> fine-tuned model, deployment is a JSON registry with no serving-layer integration, and the
-> generator never consults the fine-tuning registry. These items close those gaps.
+> **Audit finding (2026-07-19, reverified 2026-07-21):** The Phase 3 components/modules exist, but the bidirectional
+> feedback edges are not wired. The daemon simulates evolution instead of running it, model validation tests the
+> baseline instead of the fine-tuned model, deployment is a JSON registry with no serving-layer integration, and the
+> generator never consults the fine-tuning registry. Closing the loop requires the dependency order below — each
+> step builds on the previous one landing first.
 
-- [ ] **Wire daemon to real EvolutionPipeline** — `continuous_evolution_service.py:174` `_run_evolution_cycle` only reads `get_statistics()` and simulates; must invoke `EvolutionPipeline` instead
-- [x] **FIX: training call uses nonexistent method** _(done 2026-07-19, commit fix/training-method-name-bug)_ — `continuous_evolution_service.py:234` called `training_manager.start_training()` which did not exist; changed to `run_training_cycle()` and fixed `validation_passed` → `validation_results.passed`
-- [ ] **validate_model must serve the fine-tuned model, not baseline** — `model_validator.py:211,247,306,371,436` all use `OllamaProvider(model=self.baseline_model)`, ignoring the `model_path` argument; must load the fine-tuned model for validation
-- [ ] **Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry; need actual deployment (Modelfile / `ollama create` / symlink) so the serving layer can load the model
-- [ ] **Generation must consult the fine-tuning registry** — `version_manager.get_current_version()` has zero callers; the generator (`integration/seal/*`, `evolution_pipeline.py`, `providers/local_models.py resolve_model`) must consult it to use the deployed fine-tuned model
-- [ ] **Add end-to-end bidirectional loop test** — exercise the full cycle: collect → train → validate → deploy → regenerate; no such test exists today
-- [ ] **Wire the loop into the CLI** — `evoseal start` (`cli/commands/start.py:39,57`) only has stubs (`"not yet implemented"`); must start the continuous evolution service and hook it into the pipeline
+- [ ] **1. Merge CLI wiring for `evoseal start evolution`** — implemented on branch `feat/wire-evolution-start-command` (PR #58: adds `evoseal start evolution`, launches `ContinuousEvolutionService`), but not yet merged into `main`. On `main` today, `cli/commands/start.py` only has `api`/`worker` stubs and never imports `ContinuousEvolutionService` — end-to-end CLI-triggered execution is blocked until this merges (individual components below can still be implemented and unit-tested independently)
+- [ ] **2. Wire daemon to real EvolutionPipeline** — `continuous_evolution_service.py:174` `_run_evolution_cycle` only reads `get_statistics()` and simulates; must invoke `EvolutionPipeline` instead
+- [x] **FIX: training call used nonexistent method** _(done 2026-07-19, commit fix/training-method-name-bug, on `main` as of 81156b3)_ — `continuous_evolution_service.py:234` called `training_manager.start_training()` which did not exist; changed to `run_training_cycle()` and fixed `validation_passed` → `validation_results.passed`
+- [ ] **3. validate_model must serve the fine-tuned model, not baseline** — `model_validator.py:211,247,306,371,436` all use `OllamaProvider(model=self.baseline_model)`, ignoring the `model_path` argument; must load the fine-tuned model for validation
+- [ ] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
+- [ ] **5. Generation must consult the fine-tuning registry** — `version_manager.get_current_version()` has zero callers — the generator (`providers/local_models.py resolve_model`, which currently just reads raw installed Ollama tags) must consult the registry instead so the deployed fine-tuned model actually gets used
+- [ ] **6. Wire bidirectional_manager to orchestrate the full loop** — `bidirectional_manager.py`'s docstring promises evolve → collect → train → deploy → repeat, but the class only implements reporting/statistics methods (`get_evolution_status`, `get_evolution_history`, `generate_evolution_report`); no method actually drives the sequence end-to-end
+- [ ] **Add end-to-end bidirectional loop test** — exercise the full cycle: collect → train → validate → deploy → regenerate; no such test exists today (write once steps 1–6 land)
 
 ### Phase 3 (Bidirectional Evolution) Documentation
 
