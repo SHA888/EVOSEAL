@@ -164,8 +164,10 @@ definitions are concrete, measurable, and regression-gated.
 | **Performance** | Execution time, memory usage | Must not regress beyond limits |
 
 `ImprovementValidator` applies statistical tests: a change is "improvement" only if
-the metric delta exceeds `threshold` (default 5%) **and** the effect size exceeds
-`min_effect_size` (default 0.2). This prevents accepting noise as improvement.
+the metric delta exceeds `threshold` (default 0.0, i.e. any improvement) **and** the
+effect size exceeds `min_effect_size` (default None, i.e. no effect-size gate unless
+explicitly configured). Callers can tighten these to prevent accepting noise as
+improvement.
 
 `RegressionDetector` defines per-metric regression and critical thresholds:
 

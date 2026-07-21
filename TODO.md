@@ -211,7 +211,7 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 11    | 9    | Safety config path gap + Tier 2 deferred open |
-| 🟡 P2    | 17    | 2    | Co-evolution loop gaps (7 items, 1 done) + existing P2 |
+| 🟡 P2    | 17    | 2    | Co-evolution loop gaps (7 items, 2 done) + existing P2 |
 | 🟢 P3    | 14    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete |
 | **Total** | **47** | **22** | |
 
