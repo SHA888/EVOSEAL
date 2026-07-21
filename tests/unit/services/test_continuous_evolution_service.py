@@ -271,6 +271,39 @@ async def test_run_evolution_cycle_rejects_non_list_result(tmp_path):
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_malformed_item_does_not_abort_batch(tmp_path):
+    """A malformed result must not abort the remaining batch.
+
+    If result.get('metrics') returns None, 'fitness' not in None raises
+    TypeError. That must be caught per-item so later items still get
+    processed and the cycle-level counters stay consistent.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        # Malformed: metrics is None, which would cause TypeError on 'fitness' not in None
+        {"iteration": 1, "success": True, "metrics": None},
+        # Good result should still be processed
+        {
+            "iteration": 2,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": 0.9},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    # The good result must still have been persisted
+    assert svc.data_collector.collect_result.await_count == 1
+    # Cycle must be marked completed (not errored)
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+    assert svc.service_stats["evolution_cycle_errors"] == 0
+
+
+@pytest.mark.unit
 def test_run_evolution_cycle_lazy_pipeline(tmp_path):
     """When no pipeline is injected, _get_pipeline creates one lazily."""
     mock_dc = MagicMock()

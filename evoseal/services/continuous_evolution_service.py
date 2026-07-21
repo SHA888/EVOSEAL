@@ -210,6 +210,7 @@ class ContinuousEvolutionService:
                 return
 
             for result in results:
+                # Log iteration outcome (outside try — logging can't fail).
                 if result.get("success"):
                     logger.info(
                         f"Evolution iteration {result.get('iteration', '?')} "
@@ -221,54 +222,62 @@ class ContinuousEvolutionService:
                         f"failed: {result.get('error', 'unknown')}"
                     )
 
-                # Only persist successful results with meaningful fitness.
-                # Failed iterations have no useful code output for fine-tuning,
-                # and counting them toward total_collected would inflate the
-                # training-readiness sample count with garbage data.
-                if not result.get("success"):
-                    continue
-
-                original_code = result.get("original_code", "")
-                improved_code = result.get("improved_code", "")
-                if not (original_code or improved_code):
-                    # EvolutionPipeline doesn't return a code diff yet, so there's
-                    # nothing here to fine-tune on. Skip persisting a codeless
-                    # placeholder — counting it toward training readiness would
-                    # let training fire on records with no actual code.
-                    logger.debug(
-                        f"Evolution iteration {result.get('iteration', '?')} produced no "
-                        "code diff; skipping data_collector persistence"
-                    )
-                    continue
-
-                metrics = result.get("metrics", {})
-                if "fitness" not in metrics:
-                    # No real fitness signal to persist — defaulting one in would
-                    # inject fabricated training signal, same reasoning as the
-                    # codeless-result skip above.
-                    logger.warning(
-                        f"Evolution iteration {result.get('iteration', '?')} metrics missing "
-                        "'fitness'; skipping data_collector persistence"
-                    )
-                    continue
-                fitness = metrics["fitness"]
-
-                # Persist result to data_collector so training readiness checks see it
+                # Per-item guard: a malformed result must not abort the
+                # remaining batch or corrupt cycle-level stats.
                 try:
-                    evo_result = create_evolution_result(
-                        original_code=original_code,
-                        improved_code=improved_code,
-                        fitness_score=fitness,
-                        strategy=EvolutionStrategy.PIPELINE,
-                        task_description=f"Pipeline iteration {result.get('iteration', '?')}",
-                        iteration=result.get("iteration", 1),
-                        model_version="pipeline",
-                        metadata={"pipeline_result": result},
-                    )
-                    await self.data_collector.collect_result(evo_result)
-                except Exception as collect_err:
+                    # Only persist successful results with meaningful fitness.
+                    # Failed iterations have no useful code output for fine-tuning,
+                    # and counting them toward total_collected would inflate the
+                    # training-readiness sample count with garbage data.
+                    if not result.get("success"):
+                        continue
+
+                    original_code = result.get("original_code", "")
+                    improved_code = result.get("improved_code", "")
+                    if not (original_code or improved_code):
+                        # EvolutionPipeline doesn't return a code diff yet, so there's
+                        # nothing here to fine-tune on. Skip persisting a codeless
+                        # placeholder — counting it toward training readiness would
+                        # let training fire on records with no actual code.
+                        logger.debug(
+                            f"Evolution iteration {result.get('iteration', '?')} produced no "
+                            "code diff; skipping data_collector persistence"
+                        )
+                        continue
+
+                    metrics = result.get("metrics", {})
+                    if "fitness" not in metrics:
+                        # No real fitness signal to persist — defaulting one in would
+                        # inject fabricated training signal, same reasoning as the
+                        # codeless-result skip above.
+                        logger.warning(
+                            f"Evolution iteration {result.get('iteration', '?')} metrics missing "
+                            "'fitness'; skipping data_collector persistence"
+                        )
+                        continue
+                    fitness = metrics["fitness"]
+
+                    # Persist result to data_collector so training readiness checks see it
+                    try:
+                        evo_result = create_evolution_result(
+                            original_code=original_code,
+                            improved_code=improved_code,
+                            fitness_score=fitness,
+                            strategy=EvolutionStrategy.PIPELINE,
+                            task_description=f"Pipeline iteration {result.get('iteration', '?')}",
+                            iteration=result.get("iteration", 1),
+                            model_version="pipeline",
+                            metadata={"pipeline_result": result},
+                        )
+                        await self.data_collector.collect_result(evo_result)
+                    except Exception as collect_err:
+                        logger.warning(
+                            f"Failed to persist evolution result to data_collector: {collect_err}"
+                        )
+                except Exception as item_err:
                     logger.warning(
-                        f"Failed to persist evolution result to data_collector: {collect_err}"
+                        f"Skipping malformed pipeline result {result!r}: {item_err}",
+                        exc_info=True,
                     )
 
             # Update statistics
