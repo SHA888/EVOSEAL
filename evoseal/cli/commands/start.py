@@ -5,10 +5,13 @@ Start background processes for the EVOSEAL CLI.
 from __future__ import annotations
 
 import asyncio
+import logging
 from pathlib import Path
 from typing import Annotated
 
 import typer
+
+logger = logging.getLogger(__name__)
 
 app = typer.Typer(name="start", help="Start background processes")
 
@@ -102,6 +105,7 @@ def start_evolution(
         typer.echo("Stopped.")
         raise SystemExit(0)
     except Exception as exc:
+        logger.exception("Evolution service failed")
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(1)
 
