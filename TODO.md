@@ -113,11 +113,11 @@
 
 ### Phase 3 (Bidirectional Evolution) Documentation
 
-- [ ] **Write architecture doc for Devstral co-evolution**
+- [x] **Write architecture doc for Devstral co-evolution** _(done 2026-07-21)_
   - How does the bidirectional feedback loop work?
   - What prevents the two systems from diverging?
   - What metrics determine "improvement" in the bidirectional context?
-  - Add as `docs/architecture/bidirectional_evolution.md`
+  - Added as `docs/architecture/bidirectional_evolution.md`
 - [ ] **Add sequence diagram** showing the Devstral ↔ EVOSEAL message flow
 
 ### Dashboard Improvements
@@ -211,9 +211,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
 | 🟠 P1    | 11    | 9    | Safety config path gap + Tier 2 deferred open |
-| 🟡 P2    | 17    | 1    | Co-evolution loop gaps (7 items, 1 done) + existing P2 |
+| 🟡 P2    | 17    | 2    | Co-evolution loop gaps (7 items, 1 done) + existing P2 |
 | 🟢 P3    | 14    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete |
-| **Total** | **47** | **21** | |
+| **Total** | **47** | **22** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
