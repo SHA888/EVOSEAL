@@ -259,16 +259,18 @@ class ContinuousEvolutionService:
                         continue
 
                     metrics = result.get("metrics", {})
-                    if "fitness" not in metrics:
-                        # No real fitness signal to persist — defaulting one in would
-                        # inject fabricated training signal, same reasoning as the
+                    fitness = metrics.get("fitness")
+                    if not isinstance(fitness, (int, float)):
+                        # No real (numeric) fitness signal to persist — defaulting one
+                        # in, or trusting a non-numeric placeholder, would inject
+                        # fabricated training signal, same reasoning as the
                         # codeless-result skip above.
                         logger.warning(
                             f"Evolution iteration {result.get('iteration', '?')} metrics missing "
-                            "'fitness'; skipping data_collector persistence"
+                            f"a numeric 'fitness' (got {fitness!r}); skipping data_collector "
+                            "persistence"
                         )
                         continue
-                    fitness = metrics["fitness"]
 
                     # Persist result to data_collector so training readiness checks see it
                     try:

@@ -244,6 +244,32 @@ async def test_run_evolution_cycle_skips_half_code_results(tmp_path):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_run_evolution_cycle_skips_non_numeric_fitness(tmp_path):
+    """A non-numeric metrics.fitness (e.g. None or a string) must not be persisted.
+
+    Presence-only checking would let a placeholder like {"fitness": None} or
+    {"fitness": "n/a"} through, injecting non-numeric training signal.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": "n/a"},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
+    ]
+
+    await svc._run_evolution_cycle()
+
+    svc.data_collector.collect_result.assert_not_awaited()
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_run_evolution_cycle_persists_with_pipeline_strategy(tmp_path):
     """Persisted results must be tagged EvolutionStrategy.PIPELINE, not GA.
 
