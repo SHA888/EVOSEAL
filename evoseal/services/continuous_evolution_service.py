@@ -52,6 +52,11 @@ class ContinuousEvolutionService:
             evolution_interval: Seconds between evolution cycles
             training_check_interval: Seconds between training readiness checks
             min_evolution_samples: Minimum samples needed to trigger training
+            pipeline: Pre-constructed EvolutionPipeline instance.  When *None*
+                (the default) the service creates one lazily on first use via
+                ``_get_pipeline``.
+            evolution_iterations: Number of iterations passed to
+                ``EvolutionPipeline.run_evolution_cycle`` on each cycle.
         """
         self.config = config or SEALConfig()
         self.data_dir = data_dir or Path("data/continuous_evolution")
@@ -185,13 +190,12 @@ class ContinuousEvolutionService:
             if hasattr(self.config, "model_dump"):
                 seal_config = self.config.model_dump()
             else:
-                logger.warning(
+                raise TypeError(
                     f"Service config {type(self.config).__name__!r} has no model_dump(); "
-                    "EvolutionPipeline will run with an empty seal_config. "
-                    "If the pipeline requires seal_config keys at runtime, "
-                    "it will fail deep inside the run rather than here."
+                    "cannot serialize seal_config for EvolutionPipeline. "
+                    "Inject a pre-built pipeline via the `pipeline` constructor "
+                    "parameter, or pass a config object that implements model_dump()."
                 )
-                seal_config = {}
             self._pipeline = EvolutionPipeline(config={"seal_config": seal_config})
         return self._pipeline
 
@@ -203,7 +207,7 @@ class ContinuousEvolutionService:
             pipeline = self._get_pipeline()
             results = await pipeline.run_evolution_cycle(iterations=self.evolution_iterations)
 
-            if not isinstance(results, list):
+            if not isinstance(results, (list, tuple)):
                 logger.error(
                     f"Unexpected pipeline return type {type(results).__name__} "
                     f"(expected list); skipping result processing"
@@ -222,7 +226,8 @@ class ContinuousEvolutionService:
                         logger.warning(f"Skipping non-dict pipeline result: {result!r}")
                         continue
 
-                    if result.get("success"):
+                    success = result.get("success")
+                    if success:
                         logger.info(
                             f"Evolution iteration {result.get('iteration', '?')} "
                             f"succeeded (improvement={result.get('is_improvement', False)})"
@@ -237,7 +242,7 @@ class ContinuousEvolutionService:
                     # Failed iterations have no useful code output for fine-tuning,
                     # and counting them toward total_collected would inflate the
                     # training-readiness sample count with garbage data.
-                    if not result.get("success"):
+                    if not success:
                         continue
 
                     original_code = result.get("original_code", "")

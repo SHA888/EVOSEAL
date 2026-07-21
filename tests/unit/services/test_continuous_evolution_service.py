@@ -298,6 +298,21 @@ async def test_run_evolution_cycle_rejects_non_list_result(tmp_path):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_run_evolution_cycle_accepts_tuple_result(tmp_path):
+    """If the pipeline returns a tuple, it must be processed like a list."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = (
+        {"iteration": 1, "success": True, "is_improvement": False},
+    )
+
+    await svc._run_evolution_cycle()
+
+    assert svc.service_stats["evolution_cycles_completed"] == 1
+    assert svc.service_stats["evolution_cycle_errors"] == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_run_evolution_cycle_malformed_item_does_not_abort_batch(tmp_path):
     """A malformed result must not abort the remaining batch.
 
@@ -393,6 +408,29 @@ def test_run_evolution_cycle_lazy_pipeline(tmp_path):
         pipeline2 = svc._get_pipeline()
         assert pipeline2 is mock_ep
         ep_cls.assert_called_once()  # still only one call
+
+
+@pytest.mark.unit
+def test_get_pipeline_raises_when_config_lacks_model_dump(tmp_path):
+    """_get_pipeline must raise TypeError when config can't be serialized.
+
+    Silently falling back to an empty seal_config defers the failure to a
+    mysterious error deep inside the pipeline run.
+    """
+    bad_config = MagicMock(spec=[])  # no model_dump attribute
+    mock_dc = MagicMock()
+    mock_dc.collect_result = AsyncMock()
+    with (
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionDataCollector",
+            return_value=mock_dc,
+        ),
+        patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
+    ):
+        svc = ContinuousEvolutionService(data_dir=tmp_path / "svc", config=bad_config)
+
+    with pytest.raises(TypeError, match="has no model_dump"):
+        svc._get_pipeline()
 
 
 # --- _check_training_readiness key-path tests ---
