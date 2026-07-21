@@ -18,6 +18,8 @@ from typing import Any
 from ..config import SEALConfig
 from ..core.evolution_pipeline import EvolutionPipeline
 from ..evolution import EvolutionDataCollector
+from ..evolution.data_collector import create_evolution_result
+from ..evolution.models import EvolutionStrategy
 from ..fine_tuning import BidirectionalEvolutionManager
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,7 @@ class ContinuousEvolutionService:
         training_check_interval: int = 1800,  # 30 minutes
         min_evolution_samples: int = 50,
         pipeline: EvolutionPipeline | None = None,
+        evolution_iterations: int = 1,
     ):
         """
         Initialize the continuous evolution service.
@@ -58,6 +61,7 @@ class ContinuousEvolutionService:
         self.evolution_interval = timedelta(seconds=evolution_interval)
         self.training_check_interval = timedelta(seconds=training_check_interval)
         self.min_evolution_samples = min_evolution_samples
+        self.evolution_iterations = evolution_iterations
 
         # Initialize components
         self._pipeline = pipeline
@@ -177,7 +181,12 @@ class ContinuousEvolutionService:
     def _get_pipeline(self) -> EvolutionPipeline:
         """Lazily initialise the EvolutionPipeline on first use."""
         if self._pipeline is None:
-            self._pipeline = EvolutionPipeline()
+            pipeline_config = {
+                "seal_config": self.config.model_dump()
+                if hasattr(self.config, "model_dump")
+                else {},
+            }
+            self._pipeline = EvolutionPipeline(config=pipeline_config)
         return self._pipeline
 
     async def _run_evolution_cycle(self):
@@ -186,7 +195,14 @@ class ContinuousEvolutionService:
 
         try:
             pipeline = self._get_pipeline()
-            results = await pipeline.run_evolution_cycle(iterations=1)
+            results = await pipeline.run_evolution_cycle(iterations=self.evolution_iterations)
+
+            if not isinstance(results, list):
+                logger.error(
+                    f"Unexpected pipeline return type {type(results).__name__} "
+                    f"(expected list); skipping result processing"
+                )
+                return
 
             for result in results:
                 if result.get("success"):
@@ -198,6 +214,28 @@ class ContinuousEvolutionService:
                     logger.warning(
                         f"Evolution iteration {result.get('iteration', '?')} "
                         f"failed: {result.get('error', 'unknown')}"
+                    )
+
+                # Persist result to data_collector so training readiness checks see it
+                try:
+                    evo_result = create_evolution_result(
+                        original_code="",
+                        improved_code="",
+                        fitness_score=(
+                            result.get("metrics", {}).get("fitness", 0.5)
+                            if result.get("success")
+                            else 0.0
+                        ),
+                        strategy=EvolutionStrategy.GENETIC_ALGORITHM,
+                        task_description=f"Pipeline iteration {result.get('iteration', '?')}",
+                        iteration=result.get("iteration", 1),
+                        model_version="pipeline",
+                        metadata={"pipeline_result": result},
+                    )
+                    await self.data_collector.collect_result(evo_result)
+                except Exception as collect_err:
+                    logger.warning(
+                        f"Failed to persist evolution result to data_collector: {collect_err}"
                     )
 
             # Update statistics
@@ -216,7 +254,8 @@ class ContinuousEvolutionService:
         try:
             # Check if we have enough evolution data for training
             evolution_stats = self.data_collector.get_statistics()
-            total_results = evolution_stats.get("total_results", 0)
+            collection_stats = evolution_stats.get("collection_stats", {})
+            total_results = collection_stats.get("total_collected", 0)
 
             if total_results >= self.min_evolution_samples:
                 logger.info(

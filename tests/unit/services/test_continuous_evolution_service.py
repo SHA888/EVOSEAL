@@ -18,8 +18,13 @@ from evoseal.services.continuous_evolution_service import ContinuousEvolutionSer
 
 def _make_service(tmp_path: Path) -> ContinuousEvolutionService:
     """Build a ContinuousEvolutionService with mocked internals."""
+    mock_dc = MagicMock()
+    mock_dc.collect_result = AsyncMock()
     with (
-        patch("evoseal.services.continuous_evolution_service.EvolutionDataCollector"),
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionDataCollector",
+            return_value=mock_dc,
+        ),
         patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
     ):
         svc = ContinuousEvolutionService(data_dir=tmp_path / "svc")
@@ -74,14 +79,23 @@ def test_trigger_training_validation_failed(tmp_path):
 # --- _run_evolution_cycle wiring tests ---
 
 
-def _make_service_with_pipeline(tmp_path: Path) -> tuple:
+def _make_service_with_pipeline(tmp_path: Path, evolution_iterations: int = 1) -> tuple:
     """Build a ContinuousEvolutionService with a mocked EvolutionPipeline."""
     mock_pipeline = AsyncMock()
+    mock_dc = MagicMock()
+    mock_dc.collect_result = AsyncMock()
     with (
-        patch("evoseal.services.continuous_evolution_service.EvolutionDataCollector"),
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionDataCollector",
+            return_value=mock_dc,
+        ),
         patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
     ):
-        svc = ContinuousEvolutionService(data_dir=tmp_path / "svc", pipeline=mock_pipeline)
+        svc = ContinuousEvolutionService(
+            data_dir=tmp_path / "svc",
+            pipeline=mock_pipeline,
+            evolution_iterations=evolution_iterations,
+        )
     return svc, mock_pipeline
 
 
@@ -132,10 +146,56 @@ async def test_run_evolution_cycle_handles_pipeline_exception(tmp_path):
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_persists_results_to_data_collector(tmp_path):
+    """Each pipeline result must be persisted via data_collector.collect_result."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {"iteration": 1, "success": True, "is_improvement": True, "metrics": {"fitness": 0.9}},
+        {"iteration": 2, "success": False, "error": "nope"},
+    ]
+
+    await svc._run_evolution_cycle()
+
+    assert svc.data_collector.collect_result.await_count == 2
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_configurable_iterations(tmp_path):
+    """evolution_iterations param must be forwarded to the pipeline."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path, evolution_iterations=3)
+    mock_pipeline.run_evolution_cycle.return_value = []
+
+    await svc._run_evolution_cycle()
+
+    mock_pipeline.run_evolution_cycle.assert_awaited_once_with(iterations=3)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_rejects_non_list_result(tmp_path):
+    """If the pipeline returns a non-list, the cycle must log and bail."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = "unexpected"
+
+    # Must not raise
+    await svc._run_evolution_cycle()
+
+    # Cycle counter must NOT increment on bad shape
+    assert svc.service_stats["evolution_cycles_completed"] == 0
+
+
+@pytest.mark.unit
 def test_run_evolution_cycle_lazy_pipeline(tmp_path):
     """When no pipeline is injected, _get_pipeline creates one lazily."""
+    mock_dc = MagicMock()
+    mock_dc.collect_result = AsyncMock()
     with (
-        patch("evoseal.services.continuous_evolution_service.EvolutionDataCollector"),
+        patch(
+            "evoseal.services.continuous_evolution_service.EvolutionDataCollector",
+            return_value=mock_dc,
+        ),
         patch("evoseal.services.continuous_evolution_service.BidirectionalEvolutionManager"),
     ):
         svc = ContinuousEvolutionService(data_dir=tmp_path / "svc")
@@ -150,6 +210,9 @@ def test_run_evolution_cycle_lazy_pipeline(tmp_path):
     ) as ep_cls:
         pipeline = svc._get_pipeline()
         ep_cls.assert_called_once()
+        # Config must be passed through (not a bare constructor)
+        call_kwargs = ep_cls.call_args
+        assert "config" in call_kwargs.kwargs
         assert pipeline is mock_ep
         # Second call should reuse the same instance
         pipeline2 = svc._get_pipeline()
