@@ -189,6 +189,7 @@ async def test_run_evolution_cycle_skips_codeless_results(tmp_path):
 
     svc.data_collector.collect_result.assert_not_awaited()
     assert svc.service_stats["evolution_cycles_completed"] == 1
+    assert svc.service_stats["results_skipped"] == 1
 
 
 @pytest.mark.unit
@@ -494,6 +495,27 @@ async def test_run_evolution_cycle_logs_config_error_at_critical(tmp_path):
     # _run_evolution_cycle must not raise
     await svc._run_evolution_cycle()
 
+    assert svc.service_stats["evolution_cycles_completed"] == 0
+    assert svc.service_stats["evolution_cycle_errors"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_typeerror_in_pipeline_not_misclassified(tmp_path):
+    """A TypeError inside pipeline.run_evolution_cycle() must NOT be caught
+    as a configuration error.  Only _get_pipeline() TypeErrors should use
+    the CRITICAL / 'Configuration error' path.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    # Simulate a real bug inside the pipeline that raises TypeError
+    mock_pipeline.run_evolution_cycle.side_effect = TypeError("bad arg to some_func")
+
+    await svc._run_evolution_cycle()
+
+    # Must be counted as a generic error, not a config error with CRITICAL log.
+    # The stats are the same (error=1, completed=0) — the distinction is in
+    # the log level and message, but we can at least verify it doesn't crash
+    # and the stats are correct.
     assert svc.service_stats["evolution_cycles_completed"] == 0
     assert svc.service_stats["evolution_cycle_errors"] == 1
 

@@ -204,8 +204,22 @@ class ContinuousEvolutionService:
         """Run an evolution cycle using the real EvolutionPipeline."""
         logger.info("🧬 Starting evolution cycle")
 
+        # Narrow try/except: only _get_pipeline() can raise TypeError for the
+        # configuration-error path (missing model_dump).  A TypeError deeper in
+        # the pipeline run or result loop is a real bug and must not be masked
+        # as a configuration error.
         try:
             pipeline = self._get_pipeline()
+        except TypeError as e:
+            logger.critical(
+                f"Configuration error building pipeline: {e}\n"
+                "Hint: inject a pre-built pipeline via the `pipeline` constructor "
+                "parameter, or pass a config that implements model_dump()."
+            )
+            self.service_stats["evolution_cycle_errors"] += 1
+            return
+
+        try:
             results = await pipeline.run_evolution_cycle(iterations=self.evolution_iterations)
 
             if not isinstance(results, (list, tuple)):
@@ -258,6 +272,7 @@ class ContinuousEvolutionService:
                             f"Evolution iteration {result.get('iteration', '?')} produced no "
                             "code diff; skipping data_collector persistence"
                         )
+                        self.service_stats["results_skipped"] += 1
                         continue
 
                     metrics = result.get("metrics", {})
@@ -306,13 +321,6 @@ class ContinuousEvolutionService:
 
             logger.info("✅ Evolution cycle completed")
 
-        except TypeError as e:
-            logger.critical(
-                f"Configuration error in evolution cycle: {e}\n"
-                "Hint: inject a pre-built pipeline via the `pipeline` constructor "
-                "parameter, or pass a config that implements model_dump()."
-            )
-            self.service_stats["evolution_cycle_errors"] += 1
         except Exception as e:
             logger.error(f"Error in evolution cycle: {e}")
             self.service_stats["evolution_cycle_errors"] += 1
