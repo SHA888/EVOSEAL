@@ -216,16 +216,26 @@ class ContinuousEvolutionService:
                         f"failed: {result.get('error', 'unknown')}"
                     )
 
+                # Only persist successful results with meaningful fitness.
+                # Failed iterations have no useful code output for fine-tuning,
+                # and counting them toward total_collected would inflate the
+                # training-readiness sample count with garbage data.
+                if not result.get("success"):
+                    continue
+
+                fitness = result.get("metrics", {}).get("fitness", 0.5)
+
                 # Persist result to data_collector so training readiness checks see it
                 try:
+                    # The pipeline doesn't return source code — these are
+                    # metadata-only tracking records for training readiness.
+                    # NOTE: EvolutionPipeline has no strategy selection; using
+                    # GENETIC_ALGORITHM as a placeholder label.  Revisit if the
+                    # pipeline gains multi-strategy support.
                     evo_result = create_evolution_result(
                         original_code="",
                         improved_code="",
-                        fitness_score=(
-                            result.get("metrics", {}).get("fitness", 0.5)
-                            if result.get("success")
-                            else 0.0
-                        ),
+                        fitness_score=fitness,
                         strategy=EvolutionStrategy.GENETIC_ALGORITHM,
                         task_description=f"Pipeline iteration {result.get('iteration', '?')}",
                         iteration=result.get("iteration", 1),
@@ -252,10 +262,12 @@ class ContinuousEvolutionService:
         logger.info("🔍 Checking training readiness")
 
         try:
-            # Check if we have enough evolution data for training
+            # Check if we have enough successful evolution data for training.
+            # Use successful_count (not total_collected) so failed iterations
+            # don't inflate the sample count.
             evolution_stats = self.data_collector.get_statistics()
             collection_stats = evolution_stats.get("collection_stats", {})
-            total_results = collection_stats.get("total_collected", 0)
+            total_results = collection_stats.get("successful_count", 0)
 
             if total_results >= self.min_evolution_samples:
                 logger.info(

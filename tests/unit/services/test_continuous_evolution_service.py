@@ -13,6 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from evoseal.evolution.data_collector import create_evolution_result
+from evoseal.evolution.models import EvolutionStrategy
 from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
 
 
@@ -147,8 +149,8 @@ async def test_run_evolution_cycle_handles_pipeline_exception(tmp_path):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_run_evolution_cycle_persists_results_to_data_collector(tmp_path):
-    """Each pipeline result must be persisted via data_collector.collect_result."""
+async def test_run_evolution_cycle_persists_only_successful_results(tmp_path):
+    """Only successful pipeline results must be persisted via collect_result."""
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
     mock_pipeline.run_evolution_cycle.return_value = [
         {"iteration": 1, "success": True, "is_improvement": True, "metrics": {"fitness": 0.9}},
@@ -157,7 +159,8 @@ async def test_run_evolution_cycle_persists_results_to_data_collector(tmp_path):
 
     await svc._run_evolution_cycle()
 
-    assert svc.data_collector.collect_result.await_count == 2
+    # Only the successful result should be persisted
+    assert svc.data_collector.collect_result.await_count == 1
 
 
 @pytest.mark.unit
@@ -218,3 +221,96 @@ def test_run_evolution_cycle_lazy_pipeline(tmp_path):
         pipeline2 = svc._get_pipeline()
         assert pipeline2 is mock_ep
         ep_cls.assert_called_once()  # still only one call
+
+
+# --- _check_training_readiness key-path tests ---
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_training_readiness_uses_successful_count(tmp_path):
+    """_check_training_readiness must read collection_stats.successful_count.
+
+    The get_statistics() key path is: ["collection_stats"]["successful_count"].
+    If this path is wrong, total_results silently stays 0 and training never
+    triggers — a silent failure mode.  This test asserts the key path matches
+    the real shape returned by EvolutionDataCollector.get_statistics().
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+
+    # Simulate a real get_statistics() return shape
+    svc.data_collector.get_statistics = MagicMock(
+        return_value={
+            "collection_stats": {
+                "total_collected": 10,
+                "successful_count": 7,
+                "failed_count": 3,
+            },
+            "strategy_performance": {},
+            "improvement_patterns": {},
+            "memory_usage": {},
+        }
+    )
+
+    # Patch _trigger_training_cycle so we don't actually run training
+    svc._trigger_training_cycle = AsyncMock()
+
+    # With min_evolution_samples=5, 7 successful results should trigger
+    svc.min_evolution_samples = 5
+    await svc._check_training_readiness()
+    svc._trigger_training_cycle.assert_awaited_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_training_readiness_below_threshold(tmp_path):
+    """Training must NOT trigger when successful_count < min_evolution_samples."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+
+    svc.data_collector.get_statistics = MagicMock(
+        return_value={
+            "collection_stats": {
+                "total_collected": 10,
+                "successful_count": 3,
+                "failed_count": 7,
+            },
+            "strategy_performance": {},
+            "improvement_patterns": {},
+            "memory_usage": {},
+        }
+    )
+
+    svc._trigger_training_cycle = AsyncMock()
+    svc.min_evolution_samples = 5
+
+    await svc._check_training_readiness()
+    svc._trigger_training_cycle.assert_not_awaited()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_training_readiness_with_real_collector(tmp_path):
+    """Integration: key path must work with the real EvolutionDataCollector."""
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+
+    # Use a real data_collector (not mocked) to verify the key path
+    from evoseal.evolution.data_collector import EvolutionDataCollector
+    from evoseal.evolution.models import EvolutionResult
+
+    real_dc = EvolutionDataCollector(data_dir=tmp_path / "real_dc")
+    svc.data_collector = real_dc
+    svc._trigger_training_cycle = AsyncMock()
+    svc.min_evolution_samples = 2
+
+    # Add two successful results to cross the threshold
+    for _ in range(2):
+        result = create_evolution_result(
+            original_code="x = 1",
+            improved_code="x = 2",
+            fitness_score=0.9,
+            strategy=EvolutionStrategy.GENETIC_ALGORITHM,
+        )
+        await real_dc.collect_result(result)
+
+    await svc._check_training_readiness()
+    svc._trigger_training_cycle.assert_awaited_once()
