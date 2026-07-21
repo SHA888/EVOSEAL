@@ -181,12 +181,15 @@ class ContinuousEvolutionService:
     def _get_pipeline(self) -> EvolutionPipeline:
         """Lazily initialise the EvolutionPipeline on first use."""
         if self._pipeline is None:
-            pipeline_config = {
-                "seal_config": self.config.model_dump()
-                if hasattr(self.config, "model_dump")
-                else {},
-            }
-            self._pipeline = EvolutionPipeline(config=pipeline_config)
+            if hasattr(self.config, "model_dump"):
+                seal_config = self.config.model_dump()
+            else:
+                logger.warning(
+                    f"Service config {type(self.config).__name__!r} has no model_dump(); "
+                    "EvolutionPipeline will run with an empty seal_config"
+                )
+                seal_config = {}
+            self._pipeline = EvolutionPipeline(config={"seal_config": seal_config})
         return self._pipeline
 
     async def _run_evolution_cycle(self):
@@ -223,18 +226,35 @@ class ContinuousEvolutionService:
                 if not result.get("success"):
                     continue
 
-                fitness = result.get("metrics", {}).get("fitness", 0.5)
+                original_code = result.get("original_code", "")
+                improved_code = result.get("improved_code", "")
+                if not (original_code or improved_code):
+                    # EvolutionPipeline doesn't return a code diff yet, so there's
+                    # nothing here to fine-tune on. Skip persisting a codeless
+                    # placeholder — counting it toward training readiness would
+                    # let training fire on records with no actual code.
+                    logger.debug(
+                        f"Evolution iteration {result.get('iteration', '?')} produced no "
+                        "code diff; skipping data_collector persistence"
+                    )
+                    continue
+
+                metrics = result.get("metrics", {})
+                if "fitness" not in metrics:
+                    logger.warning(
+                        f"Evolution iteration {result.get('iteration', '?')} metrics missing "
+                        "'fitness'; defaulting to 0.5"
+                    )
+                fitness = metrics.get("fitness", 0.5)
 
                 # Persist result to data_collector so training readiness checks see it
                 try:
-                    # The pipeline doesn't return source code — these are
-                    # metadata-only tracking records for training readiness.
                     # NOTE: EvolutionPipeline has no strategy selection; using
                     # GENETIC_ALGORITHM as a placeholder label.  Revisit if the
                     # pipeline gains multi-strategy support.
                     evo_result = create_evolution_result(
-                        original_code="",
-                        improved_code="",
+                        original_code=original_code,
+                        improved_code=improved_code,
                         fitness_score=fitness,
                         strategy=EvolutionStrategy.GENETIC_ALGORITHM,
                         task_description=f"Pipeline iteration {result.get('iteration', '?')}",

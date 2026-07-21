@@ -153,7 +153,14 @@ async def test_run_evolution_cycle_persists_only_successful_results(tmp_path):
     """Only successful pipeline results must be persisted via collect_result."""
     svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
     mock_pipeline.run_evolution_cycle.return_value = [
-        {"iteration": 1, "success": True, "is_improvement": True, "metrics": {"fitness": 0.9}},
+        {
+            "iteration": 1,
+            "success": True,
+            "is_improvement": True,
+            "metrics": {"fitness": 0.9},
+            "original_code": "x = 1",
+            "improved_code": "x = 2",
+        },
         {"iteration": 2, "success": False, "error": "nope"},
     ]
 
@@ -161,6 +168,26 @@ async def test_run_evolution_cycle_persists_only_successful_results(tmp_path):
 
     # Only the successful result should be persisted
     assert svc.data_collector.collect_result.await_count == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_evolution_cycle_skips_codeless_results(tmp_path):
+    """A successful result with no code diff must not be persisted.
+
+    EvolutionPipeline doesn't return real code yet, so a codeless "success"
+    would otherwise let training readiness fire on placeholder records with
+    nothing to fine-tune on.
+    """
+    svc, mock_pipeline = _make_service_with_pipeline(tmp_path)
+    mock_pipeline.run_evolution_cycle.return_value = [
+        {"iteration": 1, "success": True, "is_improvement": True, "metrics": {"fitness": 0.9}},
+    ]
+
+    await svc._run_evolution_cycle()
+
+    svc.data_collector.collect_result.assert_not_awaited()
+    assert svc.service_stats["evolution_cycles_completed"] == 1
 
 
 @pytest.mark.unit
