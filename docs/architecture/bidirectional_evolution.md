@@ -31,7 +31,7 @@ system prompt text).
 
 ### The loop in four stages
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     EVOSEAL (the agent)                     │
 │                                                             │
@@ -66,9 +66,13 @@ instruction-following, safety, performance). The prompt path uses the reviewer's
 score on the *same task* as the validation signal.
 
 **Stage 4 — Deploy or rollback.** If validation passes, the new model version is
-registered in `ModelVersionManager` and the coding model is updated. If it fails,
-`RollbackManager` reverts to the previous version. The prompt path does the same
-via `PromptStore` versioned lineage.
+registered in `ModelVersionManager` and the coding model is intended to be updated.
+If it fails, `RollbackManager` reverts to the previous version. The prompt path
+does the same via `PromptStore` versioned lineage.
+
+> **Note:** deployment currently updates a JSON registry only — it does not yet
+> create an Ollama Modelfile or update the serving layer, and generation does not
+> consult the registry (see [Known gaps](#known-gaps) #3–#4).
 
 The loop repeats: the improved model generates better code variants in the next
 EVOSEAL cycle, which produces better evolution data, which feeds the next round of
@@ -100,13 +104,20 @@ gate before it is accepted:
 
 | Mechanism | What it checks | Module |
 |-----------|---------------|--------|
-| **ImprovementValidator** | Metric change meets a minimum threshold *and* is statistically significant (effect size) | `evoseal/core/improvement_validator.py` |
+| **ImprovementValidator** | Metric change meets a minimum threshold *and*, if configured, is statistically significant (effect size; disabled by default) | `evoseal/core/improvement_validator.py` |
 | **RegressionDetector** | No metric degrades beyond configurable limits (e.g., pass_rate ≤ −5%, duration ≤ +10%) | `evoseal/core/regression_detector.py` |
 | **Prompt path gate** | New prompt score ≥ old score + `min_score_gain` on the *same task* | `evoseal/prompt_evolution/coevolution_manager.py` |
 
 If any gate fails, the change is discarded and the previous version stays active.
 This is the single most important divergence-prevention mechanism: **a change that
 cannot demonstrate measurable improvement is never deployed**.
+
+> **Current limitation:** `ModelValidator` currently tests the *baseline* model
+> (it instantiates `OllamaProvider(model=self.baseline_model)` and ignores
+> `model_path`), so the regression gate does not yet validate the fine-tuned
+> candidate. This means the "never deployed without improvement" guarantee is
+> aspirational rather than enforced by the current implementation
+> (see [Known gaps](#known-gaps) #2).
 
 ### Versioned lineage with rollback
 
