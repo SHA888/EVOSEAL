@@ -9,6 +9,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -167,6 +168,14 @@ class ModelVersionManager:
                         f"Model registered but deployment failed: {deploy_result['error']}"
                     )
                     version_info["deployment_error"] = deploy_result["error"]
+                # NOTE: deploy_version mutates the same dict object that
+                # get_version_info returns (it iterates self.registry["versions"]
+                # and returns the matching entry by reference).  The deployment
+                # fields (deployment_status, ollama_model_name, deployed_at) set
+                # inside deploy_version are therefore visible here.  If
+                # get_version_info is ever changed to return a *copy*, this
+                # return value would silently omit those fields — callers
+                # should then re-fetch via get_version_info after deploy.
 
             return version_info
 
@@ -291,8 +300,19 @@ class ModelVersionManager:
         if not ollama_model_name:
             ollama_model_name = version_info.get("version_name", version_id)
 
+        # Sanitize for Ollama: lowercase, alphanumeric + hyphens/underscores/dots only.
+        sanitized = re.sub(r"[^a-z0-9._-]", "-", ollama_model_name.lower()).strip("-._")
+        if not sanitized:
+            sanitized = f"model-{version_id}"
+        if sanitized != ollama_model_name:
+            logger.info(f"Sanitized Ollama model name: {ollama_model_name!r} -> {sanitized!r}")
+        ollama_model_name = sanitized
+
         # Create Modelfile
-        modelfile_content = self._create_modelfile(model_path)
+        try:
+            modelfile_content = self._create_modelfile(model_path)
+        except ValueError as e:
+            return {"error": str(e)}
         modelfile_path = self.versions_dir / version_id / "Modelfile"
         try:
             modelfile_path.parent.mkdir(parents=True, exist_ok=True)
@@ -333,6 +353,21 @@ class ModelVersionManager:
         }
 
     @staticmethod
+    def _validate_model_path(path: Path) -> None:
+        """Raise ValueError if *path* contains characters that would break a Modelfile.
+
+        Ollama Modelfiles use whitespace-delimited parsing for ``FROM`` and
+        ``ADAPTER`` directives.  A path containing spaces, tabs, or newlines
+        would silently split across tokens and produce a confusing parse error
+        from ``ollama create`` rather than a clear deployment failure.
+        """
+        raw = str(path)
+        if any(ch.isspace() for ch in raw):
+            raise ValueError(
+                f"Model path contains whitespace and cannot be used in a Modelfile: {raw!r}"
+            )
+
+    @staticmethod
     def _create_modelfile(model_path: str) -> str:
         """Generate a Modelfile for the given model directory.
 
@@ -349,8 +384,15 @@ class ModelVersionManager:
 
         Returns:
             Modelfile content string
+
+        Raises:
+            ValueError: If *model_path* contains whitespace characters.
         """
         p = Path(model_path)
+
+        # Validate paths up-front so a malformed path surfaces as a clear
+        # error instead of a confusing ``ollama create`` parse failure.
+        ModelVersionManager._validate_model_path(p)
 
         # Check for GGUF files first
         gguf_files = list(p.glob("*.gguf"))
@@ -358,16 +400,15 @@ class ModelVersionManager:
             # Pick the largest GGUF deterministically (avoids arbitrary
             # filesystem order when multiple quantizations exist).
             selected = max(gguf_files, key=lambda f: f.stat().st_size)
+            ModelVersionManager._validate_model_path(selected)
             return f"FROM {selected}\n"
 
         # Detect LoRA/PEFT adapter directory — these need ADAPTER syntax,
         # not a bare FROM.  adapter_config.json is the canonical marker.
         if (p / "adapter_config.json").exists():
             try:
-                import json as _json
-
                 with open(p / "adapter_config.json") as f:
-                    cfg = _json.load(f)
+                    cfg = json.load(f)
                 base_model = cfg.get("base_model_name_or_path", "")
                 if base_model:
                     return f"FROM {base_model}\nADAPTER {p}\n"

@@ -134,7 +134,7 @@ class TestDeployVersion:
 
         result = await vm.deploy_version(vid)
         assert "error" in result
-        assert "not found" in result["error"].lower() or "not found" in result["error"]
+        assert "not found" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_deploy_success(self, versions_dir: Path, model_dir: Path) -> None:
@@ -244,6 +244,119 @@ class TestRegisterVersionWithDeploy:
 
         # Default: no deployment
         assert reg.get("deployment_status") != "deployed"
+
+
+class TestPathValidation:
+    """Tests for _validate_model_path and path-safe Modelfile generation."""
+
+    def test_path_with_spaces_raises(self, tmp_path: Path) -> None:
+        d = tmp_path / "my model"
+        d.mkdir()
+        (d / "model.gguf").write_bytes(b"x" * 10)
+        with pytest.raises(ValueError, match="whitespace"):
+            ModelVersionManager._create_modelfile(str(d))
+
+    def test_gguf_path_with_spaces_raises(self, tmp_path: Path) -> None:
+        d = tmp_path / "ok_dir"
+        d.mkdir()
+        (d / "my model.gguf").write_bytes(b"x" * 10)
+        with pytest.raises(ValueError, match="whitespace"):
+            ModelVersionManager._create_modelfile(str(d))
+
+    def test_clean_path_succeeds(self, tmp_path: Path) -> None:
+        d = tmp_path / "clean_model"
+        d.mkdir()
+        (d / "model.gguf").write_bytes(b"x" * 10)
+        content = ModelVersionManager._create_modelfile(str(d))
+        assert "FROM" in content
+
+    @pytest.mark.asyncio
+    async def test_deploy_with_spaces_returns_error(
+        self, versions_dir: Path, tmp_path: Path
+    ) -> None:
+        """deploy_version rejects model paths containing whitespace."""
+        d = tmp_path / "ok_model"
+        d.mkdir()
+        (d / "config.json").write_text("{}")
+        (d / "model.safetensors").write_text("fake")
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        reg = await vm.register_version(
+            training_results={
+                "success": True,
+                "model_save_path": str(d),
+                "fallback_mode": True,
+            },
+            validation_results={"passed": True},
+        )
+        vid = reg["version_id"]
+        # Overwrite the stored model_path with one containing spaces to
+        # simulate a space-containing path reaching deploy_version.
+        vi = vm.get_version_info(vid)
+        spaced_dir = tmp_path / "my model"
+        spaced_dir.mkdir()
+        (spaced_dir / "config.json").write_text("{}")
+        (spaced_dir / "model.safetensors").write_text("fake")
+        vi["model_path"] = str(spaced_dir)
+        vm._save_registry()
+
+        result = await vm.deploy_version(vid)
+        assert "error" in result
+        assert "whitespace" in result["error"]
+
+
+class TestModelNameSanitization:
+    """Tests for Ollama model name sanitization in deploy_version."""
+
+    @pytest.mark.asyncio
+    async def test_uppercase_name_lowered(self, versions_dir: Path, model_dir: Path) -> None:
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        reg = await vm.register_version(
+            training_results={
+                "success": True,
+                "model_save_path": str(model_dir),
+                "fallback_mode": True,
+            },
+            validation_results={"passed": True},
+        )
+        vid = reg["version_id"]
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            result = await vm.deploy_version(vid, ollama_model_name="My-Model")
+        assert result["ollama_model"] == "my-model"
+
+    @pytest.mark.asyncio
+    async def test_spaces_in_name_replaced(self, versions_dir: Path, model_dir: Path) -> None:
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        reg = await vm.register_version(
+            training_results={
+                "success": True,
+                "model_save_path": str(model_dir),
+                "fallback_mode": True,
+            },
+            validation_results={"passed": True},
+        )
+        vid = reg["version_id"]
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            result = await vm.deploy_version(vid, ollama_model_name="my model v1")
+        assert result["ollama_model"] == "my-model-v1"
+        assert " " not in result["ollama_model"]
+
+    @pytest.mark.asyncio
+    async def test_special_chars_replaced(self, versions_dir: Path, model_dir: Path) -> None:
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        reg = await vm.register_version(
+            training_results={
+                "success": True,
+                "model_save_path": str(model_dir),
+                "fallback_mode": True,
+            },
+            validation_results={"passed": True},
+        )
+        vid = reg["version_id"]
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            result = await vm.deploy_version(vid, ollama_model_name="model@v1#test")
+        sanitized = result["ollama_model"]
+        assert "@" not in sanitized
+        assert "#" not in sanitized
 
 
 class TestDeploymentStats:
