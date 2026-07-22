@@ -72,7 +72,7 @@ does the same via `PromptStore` versioned lineage.
 
 > **Note:** deployment currently updates a JSON registry only — it does not yet
 > create an Ollama Modelfile or update the serving layer, and generation does not
-> consult the registry (see [Known gaps](#known-gaps) #2–#3).
+> consult the registry (see [Known gaps](#known-gaps) #1–#2).
 
 The loop repeats: the improved model generates better code variants in the next
 EVOSEAL cycle, which produces better evolution data, which feeds the next round of
@@ -114,11 +114,13 @@ If any gate fails, the change is discarded and the previous version stays active
 This is the single most important divergence-prevention mechanism.
 
 > **Scope of the guarantee today.** The "never deployed without improvement"
-> guarantee is currently enforced only on the **prompt path**, where the gate
-> directly compares old and new prompt scores on the same task. For the **weight
-> path**, `ModelValidator` always validates against `self.baseline_model` and
-> ignores the `model_path` argument, so the fine-tuned candidate is never actually
-> tested and the gate cannot fail (see [Known gaps](#known-gaps) #1).
+> guarantee is fully enforced on the **prompt path**, where the gate directly
+> compares old and new prompt scores on the same task. For the **weight path**,
+> `ModelValidator` now validates the model at `model_path` when one is supplied
+> instead of always the baseline (fixed 2026-07-21) — but `model_path` must already
+> be an Ollama-resolvable tag, and nothing in the pipeline produces one yet (see
+> [Known gaps](#known-gaps) #1), so the gate still can't exercise a real fine-tuned
+> candidate until deployment is wired.
 
 ### Versioned lineage with rollback
 
@@ -226,26 +228,31 @@ upward; divergence shows one improving at the expense of the other.
 
 ## Known gaps
 
-The architecture above describes the intended design. As of 2026-07-21, two of the
-original five gaps are fixed: `_run_evolution_cycle` now constructs and invokes a real
-`EvolutionPipeline` instead of simulating, and `evoseal start evolution` makes the
-daemon reachable from the CLI. The following feedback edges are still not wired
+The architecture above describes the intended design. As of 2026-07-21, three of the
+original gaps are fixed: `_run_evolution_cycle` now constructs and invokes a real
+`EvolutionPipeline` instead of simulating, `evoseal start evolution` makes the daemon
+reachable from the CLI, and `ModelValidator` now validates the model at `model_path`
+instead of always the baseline. The following feedback edges are still not wired
 (tracked in `TODO.md`, § "Close the bidirectional co-evolution loop"):
 
-1. **`ModelValidator` tests the baseline model, not the fine-tuned one** — all five
-   validation categories instantiate `OllamaProvider(model=self.baseline_model)`,
-   ignoring the `model_path` argument.
-2. **Model deployment is a JSON registry** — `ModelVersionManager.register_version`
+1. **Model deployment is a JSON registry** — `ModelVersionManager.register_version`
    copies weights and updates a JSON file, but does not create an Ollama Modelfile or
-   update the serving layer.
-3. **Generation does not consult the fine-tuning registry** —
+   update the serving layer. This is also why the `ModelValidator` fix above can't yet
+   validate a real fine-tuned candidate: it needs an Ollama-resolvable `model_path`,
+   and nothing produces one until this gap closes.
+2. **Generation does not consult the fine-tuning registry** —
    `ModelVersionManager.get_current_version()` has zero callers; the generator always
    uses the base model.
+3. **`bidirectional_manager` doesn't orchestrate the loop** — its docstring promises
+   evolve → train → validate → deploy → repeat, but the class only implements
+   reporting/statistics methods (`get_evolution_status`, `get_evolution_history`,
+   `generate_evolution_report`); nothing actually drives the sequence end-to-end.
 4. **No end-to-end bidirectional test** — there is no test that exercises the full
    collect → train → validate → deploy → regenerate cycle.
 
-The evolution leg now runs for real, but the return path — validating the correct
-model, deploying it, and having generation consult the registry — is still broken, so
+The evolution leg now runs for real and validation now targets the right model in
+principle, but the return path — deploying that model somewhere loadable, having
+generation consult the registry, and orchestrating the sequence — is still broken, so
 model improvements don't yet feed back into generation. Closing the remaining gaps is
 the primary focus of the P2 co-evolution backlog items in `TODO.md`.
 
