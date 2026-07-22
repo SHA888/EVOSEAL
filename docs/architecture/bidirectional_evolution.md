@@ -72,7 +72,7 @@ does the same via `PromptStore` versioned lineage.
 
 > **Note:** deployment currently updates a JSON registry only — it does not yet
 > create an Ollama Modelfile or update the serving layer, and generation does not
-> consult the registry (see [Known gaps](#known-gaps) #3–#4).
+> consult the registry (see [Known gaps](#known-gaps) #2–#3).
 
 The loop repeats: the improved model generates better code variants in the next
 EVOSEAL cycle, which produces better evolution data, which feeds the next round of
@@ -83,8 +83,10 @@ improvement.
 `ContinuousEvolutionService` (`evoseal/services/continuous_evolution_service.py`) is
 the long-running daemon that drives the loop:
 
-- Every `evolution_interval` (default 1 hour): runs `_run_evolution_cycle` to check
-  for new evolution data and update statistics.
+- Every `evolution_interval` (default 1 hour): runs `_run_evolution_cycle`, which
+  constructs (or reuses an injected) `EvolutionPipeline` and calls
+  `run_evolution_cycle()` to actually execute an evolution cycle, not just poll
+  statistics.
 - Every `training_check_interval` (default 30 minutes): checks if enough samples
   have accumulated (default threshold: 50) and triggers a training cycle.
 - The monitoring dashboard (WebSocket on port 9613) exposes real-time metrics.
@@ -116,7 +118,7 @@ This is the single most important divergence-prevention mechanism.
 > directly compares old and new prompt scores on the same task. For the **weight
 > path**, `ModelValidator` always validates against `self.baseline_model` and
 > ignores the `model_path` argument, so the fine-tuned candidate is never actually
-> tested and the gate cannot fail (see [Known gaps](#known-gaps) #2).
+> tested and the gate cannot fail (see [Known gaps](#known-gaps) #1).
 
 ### Versioned lineage with rollback
 
@@ -224,27 +226,28 @@ upward; divergence shows one improving at the expense of the other.
 
 ## Known gaps
 
-The architecture above describes the intended design. The following feedback edges
-are not yet fully wired (tracked in `TODO.md`):
+The architecture above describes the intended design. As of 2026-07-21, two of the
+original five gaps are fixed: `_run_evolution_cycle` now constructs and invokes a real
+`EvolutionPipeline` instead of simulating, and `evoseal start evolution` makes the
+daemon reachable from the CLI. The following feedback edges are still not wired
+(tracked in `TODO.md`, § "Close the bidirectional co-evolution loop"):
 
-1. **`_run_evolution_cycle` simulates instead of running the pipeline** — the daemon
-   reads `get_statistics()` but does not invoke `EvolutionPipeline` to run a real
-   evolution cycle.
-2. **`ModelValidator` tests the baseline model, not the fine-tuned one** — all five
+1. **`ModelValidator` tests the baseline model, not the fine-tuned one** — all five
    validation categories instantiate `OllamaProvider(model=self.baseline_model)`,
    ignoring the `model_path` argument.
-3. **Model deployment is a JSON registry** — `ModelVersionManager.register_version`
+2. **Model deployment is a JSON registry** — `ModelVersionManager.register_version`
    copies weights and updates a JSON file, but does not create an Ollama Modelfile or
    update the serving layer.
-4. **Generation does not consult the fine-tuning registry** —
+3. **Generation does not consult the fine-tuning registry** —
    `ModelVersionManager.get_current_version()` has zero callers; the generator always
    uses the base model.
-5. **No end-to-end bidirectional test** — there is no test that exercises the full
+4. **No end-to-end bidirectional test** — there is no test that exercises the full
    collect → train → validate → deploy → regenerate cycle.
 
-These gaps mean the loop currently operates as two independent unidirectional paths
-rather than a true closed loop. Closing them is the primary focus of the P2 co-evolution
-backlog items in `TODO.md`.
+The evolution leg now runs for real, but the return path — validating the correct
+model, deploying it, and having generation consult the registry — is still broken, so
+model improvements don't yet feed back into generation. Closing the remaining gaps is
+the primary focus of the P2 co-evolution backlog items in `TODO.md`.
 
 ---
 
