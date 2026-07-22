@@ -201,26 +201,27 @@ class TrainingManager:
         """
         try:
             cycle_start = datetime.now()
-            self.current_training = {
-                "start_time": cycle_start,
-                "status": "running",
-                "phase": "initialization",
-            }
 
             logger.info("Starting training cycle...")
 
-            # Phase 1: Check readiness
-            self.current_training["phase"] = "readiness_check"
+            # Phase 1: Check readiness BEFORE claiming training state.
+            # check_training_readiness() rejects if self.current_training is
+            # already set, so we must not set it until after the check passes.
             readiness = await self.check_training_readiness()
 
             if not readiness["ready"]:
-                self.current_training = None
                 return {
                     "success": False,
                     "phase": "readiness_check",
                     "error": readiness["reason"],
                     "details": readiness,
                 }
+
+            self.current_training = {
+                "start_time": cycle_start,
+                "status": "running",
+                "phase": "initialization",
+            }
 
             # Phase 2: Prepare training data
             self.current_training["phase"] = "data_preparation"
