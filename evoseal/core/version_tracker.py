@@ -25,6 +25,20 @@ from .version_database import VersionDatabase
 logger = logging.getLogger(__name__)
 
 
+def _validate_checkpoint_id(base_dir: Path, untrusted: str, label: str) -> Path:
+    """Ensure *untrusted* resolves to a path strictly inside *base_dir*.
+
+    Raises ValueError if the resolved path escapes *base_dir*.
+    """
+    base = base_dir.resolve()
+    resolved = (base / untrusted).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise ValueError(f"{label} {untrusted!r} would escape base directory {base}") from None
+    return resolved
+
+
 class VersionTrackingError(Exception):
     """Base exception for version tracking errors."""
 
@@ -266,7 +280,12 @@ class VersionTracker:
         timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         checkpoint_id = f"{experiment_id}_{timestamp}"
         if checkpoint_name:
+            # Validate checkpoint_name before using it in a path
+            _validate_checkpoint_id(self.checkpoints_dir, checkpoint_name, "checkpoint_name")
             checkpoint_id += f"_{checkpoint_name}"
+
+        # Final defence-in-depth: validate the assembled checkpoint_id
+        _validate_checkpoint_id(self.checkpoints_dir, checkpoint_id, "checkpoint_id")
 
         # Create checkpoint directory
         checkpoint_dir = self.checkpoints_dir / checkpoint_id
@@ -314,6 +333,9 @@ class VersionTracker:
         Returns:
             Restored experiment
         """
+        # Validate checkpoint_id does not escape checkpoints_dir
+        _validate_checkpoint_id(self.checkpoints_dir, checkpoint_id, "checkpoint_id")
+
         checkpoint_dir = self.checkpoints_dir / checkpoint_id
         if not checkpoint_dir.exists():
             raise VersionTrackingError(f"Checkpoint {checkpoint_id} not found")
