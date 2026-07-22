@@ -165,8 +165,9 @@ class EvolutionPipeline:
         # Initialize workflow engine
         self.workflow_engine = WorkflowEngine()
 
-        # Initialize resilience and error handling
-        self._init_resilience_mechanisms()
+        # Resilience mechanisms require an async event loop to start monitoring
+        # and are lazily initialized on first use (see _ensure_resilience_initialized).
+        self._resilience_initialized = False
 
         # Initialize component connectors
         self._init_component_connectors()
@@ -375,6 +376,18 @@ class EvolutionPipeline:
         self.event_bus.subscribe(EventType.STEP_STARTED, self._on_step_started)
         self.event_bus.subscribe(EventType.STEP_COMPLETED, self._on_step_completed)
 
+    async def _ensure_resilience_initialized(self) -> None:
+        """Lazily initialize resilience mechanisms on first async use.
+
+        Called at the start of each evolution cycle so that circuit breakers,
+        monitoring, recovery strategies, etc. are registered before any work
+        is attempted.  Safe to call multiple times — only the first call runs
+        the setup.
+        """
+        if not self._resilience_initialized:
+            await self._init_resilience_mechanisms()
+            self._resilience_initialized = True
+
     async def run_evolution_cycle(self, iterations: int = 1) -> list[dict[str, Any]]:
         """Run a complete evolution cycle.
 
@@ -384,6 +397,8 @@ class EvolutionPipeline:
         Returns:
             List of results from each iteration.
         """
+        await self._ensure_resilience_initialized()
+
         results = []
 
         try:
@@ -448,10 +463,11 @@ class EvolutionPipeline:
                 if not iteration_result["should_continue"]:
                     break
 
-            self.event_bus.publish(
+            await self.event_bus.publish(
                 Event(
-                    EventType.EVOLUTION_COMPLETED,
-                    {
+                    event_type=EventType.EVOLUTION_COMPLETED,
+                    source="evolution_pipeline",
+                    data={
                         "timestamp": datetime.utcnow().isoformat(),
                         "iterations_completed": len(results),
                         "successful_iterations": sum(1 for r in results if r["success"]),
@@ -461,10 +477,11 @@ class EvolutionPipeline:
 
         except Exception as e:
             logger.exception("Error during evolution cycle")
-            self.event_bus.publish(
+            await self.event_bus.publish(
                 Event(
-                    EventType.ERROR_OCCURRED,
-                    {"error": str(e), "timestamp": datetime.utcnow().isoformat()},
+                    event_type=EventType.ERROR_OCCURRED,
+                    source="evolution_pipeline",
+                    data={"error": str(e), "timestamp": datetime.utcnow().isoformat()},
                 )
             )
             raise
@@ -490,6 +507,8 @@ class EvolutionPipeline:
         Returns:
             List of results from each iteration with safety information
         """
+        await self._ensure_resilience_initialized()
+
         results = []
         current_version_id = None
 
@@ -675,8 +694,9 @@ class EvolutionPipeline:
             # Publish evolution completed event
             await event_bus.publish(
                 Event(
-                    EventType.EVOLUTION_COMPLETED,
-                    {
+                    event_type=EventType.EVOLUTION_COMPLETED,
+                    source="evolution_pipeline",
+                    data={
                         "timestamp": datetime.utcnow().isoformat(),
                         "iterations_completed": len(results),
                         "successful_iterations": sum(1 for r in results if r.get("success", False)),
@@ -701,8 +721,9 @@ class EvolutionPipeline:
             logger.exception("Error during safety-aware evolution cycle")
             await event_bus.publish(
                 Event(
-                    EventType.ERROR_OCCURRED,
-                    {
+                    event_type=EventType.ERROR_OCCURRED,
+                    source="evolution_pipeline",
+                    data={
                         "error": str(e),
                         "timestamp": datetime.utcnow().isoformat(),
                         "safety_enabled": True,
