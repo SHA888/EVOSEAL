@@ -917,9 +917,47 @@ class EvolutionPipeline:
         return {"metrics": {}}
 
     async def _validate_improvement(self, evaluation_result: dict[str, Any]) -> bool:
-        """Validate if the new version is an improvement."""
-        # TODO: Implement improvement validation logic
-        return True
+        """Validate if the new version is an improvement.
+
+        Uses the ImprovementValidator to compare the two most recent metric
+        entries.  When fewer than two entries exist (e.g. the very first
+        iteration) there is nothing to regress against, so we treat the
+        validation as passing — the first iteration is always accepted.
+
+        Any error *during* a validation that could run is treated as a
+        failure (fail-closed).
+        """
+        test_type = evaluation_result.get("test_type")
+        metrics = self.metrics_tracker.get_metrics_history(test_type)
+
+        # First iteration or no history yet — nothing to compare against.
+        if len(metrics) < 2:
+            logger.info(
+                "Improvement validation skipped: fewer than 2 metric entries "
+                "(first iteration or no metrics recorded yet)."
+            )
+            return True
+
+        # Compare the two most recent entries: index -2 (baseline) vs -1 (current).
+        baseline_id = len(metrics) - 2
+        comparison_id = len(metrics) - 1
+
+        try:
+            result = self.validator.validate_improvement(baseline_id, comparison_id, test_type)
+        except Exception:
+            logger.exception(
+                "Improvement validation failed with an exception — treating as NOT an improvement"
+            )
+            return False
+
+        is_improvement = bool(result.get("is_improvement", False))
+        logger.info(
+            "Improvement validation result: %s (score=%.1f, required_passed=%s)",
+            "PASS" if is_improvement else "FAIL",
+            result.get("score", 0.0),
+            result.get("required_passed"),
+        )
+        return is_improvement
 
     def _check_budget_before_iteration(
         self, iteration_num: int, results: list[dict[str, Any]]

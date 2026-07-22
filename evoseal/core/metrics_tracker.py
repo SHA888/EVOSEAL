@@ -440,10 +440,24 @@ class MetricsTracker:
             key=lambda x: x.timestamp,
         )
 
+    def get_metrics_by_id(
+        self, metric_id: int | str, test_type: str | None = None
+    ) -> TestMetrics | None:
+        """Get metrics by index or timestamp.
+
+        Args:
+            metric_id: Integer index (supports negative indexing) or timestamp prefix.
+            test_type: Optional test-type filter applied before resolving the id.
+
+        Returns:
+            The matching TestMetrics, or None if not found.
+        """
+        return self._get_metrics_by_id(metric_id, test_type)
+
     def _get_metrics_by_id(
         self, metric_id: int | str, test_type: str | None = None
     ) -> TestMetrics | None:
-        """Get metrics by index or timestamp."""
+        """Get metrics by index or timestamp (private implementation)."""
         metrics = self._filter_metrics_by_type(test_type)
 
         if not metrics:
