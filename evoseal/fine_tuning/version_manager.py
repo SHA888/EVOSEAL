@@ -167,21 +167,19 @@ class ModelVersionManager:
                     logger.warning(
                         f"Model registered but deployment failed: {deploy_result['error']}"
                     )
-                    version_info["deployment_error"] = deploy_result["error"]
+                # Re-fetch from registry so the returned dict carries the
+                # deployment fields (deployment_status, ollama_model_name,
+                # deployed_at / deployment_error) written by deploy_version,
+                # regardless of whether get_version_info returns by reference
+                # or by copy.
+                version_info = self.get_version_info(version_id) or version_info
             elif deploy and not version_info.get("model_path"):
+                version_info["deployment_status"] = "failed"
                 version_info["deployment_error"] = "deploy requested but no model_path available"
                 logger.warning(
                     f"Version {version_id}: deploy=True but no model_path; skipping deployment"
                 )
                 self._save_registry()
-                # NOTE: deploy_version mutates the same dict object that
-                # get_version_info returns (it iterates self.registry["versions"]
-                # and returns the matching entry by reference).  The deployment
-                # fields (deployment_status, ollama_model_name, deployed_at) set
-                # inside deploy_version are therefore visible here.  If
-                # get_version_info is ever changed to return a *copy*, this
-                # return value would silently omit those fields — callers
-                # should then re-fetch via get_version_info after deploy.
 
             return version_info
 

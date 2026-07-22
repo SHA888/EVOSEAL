@@ -226,6 +226,7 @@ class TestRegisterVersionWithDeploy:
         # Version should still be registered even if deploy fails
         assert "version_id" in reg
         assert reg.get("deployment_error") == "deploy error"
+        assert reg["deployment_status"] == "failed"
 
     @pytest.mark.asyncio
     async def test_register_without_deploy_no_deployment(
@@ -528,6 +529,7 @@ class TestNoModelPathPersistError:
         vm2 = ModelVersionManager(versions_dir=versions_dir)
         vi = vm2.get_version_info(vid)
         assert vi["deployment_error"] == "deploy requested but no model_path available"
+        assert vi["deployment_status"] == "failed"
 
 
 class TestDeploymentStats:
