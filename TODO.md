@@ -170,7 +170,7 @@
 - [x] **2. Wire daemon to real EvolutionPipeline** _(done 2026-07-21)_ — `continuous_evolution_service.py` `_run_evolution_cycle` now constructs and invokes `EvolutionPipeline.run_evolution_cycle()` instead of simulating; accepts optional `pipeline` param, lazy-inits if not injected
 - [x] **FIX: training call used nonexistent method** _(done 2026-07-19, commit fix/training-method-name-bug, on `main` as of 81156b3)_ — `continuous_evolution_service.py:234` called `training_manager.start_training()` which did not exist; changed to `run_training_cycle()` and fixed `validation_passed` → `validation_results.passed`
 - [x] **3. validate_model must serve the fine-tuned model, not baseline** _(done 2026-07-21)_ — all 5 test suites now use `model_path` when provided via `_resolve_model_for_validation()`; removed dead `TRANSFORMERS_AVAILABLE` import block. **Known limitation:** `model_path` must be an Ollama-resolvable model tag — directory paths from `register_version()` will surface an Ollama error until item 4 (real deployment) lands.
-- [ ] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
+- [x] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
 - [ ] **5. Generation must consult the fine-tuning registry** — `version_manager.get_current_version()` has zero callers — the generator (`providers/local_models.py resolve_model`, which currently just reads raw installed Ollama tags) must consult the registry instead so the deployed fine-tuned model actually gets used
 - [ ] **6. Wire bidirectional_manager to orchestrate the full loop** — `bidirectional_manager.py`'s docstring promises evolve → collect → train → deploy → repeat, but the class only implements reporting/statistics methods (`get_evolution_status`, `get_evolution_history`, `generate_evolution_report`); no method actually drives the sequence end-to-end
 - [ ] **Add end-to-end bidirectional loop test** — exercise the full cycle: collect → train → validate → deploy → regenerate; no such test exists today (write once steps 1–6 land)
@@ -303,9 +303,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 10   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 29    | 4    | Co-evolution loop gaps (7 items, 4 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
+| 🟡 P2    | 29    | 5    | Co-evolution loop gaps (7 items, 5 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
 | 🟢 P3    | 24    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **31** | |
+| **Total** | **88** | **32** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

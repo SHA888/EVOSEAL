@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 import shutil
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -79,6 +80,9 @@ class ModelVersionManager:
         validation_results: dict[str, Any] | None = None,
         data_prep_results: dict[str, Any] | None = None,
         version_name: str | None = None,
+        *,
+        deploy: bool = False,
+        ollama_model_name: str | None = None,
     ) -> dict[str, Any]:
         """
         Register a new model version.
@@ -151,6 +155,18 @@ class ModelVersionManager:
             self._save_registry()
 
             logger.info(f"Registered model version {version_id} ({version_name})")
+
+            # Deploy to Ollama if requested and model files are available
+            if deploy and version_info.get("model_path"):
+                deploy_result = await self.deploy_version(
+                    version_id, ollama_model_name=ollama_model_name
+                )
+                if "error" in deploy_result:
+                    logger.warning(
+                        f"Model registered but deployment failed: {deploy_result['error']}"
+                    )
+                    version_info["deployment_error"] = deploy_result["error"]
+
             return version_info
 
         except Exception as e:
@@ -244,6 +260,135 @@ class ModelVersionManager:
             return self.get_version_info(current_id)
         return None
 
+    async def deploy_version(
+        self,
+        version_id: str,
+        ollama_model_name: str | None = None,
+        base_url: str = "http://localhost:11434",
+    ) -> dict[str, Any]:
+        """
+        Deploy a registered model version to Ollama.
+
+        Creates a Modelfile and runs ``ollama create`` so the serving layer
+        (OllamaProvider) can load the fine-tuned model.
+
+        Args:
+            version_id: Version ID to deploy
+            ollama_model_name: Ollama model name (default: version_name)
+            base_url: Ollama API base URL
+
+        Returns:
+            Deployment result dict with 'ollama_model' on success or 'error'
+        """
+        version_info = self.get_version_info(version_id)
+        if not version_info:
+            return {"error": f"Version {version_id} not found"}
+
+        model_path = version_info.get("model_path")
+        if not model_path or not Path(model_path).exists():
+            return {"error": f"Model files not found at {model_path}"}
+
+        # Determine Ollama model name
+        if not ollama_model_name:
+            ollama_model_name = version_info.get("version_name", version_id)
+
+        # Create Modelfile
+        modelfile_content = self._create_modelfile(model_path)
+        modelfile_path = self.versions_dir / version_id / "Modelfile"
+        try:
+            modelfile_path.parent.mkdir(parents=True, exist_ok=True)
+            modelfile_path.write_text(modelfile_content)
+        except OSError as e:
+            return {"error": f"Could not write Modelfile: {e}"}
+
+        # Run ollama create
+        deploy_error = self._deploy_to_ollama(ollama_model_name, modelfile_path, base_url)
+        if deploy_error:
+            # Update registry with failure
+            version_info["deployment_status"] = "failed"
+            version_info["deployment_error"] = deploy_error
+            self._save_registry()
+            return {"error": deploy_error}
+
+        # Update registry with success
+        version_info["deployment_status"] = "deployed"
+        version_info["ollama_model_name"] = ollama_model_name
+        version_info["deployed_at"] = datetime.now().isoformat()
+        self._save_registry()
+
+        # Clear the installed-model cache so resolve_model picks up the new model
+        try:
+            from evoseal.providers.local_models import clear_model_cache
+
+            clear_model_cache()
+        except ImportError:
+            pass
+
+        logger.info(f"Deployed version {version_id} as Ollama model '{ollama_model_name}'")
+        return {
+            "ollama_model": ollama_model_name,
+            "version_id": version_id,
+            "modelfile": str(modelfile_path),
+        }
+
+    @staticmethod
+    def _create_modelfile(model_path: str) -> str:
+        """Generate a Modelfile for the given model directory.
+
+        Handles two common formats:
+        - GGUF files (``*.gguf``): direct ``FROM`` reference
+        - HuggingFace safetensors / adapter directories: ``FROM`` the directory
+          (Ollama >= 0.4 supports ``FROM <dir>`` for safetensors models)
+
+        Args:
+            model_path: Path to the model files
+
+        Returns:
+            Modelfile content string
+        """
+        p = Path(model_path)
+
+        # Check for GGUF files first
+        gguf_files = list(p.glob("*.gguf"))
+        if gguf_files:
+            # Use the first GGUF found (usually there's only one)
+            return f"FROM {gguf_files[0]}\n"
+
+        # HuggingFace directory — point FROM at the directory itself
+        return f"FROM {p}\n"
+
+    @staticmethod
+    def _deploy_to_ollama(model_name: str, modelfile_path: Path, base_url: str) -> str | None:
+        """Run ``ollama create`` to register a model with Ollama.
+
+        Args:
+            model_name: Name for the new Ollama model
+            modelfile_path: Path to the Modelfile
+            base_url: Ollama base URL (used for logging only; ollama CLI uses the daemon)
+
+        Returns:
+            None on success, error message string on failure.
+        """
+        try:
+            result = subprocess.run(
+                ["ollama", "create", model_name, "-f", str(modelfile_path)],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if result.returncode != 0:
+                error = result.stderr.strip() or result.stdout.strip() or "unknown error"
+                logger.error(f"ollama create failed: {error}")
+                return error
+            logger.info(f"ollama create succeeded for '{model_name}'")
+            return None
+        except FileNotFoundError:
+            return "ollama CLI not found on PATH"
+        except subprocess.TimeoutExpired:
+            return "ollama create timed out after 300s"
+        except OSError as e:
+            return f"Could not run ollama create: {e}"
+
     def get_version_statistics(self) -> dict[str, Any]:
         """Get statistics about model versions."""
         versions = self.registry["versions"]
@@ -267,9 +412,16 @@ class ModelVersionManager:
             if score is not None:
                 validation_scores.append(score)
 
+        # Deployment status distribution
+        deploy_counts = {}
+        for version in versions:
+            deploy_status = version.get("deployment_status", "pending")
+            deploy_counts[deploy_status] = deploy_counts.get(deploy_status, 0) + 1
+
         stats = {
             "total_versions": total_versions,
             "status_distribution": status_counts,
+            "deployment_distribution": deploy_counts,
             "current_version": self.registry.get("current_version"),
             "registry_created": self.registry.get("created"),
             "registry_updated": self.registry.get("updated"),
