@@ -40,29 +40,29 @@
 
 > Full-repo review (`origin/main`, 9 parallel subsystem agents + 4 deep re-verification passes). Items below are read-confirmed against source, not speculative.
 
-- [ ] **Checkpoint identifiers/paths allow directory traversal — attacker-controlled arbitrary file write** _(fix in progress, branch `fix/checkpoint-path-traversal`)_
+- [x] **Checkpoint identifiers/paths allow directory traversal — attacker-controlled arbitrary file write** _(done 2026-07-22, PR #74, commit 4975940)_
   - `evoseal/core/checkpoint_manager.py`: `create_checkpoint()` (line 100), `restore_checkpoint()` (line 236), `get_checkpoint_path()` (line 393) all build `self.checkpoint_dir / f"checkpoint_{version_id}"` with zero validation of `version_id`. A `version_id` like `"../../../../etc/cron.d/evil"` resolves outside `checkpoint_dir` entirely (verified with `os.path.normpath`)
   - Same file, lines 119-122: `changes` dict keys (`file_path`, attacker-controlled via evolution-pipeline results) are joined onto `checkpoint_path` unsanitized and written with attacker-controlled content — full arbitrary path + arbitrary bytes write primitive
   - Sibling bug, same class: `evoseal/core/version_tracker.py:265-271` — public `checkpoint_name` parameter (via `evoseal/core/experiment_integration.py:369`) concatenated into a checkpoint id with no sanitization
   - `EditScopeValidator` (`evoseal/core/edit_scope_validator.py`), which implements the correct `.resolve()` + `relative_to()` containment check, is **never called on this path** — `SafetyIntegration` holds instances of both `CheckpointManager` and `EditScopeValidator` but never bridges them
   - Reachable from the live self-modification loop via `SafetyIntegration.create_safety_checkpoint()` → `checkpoint_manager.create_checkpoint()`
-- [ ] **`ImprovementValidator` is non-functional; the pipeline's actual validation gate is a hardcoded stub that always passes**
+- [x] **`ImprovementValidator` is non-functional; the pipeline's actual validation gate is a hardcoded stub that always passes** _(done 2026-07-22, PR #76, commit e9f723c)_
   - `evoseal/core/improvement_validator.py:315-316` — `validate_improvement()` calls `self.metrics_tracker.get_metrics_by_id()`, but `MetricsTracker` only defines a private `_get_metrics_by_id` — every call raises `AttributeError`
   - Same file, line 424 references an undefined `message` variable (`NameError` if Bug 1 were fixed); the method also has no `return` statement on its success path (always returns `None`)
   - Irrelevant in practice: `grep` shows `validate_improvement()` is called from nowhere in production code (only the module's own `__main__` demo). `EvolutionPipeline` instantiates the validator (`evolution_pipeline.py:152`) but never calls it
   - The actual gate wired into the pipeline is `evoseal/core/evolution_pipeline.py:919-922`: `async def _validate_improvement(...): # TODO: Implement improvement validation logic \n return True` — unconditionally returns `True`, feeding directly into `should_continue`. A self-modification that doubles test failures and triples runtime is accepted as a validated improvement, every time
-- [ ] **`EvolutionPipeline.__init__` never awaits its own resilience/circuit-breaker setup — every pipeline instance silently runs with zero resilience protection**
+- [x] **`EvolutionPipeline.__init__` never awaits its own resilience/circuit-breaker setup — every pipeline instance silently runs with zero resilience protection** _(done 2026-07-22, PR #77, commit dba2aa4)_
   - `evoseal/core/evolution_pipeline.py:169` — `self._init_resilience_mechanisms()` is called from sync `__init__`, but the target (`evolution_pipeline.py:207`) is `async def`. The call just constructs and discards a coroutine (Python emits an unawaited-coroutine warning, no exception)
   - Silently skips: starting `resilience_manager` monitoring, registering all component circuit breakers, the pipeline recovery strategy, degradation/fallback handlers, isolation policies, and the escalation handler — no error surfaced
-- [ ] **`run_evolution_cycle` always raises `TypeError` on its success path (malformed `Event` construction)**
+- [x] **`run_evolution_cycle` always raises `TypeError` on its success path (malformed `Event` construction)** _(done 2026-07-22, PR #77, commit dba2aa4)_
   - `evoseal/core/evolution_pipeline.py:450-459` and `:463-468` — `Event(EventType.EVOLUTION_COMPLETED, {...})` passes only 2 positional args, but `Event` (`evoseal/core/events.py:129`, a dataclass) requires 3 (`event_type, source, data`) — `TypeError: Event.__init__() missing 1 required positional argument: 'data'`
   - The `except Exception` handler that's supposed to catch and report this constructs a second malformed `Event` for `ERROR_OCCURRED` (lines 464-468), which raises its own `TypeError` while handling the first — the second exception is what actually propagates
   - Every documented example that calls the plain (non-`_with_safety`) cycle hits this on normal completion, no failure required. `run_evolution_cycle_with_safety` (line 474) has the identical malformed-`Event` bug at lines 676-680/700-707
   - Secondary: `self.event_bus.publish(...)` is `async def` but called without `await` in these same blocks — even once `Event(...)` is fixed, these publishes would silently no-op rather than actually emitting the event
-- [ ] **`run_training_cycle` can never execute — readiness check always sees itself as "already running"**
+- [x] **`run_training_cycle` can never execute — readiness check always sees itself as "already running"** _(done 2026-07-22, PR #78, commit ab289bf)_
   - `evoseal/fine_tuning/training_manager.py:204` sets `self.current_training = {...}` *before* calling `check_training_readiness()` (line 214), which treats any non-`None` `self.current_training` as "training in progress" (lines 105-108) and aborts
   - Every call to `run_training_cycle` fails at the readiness-check phase — the entire automated fine-tuning pipeline can never run. Same ordering-bug class as the `deploy_version` supersede-before-confirm bug fixed in PR #72 (commit `dd8364fa`)
-- [ ] **SEAL `BaseEditStrategy.apply()` corrupts files when `original_text` is empty**
+- [x] **SEAL `BaseEditStrategy.apply()` corrupts files when `original_text` is empty** _(done 2026-07-22, PR #79, commit 729173b)_
   - `evoseal/integration/seal/self_editor/strategies/base_strategy.py:53-54` — `if suggestion.original_text in content: return content.replace(suggestion.original_text, suggestion.suggested_text)`. Since `"" in content` is always `True`, an empty `original_text` hits `content.replace("", suggested_text)`, which splices the replacement before *every character* of the file
   - `documentation_strategy.py` deliberately constructs `original_text=""` (meaning "insert here") at 4 call sites: lines 665, 698, 754, 1000
   - Not hit by the current production path — `SelfEditor.apply_edit()` (`self_editor.py`) already guards against empty `original_text` correctly and is what production calls — but `BaseEditStrategy.apply()` is still public API, is called directly in `tests/unit/seal/self_editor/strategies/test_code_style_strategy.py:64`, and is the pattern documented in `self_editor/README.md:69`
@@ -301,11 +301,11 @@
 
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
-| 🔴 P0    | 11    | 5    | Original 5 complete; +6 critical bugs from 2026-07-22 whole-repo review (1 fix in progress) |
+| 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 10   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
 | 🟡 P2    | 29    | 4    | Co-evolution loop gaps (7 items, 4 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
 | 🟢 P3    | 24    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **25** | |
+| **Total** | **88** | **31** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
