@@ -168,6 +168,11 @@ class ModelVersionManager:
                         f"Model registered but deployment failed: {deploy_result['error']}"
                     )
                     version_info["deployment_error"] = deploy_result["error"]
+            elif deploy and not version_info.get("model_path"):
+                version_info["deployment_error"] = "deploy requested but no model_path available"
+                logger.warning(
+                    f"Version {version_id}: deploy=True but no model_path; skipping deployment"
+                )
                 # NOTE: deploy_version mutates the same dict object that
                 # get_version_info returns (it iterates self.registry["versions"]
                 # and returns the matching entry by reference).  The deployment
@@ -308,16 +313,38 @@ class ModelVersionManager:
             logger.info(f"Sanitized Ollama model name: {ollama_model_name!r} -> {sanitized!r}")
         ollama_model_name = sanitized
 
+        # Guard against ollama_model_name collision with another version.
+        # ollama create silently overwrites the tag, but the superseded
+        # version's registry entry would still claim "deployed" under the
+        # same name — making two entries look live for one tag.
+        for other in self.registry["versions"]:
+            if (
+                other["version_id"] != version_id
+                and other.get("ollama_model_name") == ollama_model_name
+            ):
+                other["deployment_status"] = "superseded"
+                logger.info(
+                    f"Marked version {other['version_id']} as superseded: "
+                    f"Ollama model name '{ollama_model_name}' is being reused "
+                    f"by version {version_id}"
+                )
+
         # Create Modelfile
         try:
             modelfile_content = self._create_modelfile(model_path)
         except ValueError as e:
+            version_info["deployment_status"] = "failed"
+            version_info["deployment_error"] = str(e)
+            self._save_registry()
             return {"error": str(e)}
         modelfile_path = self.versions_dir / version_id / "Modelfile"
         try:
             modelfile_path.parent.mkdir(parents=True, exist_ok=True)
             modelfile_path.write_text(modelfile_content)
         except OSError as e:
+            version_info["deployment_status"] = "failed"
+            version_info["deployment_error"] = f"Could not write Modelfile: {e}"
+            self._save_registry()
             return {"error": f"Could not write Modelfile: {e}"}
 
         # Run ollama create (in a thread to avoid blocking the event loop)
@@ -412,8 +439,8 @@ class ModelVersionManager:
                 base_model = cfg.get("base_model_name_or_path", "")
                 if base_model:
                     return f"FROM {base_model}\nADAPTER {p}\n"
-            except Exception:
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"adapter_config.json found at {p} but could not be parsed: {e}")
             # If we can't read the config, fall through to FROM <dir> and
             # let ollama produce a clear error rather than silently breaking.
             logger.warning(
