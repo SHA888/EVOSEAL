@@ -55,6 +55,28 @@ class TestCreateModelfile:
         assert "FROM" in content
         assert str(empty) in content
 
+    def test_multiple_gguf_picks_largest(self, tmp_path: Path) -> None:
+        """When multiple GGUF files exist, the largest is selected."""
+        d = tmp_path / "multi_gguf"
+        d.mkdir()
+        small = d / "model-Q4_K_M.gguf"
+        small.write_bytes(b"x" * 100)
+        large = d / "model-Q8_0.gguf"
+        large.write_bytes(b"y" * 500)
+        content = ModelVersionManager._create_modelfile(str(d))
+        assert "model-Q8_0.gguf" in content
+
+    def test_adapter_directory_detected(self, tmp_path: Path) -> None:
+        """LoRA/PEFT adapter dirs produce FROM <base> + ADAPTER <path>."""
+        import json
+
+        d = tmp_path / "adapter_model"
+        d.mkdir()
+        (d / "adapter_config.json").write_text(json.dumps({"base_model_name_or_path": "llama3:8b"}))
+        content = ModelVersionManager._create_modelfile(str(d))
+        assert "FROM llama3:8b" in content
+        assert f"ADAPTER {d}" in content
+
 
 class TestDeployToOllama:
     """Tests for _deploy_to_ollama static method."""
@@ -66,18 +88,14 @@ class TestDeployToOllama:
             mock_run.return_value.returncode = 0
             mock_run.return_value.stdout = ""
             mock_run.return_value.stderr = ""
-            result = ModelVersionManager._deploy_to_ollama(
-                "test-model", modelfile, "http://localhost:11434"
-            )
+            result = ModelVersionManager._deploy_to_ollama("test-model", modelfile)
         assert result is None
 
     def test_ollama_not_found(self, tmp_path: Path) -> None:
         modelfile = tmp_path / "Modelfile"
         modelfile.write_text("FROM /some/model\n")
         with patch("subprocess.run", side_effect=FileNotFoundError):
-            result = ModelVersionManager._deploy_to_ollama(
-                "test-model", modelfile, "http://localhost:11434"
-            )
+            result = ModelVersionManager._deploy_to_ollama("test-model", modelfile)
         assert "not found" in result
 
     def test_nonzero_exit(self, tmp_path: Path) -> None:
@@ -86,9 +104,7 @@ class TestDeployToOllama:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.returncode = 1
             mock_run.return_value.stderr = "model not found"
-            result = ModelVersionManager._deploy_to_ollama(
-                "test-model", modelfile, "http://localhost:11434"
-            )
+            result = ModelVersionManager._deploy_to_ollama("test-model", modelfile)
         assert "model not found" in result
 
 

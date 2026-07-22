@@ -5,6 +5,7 @@ This module handles versioning, rollback, and deployment of fine-tuned models
 in the bidirectional evolution system.
 """
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -135,7 +136,7 @@ class ModelVersionManager:
                 # Copy model files
                 try:
                     shutil.copytree(model_path, version_dir / "model", dirs_exist_ok=True)
-                    version_info["model_path"] = str(version_dir / "model")
+                    version_info["model_path"] = str((version_dir / "model").resolve())
                     version_info["status"] = "stored"
                 except Exception as e:
                     logger.warning(f"Could not copy model files: {e}")
@@ -264,7 +265,6 @@ class ModelVersionManager:
         self,
         version_id: str,
         ollama_model_name: str | None = None,
-        base_url: str = "http://localhost:11434",
     ) -> dict[str, Any]:
         """
         Deploy a registered model version to Ollama.
@@ -275,7 +275,6 @@ class ModelVersionManager:
         Args:
             version_id: Version ID to deploy
             ollama_model_name: Ollama model name (default: version_name)
-            base_url: Ollama API base URL
 
         Returns:
             Deployment result dict with 'ollama_model' on success or 'error'
@@ -301,8 +300,10 @@ class ModelVersionManager:
         except OSError as e:
             return {"error": f"Could not write Modelfile: {e}"}
 
-        # Run ollama create
-        deploy_error = self._deploy_to_ollama(ollama_model_name, modelfile_path, base_url)
+        # Run ollama create (in a thread to avoid blocking the event loop)
+        deploy_error = await asyncio.to_thread(
+            self._deploy_to_ollama, ollama_model_name, modelfile_path
+        )
         if deploy_error:
             # Update registry with failure
             version_info["deployment_status"] = "failed"
@@ -336,9 +337,12 @@ class ModelVersionManager:
         """Generate a Modelfile for the given model directory.
 
         Handles two common formats:
-        - GGUF files (``*.gguf``): direct ``FROM`` reference
+        - GGUF files (``*.gguf``): direct ``FROM`` reference (largest file
+          when multiple quantizations exist)
         - HuggingFace safetensors / adapter directories: ``FROM`` the directory
           (Ollama >= 0.4 supports ``FROM <dir>`` for safetensors models)
+        - LoRA/PEFT adapter directories: ``FROM <base>`` + ``ADAPTER <path>``
+          when an adapter config is detected
 
         Args:
             model_path: Path to the model files
@@ -351,20 +355,41 @@ class ModelVersionManager:
         # Check for GGUF files first
         gguf_files = list(p.glob("*.gguf"))
         if gguf_files:
-            # Use the first GGUF found (usually there's only one)
-            return f"FROM {gguf_files[0]}\n"
+            # Pick the largest GGUF deterministically (avoids arbitrary
+            # filesystem order when multiple quantizations exist).
+            selected = max(gguf_files, key=lambda f: f.stat().st_size)
+            return f"FROM {selected}\n"
+
+        # Detect LoRA/PEFT adapter directory — these need ADAPTER syntax,
+        # not a bare FROM.  adapter_config.json is the canonical marker.
+        if (p / "adapter_config.json").exists():
+            try:
+                import json as _json
+
+                with open(p / "adapter_config.json") as f:
+                    cfg = _json.load(f)
+                base_model = cfg.get("base_model_name_or_path", "")
+                if base_model:
+                    return f"FROM {base_model}\nADAPTER {p}\n"
+            except Exception:
+                pass
+            # If we can't read the config, fall through to FROM <dir> and
+            # let ollama produce a clear error rather than silently breaking.
+            logger.warning(
+                f"adapter_config.json found at {p} but could not read base model"
+                " — falling back to FROM <dir> which may not work"
+            )
 
         # HuggingFace directory — point FROM at the directory itself
         return f"FROM {p}\n"
 
     @staticmethod
-    def _deploy_to_ollama(model_name: str, modelfile_path: Path, base_url: str) -> str | None:
+    def _deploy_to_ollama(model_name: str, modelfile_path: Path) -> str | None:
         """Run ``ollama create`` to register a model with Ollama.
 
         Args:
             model_name: Name for the new Ollama model
             modelfile_path: Path to the Modelfile
-            base_url: Ollama base URL (used for logging only; ollama CLI uses the daemon)
 
         Returns:
             None on success, error message string on failure.
