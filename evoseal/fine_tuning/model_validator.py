@@ -72,7 +72,8 @@ class ModelValidator:
         Returns:
             Validation results with scores and recommendations
         """
-        logger.info(f"Starting model validation for {model_path or 'current model'}")
+        resolved = self._resolve_model_for_validation(model_path)
+        logger.info(f"Starting model validation — model={resolved}, baseline={self.baseline_model}")
 
         validation_start = datetime.now()
         results = {
@@ -202,11 +203,23 @@ class ModelValidator:
         Directory paths produced by the version manager are **not** loadable
         by Ollama until real deployment (item 4) lands; passing one here will
         surface a clear Ollama error rather than silently testing the baseline.
+
+        Raises:
+            ValueError: If *model_path* is an empty string, which likely
+                indicates an upstream bug (e.g. a caller failing to resolve a
+                path) rather than an intentional "use baseline" request.
         """
-        if model_path:
-            logger.info(
-                f"Using provided model_path '{model_path}' for validation "
-                f"(must be an Ollama-resolvable model name)"
+        if model_path is not None:
+            if not model_path:
+                raise ValueError(
+                    "model_path is an empty string — this usually indicates "
+                    "an upstream bug (caller failed to resolve a path). "
+                    "Pass None explicitly to use the baseline model."
+                )
+            logger.debug(
+                "Using provided model_path '%s' for validation "
+                "(must be an Ollama-resolvable model name)",
+                model_path,
             )
             return model_path
         return self.baseline_model

@@ -33,9 +33,10 @@ class TestResolveModelForValidation:
     def test_returns_baseline_when_none(self, validator):
         assert validator._resolve_model_for_validation(None) == "baseline:latest"
 
-    def test_returns_baseline_when_empty(self, validator):
-        # Empty string is falsy — falls back to baseline.
-        assert validator._resolve_model_for_validation("") == "baseline:latest"
+    def test_raises_on_empty_string(self, validator):
+        # Empty string is not the same as None — it's likely an upstream bug.
+        with pytest.raises(ValueError, match="empty string"):
+            validator._resolve_model_for_validation("")
 
 
 @pytest.mark.asyncio()
