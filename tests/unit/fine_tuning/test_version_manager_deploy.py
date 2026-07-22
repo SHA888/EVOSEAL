@@ -359,6 +359,177 @@ class TestModelNameSanitization:
         assert "#" not in sanitized
 
 
+class TestSupersedeAfterDeploy:
+    """Regression: supersede marking must happen after successful deployment."""
+
+    @pytest.mark.asyncio
+    async def test_failed_deploy_does_not_supersede_old(
+        self, versions_dir: Path, model_dir: Path
+    ) -> None:
+        """If ollama create fails, the previously-deployed version must not
+        be marked superseded."""
+        vm = ModelVersionManager(versions_dir=versions_dir)
+
+        # Deploy v1 successfully under name "my-model".
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            reg1 = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="my-model",
+            )
+        v1_id = reg1["version_id"]
+        v1_info = vm.get_version_info(v1_id)
+        assert v1_info["deployment_status"] == "deployed"
+
+        # Attempt v2 deploy under the same name, but ollama create fails.
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value="boom"):
+            reg2 = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="my-model",
+            )
+        v2_id = reg2["version_id"]
+
+        # v1 must still be "deployed", NOT "superseded".
+        v1_info = vm.get_version_info(v1_id)
+        assert v1_info["deployment_status"] == "deployed"
+        # v2 should be "failed".
+        v2_info = vm.get_version_info(v2_id)
+        assert v2_info["deployment_status"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_successful_deploy_supersedes_old(
+        self, versions_dir: Path, model_dir: Path
+    ) -> None:
+        """When a new version deploys successfully under the same name,
+        the old version should be marked superseded."""
+        vm = ModelVersionManager(versions_dir=versions_dir)
+
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            reg1 = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="my-model",
+            )
+        v1_id = reg1["version_id"]
+
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            reg2 = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="my-model",
+            )
+        v2_id = reg2["version_id"]
+
+        v1_info = vm.get_version_info(v1_id)
+        assert v1_info["deployment_status"] == "superseded"
+        v2_info = vm.get_version_info(v2_id)
+        assert v2_info["deployment_status"] == "deployed"
+
+    @pytest.mark.asyncio
+    async def test_modelfile_failure_does_not_supersede_old(
+        self, versions_dir: Path, model_dir: Path
+    ) -> None:
+        """If _create_modelfile raises, the previously-deployed version must
+        not be marked superseded."""
+        vm = ModelVersionManager(versions_dir=versions_dir)
+
+        with patch.object(ModelVersionManager, "_deploy_to_ollama", return_value=None):
+            reg1 = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="my-model",
+            )
+        v1_id = reg1["version_id"]
+
+        # Make _create_modelfile fail for v2.
+        with patch.object(
+            ModelVersionManager,
+            "_create_modelfile",
+            side_effect=ValueError("bad path"),
+        ):
+            reg2 = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="my-model",
+            )
+        v2_id = reg2["version_id"]
+
+        v1_info = vm.get_version_info(v1_id)
+        assert v1_info["deployment_status"] == "deployed"
+        v2_info = vm.get_version_info(v2_id)
+        assert v2_info["deployment_status"] == "failed"
+
+
+class TestAdapterBaseModelValidation:
+    """Regression: base_model from adapter_config must be validated."""
+
+    def test_adapter_base_model_with_spaces_raises(self, tmp_path: Path) -> None:
+        d = tmp_path / "adapter_model"
+        d.mkdir()
+        (d / "adapter_config.json").write_text(
+            json.dumps({"base_model_name_or_path": "my base model"})
+        )
+        with pytest.raises(ValueError, match="whitespace"):
+            ModelVersionManager._create_modelfile(str(d))
+
+    def test_adapter_base_model_without_spaces_succeeds(self, tmp_path: Path) -> None:
+        d = tmp_path / "adapter_model"
+        d.mkdir()
+        (d / "adapter_config.json").write_text(json.dumps({"base_model_name_or_path": "llama3:8b"}))
+        content = ModelVersionManager._create_modelfile(str(d))
+        assert "FROM llama3:8b" in content
+        assert f"ADAPTER {d}" in content
+
+
+class TestNoModelPathPersistError:
+    """Regression: deploy-requested-but-no-model_path must persist to registry."""
+
+    @pytest.mark.asyncio
+    async def test_error_persisted_to_disk(self, versions_dir: Path) -> None:
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        reg = await vm.register_version(
+            training_results={"success": True, "fallback_mode": True},
+            deploy=True,
+        )
+        vid = reg["version_id"]
+
+        # Re-load from disk to verify persistence.
+        vm2 = ModelVersionManager(versions_dir=versions_dir)
+        vi = vm2.get_version_info(vid)
+        assert vi["deployment_error"] == "deploy requested but no model_path available"
+
+
 class TestDeploymentStats:
     """Test that deployment_distribution is included in statistics."""
 

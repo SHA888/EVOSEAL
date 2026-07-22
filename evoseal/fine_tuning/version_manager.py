@@ -173,6 +173,7 @@ class ModelVersionManager:
                 logger.warning(
                     f"Version {version_id}: deploy=True but no model_path; skipping deployment"
                 )
+                self._save_registry()
                 # NOTE: deploy_version mutates the same dict object that
                 # get_version_info returns (it iterates self.registry["versions"]
                 # and returns the matching entry by reference).  The deployment
@@ -303,31 +304,17 @@ class ModelVersionManager:
 
         # Determine Ollama model name
         if not ollama_model_name:
-            ollama_model_name = version_info.get("version_name", version_id)
+            ollama_model_name = version_info.get("version_name") or version_id
 
         # Sanitize for Ollama: lowercase, alphanumeric + hyphens/underscores/dots only.
+        # Guard against None in case version_name was stored as None.
+        ollama_model_name = ollama_model_name or version_id
         sanitized = re.sub(r"[^a-z0-9._-]", "-", ollama_model_name.lower()).strip("-._")
         if not sanitized:
             sanitized = f"model-{version_id}"
         if sanitized != ollama_model_name:
             logger.info(f"Sanitized Ollama model name: {ollama_model_name!r} -> {sanitized!r}")
         ollama_model_name = sanitized
-
-        # Guard against ollama_model_name collision with another version.
-        # ollama create silently overwrites the tag, but the superseded
-        # version's registry entry would still claim "deployed" under the
-        # same name — making two entries look live for one tag.
-        for other in self.registry["versions"]:
-            if (
-                other["version_id"] != version_id
-                and other.get("ollama_model_name") == ollama_model_name
-            ):
-                other["deployment_status"] = "superseded"
-                logger.info(
-                    f"Marked version {other['version_id']} as superseded: "
-                    f"Ollama model name '{ollama_model_name}' is being reused "
-                    f"by version {version_id}"
-                )
 
         # Create Modelfile
         try:
@@ -357,6 +344,21 @@ class ModelVersionManager:
             version_info["deployment_error"] = deploy_error
             self._save_registry()
             return {"error": deploy_error}
+
+        # Mark superseded *after* successful deployment so a failed
+        # _create_modelfile / ollama create doesn't strand the old version.
+        for other in self.registry["versions"]:
+            if (
+                other["version_id"] != version_id
+                and other.get("ollama_model_name") == ollama_model_name
+                and other.get("deployment_status") == "deployed"
+            ):
+                other["deployment_status"] = "superseded"
+                logger.info(
+                    f"Marked version {other['version_id']} as superseded: "
+                    f"Ollama model name '{ollama_model_name}' is being reused "
+                    f"by version {version_id}"
+                )
 
         # Update registry with success
         version_info["deployment_status"] = "deployed"
@@ -438,6 +440,7 @@ class ModelVersionManager:
                     cfg = json.load(f)
                 base_model = cfg.get("base_model_name_or_path", "")
                 if base_model:
+                    ModelVersionManager._validate_model_path(Path(base_model))
                     return f"FROM {base_model}\nADAPTER {p}\n"
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"adapter_config.json found at {p} but could not be parsed: {e}")
