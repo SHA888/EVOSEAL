@@ -80,7 +80,7 @@
   - Verify the evolution loop can start (dependencies, permissions, Git state)
   - Flag budget/cost risks (no token limit configured, expensive model selected)
   - Surface risky configurations (e.g., immutable core protections disabled)
-- [ ] **Fix `test_authentication_handling` making a real unmocked network call** — `tests/version_control/test_advanced_operations.py:187` calls `repo.clone("https://github.com/private/nonexistent-repo.git")` against the real GitHub API instead of mocking it. Verified 2026-07-21: in an interactive TTY with a credential helper active, this hangs indefinitely on a live HTTPS username/password prompt instead of failing fast (blocked a real `git push`'s pre-push hook run this session); in batch mode it can also fail the `assert` when the returned error text doesn't match the expected substring list. Also leaves a stray `nonexistent-repo/` directory in the working tree on failure. Mock the clone failure instead of hitting the real network.
+- [x] **Fix `test_authentication_handling` making a real unmocked network call** _(done 2026-07-22)_ — `tests/version_control/test_advanced_operations.py:187` now mocks `CmdGit._run_git_command` to simulate an authentication failure instead of calling the real GitHub API. Eliminates the hang in interactive TTYs (credential prompt) and stray directory on failure.
 
 ### Cost Management
 
@@ -212,10 +212,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 5     | 5    | All complete as of 2026-06-04 |
-| 🟠 P1    | 12    | 9    | Safety config path gap + Tier 2 deferred + flaky auth test open |
+| 🟠 P1    | 12    | 10   | All safety hardening + integration items done; Tier 2 deferred
 | 🟡 P2    | 17    | 4    | Co-evolution loop gaps (7 items, 4 done) + existing P2 |
 | 🟢 P3    | 14    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete |
-| **Total** | **48** | **24** | |
+| **Total** | **48** | **25** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

@@ -1,6 +1,7 @@
 """Unit tests for advanced Git operations."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -186,12 +187,23 @@ def test_repository_structure(git_repo_with_commit: CmdGit):
 
 def test_authentication_handling(temp_dir: Path):
     """Test authentication error handling."""
-    # This test verifies that authentication errors are properly raised
-    # We'll use a non-existent private repo that requires authentication
+    # Mock the git command to avoid making real network calls.
+    # Previously this test cloned a nonexistent private repo against the
+    # real GitHub API, which hangs in interactive TTYs (credential prompt)
+    # and can leave stray directories on failure.
     repo = CmdGit(repo_path=temp_dir / "test_repo")
 
-    with pytest.raises(GitError) as excinfo:
-        repo.clone("https://github.com/private/nonexistent-repo.git")
+    with patch.object(
+        CmdGit,
+        "_run_git_command",
+        return_value=(
+            False,
+            "",
+            "Permission denied (publickey). fatal: Could not read from remote repository.",
+        ),
+    ):
+        with pytest.raises(GitError) as excinfo:
+            repo.clone("https://github.com/private/nonexistent-repo.git")
 
     # The exact error message might vary, but it should indicate an authentication failure
     assert any(
