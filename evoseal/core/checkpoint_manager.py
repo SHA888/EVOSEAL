@@ -20,6 +20,21 @@ from .logging_system import get_logger
 logger = get_logger(__name__)
 
 
+def _validate_path_within_base(base_dir: Path, untrusted: str, label: str) -> Path:
+    """Ensure *untrusted* resolves to a path strictly inside *base_dir*.
+
+    Rejects identifiers containing path-separator or ``..`` components that
+    could escape *base_dir*. Raises ValueError on violation.
+    """
+    base = base_dir.resolve()
+    resolved = (base / untrusted).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise ValueError(f"{label} {untrusted!r} would escape base directory {base}") from None
+    return resolved
+
+
 class CheckpointError(Exception):
     """Base exception for checkpoint operations."""
 
@@ -75,6 +90,9 @@ class CheckpointManager:
         Raises:
             CheckpointError: If checkpoint creation fails
         """
+        # Validate version_id does not escape checkpoint_dir (before try so ValueError propagates)
+        _validate_path_within_base(self.checkpoint_dir, version_id, "version_id")
+
         try:
             # Convert version to dict if it's an Experiment object
             if isinstance(version, Experiment):
@@ -118,6 +136,9 @@ class CheckpointManager:
             # Save version data files
             if changes:
                 for file_path, content in changes.items():
+                    # Validate file_path does not escape checkpoint_path
+                    _validate_path_within_base(checkpoint_path, file_path, "file_path")
+
                     if isinstance(content, str):
                         full_path = checkpoint_path / file_path
                         full_path.parent.mkdir(parents=True, exist_ok=True)
@@ -139,6 +160,7 @@ class CheckpointManager:
                         # Handle artifact references
                         src_path = Path(content["file_path"])
                         if src_path.exists():
+                            # file_path already validated above
                             dst_path = checkpoint_path / file_path
                             dst_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -203,6 +225,8 @@ class CheckpointManager:
             )
             return str(checkpoint_path)
 
+        except ValueError:
+            raise  # Let validation errors propagate directly
         except Exception as e:
             raise CheckpointError(
                 f"Failed to create checkpoint for version {version_id}: {e}"
@@ -227,6 +251,9 @@ class CheckpointManager:
         Raises:
             CheckpointError: If restoration fails
         """
+        # Validate version_id does not escape checkpoint_dir (before try so ValueError propagates)
+        _validate_path_within_base(self.checkpoint_dir, version_id, "version_id")
+
         try:
             target_dir = Path(target_dir)
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -389,6 +416,9 @@ class CheckpointManager:
         """
         if version_id in self.checkpoints:
             return self.checkpoints[version_id]
+
+        # Validate version_id does not escape checkpoint_dir
+        _validate_path_within_base(self.checkpoint_dir, version_id, "version_id")
 
         checkpoint_path = self.checkpoint_dir / f"checkpoint_{version_id}"
         if checkpoint_path.exists():
