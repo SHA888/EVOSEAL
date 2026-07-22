@@ -30,6 +30,7 @@ class OllamaProvider(SEALProvider):
         model: str | None = None,
         timeout: int = 120,
         role: AgentRole | str = AgentRole.CODER,
+        registry_model: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the Ollama provider.
@@ -41,12 +42,18 @@ class OllamaProvider(SEALProvider):
             timeout: Request timeout in seconds (default: 120)
             role: Role ("coder"/"reviewer") to resolve a default model for when
                 ``model`` is None. Accepts an :class:`AgentRole` or its string value.
+            registry_model: Ollama model name of the currently deployed
+                fine-tuned model from the version registry.  When provided and
+                installed, it is preferred over raw family-based discovery.
             **kwargs: Additional configuration options
         """
         self.base_url = base_url.rstrip("/")
         resolved_role = role if isinstance(role, AgentRole) else AgentRole(role)
         # Resolve against what is actually installed rather than assuming a tag.
-        self.model = model or resolve_model(resolved_role, base_url=self.base_url)
+        # When *registry_model* is given the fine-tuned model is preferred.
+        self.model = model or resolve_model(
+            resolved_role, base_url=self.base_url, registry_model=registry_model
+        )
         self.timeout = timeout
         self.config = kwargs
 

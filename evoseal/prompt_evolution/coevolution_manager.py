@@ -76,9 +76,14 @@ class CoevolutionManager:
         accept_threshold: float = 0.7,
         min_score_gain: float = 0.05,
         coder_seed_prompt: str = DEFAULT_CODER_PROMPT,
+        registry_model: str | None = None,
     ) -> None:
         # Providers resolve their model from what is installed (see local_models).
-        self.coder = coder_provider or OllamaProvider(base_url=base_url, role=AgentRole.CODER)
+        # When *registry_model* is given the coder provider prefers the
+        # fine-tuned model from the version registry.
+        self.coder = coder_provider or OllamaProvider(
+            base_url=base_url, role=AgentRole.CODER, registry_model=registry_model
+        )
         self.reviewer = reviewer_provider or OllamaProvider(
             base_url=base_url, role=AgentRole.REVIEWER
         )

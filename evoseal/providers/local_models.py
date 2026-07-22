@@ -134,14 +134,25 @@ def list_installed_models(
 
 
 def select_model(
-    role: AgentRole, available: list[str], *, override: str | None = None
+    role: AgentRole,
+    available: list[str],
+    *,
+    override: str | None = None,
+    registry_model: str | None = None,
 ) -> str | None:
     """Pick the best installed model for ``role`` from ``available``.
 
     Resolution order: explicit ``override`` -> the role's environment override
-    (``EVOSEAL_CODER_MODEL`` / ``EVOSEAL_REVIEWER_MODEL``) -> family preferences.
+    (``EVOSEAL_CODER_MODEL`` / ``EVOSEAL_REVIEWER_MODEL``) -> fine-tuning
+    registry (``registry_model``) -> family preferences.
+
     Each override wins only when it is actually installed (exact or substring
-    match). Returns ``None`` when nothing suitable is installed, so the caller can
+    match).  ``registry_model`` is the Ollama model name of the currently
+    deployed fine-tuned model from :class:`ModelVersionManager` — when
+    provided and installed it is preferred over raw family-based discovery so
+    the generation loop actually uses the fine-tuned weights.
+
+    Returns ``None`` when nothing suitable is installed, so the caller can
     fall back to a known-good tag rather than pick an arbitrary model: an
     embedding model, say, must never be selected to write code.
     """
@@ -160,6 +171,28 @@ def select_model(
             source,
         )
 
+    # Prefer the fine-tuned model from the version registry when it is
+    # actually installed in Ollama.  This is the key wiring that makes the
+    # bidirectional co-evolution loop close: the generator consults the
+    # registry instead of only looking at raw installed tags.
+    if registry_model:
+        if registry_model in available:
+            logger.info(
+                "Using registry-deployed model %s for role %s",
+                registry_model,
+                role.value,
+            )
+            return registry_model
+        for name in available:
+            if registry_model.lower() in name.lower():
+                logger.info(
+                    "Using registry-deployed model %s (matched %s) for role %s",
+                    registry_model,
+                    name,
+                    role.value,
+                )
+                return name
+
     for family in ROLE_MODEL_PREFERENCES.get(role, ()):
         for name in available:
             if family.lower() in name.lower():
@@ -174,17 +207,20 @@ def resolve_model(
     base_url: str = DEFAULT_OLLAMA_BASE_URL,
     override: str | None = None,
     available: list[str] | None = None,
+    registry_model: str | None = None,
 ) -> str:
     """Resolve the concrete Ollama model name to use for ``role``.
 
     Queries Ollama (cached) when ``available`` is not supplied. Honors the role's
-    environment override. Falls back to a canonical tag when Ollama is unreachable
-    or has no suitable model installed.
+    environment override. When *registry_model* is given (the Ollama tag of the
+    currently deployed fine-tuned model from the version registry) it is preferred
+    over raw family-based discovery. Falls back to a canonical tag when Ollama is
+    unreachable or has no suitable model installed.
     """
     if available is None:
         available = list_installed_models(base_url)
 
-    chosen = select_model(role, available, override=override)
+    chosen = select_model(role, available, override=override, registry_model=registry_model)
     if chosen:
         logger.info("Resolved %s model -> %s", role.value, chosen)
         return chosen
@@ -203,13 +239,19 @@ def resolve_role_models(
     base_url: str = DEFAULT_OLLAMA_BASE_URL,
     overrides: dict[AgentRole, str] | None = None,
     roles: tuple[AgentRole, ...] = (AgentRole.CODER, AgentRole.REVIEWER),
+    registry_models: dict[AgentRole, str] | None = None,
 ) -> dict[AgentRole, str]:
     """Resolve models for several roles with a single Ollama query."""
     overrides = overrides or {}
+    registry_models = registry_models or {}
     available = list_installed_models(base_url)
     return {
         role: resolve_model(
-            role, base_url=base_url, override=overrides.get(role), available=available
+            role,
+            base_url=base_url,
+            override=overrides.get(role),
+            available=available,
+            registry_model=registry_models.get(role),
         )
         for role in roles
     }

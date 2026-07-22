@@ -206,3 +206,71 @@ def test_resolve_role_models_queries_once(monkeypatch):
         resolved = resolve_role_models()
     assert resolved == {AgentRole.CODER: DEEPSEEK, AgentRole.REVIEWER: QWEN}
     assert len(calls) == 1
+
+
+# -- registry_model (fine-tuning registry integration) -------------------
+
+
+FINETUNED = "deepseek-coder-finetuned:v2"
+
+
+def test_select_model_prefers_registry_over_family(monkeypatch):
+    """Registry-deployed model beats family-based discovery."""
+    # When the fine-tuned model is NOT installed, family discovery still works.
+    assert select_model(AgentRole.CODER, [DEEPSEEK, QWEN], registry_model=FINETUNED) == DEEPSEEK
+    # When the fine-tuned model is installed, it wins over family.
+    assert (
+        select_model(AgentRole.CODER, [DEEPSEEK, QWEN, FINETUNED], registry_model=FINETUNED)
+        == FINETUNED
+    )
+
+
+def test_select_model_registry_substring_match(monkeypatch):
+    """Registry model matches by substring against installed tags."""
+    installed_tag = "deepseek-coder-finetuned:v2-quantized"
+    assert (
+        select_model(AgentRole.CODER, [DEEPSEEK, installed_tag], registry_model=FINETUNED)
+        == installed_tag
+    )
+
+
+def test_select_model_override_beats_registry(monkeypatch):
+    """Explicit override still takes priority over registry model."""
+    assert (
+        select_model(
+            AgentRole.CODER,
+            [DEEPSEEK, QWEN, FINETUNED],
+            override=QWEN,
+            registry_model=FINETUNED,
+        )
+        == QWEN
+    )
+
+
+def test_select_model_env_override_beats_registry(monkeypatch):
+    """Environment override still takes priority over registry model."""
+    monkeypatch.setenv("EVOSEAL_CODER_MODEL", QWEN)
+    assert (
+        select_model(AgentRole.CODER, [DEEPSEEK, QWEN, FINETUNED], registry_model=FINETUNED) == QWEN
+    )
+
+
+def test_select_model_registry_not_installed_falls_through(monkeypatch):
+    """When the registry model is not installed, family discovery runs."""
+    assert (
+        select_model(AgentRole.CODER, [DEEPSEEK, QWEN], registry_model="not-installed:latest")
+        == DEEPSEEK
+    )
+
+
+def test_resolve_model_uses_registry_model(monkeypatch):
+    """resolve_model threads registry_model through to select_model."""
+    with _fake_ollama(monkeypatch, [DEEPSEEK, QWEN, FINETUNED]):
+        assert resolve_model(AgentRole.CODER, registry_model=FINETUNED) == FINETUNED
+
+
+def test_resolve_role_models_threads_registry(monkeypatch):
+    """resolve_role_models passes per-role registry models."""
+    with _fake_ollama(monkeypatch, [DEEPSEEK, QWEN, FINETUNED]):
+        resolved = resolve_role_models(registry_models={AgentRole.CODER: FINETUNED})
+    assert resolved == {AgentRole.CODER: FINETUNED, AgentRole.REVIEWER: QWEN}
