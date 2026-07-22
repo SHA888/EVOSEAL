@@ -160,9 +160,19 @@ class ModelVersionManager:
 
             # Deploy to Ollama if requested and model files are available
             if deploy and version_info.get("model_path"):
-                deploy_result = await self.deploy_version(
-                    version_id, ollama_model_name=ollama_model_name
-                )
+                try:
+                    deploy_result = await self.deploy_version(
+                        version_id, ollama_model_name=ollama_model_name
+                    )
+                except Exception as deploy_exc:
+                    # Narrow catch: a deploy-time crash (e.g. from
+                    # Path.exists, JSON handling, asyncio.to_thread) must
+                    # not mask the already-persisted registration.
+                    logger.warning(
+                        f"Version {version_id} registered but deployment"
+                        f" raised an unexpected error: {deploy_exc}"
+                    )
+                    deploy_result = {"error": str(deploy_exc)}
                 if "error" in deploy_result:
                     logger.warning(
                         f"Model registered but deployment failed: {deploy_result['error']}"
@@ -292,7 +302,15 @@ class ModelVersionManager:
         Returns:
             Deployment result dict with 'ollama_model' on success or 'error'
         """
-        version_info = self.get_version_info(version_id)
+        # Look up the entry directly in the registry list so mutations
+        # (deployment_status, ollama_model_name, etc.) are guaranteed to
+        # land in self.registry and survive _save_registry(), regardless of
+        # whether get_version_info() returns by reference or by copy.
+        version_info = None
+        for v in self.registry["versions"]:
+            if v["version_id"] == version_id:
+                version_info = v
+                break
         if not version_info:
             return {"error": f"Version {version_id} not found"}
 
@@ -413,7 +431,9 @@ class ModelVersionManager:
             Modelfile content string
 
         Raises:
-            ValueError: If *model_path* contains whitespace characters.
+            ValueError: If *model_path* contains whitespace characters, or
+            if a LoRA/PEFT adapter directory is detected but the base model
+            cannot be determined from ``adapter_config.json``.
         """
         p = Path(model_path)
 
@@ -442,11 +462,13 @@ class ModelVersionManager:
                     return f"FROM {base_model}\nADAPTER {p}\n"
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"adapter_config.json found at {p} but could not be parsed: {e}")
-            # If we can't read the config, fall through to FROM <dir> and
-            # let ollama produce a clear error rather than silently breaking.
-            logger.warning(
-                f"adapter_config.json found at {p} but could not read base model"
-                " — falling back to FROM <dir> which may not work"
+            # An adapter directory without a readable base model reference
+            # cannot be deployed correctly — raise instead of silently
+            # degrading to a bare FROM <dir> which would either confuse
+            # ollama or produce an incorrect model.
+            raise ValueError(
+                f"adapter_config.json found at {p} but base_model_name_or_path"
+                f" is missing or unreadable — cannot build a valid Modelfile"
             )
 
         # HuggingFace directory — point FROM at the directory itself

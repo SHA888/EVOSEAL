@@ -78,6 +78,50 @@ class TestCreateModelfile:
         assert f"ADAPTER {d}" in content
 
 
+class TestRegisterVersionDeployException:
+    """Regression: non-ValueError from deploy must not mask registration."""
+
+    @pytest.mark.asyncio
+    async def test_unexpected_deploy_error_still_returns_version(
+        self, versions_dir: Path, model_dir: Path
+    ) -> None:
+        """A non-ValueError raised during deploy should not cause
+        register_version to return an error dict — the version was already
+        persisted to the registry."""
+        vm = ModelVersionManager(versions_dir=versions_dir)
+
+        # Patch _deploy_to_ollama to raise a non-ValueError (e.g. OSError).
+        with patch.object(
+            ModelVersionManager,
+            "_deploy_to_ollama",
+            side_effect=OllamaSpawnError("unexpected boom"),
+        ):
+            reg = await vm.register_version(
+                training_results={
+                    "success": True,
+                    "model_save_path": str(model_dir),
+                    "fallback_mode": True,
+                },
+                validation_results={"passed": True},
+                deploy=True,
+                ollama_model_name="boom-test",
+            )
+
+        # The version must be registered (not an error dict).
+        assert "version_id" in reg
+        assert "error" not in reg
+        # The version should still be in the registry.
+        vi = vm.get_version_info(reg["version_id"])
+        assert vi is not None
+        assert vi["status"] == "stored"
+
+
+class OllamaSpawnError(OSError):
+    """Test stand-in for an unexpected OS-level error during deploy."""
+
+    pass
+
+
 class TestDeployToOllama:
     """Tests for _deploy_to_ollama static method."""
 
@@ -511,6 +555,30 @@ class TestAdapterBaseModelValidation:
         content = ModelVersionManager._create_modelfile(str(d))
         assert "FROM llama3:8b" in content
         assert f"ADAPTER {d}" in content
+
+    def test_adapter_missing_base_model_raises(self, tmp_path: Path) -> None:
+        """adapter_config.json with no base_model_name_or_path raises ValueError."""
+        d = tmp_path / "adapter_no_base"
+        d.mkdir()
+        (d / "adapter_config.json").write_text(json.dumps({"r": 8}))
+        with pytest.raises(ValueError, match="base_model_name_or_path"):
+            ModelVersionManager._create_modelfile(str(d))
+
+    def test_adapter_empty_base_model_raises(self, tmp_path: Path) -> None:
+        """adapter_config.json with empty base_model_name_or_path raises ValueError."""
+        d = tmp_path / "adapter_empty_base"
+        d.mkdir()
+        (d / "adapter_config.json").write_text(json.dumps({"base_model_name_or_path": ""}))
+        with pytest.raises(ValueError, match="base_model_name_or_path"):
+            ModelVersionManager._create_modelfile(str(d))
+
+    def test_adapter_unparseable_config_raises(self, tmp_path: Path) -> None:
+        """Corrupt adapter_config.json raises ValueError instead of degrading."""
+        d = tmp_path / "adapter_bad_json"
+        d.mkdir()
+        (d / "adapter_config.json").write_text("not valid json")
+        with pytest.raises(ValueError, match="base_model_name_or_path"):
+            ModelVersionManager._create_modelfile(str(d))
 
 
 class TestNoModelPathPersistError:
