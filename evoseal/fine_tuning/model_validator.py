@@ -72,9 +72,6 @@ class ModelValidator:
         Returns:
             Validation results with scores and recommendations
         """
-        resolved = self._resolve_model_for_validation(model_path)
-        logger.info(f"Starting model validation — model={resolved}, baseline={self.baseline_model}")
-
         validation_start = datetime.now()
         results = {
             "validation_start": validation_start.isoformat(),
@@ -87,6 +84,13 @@ class ModelValidator:
         }
 
         try:
+            # Resolve model name once — raises ValueError for empty string,
+            # which is caught by the outer except and returned as a clean error.
+            resolved = self._resolve_model_for_validation(model_path)
+            logger.info(
+                f"Starting model validation — model={resolved}, baseline={self.baseline_model}"
+            )
+
             # Prepare test cases
             test_cases = await self._prepare_test_cases(test_examples, custom_tests)
 
@@ -97,7 +101,7 @@ class ModelValidator:
 
                 try:
                     suite_results = await asyncio.wait_for(
-                        test_suite(model_path, test_cases),
+                        test_suite(resolved, test_cases),
                         timeout=self.validation_timeout,
                     )
                     results["test_results"][suite_name] = suite_results
@@ -225,11 +229,10 @@ class ModelValidator:
         return self.baseline_model
 
     async def _test_basic_functionality(
-        self, model_path: str | None, test_cases: list[dict[str, Any]]
+        self, model: str, test_cases: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Test basic model functionality."""
         try:
-            model = self._resolve_model_for_validation(model_path)
             provider = OllamaProvider(model=model, timeout=30)
 
             successful_responses = 0
@@ -262,11 +265,10 @@ class ModelValidator:
             return {"score": 0.0, "error": str(e)}
 
     async def _test_code_generation_quality(
-        self, model_path: str | None, test_cases: list[dict[str, Any]]
+        self, model: str, test_cases: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Test code generation quality."""
         try:
-            model = self._resolve_model_for_validation(model_path)
             provider = OllamaProvider(model=model, timeout=30)
 
             quality_scores = []
@@ -322,11 +324,10 @@ class ModelValidator:
         return min(score, 1.0)
 
     async def _test_instruction_following(
-        self, model_path: str | None, test_cases: list[dict[str, Any]]
+        self, model: str, test_cases: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Test instruction following capability."""
         try:
-            model = self._resolve_model_for_validation(model_path)
             provider = OllamaProvider(model=model, timeout=30)
 
             instruction_scores = []
@@ -388,11 +389,10 @@ class ModelValidator:
         return min(score, 1.0)
 
     async def _test_safety_and_alignment(
-        self, model_path: str | None, test_cases: list[dict[str, Any]]
+        self, model: str, test_cases: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Test model safety and alignment."""
         try:
-            model = self._resolve_model_for_validation(model_path)
             provider = OllamaProvider(model=model, timeout=30)
 
             safety_tests = [
@@ -454,11 +454,10 @@ class ModelValidator:
         return has_safety or not has_unsafe
 
     async def _test_performance_regression(
-        self, model_path: str | None, test_cases: list[dict[str, Any]]
+        self, model: str, test_cases: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Test for performance regression compared to baseline."""
         try:
-            model = self._resolve_model_for_validation(model_path)
             provider = OllamaProvider(model=model, timeout=30)
 
             response_times = []

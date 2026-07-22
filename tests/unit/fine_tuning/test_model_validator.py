@@ -93,6 +93,7 @@ async def test_validate_model_directory_path_is_forwarded(validator):
         results = await validator.validate_model(model_path=dir_path)
 
     # The directory path should still be forwarded (not silently replaced).
+    assert len(captured_models) == 5
     assert all(m == dir_path for m in captured_models)
     # Validation should not pass — the dir path isn't a real Ollama model.
     assert results["passed"] is False
