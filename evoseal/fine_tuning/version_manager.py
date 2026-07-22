@@ -5,10 +5,13 @@ This module handles versioning, rollback, and deployment of fine-tuned models
 in the bidirectional evolution system.
 """
 
+import asyncio
 import hashlib
 import json
 import logging
+import re
 import shutil
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -79,6 +82,9 @@ class ModelVersionManager:
         validation_results: dict[str, Any] | None = None,
         data_prep_results: dict[str, Any] | None = None,
         version_name: str | None = None,
+        *,
+        deploy: bool = False,
+        ollama_model_name: str | None = None,
     ) -> dict[str, Any]:
         """
         Register a new model version.
@@ -131,7 +137,7 @@ class ModelVersionManager:
                 # Copy model files
                 try:
                     shutil.copytree(model_path, version_dir / "model", dirs_exist_ok=True)
-                    version_info["model_path"] = str(version_dir / "model")
+                    version_info["model_path"] = str((version_dir / "model").resolve())
                     version_info["status"] = "stored"
                 except Exception as e:
                     logger.warning(f"Could not copy model files: {e}")
@@ -151,6 +157,40 @@ class ModelVersionManager:
             self._save_registry()
 
             logger.info(f"Registered model version {version_id} ({version_name})")
+
+            # Deploy to Ollama if requested and model files are available
+            if deploy and version_info.get("model_path"):
+                try:
+                    deploy_result = await self.deploy_version(
+                        version_id, ollama_model_name=ollama_model_name
+                    )
+                except Exception as deploy_exc:
+                    # Narrow catch: a deploy-time crash (e.g. from
+                    # Path.exists, JSON handling, asyncio.to_thread) must
+                    # not mask the already-persisted registration.
+                    logger.warning(
+                        f"Version {version_id} registered but deployment"
+                        f" raised an unexpected error: {deploy_exc}"
+                    )
+                    deploy_result = {"error": str(deploy_exc)}
+                if "error" in deploy_result:
+                    logger.warning(
+                        f"Model registered but deployment failed: {deploy_result['error']}"
+                    )
+                # Re-fetch from registry so the returned dict carries the
+                # deployment fields (deployment_status, ollama_model_name,
+                # deployed_at / deployment_error) written by deploy_version,
+                # regardless of whether get_version_info returns by reference
+                # or by copy.
+                version_info = self.get_version_info(version_id) or version_info
+            elif deploy and not version_info.get("model_path"):
+                version_info["deployment_status"] = "failed"
+                version_info["deployment_error"] = "deploy requested but no model_path available"
+                logger.warning(
+                    f"Version {version_id}: deploy=True but no model_path; skipping deployment"
+                )
+                self._save_registry()
+
             return version_info
 
         except Exception as e:
@@ -244,6 +284,227 @@ class ModelVersionManager:
             return self.get_version_info(current_id)
         return None
 
+    async def deploy_version(
+        self,
+        version_id: str,
+        ollama_model_name: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Deploy a registered model version to Ollama.
+
+        Creates a Modelfile and runs ``ollama create`` so the serving layer
+        (OllamaProvider) can load the fine-tuned model.
+
+        Args:
+            version_id: Version ID to deploy
+            ollama_model_name: Ollama model name (default: version_name)
+
+        Returns:
+            Deployment result dict with 'ollama_model' on success or 'error'
+        """
+        # Look up the entry directly in the registry list so mutations
+        # (deployment_status, ollama_model_name, etc.) are guaranteed to
+        # land in self.registry and survive _save_registry(), regardless of
+        # whether get_version_info() returns by reference or by copy.
+        version_info = None
+        for v in self.registry["versions"]:
+            if v["version_id"] == version_id:
+                version_info = v
+                break
+        if not version_info:
+            return {"error": f"Version {version_id} not found"}
+
+        model_path = version_info.get("model_path")
+        if not model_path or not Path(model_path).exists():
+            return {"error": f"Model files not found at {model_path}"}
+
+        # Determine Ollama model name
+        if not ollama_model_name:
+            ollama_model_name = version_info.get("version_name") or version_id
+
+        # Sanitize for Ollama: lowercase, alphanumeric + hyphens/underscores/dots only.
+        # Guard against None in case version_name was stored as None.
+        ollama_model_name = ollama_model_name or version_id
+        sanitized = re.sub(r"[^a-z0-9._-]", "-", ollama_model_name.lower()).strip("-._")
+        if not sanitized:
+            sanitized = f"model-{version_id}"
+        if sanitized != ollama_model_name:
+            logger.info(f"Sanitized Ollama model name: {ollama_model_name!r} -> {sanitized!r}")
+        ollama_model_name = sanitized
+
+        # Create Modelfile
+        try:
+            modelfile_content = self._create_modelfile(model_path)
+        except ValueError as e:
+            version_info["deployment_status"] = "failed"
+            version_info["deployment_error"] = str(e)
+            self._save_registry()
+            return {"error": str(e)}
+        modelfile_path = self.versions_dir / version_id / "Modelfile"
+        try:
+            modelfile_path.parent.mkdir(parents=True, exist_ok=True)
+            modelfile_path.write_text(modelfile_content)
+        except OSError as e:
+            version_info["deployment_status"] = "failed"
+            version_info["deployment_error"] = f"Could not write Modelfile: {e}"
+            self._save_registry()
+            return {"error": f"Could not write Modelfile: {e}"}
+
+        # Run ollama create (in a thread to avoid blocking the event loop)
+        deploy_error = await asyncio.to_thread(
+            self._deploy_to_ollama, ollama_model_name, modelfile_path
+        )
+        if deploy_error:
+            # Update registry with failure
+            version_info["deployment_status"] = "failed"
+            version_info["deployment_error"] = deploy_error
+            self._save_registry()
+            return {"error": deploy_error}
+
+        # Mark superseded *after* successful deployment so a failed
+        # _create_modelfile / ollama create doesn't strand the old version.
+        for other in self.registry["versions"]:
+            if (
+                other["version_id"] != version_id
+                and other.get("ollama_model_name") == ollama_model_name
+                and other.get("deployment_status") == "deployed"
+            ):
+                other["deployment_status"] = "superseded"
+                logger.info(
+                    f"Marked version {other['version_id']} as superseded: "
+                    f"Ollama model name '{ollama_model_name}' is being reused "
+                    f"by version {version_id}"
+                )
+
+        # Update registry with success
+        version_info["deployment_status"] = "deployed"
+        version_info["ollama_model_name"] = ollama_model_name
+        version_info["deployed_at"] = datetime.now().isoformat()
+        self._save_registry()
+
+        # Clear the installed-model cache so resolve_model picks up the new model
+        try:
+            from evoseal.providers.local_models import clear_model_cache
+
+            clear_model_cache()
+        except ImportError:
+            pass
+
+        logger.info(f"Deployed version {version_id} as Ollama model '{ollama_model_name}'")
+        return {
+            "ollama_model": ollama_model_name,
+            "version_id": version_id,
+            "modelfile": str(modelfile_path),
+        }
+
+    @staticmethod
+    def _validate_model_path(path: Path) -> None:
+        """Raise ValueError if *path* contains characters that would break a Modelfile.
+
+        Ollama Modelfiles use whitespace-delimited parsing for ``FROM`` and
+        ``ADAPTER`` directives.  A path containing spaces, tabs, or newlines
+        would silently split across tokens and produce a confusing parse error
+        from ``ollama create`` rather than a clear deployment failure.
+        """
+        raw = str(path)
+        if any(ch.isspace() for ch in raw):
+            raise ValueError(
+                f"Model path contains whitespace and cannot be used in a Modelfile: {raw!r}"
+            )
+
+    @staticmethod
+    def _create_modelfile(model_path: str) -> str:
+        """Generate a Modelfile for the given model directory.
+
+        Handles two common formats:
+        - GGUF files (``*.gguf``): direct ``FROM`` reference (largest file
+          when multiple quantizations exist)
+        - HuggingFace safetensors / adapter directories: ``FROM`` the directory
+          (Ollama >= 0.4 supports ``FROM <dir>`` for safetensors models)
+        - LoRA/PEFT adapter directories: ``FROM <base>`` + ``ADAPTER <path>``
+          when an adapter config is detected
+
+        Args:
+            model_path: Path to the model files
+
+        Returns:
+            Modelfile content string
+
+        Raises:
+            ValueError: If *model_path* contains whitespace characters, or
+            if a LoRA/PEFT adapter directory is detected but the base model
+            cannot be determined from ``adapter_config.json``.
+        """
+        p = Path(model_path)
+
+        # Validate paths up-front so a malformed path surfaces as a clear
+        # error instead of a confusing ``ollama create`` parse failure.
+        ModelVersionManager._validate_model_path(p)
+
+        # Check for GGUF files first
+        gguf_files = list(p.glob("*.gguf"))
+        if gguf_files:
+            # Pick the largest GGUF deterministically (avoids arbitrary
+            # filesystem order when multiple quantizations exist).
+            selected = max(gguf_files, key=lambda f: f.stat().st_size)
+            ModelVersionManager._validate_model_path(selected)
+            return f"FROM {selected}\n"
+
+        # Detect LoRA/PEFT adapter directory — these need ADAPTER syntax,
+        # not a bare FROM.  adapter_config.json is the canonical marker.
+        if (p / "adapter_config.json").exists():
+            try:
+                with open(p / "adapter_config.json") as f:
+                    cfg = json.load(f)
+                base_model = cfg.get("base_model_name_or_path", "")
+                if base_model:
+                    ModelVersionManager._validate_model_path(Path(base_model))
+                    return f"FROM {base_model}\nADAPTER {p}\n"
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"adapter_config.json found at {p} but could not be parsed: {e}")
+            # An adapter directory without a readable base model reference
+            # cannot be deployed correctly — raise instead of silently
+            # degrading to a bare FROM <dir> which would either confuse
+            # ollama or produce an incorrect model.
+            raise ValueError(
+                f"adapter_config.json found at {p} but base_model_name_or_path"
+                f" is missing or unreadable — cannot build a valid Modelfile"
+            )
+
+        # HuggingFace directory — point FROM at the directory itself
+        return f"FROM {p}\n"
+
+    @staticmethod
+    def _deploy_to_ollama(model_name: str, modelfile_path: Path) -> str | None:
+        """Run ``ollama create`` to register a model with Ollama.
+
+        Args:
+            model_name: Name for the new Ollama model
+            modelfile_path: Path to the Modelfile
+
+        Returns:
+            None on success, error message string on failure.
+        """
+        try:
+            result = subprocess.run(
+                ["ollama", "create", model_name, "-f", str(modelfile_path)],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if result.returncode != 0:
+                error = result.stderr.strip() or result.stdout.strip() or "unknown error"
+                logger.error(f"ollama create failed: {error}")
+                return error
+            logger.info(f"ollama create succeeded for '{model_name}'")
+            return None
+        except FileNotFoundError:
+            return "ollama CLI not found on PATH"
+        except subprocess.TimeoutExpired:
+            return "ollama create timed out after 300s"
+        except OSError as e:
+            return f"Could not run ollama create: {e}"
+
     def get_version_statistics(self) -> dict[str, Any]:
         """Get statistics about model versions."""
         versions = self.registry["versions"]
@@ -267,9 +528,16 @@ class ModelVersionManager:
             if score is not None:
                 validation_scores.append(score)
 
+        # Deployment status distribution
+        deploy_counts = {}
+        for version in versions:
+            deploy_status = version.get("deployment_status", "pending")
+            deploy_counts[deploy_status] = deploy_counts.get(deploy_status, 0) + 1
+
         stats = {
             "total_versions": total_versions,
             "status_distribution": status_counts,
+            "deployment_distribution": deploy_counts,
             "current_version": self.registry.get("current_version"),
             "registry_created": self.registry.get("created"),
             "registry_updated": self.registry.get("updated"),
