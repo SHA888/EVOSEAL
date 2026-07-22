@@ -124,7 +124,7 @@ class ValidationRule:
             "is_valid": False,
             "improvement_pct": 0.0,
             "effect_size": None,
-            "is_significant": False,
+            "is_significant": None,
             "confidence_interval": None,
             "p_value": None,
             "meets_effect_size": True,
@@ -377,7 +377,7 @@ class ImprovementValidator:
             if rule.required and not rule_passed:
                 all_required_passed = False
 
-            if rule.required and not rule_result.get("is_significant", True):
+            if rule.required and rule_result.get("is_significant") is False:
                 has_statistical_significance = False
 
             # Prepare detailed result
@@ -416,11 +416,34 @@ class ImprovementValidator:
             and has_statistical_significance
         )
 
+        # Build a human-readable summary message
+        if is_improvement:
+            message = (
+                f"Improvement validated: score {overall_score:.1f}/100 "
+                f"(threshold {self.min_improvement_score:.1f})"
+            )
+        else:
+            reasons = []
+            if not all_required_passed:
+                reasons.append("required rules failed")
+            if overall_score < self.min_improvement_score:
+                reasons.append(
+                    f"score {overall_score:.1f} < threshold {self.min_improvement_score:.1f}"
+                )
+            if not has_statistical_significance:
+                reasons.append("lacks statistical significance")
+            message = (
+                f"Not an improvement: {', '.join(reasons)}" if reasons else "Not an improvement"
+            )
+
         # Prepare the final result
         validation_result = {
             "is_improvement": is_improvement,
             "score": overall_score,
             "required_passed": all_required_passed,
+            "meets_score_threshold": overall_score >= self.min_improvement_score,
+            "has_statistical_significance": has_statistical_significance,
+            "confidence_level": self.confidence_level,
             "message": message,
             "baseline_id": baseline_id,
             "comparison_id": comparison_id,
@@ -428,6 +451,7 @@ class ImprovementValidator:
             "details": results,
             "timestamp": datetime.utcnow().isoformat(),
         }
+        return validation_result
 
     def display_validation_results(self, validation_result: ValidationResult) -> None:
         """Display validation results in a formatted table.
@@ -459,7 +483,7 @@ class ImprovementValidator:
             change_str = f"{change_pct:+.1f}%"
 
             # Format status with color
-            if detail["is_valid"]:
+            if detail["passed"]:
                 status = "[green]PASS[/green]"
             elif not detail["required"]:
                 status = "[yellow]WARN[/yellow]"
@@ -470,8 +494,8 @@ class ImprovementValidator:
             table.add_row(
                 detail["rule"],
                 detail["metric"],
-                str(detail["baseline"]),
-                str(detail["current"]),
+                str(detail["baseline_value"]),
+                str(detail["current_value"]),
                 change_str,
                 status,
                 f"{detail['score']:.1f}",
@@ -604,7 +628,7 @@ class ImprovementValidator:
             "is_improvement": validation_result["is_improvement"],
             "score": validation_result["score"],
             "confidence_level": validation_result.get("confidence_level", 0.95),
-            "passed_required": validation_result["passed_required"],
+            "passed_required": validation_result["required_passed"],
             "has_statistical_significance": validation_result.get(
                 "has_statistical_significance", True
             ),
