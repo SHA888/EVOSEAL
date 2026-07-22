@@ -50,6 +50,14 @@ class BaseEditStrategy(ABC):
             return content
 
         if hasattr(suggestion, "original_text") and hasattr(suggestion, "suggested_text"):
+            # Guard against empty original_text: "" in content is always True,
+            # and content.replace("", text) inserts text at every character
+            # boundary, corrupting the content.  For empty original_text,
+            # prepend suggested_text (matching SelfEditor.apply_edit ADD semantics).
+            if not suggestion.original_text:
+                if suggestion.suggested_text:
+                    return f"{suggestion.suggested_text}{content}"
+                return content
             if suggestion.original_text in content:
                 return content.replace(suggestion.original_text, suggestion.suggested_text)
         return content
