@@ -262,7 +262,7 @@ the primary focus of the P2 co-evolution backlog items in `TODO.md`.
 
 The diagram below shows the intended end-to-end message flow between EVOSEAL
 and its coding model. **Solid arrows** are implemented on `main`; **dashed
-arrows** are gaps tracked in TODO.md (items 5–7 in "Close the bidirectional
+arrows** are gaps tracked in TODO.md (items 4–6 in "Close the bidirectional
 co-evolution loop").
 
 ```mermaid
@@ -338,8 +338,10 @@ sequenceDiagram
 | **D. Generate** | Use improved model for next cycle | `Generator`, `OllamaProvider` | ❌ Never consults registry |
 | **E. Orchestrate** | Drive A→B→C→D end-to-end | `BidirectionalEvolutionManager` | ❌ Reporting/statistics only |
 
-Phases D and E are the remaining feedback edges that close the loop.
-They are tracked as TODO.md P2 items 5 and 6 respectively.
+Phases C, D, and E are the remaining gaps that prevent the loop from closing.
+Phase C (Deploy) was partially addressed in item 4 — the JSON registry exists but
+no serving-layer integration (Modelfile / ollama create) was added. Phases D and E
+are tracked as TODO.md P2 items 5 and 6 respectively.
 
 ---
 
