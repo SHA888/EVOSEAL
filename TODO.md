@@ -172,7 +172,7 @@
 - [x] **3. validate_model must serve the fine-tuned model, not baseline** _(done 2026-07-21)_ — all 5 test suites now use `model_path` when provided via `_resolve_model_for_validation()`; removed dead `TRANSFORMERS_AVAILABLE` import block. **Known limitation:** `model_path` must be an Ollama-resolvable model tag — directory paths from `register_version()` will surface an Ollama error until item 4 (real deployment) lands.
 - [x] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
 - [ ] **5. Generation must consult the fine-tuning registry** — `version_manager.get_current_version()` has zero callers — the generator (`providers/local_models.py resolve_model`, which currently just reads raw installed Ollama tags) must consult the registry instead so the deployed fine-tuned model actually gets used
-- [ ] **6. Wire bidirectional_manager to orchestrate the full loop** — `bidirectional_manager.py`'s docstring promises evolve → collect → train → deploy → repeat, but the class only implements reporting/statistics methods (`get_evolution_status`, `get_evolution_history`, `generate_evolution_report`); no method actually drives the sequence end-to-end
+- [x] **6. Wire bidirectional_manager to orchestrate the full loop** _(done 2026-07-23)_ — added `run_loop_cycle()` that drives one full iteration: check training readiness → run training cycle → deploy the improved model (when validation passes) → record results. Also added `_deploy_trained_model()` helper and `_record_cycle()` to update the previously-stale `stats`/`evolution_history`/`is_running`/`last_check_time` fields. 9 new unit tests cover: skip-when-not-ready, training failure, full success, validation-fail-skip-deploy, deploy failure, exception handling, state mutation, missing-current-version, and missing-validation-results.
 - [ ] **Add end-to-end bidirectional loop test** — exercise the full cycle: collect → train → validate → deploy → regenerate; no such test exists today (write once steps 1–6 land)
 
 ### Phase 3 (Bidirectional Evolution) Documentation
@@ -303,9 +303,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 10   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 29    | 5    | Co-evolution loop gaps (7 items, 5 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
+| 🟡 P2    | 29    | 6    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
 | 🟢 P3    | 24    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **32** | |
+| **Total** | **88** | **33** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

@@ -63,7 +63,7 @@ class BidirectionalEvolutionManager:
         self.min_evolution_cycles = min_evolution_cycles
         self.is_running = False
         self.evolution_history: list[dict[str, Any]] = []
-        self.last_check_time = None
+        self.last_check_time: datetime | None = None
 
         # Statistics
         self.stats = {
@@ -75,6 +75,136 @@ class BidirectionalEvolutionManager:
         }
 
         logger.info("BidirectionalEvolutionManager initialized")
+
+    # ------------------------------------------------------------------
+    # Loop orchestration
+    # ------------------------------------------------------------------
+
+    async def run_loop_cycle(self) -> dict[str, Any]:
+        """Execute one full bidirectional-evolution loop cycle.
+
+        Sequence: check training readiness → run training cycle → deploy
+        the improved model (if validation passed) → record results.
+
+        Returns:
+            Result dict with keys ``success``, ``phases``, ``cycle_id``,
+            and ``error`` (when ``success`` is False).
+        """
+        cycle_start = datetime.now()
+        cycle_record: dict[str, Any] = {
+            "cycle_start": cycle_start.isoformat(),
+            "results": {},
+        }
+        phases: dict[str, Any] = {}
+
+        self.is_running = True
+        self.stats["start_time"] = self.stats["start_time"] or cycle_start
+
+        try:
+            # --- Phase 1: Training readiness ---
+            readiness = await self.training_manager.check_training_readiness()
+            phases["readiness"] = readiness
+
+            if not readiness.get("ready"):
+                result = {
+                    "success": True,
+                    "skipped": True,
+                    "reason": readiness.get("reason", "not ready"),
+                    "phases": phases,
+                }
+                cycle_record["results"] = result
+                self._record_cycle(cycle_record)
+                return result
+
+            # --- Phase 2: Train ---
+            training_result = await self.training_manager.run_training_cycle()
+            phases["training"] = training_result
+
+            if not training_result.get("success"):
+                result = {
+                    "success": False,
+                    "phase": "training",
+                    "error": training_result.get("error", "training failed"),
+                    "phases": phases,
+                }
+                cycle_record["results"] = result
+                self._record_cycle(cycle_record)
+                return result
+
+            self.stats["successful_training_cycles"] += 1
+
+            # --- Phase 3: Deploy (only when validation passed) ---
+            validation = training_result.get("validation_results", {})
+            if validation.get("passed", False):
+                deploy_result = await self._deploy_trained_model(training_result)
+                phases["deploy"] = deploy_result
+
+                if deploy_result.get("success"):
+                    self.stats["model_improvements"] += 1
+                    self.stats["last_improvement"] = datetime.now()
+            else:
+                phases["deploy"] = {"skipped": True, "reason": "validation did not pass"}
+
+            result = {
+                "success": True,
+                "phases": phases,
+            }
+            cycle_record["results"] = result
+            self._record_cycle(cycle_record)
+            return result
+
+        except Exception as exc:
+            logger.error(f"Error in bidirectional loop cycle: {exc}", exc_info=True)
+            result = {
+                "success": False,
+                "phase": "unknown",
+                "error": str(exc),
+                "phases": phases,
+            }
+            cycle_record["results"] = result
+            self._record_cycle(cycle_record)
+            return result
+
+        finally:
+            self.is_running = False
+            self.last_check_time = datetime.now()
+
+    async def _deploy_trained_model(self, training_result: dict[str, Any]) -> dict[str, Any]:
+        """Deploy the model produced by a successful training cycle.
+
+        Looks up the version registered by :meth:`TrainingManager.run_training_cycle`
+        and calls :meth:`ModelVersionManager.deploy_version` so the serving
+        layer (Ollama) can load the fine-tuned model.
+
+        Returns:
+            ``{"success": True, ...}`` on deploy, or an error dict.
+        """
+        try:
+            version_manager = self.training_manager.version_manager
+            current = version_manager.get_current_version()
+            if not current:
+                return {"success": False, "error": "no current version after training"}
+
+            version_id = current["version_id"]
+            deploy_result = await version_manager.deploy_version(version_id)
+
+            if "error" in deploy_result:
+                return {"success": False, "error": deploy_result["error"]}
+
+            return {"success": True, **deploy_result}
+
+        except Exception as exc:
+            logger.error(f"Error deploying trained model: {exc}", exc_info=True)
+            return {"success": False, "error": str(exc)}
+
+    def _record_cycle(self, cycle_record: dict[str, Any]) -> None:
+        """Append a cycle record to history and update top-level stats."""
+        self.evolution_history.append(cycle_record)
+        self.stats["total_evolution_cycles"] += 1
+
+    # ------------------------------------------------------------------
+    # Status / history / reporting
+    # ------------------------------------------------------------------
 
     def get_evolution_status(self) -> dict[str, Any]:
         """Get current evolution status and statistics."""
