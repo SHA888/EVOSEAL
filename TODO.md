@@ -182,7 +182,7 @@
   - What prevents the two systems from diverging?
   - What metrics determine "improvement" in the bidirectional context?
   - Added as `docs/architecture/bidirectional_evolution.md`
-- [ ] **Add sequence diagram** showing the Devstral ↔ EVOSEAL message flow
+- [x] **Add sequence diagram** showing the Devstral ↔ EVOSEAL message flow _(done 2026-07-23)_ — Mermaid sequence diagram added to `docs/architecture/bidirectional_evolution.md` covering all 5 phases (evolution → training → deploy → generate → orchestrate), with solid/dashed arrows distinguishing implemented vs. gap paths and a status table
 
 ### Dashboard Improvements
 
@@ -303,9 +303,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 10   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 29    | 5    | Co-evolution loop gaps (7 items, 5 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
+| 🟡 P2    | 29    | 6    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
 | 🟢 P3    | 24    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **32** | |
+| **Total** | **88** | **33** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
