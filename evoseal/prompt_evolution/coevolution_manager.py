@@ -84,6 +84,11 @@ class CoevolutionManager:
         self.coder = coder_provider or OllamaProvider(
             base_url=base_url, role=AgentRole.CODER, registry_model=registry_model
         )
+        # NOTE: registry_model is only forwarded to the coder provider because
+        # ModelVersionManager tracks a single current_version with no role
+        # distinction — the fine-tuning loop currently manages one model, not
+        # separate coder/reviewer models.  If the registry gains per-role
+        # tracking, pass it here too.
         self.reviewer = reviewer_provider or OllamaProvider(
             base_url=base_url, role=AgentRole.REVIEWER
         )

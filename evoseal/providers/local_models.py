@@ -176,15 +176,21 @@ def select_model(
     # bidirectional co-evolution loop close: the generator consults the
     # registry instead of only looking at raw installed tags.
     if registry_model:
-        if registry_model in available:
-            logger.info(
-                "Using registry-deployed model %s for role %s",
-                registry_model,
-                role.value,
-            )
-            return registry_model
+        registry_lower = registry_model.lower()
+        # Case-insensitive exact match — return the installed tag, not the
+        # input, so the caller gets the canonical casing Ollama uses.
         for name in available:
-            if registry_model.lower() in name.lower():
+            if name.lower() == registry_lower:
+                logger.info(
+                    "Using registry-deployed model %s for role %s",
+                    name,
+                    role.value,
+                )
+                return name
+        # Substring fallback (e.g. registry says "model:v2" but installed
+        # tag is "model:v2-quantized").
+        for name in available:
+            if registry_lower in name.lower():
                 logger.info(
                     "Using registry-deployed model %s (matched %s) for role %s",
                     registry_model,
