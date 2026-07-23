@@ -258,6 +258,91 @@ the primary focus of the P2 co-evolution backlog items in `TODO.md`.
 
 ---
 
+## Sequence diagram: full bidirectional loop
+
+The diagram below shows the intended end-to-end message flow between EVOSEAL
+and its coding model. **Solid arrows** are implemented on `main`; **dashed
+arrows** are gaps tracked in TODO.md (items 5–7 in "Close the bidirectional
+co-evolution loop").
+
+```mermaid
+sequenceDiagram
+    participant D as ContinuousEvolutionService
+    participant BM as BidirectionalEvolutionManager
+    participant EP as EvolutionPipeline
+    participant DC as EvolutionDataCollector
+    participant TM as TrainingManager
+    participant FT as ModelFineTuner
+    participant MV as ModelValidator
+    participant VM as ModelVersionManager
+    participant O as Ollama
+    participant G as Generator
+
+    Note over D: Timer fires every<br/>evolution_interval (1 h)
+
+    %% ── Phase A: Evolution cycle ─────────────────────────────
+    D->>EP: run_evolution_cycle()
+    EP->>EP: generate improvements
+    EP->>EP: evaluate & select
+    EP-->>D: results [{success, code, metrics}]
+    D->>DC: collect_result(evolution_result)
+    DC->>DC: persist to disk + pattern tracking
+
+    %% ── Phase B: Training readiness check ────────────────────
+    Note over D: Timer fires every<br/>training_check_interval (30 min)
+    D->>DC: get_statistics()
+    DC-->>D: successful_count
+    alt enough samples (≥ min_evolution_samples)
+        D->>TM: run_training_cycle()
+        TM->>TM: check_training_readiness()
+        TM->>FT: fine-tune (LoRA/QLoRA)
+        FT-->>TM: trained adapter
+        TM->>MV: validate (5 categories)
+        MV-->>TM: validation_results
+
+        %% ── Phase C: Deploy or rollback ──────────────────────
+        alt validation passed
+            TM->>VM: register_version(adapter, scores)
+            VM->>VM: copy weights + update JSON registry
+            Note over VM: ⚠️ Gap: no ollama create /<br/>Modelfile / serving-layer update
+            VM-->>TM: version registered
+        else validation failed
+            TM->>TM: rollback to previous version
+        end
+        TM-->>D: training cycle result
+    else not enough samples
+        Note over D: Skip — wait for more data
+    end
+
+    %% ── Phase D: Generation (the return path) ───────────────
+    Note over G: Next evolution cycle needs code
+    G->>O: list installed models
+    O-->>G: [base-model, ...]
+    Note over G: ⚠️ Gap: does not call<br/>VM.get_current_version(),<br/>so fine-tuned model is never used
+    G->>O: generate(prompt, base-model)
+    O-->>G: generated code
+    G-->>EP: code variants
+
+    %% ── Phase E: Bidirectional manager orchestration ─────────
+    Note over BM: ⚠️ Gap: run_loop_cycle()<br/>not yet wired on main
+    BM->>BM: get_evolution_status() / report
+```
+
+### Reading the diagram
+
+| Phase | What happens | Key modules | Status on `main` |
+|-------|-------------|-------------|------------------|
+| **A. Evolution** | Run self-improvement cycle, collect results | `EvolutionPipeline`, `EvolutionDataCollector` | ✅ Wired |
+| **B. Training** | Check readiness, fine-tune, validate | `TrainingManager`, `ModelFineTuner`, `ModelValidator` | ✅ Wired |
+| **C. Deploy** | Register version or rollback | `ModelVersionManager` | ⚠️ JSON registry only — no serving-layer integration |
+| **D. Generate** | Use improved model for next cycle | `Generator`, `OllamaProvider` | ❌ Never consults registry |
+| **E. Orchestrate** | Drive A→B→C→D end-to-end | `BidirectionalEvolutionManager` | ❌ Reporting/statistics only |
+
+Phases D and E are the remaining feedback edges that close the loop.
+They are tracked as TODO.md P2 items 5 and 6 respectively.
+
+---
+
 ## Related documents
 
 - [`docs/PHASE3_BIDIRECTIONAL_EVOLUTION.md`](../PHASE3_BIDIRECTIONAL_EVOLUTION.md) —
