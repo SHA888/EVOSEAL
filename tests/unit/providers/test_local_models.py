@@ -234,6 +234,20 @@ def test_select_model_registry_substring_match():
     )
 
 
+def test_select_model_registry_exact_beats_substring():
+    """An exact tag match is preferred over a substring match that appears earlier."""
+    stale_tag = "deepseek-coder-finetuned:v2-old"
+    exact_tag = "deepseek-coder-finetuned:v2"
+    # stale (substring) match appears first — exact match must still win.
+    assert (
+        select_model(AgentRole.CODER, [stale_tag, exact_tag], registry_model=FINETUNED) == exact_tag
+    )
+    # exact match appears first — still works.
+    assert (
+        select_model(AgentRole.CODER, [exact_tag, stale_tag], registry_model=FINETUNED) == exact_tag
+    )
+
+
 def test_select_model_override_beats_registry():
     """Explicit override still takes priority over registry model."""
     assert (

@@ -178,16 +178,35 @@ def select_model(
     if registry_model:
         registry_lower = registry_model.lower()
         role_families = ROLE_MODEL_PREFERENCES.get(role, ())
+
+        def _family_ok(name_lower: str) -> bool:
+            """Return True if *name_lower* belongs to this role's families.
+
+            When *role_families* is empty (e.g. MAIN has no preferences)
+            the match is rejected rather than silently bypassing the guard.
+            """
+            if not role_families:
+                return False
+            return any(fam.lower() in name_lower for fam in role_families)
+
+        # Two-pass matching: prefer an exact tag match over a substring
+        # match so that e.g. ``deepseek-coder-finetuned:v2`` is not
+        # shadowed by a similarly-named ``deepseek-coder-finetuned:v2-old``
+        # that happens to appear earlier in the installed list.
+        substring_candidate: str | None = None
         for name in available:
             name_lower = name.lower()
-            exact = name_lower == registry_lower
-            substring = not exact and registry_lower in name_lower
-            if not (exact or substring):
-                continue
-            # Guard: the matched tag must belong to this role's model
-            # families so that e.g. an embedding model tag cannot be
-            # returned for the CODER role.
-            if role_families and not any(fam.lower() in name_lower for fam in role_families):
+            if name_lower == registry_lower:
+                if _family_ok(name_lower):
+                    logger.info(
+                        "Using registry-deployed model %s for role %s",
+                        name,
+                        role.value,
+                    )
+                    return name
+                # Exact match but wrong family — still record as a
+                # candidate so we can warn rather than silently fall
+                # through.
                 logger.warning(
                     "Registry model %s matches installed tag %s but does "
                     "not belong to role %s families; skipping",
@@ -195,14 +214,21 @@ def select_model(
                     name,
                     role.value,
                 )
-                continue
+            elif substring_candidate is None and registry_lower in name_lower:
+                # Remember the first substring match; keep scanning for
+                # an exact match that may appear later.
+                if _family_ok(name_lower):
+                    substring_candidate = name
+
+        if substring_candidate is not None:
             logger.info(
-                "Using registry-deployed model %s%s for role %s",
-                name,
-                " (matched %s)" % registry_model if substring else "",
+                "Using registry-deployed model %s (matched %s) for role %s",
+                substring_candidate,
+                registry_model,
                 role.value,
             )
-            return name
+            return substring_candidate
+
         logger.warning(
             "Registry model %r is not installed or not suitable for role %s; "
             "falling back to family discovery",
