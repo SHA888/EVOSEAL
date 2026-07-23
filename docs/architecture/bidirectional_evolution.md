@@ -261,9 +261,9 @@ the primary focus of the P2 co-evolution backlog items in `TODO.md`.
 ## Sequence diagram: full bidirectional loop
 
 The diagram below shows the intended end-to-end message flow between EVOSEAL
-and its coding model. **Solid arrows** are implemented on `main`; **dashed
-arrows** are gaps tracked in TODO.md (items 4–6 in "Close the bidirectional
-co-evolution loop").
+and its coding model. **Solid arrows** are calls; **dashed arrows** are return
+messages. Warning notes (⚠️) identify gaps tracked in TODO.md (items 4–6 in
+"Close the bidirectional co-evolution loop").
 
 ```mermaid
 sequenceDiagram
