@@ -177,27 +177,38 @@ def select_model(
     # registry instead of only looking at raw installed tags.
     if registry_model:
         registry_lower = registry_model.lower()
-        # Case-insensitive exact match — return the installed tag, not the
-        # input, so the caller gets the canonical casing Ollama uses.
+        role_families = ROLE_MODEL_PREFERENCES.get(role, ())
         for name in available:
-            if name.lower() == registry_lower:
-                logger.info(
-                    "Using registry-deployed model %s for role %s",
-                    name,
-                    role.value,
-                )
-                return name
-        # Substring fallback (e.g. registry says "model:v2" but installed
-        # tag is "model:v2-quantized").
-        for name in available:
-            if registry_lower in name.lower():
-                logger.info(
-                    "Using registry-deployed model %s (matched %s) for role %s",
+            name_lower = name.lower()
+            exact = name_lower == registry_lower
+            substring = not exact and registry_lower in name_lower
+            if not (exact or substring):
+                continue
+            # Guard: the matched tag must belong to this role's model
+            # families so that e.g. an embedding model tag cannot be
+            # returned for the CODER role.
+            if role_families and not any(fam.lower() in name_lower for fam in role_families):
+                logger.warning(
+                    "Registry model %s matches installed tag %s but does "
+                    "not belong to role %s families; skipping",
                     registry_model,
                     name,
                     role.value,
                 )
-                return name
+                continue
+            logger.info(
+                "Using registry-deployed model %s%s for role %s",
+                name,
+                " (matched %s)" % registry_model if substring else "",
+                role.value,
+            )
+            return name
+        logger.warning(
+            "Registry model %r is not installed or not suitable for role %s; "
+            "falling back to family discovery",
+            registry_model,
+            role.value,
+        )
 
     for family in ROLE_MODEL_PREFERENCES.get(role, ()):
         for name in available:

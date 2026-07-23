@@ -214,7 +214,7 @@ def test_resolve_role_models_queries_once(monkeypatch):
 FINETUNED = "deepseek-coder-finetuned:v2"
 
 
-def test_select_model_prefers_registry_over_family(monkeypatch):
+def test_select_model_prefers_registry_over_family():
     """Registry-deployed model beats family-based discovery."""
     # When the fine-tuned model is NOT installed, family discovery still works.
     assert select_model(AgentRole.CODER, [DEEPSEEK, QWEN], registry_model=FINETUNED) == DEEPSEEK
@@ -225,7 +225,7 @@ def test_select_model_prefers_registry_over_family(monkeypatch):
     )
 
 
-def test_select_model_registry_substring_match(monkeypatch):
+def test_select_model_registry_substring_match():
     """Registry model matches by substring against installed tags."""
     installed_tag = "deepseek-coder-finetuned:v2-quantized"
     assert (
@@ -234,7 +234,7 @@ def test_select_model_registry_substring_match(monkeypatch):
     )
 
 
-def test_select_model_override_beats_registry(monkeypatch):
+def test_select_model_override_beats_registry():
     """Explicit override still takes priority over registry model."""
     assert (
         select_model(
@@ -255,10 +255,20 @@ def test_select_model_env_override_beats_registry(monkeypatch):
     )
 
 
-def test_select_model_registry_not_installed_falls_through(monkeypatch):
+def test_select_model_registry_not_installed_falls_through():
     """When the registry model is not installed, family discovery runs."""
     assert (
         select_model(AgentRole.CODER, [DEEPSEEK, QWEN], registry_model="not-installed:latest")
+        == DEEPSEEK
+    )
+
+
+def test_select_model_registry_rejects_wrong_role():
+    """Registry model matching a tag outside the role's families is skipped."""
+    embedding_tag = "nomic-embed-text:latest"
+    # The tag exists but is not a CODER-family model — must not be returned.
+    assert (
+        select_model(AgentRole.CODER, [DEEPSEEK, embedding_tag], registry_model=embedding_tag)
         == DEEPSEEK
     )
 
