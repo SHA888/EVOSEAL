@@ -97,6 +97,18 @@ class BidirectionalEvolutionManager:
         }
         phases: dict[str, Any] = {}
 
+        # Re-entrancy guard: if a previous cycle is still running (e.g. a
+        # scheduler fired before the prior cycle's ``finally`` reset the
+        # flag), bail out rather than interleaving and corrupting shared
+        # state like ``self.stats`` and ``self.evolution_history``.
+        if self.is_running:
+            logger.warning("run_loop_cycle called while a cycle is already running; skipping")
+            return {
+                "success": False,
+                "error": "cycle already running",
+                "phases": {},
+            }
+
         self.is_running = True
         self.stats["start_time"] = self.stats["start_time"] or cycle_start
 
@@ -113,8 +125,7 @@ class BidirectionalEvolutionManager:
                     "phases": phases,
                 }
                 cycle_record["results"] = result
-                self._record_cycle(cycle_record)
-                result["cycle_id"] = len(self.evolution_history) - 1
+                result["cycle_id"] = self._record_cycle(cycle_record)
                 return result
 
             # --- Phase 2: Train ---
@@ -129,8 +140,7 @@ class BidirectionalEvolutionManager:
                     "phases": phases,
                 }
                 cycle_record["results"] = result
-                self._record_cycle(cycle_record)
-                result["cycle_id"] = len(self.evolution_history) - 1
+                result["cycle_id"] = self._record_cycle(cycle_record)
                 return result
 
             self.stats["successful_training_cycles"] += 1
@@ -152,8 +162,7 @@ class BidirectionalEvolutionManager:
                 "phases": phases,
             }
             cycle_record["results"] = result
-            self._record_cycle(cycle_record)
-            result["cycle_id"] = len(self.evolution_history) - 1
+            result["cycle_id"] = self._record_cycle(cycle_record)
             return result
 
         except Exception as exc:
@@ -174,8 +183,7 @@ class BidirectionalEvolutionManager:
                 "phases": phases,
             }
             cycle_record["results"] = result
-            self._record_cycle(cycle_record)
-            result["cycle_id"] = len(self.evolution_history) - 1
+            result["cycle_id"] = self._record_cycle(cycle_record)
             return result
 
         finally:
@@ -188,6 +196,15 @@ class BidirectionalEvolutionManager:
         Looks up the version registered by :meth:`TrainingManager.run_training_cycle`
         and calls :meth:`ModelVersionManager.deploy_version` so the serving
         layer (Ollama) can load the fine-tuned model.
+
+        .. note::
+            This method assumes ``run_training_cycle`` synchronously registers
+            the new model version via ``version_manager.register_version()``
+            *before* returning success, so that ``get_current_version()``
+            reflects the just-produced model.  If another cycle or process
+            mutates the registry in between, a stale version could be
+            deployed.  Ideally the ``version_id`` should be threaded through
+            ``training_result`` rather than re-fetched here — see :issue:`TODO`.
 
         Returns:
             ``{"success": True, ...}`` on deploy, or an error dict.
@@ -210,16 +227,21 @@ class BidirectionalEvolutionManager:
             logger.error(f"Error deploying trained model: {exc}", exc_info=True)
             return {"success": False, "error": str(exc)}
 
-    def _record_cycle(self, cycle_record: dict[str, Any]) -> None:
+    def _record_cycle(self, cycle_record: dict[str, Any]) -> int:
         """Append a cycle record to history and update top-level stats.
 
         ``total_evolution_cycles`` counts **every** ``run_loop_cycle``
         invocation, including readiness-skip no-ops.  Use
         ``successful_training_cycles`` / ``model_improvements`` for
         activity-specific counts.
+
+        Returns:
+            The 0-based index of the appended record in
+            ``self.evolution_history``.
         """
         self.evolution_history.append(cycle_record)
         self.stats["total_evolution_cycles"] += 1
+        return len(self.evolution_history) - 1
 
     # ------------------------------------------------------------------
     # Status / history / reporting

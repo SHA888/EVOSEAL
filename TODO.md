@@ -206,7 +206,7 @@
 
 ### Medium-Priority Bugs Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **`bidirectional_manager.py` state fields are never mutated** — `self.stats`, `self.evolution_history`, `self.is_running`, `self.last_check_time` are set in `__init__` but nothing in the codebase ever updates them (confirmed via repo-wide grep); `continuous_evolution_service.py` maintains its own separate loop state instead. `get_evolution_status()`/`generate_evolution_report()` always report zero cycles and `is_running=False` even while the loop actively runs
+- [x] **`bidirectional_manager.py` state fields are never mutated** _(done 2026-07-23)_ — fixed by `run_loop_cycle()` in item #6 above; `stats`, `evolution_history`, `is_running`, and `last_check_time` are now all mutated each cycle.
 - [ ] **`version_manager.py` registry file has no atomic write** — `_save_registry()` (lines 70-77, PR #72 branch) writes directly via `open(...,"w")` + `json.dump`; a crash/kill mid-write leaves a truncated file, and `_load_registry()` silently resets to an empty registry on parse failure, losing all version history
 - [ ] **`version_manager.py` has no locking around concurrent registry mutation** — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`
 - [ ] **`model_fine_tuner.py:160-178` uses `trust_remote_code=True`** on both `AutoTokenizer`/`AutoModelForCausalLM.from_pretrained`, combined with a fallback (`_resolve_hf_base_model()`, lines 107-120) that uses `model_name` verbatim as an HF repo id for unknown families — a bad config value or env var (`EVOSEAL_CODER_MODEL`) can execute arbitrary remote code locally. `# nosec B615` suppresses the linter, not the risk

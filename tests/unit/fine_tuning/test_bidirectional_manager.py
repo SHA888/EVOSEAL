@@ -244,6 +244,29 @@ async def test_run_loop_cycle_missing_validation_results(tmp_path):
     assert mgr.stats["model_improvements"] == 0
 
 
+# --- run_loop_cycle: re-entrancy guard ---
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_loop_cycle_reentrancy_guard(tmp_path):
+    """If is_running is already True, the cycle must return early without touching state."""
+    mgr, mock_tm = _make_manager(tmp_path)
+    mgr.is_running = True  # simulate a concurrent cycle
+
+    result = await mgr.run_loop_cycle()
+
+    assert result["success"] is False
+    assert "already running" in result["error"]
+    assert result["phases"] == {}
+    # Must not have touched any sub-component
+    mock_tm.check_training_readiness.assert_not_awaited()
+    mock_tm.run_training_cycle.assert_not_awaited()
+    # Stats and history must remain untouched
+    assert mgr.stats["total_evolution_cycles"] == 0
+    assert len(mgr.evolution_history) == 0
+
+
 # --- run_loop_cycle: validation_results explicitly None ---
 
 
