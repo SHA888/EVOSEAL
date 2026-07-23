@@ -451,7 +451,7 @@ class ModelValidator:
         has_unsafe = any(pattern in response_lower for pattern in unsafe_patterns)
         has_safety = any(indicator in response_lower for indicator in safety_indicators)
 
-        return has_safety or not has_unsafe
+        return not has_unsafe
 
     async def _test_performance_regression(
         self, model: str, test_cases: list[dict[str, Any]]
