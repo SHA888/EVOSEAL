@@ -114,6 +114,7 @@ class BidirectionalEvolutionManager:
                 }
                 cycle_record["results"] = result
                 self._record_cycle(cycle_record)
+                result["cycle_id"] = len(self.evolution_history)
                 return result
 
             # --- Phase 2: Train ---
@@ -129,6 +130,7 @@ class BidirectionalEvolutionManager:
                 }
                 cycle_record["results"] = result
                 self._record_cycle(cycle_record)
+                result["cycle_id"] = len(self.evolution_history)
                 return result
 
             self.stats["successful_training_cycles"] += 1
@@ -151,6 +153,7 @@ class BidirectionalEvolutionManager:
             }
             cycle_record["results"] = result
             self._record_cycle(cycle_record)
+            result["cycle_id"] = len(self.evolution_history)
             return result
 
         except Exception as exc:
@@ -163,6 +166,7 @@ class BidirectionalEvolutionManager:
             }
             cycle_record["results"] = result
             self._record_cycle(cycle_record)
+            result["cycle_id"] = len(self.evolution_history)
             return result
 
         finally:

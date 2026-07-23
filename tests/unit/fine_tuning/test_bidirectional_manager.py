@@ -6,10 +6,9 @@ checking, training execution, and model deployment into a single cycle.
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -52,6 +51,8 @@ async def test_run_loop_cycle_skips_when_not_ready(tmp_path):
     assert result["success"] is True
     assert result["skipped"] is True
     assert "Insufficient" in result["reason"]
+    assert "cycle_id" in result
+    assert isinstance(result["cycle_id"], int)
     mock_tm.run_training_cycle.assert_not_awaited()
     # Stats: cycle recorded, but no training or improvement
     assert mgr.stats["total_evolution_cycles"] == 1
@@ -82,6 +83,7 @@ async def test_run_loop_cycle_training_failure(tmp_path):
     assert result["success"] is False
     assert result["phase"] == "training"
     assert "OOM" in result["error"]
+    assert "cycle_id" in result
     assert mgr.stats["successful_training_cycles"] == 0
     assert mgr.stats["total_evolution_cycles"] == 1
 
@@ -112,6 +114,7 @@ async def test_run_loop_cycle_full_success(tmp_path):
 
     assert result["success"] is True
     assert result["phases"]["deploy"]["success"] is True
+    assert "cycle_id" in result
     assert mgr.stats["successful_training_cycles"] == 1
     assert mgr.stats["model_improvements"] == 1
     assert mgr.stats["last_improvement"] is not None
@@ -182,6 +185,7 @@ async def test_run_loop_cycle_exception_handling(tmp_path):
 
     assert result["success"] is False
     assert "unexpected" in result["error"]
+    assert "cycle_id" in result
     assert mgr.is_running is False
     assert mgr.last_check_time is not None
     assert mgr.stats["total_evolution_cycles"] == 1
