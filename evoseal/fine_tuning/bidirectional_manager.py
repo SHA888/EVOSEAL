@@ -114,7 +114,7 @@ class BidirectionalEvolutionManager:
                 }
                 cycle_record["results"] = result
                 self._record_cycle(cycle_record)
-                result["cycle_id"] = len(self.evolution_history)
+                result["cycle_id"] = len(self.evolution_history) - 1
                 return result
 
             # --- Phase 2: Train ---
@@ -130,13 +130,13 @@ class BidirectionalEvolutionManager:
                 }
                 cycle_record["results"] = result
                 self._record_cycle(cycle_record)
-                result["cycle_id"] = len(self.evolution_history)
+                result["cycle_id"] = len(self.evolution_history) - 1
                 return result
 
             self.stats["successful_training_cycles"] += 1
 
             # --- Phase 3: Deploy (only when validation passed) ---
-            validation = training_result.get("validation_results", {})
+            validation = training_result.get("validation_results") or {}
             if validation.get("passed", False):
                 deploy_result = await self._deploy_trained_model(training_result)
                 phases["deploy"] = deploy_result
@@ -153,20 +153,29 @@ class BidirectionalEvolutionManager:
             }
             cycle_record["results"] = result
             self._record_cycle(cycle_record)
-            result["cycle_id"] = len(self.evolution_history)
+            result["cycle_id"] = len(self.evolution_history) - 1
             return result
 
         except Exception as exc:
             logger.error(f"Error in bidirectional loop cycle: {exc}", exc_info=True)
+            # Derive the failing phase from what was already populated in
+            # ``phases`` so diagnostics are more useful than a blanket
+            # "unknown".
+            if "deploy" in phases:
+                current_phase = "deploy"
+            elif "training" in phases:
+                current_phase = "training"
+            else:
+                current_phase = "readiness"
             result = {
                 "success": False,
-                "phase": "unknown",
+                "phase": current_phase,
                 "error": str(exc),
                 "phases": phases,
             }
             cycle_record["results"] = result
             self._record_cycle(cycle_record)
-            result["cycle_id"] = len(self.evolution_history)
+            result["cycle_id"] = len(self.evolution_history) - 1
             return result
 
         finally:
@@ -202,7 +211,13 @@ class BidirectionalEvolutionManager:
             return {"success": False, "error": str(exc)}
 
     def _record_cycle(self, cycle_record: dict[str, Any]) -> None:
-        """Append a cycle record to history and update top-level stats."""
+        """Append a cycle record to history and update top-level stats.
+
+        ``total_evolution_cycles`` counts **every** ``run_loop_cycle``
+        invocation, including readiness-skip no-ops.  Use
+        ``successful_training_cycles`` / ``model_improvements`` for
+        activity-specific counts.
+        """
         self.evolution_history.append(cycle_record)
         self.stats["total_evolution_cycles"] += 1
 

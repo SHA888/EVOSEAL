@@ -242,3 +242,25 @@ async def test_run_loop_cycle_missing_validation_results(tmp_path):
     assert result["success"] is True
     assert result["phases"]["deploy"]["skipped"] is True
     assert mgr.stats["model_improvements"] == 0
+
+
+# --- run_loop_cycle: validation_results explicitly None ---
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_run_loop_cycle_validation_results_none(tmp_path):
+    """If validation_results is explicitly None, deploy must be skipped without error."""
+    mgr, mock_tm = _make_manager(tmp_path)
+    mock_tm.check_training_readiness.return_value = {"ready": True}
+    mock_tm.run_training_cycle.return_value = {
+        "success": True,
+        "validation_results": None,
+    }
+
+    result = await mgr.run_loop_cycle()
+
+    assert result["success"] is True
+    assert result["phases"]["deploy"]["skipped"] is True
+    assert mgr.stats["model_improvements"] == 0
+    assert mgr.stats["successful_training_cycles"] == 1
