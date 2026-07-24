@@ -43,3 +43,36 @@ def test_validate_missing_keys():
     with pytest.raises(ValueError) as e:
         sys_config.validate()
     assert "Missing required configuration section" in str(e.value)
+
+
+def test_from_yaml_empty_file_raises():
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+        f.write("")
+        yaml_path = f.name
+    try:
+        with pytest.raises(ValueError, match="did not produce a mapping"):
+            SystemConfig.from_yaml(yaml_path)
+    finally:
+        os.remove(yaml_path)
+
+
+def test_from_yaml_scalar_raises():
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+        f.write("just a string")
+        yaml_path = f.name
+    try:
+        with pytest.raises(ValueError, match="did not produce a mapping"):
+            SystemConfig.from_yaml(yaml_path)
+    finally:
+        os.remove(yaml_path)
+
+
+def test_from_yaml_list_raises():
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+        yaml.dump([1, 2, 3], f)
+        yaml_path = f.name
+    try:
+        with pytest.raises(ValueError, match="did not produce a mapping"):
+            SystemConfig.from_yaml(yaml_path)
+    finally:
+        os.remove(yaml_path)
