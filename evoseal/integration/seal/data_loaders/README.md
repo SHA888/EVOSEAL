@@ -23,11 +23,13 @@ from pathlib import Path
 from pydantic import BaseModel
 from evoseal.integration.seal.data_loaders import load_data
 
+
 # Define your data model
 class ExampleModel(BaseModel):
     id: str
     name: str
     value: int
+
 
 # Load data from a file
 data = load_data("examples/data.json", ExampleModel)
@@ -42,18 +44,14 @@ data = load_data("examples/data.yaml", ExampleModel, format="yaml")
 from evoseal.integration.seal.data_loaders import load_batch
 
 # Load multiple files in parallel
-data = load_batch(
-    ["data/file1.json", "data/file2.json"],
-    ExampleModel,
-    max_workers=4
-)
+data = load_batch(["data/file1.json", "data/file2.json"], ExampleModel, max_workers=4)
 
 # Or load all files in a directory
 data = load_batch(
     "data/",
     ExampleModel,
     pattern="*.json",  # Only load JSON files
-    recursive=True     # Search subdirectories
+    recursive=True,  # Search subdirectories
 )
 ```
 
@@ -64,6 +62,7 @@ from evoseal.integration.seal.data_loaders import cached, default_cache
 
 # Clear the cache
 default_cache.clear()
+
 
 # Use the cache decorator
 @cached(ttl=3600)  # Cache for 1 hour

@@ -152,6 +152,7 @@ class BudgetConfig(BaseModel):
     max_tokens_per_cycle: int = 15_000
     max_tokens_per_epoch: int = 20_000
 
+
 # Add to Settings:
 # budget: BudgetConfig = Field(default_factory=BudgetConfig)
 ```
@@ -183,7 +184,7 @@ live in the caller so it can short-circuit the full cycle before DGM is invoked.
 ```python
 # In evolution_pipeline.py — cycle loop (caller of safety_integration.execute_safe_evolution_step)
 current_tokens = self.budget_tracker.tokens_consumed_this_run  # added by task 2.9
-budget = self.config.budget.max_tokens_per_run                 # added by task 2.10
+budget = self.config.budget.max_tokens_per_run  # added by task 2.10
 
 if current_tokens >= budget:
     log.warning(f"Budget exhausted: {current_tokens} / {budget} tokens")
@@ -202,13 +203,15 @@ started.
 ```python
 # In evolution_pipeline.py — immediately after DGM.generate() returns
 pre_call_tokens = self.budget_tracker.tokens_consumed_this_run  # snapshot taken before call
-call_tokens = dgm_response.usage.total_tokens                   # actual tokens from API response
+call_tokens = dgm_response.usage.total_tokens  # actual tokens from API response
 post_call_tokens = pre_call_tokens + call_tokens
 overage = post_call_tokens - budget  # raw overage over the run budget; 0 if still under budget
 
 if overage > config.budget.stop_tolerance_tokens:
-    log.error(f"Token overage {overage} exceeds tolerance {config.budget.stop_tolerance_tokens}; "
-              f"cumulative: {post_call_tokens} / {budget}")
+    log.error(
+        f"Token overage {overage} exceeds tolerance {config.budget.stop_tolerance_tokens}; "
+        f"cumulative: {post_call_tokens} / {budget}"
+    )
     # Current variant is rejected; loop stops
     return {"status": "BUDGET_EXHAUSTION_HARD", "reason": "overage tolerance exceeded"}
 ```
@@ -219,8 +222,10 @@ When consumption reaches `warn_at_percent_of_budget` of the total budget, a warn
 
 ```python
 if current_tokens >= (budget * warn_at_percent_of_budget / 100):
-    log.warning(f"Budget {warn_at_percent_of_budget}% consumed: {current_tokens} / {budget} tokens. "
-                f"Approximately {estimated_cycles_remaining} cycles remain.")
+    log.warning(
+        f"Budget {warn_at_percent_of_budget}% consumed: {current_tokens} / {budget} tokens. "
+        f"Approximately {estimated_cycles_remaining} cycles remain."
+    )
 ```
 
 The warning includes an **estimated cycles remaining** based on the average cost per cycle observed so far.

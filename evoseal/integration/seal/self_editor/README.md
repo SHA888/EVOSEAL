@@ -42,8 +42,9 @@ from evoseal.integration.seal.self_editor import (
     EditStrategy,
     EditSuggestion,
     EditOperation,
-    EditCriteria
+    EditCriteria,
 )
+
 
 class GrammarCheckStrategy(EditStrategy):
     """A simple grammar checking strategy."""
@@ -54,19 +55,22 @@ class GrammarCheckStrategy(EditStrategy):
 
         # Example: Check for common errors
         if "design to" in content and "designed to" not in content:
-            suggestions.append(EditSuggestion(
-                operation=EditOperation.REPLACE,
-                criteria=[EditCriteria.GRAMMAR],
-                original_text="design to",
-                suggested_text="designed to",
-                confidence=0.9,
-                explanation="Correct verb form should be 'designed to' in this context"
-            ))
+            suggestions.append(
+                EditSuggestion(
+                    operation=EditOperation.REPLACE,
+                    criteria=[EditCriteria.GRAMMAR],
+                    original_text="design to",
+                    suggested_text="designed to",
+                    confidence=0.9,
+                    explanation="Correct verb form should be 'designed to' in this context",
+                )
+            )
 
         return suggestions
 
     def apply_edit(self, content: str, suggestion: EditSuggestion) -> str:
         return content.replace(suggestion.original_text, suggestion.suggested_text)
+
 
 # Use the custom strategy
 editor = SelfEditor(strategy=GrammarCheckStrategy())

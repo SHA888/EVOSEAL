@@ -20,14 +20,14 @@ The system calculates confidence intervals to determine statistical significance
 
 ```python
 config = {
-    'statistical_analysis': {
-        'confidence_level': 0.95,  # 95% confidence intervals
-        'min_samples': 3,          # Minimum samples for analysis
+    "statistical_analysis": {
+        "confidence_level": 0.95,  # 95% confidence intervals
+        "min_samples": 3,  # Minimum samples for analysis
     }
 }
 
 # Analyze metric statistics
-stats = detector.analyze_metric_statistics('success_rate', values)
+stats = detector.analyze_metric_statistics("success_rate", values)
 print(f"95% CI: {stats['confidence_interval']}")
 ```
 
@@ -42,7 +42,7 @@ print(f"95% CI: {stats['confidence_interval']}")
 Linear regression-based trend analysis identifies patterns over time:
 
 ```python
-trend = stats['trend_analysis']
+trend = stats["trend_analysis"]
 print(f"Trend: {trend['direction']} ({trend['strength']})")
 print(f"Slope: {trend['slope']:.6f}")
 print(f"R²: {trend['r_squared']:.4f}")
@@ -72,13 +72,10 @@ Identifies outliers based on standard deviations from the mean:
 
 ```python
 config = {
-    'statistical_analysis': {
-        'outlier_threshold': 2.0,  # 2 standard deviations
+    "statistical_analysis": {
+        "outlier_threshold": 2.0,  # 2 standard deviations
     },
-    'anomaly_detection': {
-        'algorithms': ['zscore'],
-        'sensitivity': 'medium'
-    }
+    "anomaly_detection": {"algorithms": ["zscore"], "sensitivity": "medium"},
 }
 ```
 
@@ -93,7 +90,7 @@ Robust outlier detection using quartile-based bounds:
 
 ```python
 # IQR method configuration
-config['anomaly_detection']['algorithms'].append('iqr')
+config["anomaly_detection"]["algorithms"].append("iqr")
 ```
 
 **IQR Method:**
@@ -108,9 +105,9 @@ Behavioral pattern recognition for sudden changes:
 
 ```python
 config = {
-    'anomaly_detection': {
-        'pattern_recognition': True,
-        'sensitivity': 'medium'  # low, medium, high
+    "anomaly_detection": {
+        "pattern_recognition": True,
+        "sensitivity": "medium",  # low, medium, high
     }
 }
 ```
@@ -131,12 +128,12 @@ The enhanced regression detection combines multiple analysis methods:
 
 ```python
 enhanced_analysis = detector.get_statistical_regression_analysis(
-    'success_rate', old_value, new_value
+    "success_rate", old_value, new_value
 )
 
 # Check statistical significance
-stat_sig = enhanced_analysis['statistical_significance']
-if not stat_sig['within_confidence_interval']:
+stat_sig = enhanced_analysis["statistical_significance"]
+if not stat_sig["within_confidence_interval"]:
     print("Statistically significant change detected!")
 ```
 
@@ -150,7 +147,7 @@ if not stat_sig['within_confidence_interval']:
 Provides context based on historical performance:
 
 ```python
-hist_context = enhanced_analysis['historical_context']
+hist_context = enhanced_analysis["historical_context"]
 print(f"Historical percentile: {hist_context['percentile_rank']:.1f}%")
 print(f"Deviation from mean: {hist_context['deviation_from_mean']:+.4f}")
 ```
@@ -165,9 +162,9 @@ print(f"Deviation from mean: {hist_context['deviation_from_mean']:+.4f}")
 Anomaly detection results integrated into regression analysis:
 
 ```python
-anomaly_status = enhanced_analysis['anomaly_status']
-if anomaly_status['is_anomaly']:
-    for detail in anomaly_status['anomaly_details']:
+anomaly_status = enhanced_analysis["anomaly_status"]
+if anomaly_status["is_anomaly"]:
+    for detail in anomaly_status["anomaly_details"]:
         print(f"Anomaly: {detail['method']} ({detail['severity']})")
 ```
 
@@ -182,14 +179,14 @@ if anomaly_status['is_anomaly']:
 
 ```python
 statistical_config = {
-    'confidence_level': 0.95,        # Confidence interval level
-    'min_samples': 3,                # Minimum samples for analysis
-    'trend_window': 10,              # Number of points for trend analysis
-    'seasonal_period': 7,            # Period for seasonal adjustment
-    'outlier_threshold': 2.0,        # Standard deviations for outliers
-    'enable_trend_analysis': True,   # Enable trend analysis
-    'enable_anomaly_detection': True, # Enable anomaly detection
-    'enable_seasonal_adjustment': False # Enable seasonal adjustment
+    "confidence_level": 0.95,  # Confidence interval level
+    "min_samples": 3,  # Minimum samples for analysis
+    "trend_window": 10,  # Number of points for trend analysis
+    "seasonal_period": 7,  # Period for seasonal adjustment
+    "outlier_threshold": 2.0,  # Standard deviations for outliers
+    "enable_trend_analysis": True,  # Enable trend analysis
+    "enable_anomaly_detection": True,  # Enable anomaly detection
+    "enable_seasonal_adjustment": False,  # Enable seasonal adjustment
 }
 ```
 
@@ -197,10 +194,10 @@ statistical_config = {
 
 ```python
 anomaly_config = {
-    'algorithms': ['zscore', 'iqr', 'isolation'],  # Detection algorithms
-    'sensitivity': 'medium',                       # Sensitivity level
-    'adaptive_threshold': True,                    # Adaptive thresholds
-    'pattern_recognition': True                    # Pattern-based detection
+    "algorithms": ["zscore", "iqr", "isolation"],  # Detection algorithms
+    "sensitivity": "medium",  # Sensitivity level
+    "adaptive_threshold": True,  # Adaptive thresholds
+    "pattern_recognition": True,  # Pattern-based detection
 }
 ```
 
@@ -214,7 +211,7 @@ detector = RegressionDetector(config, metrics_tracker)
 
 # Analyze metric statistics
 values = [0.85, 0.87, 0.86, 0.89, 0.88, 0.90, 0.85, 0.91, 0.89, 0.92]
-stats = detector.analyze_metric_statistics('success_rate', values)
+stats = detector.analyze_metric_statistics("success_rate", values)
 
 print(f"Mean: {stats['mean']:.4f}")
 print(f"Trend: {stats['trend_analysis']['direction']}")
@@ -230,19 +227,19 @@ for version_id in version_history:
     detector.update_historical_metrics(version_id, metrics)
 
 # Detect regressions with statistical analysis
-has_regression, details = detector.detect_regression('v1.5', 'v1.6')
+has_regression, details = detector.detect_regression("v1.5", "v1.6")
 
 for metric, analysis in details.items():
     print(f"Metric: {metric}")
     print(f"Severity: {analysis['severity']}")
 
     # Statistical significance
-    if analysis['statistical_significance']:
-        sig = analysis['statistical_significance']['significance']
+    if analysis["statistical_significance"]:
+        sig = analysis["statistical_significance"]["significance"]
         print(f"Statistical significance: {sig}")
 
     # Anomaly status
-    if analysis['anomaly_status']['is_anomaly']:
+    if analysis["anomaly_status"]["is_anomaly"]:
         print("🚨 Anomaly detected!")
 ```
 
@@ -250,13 +247,13 @@ for metric, analysis in details.items():
 
 ```python
 # Analyze trends across multiple versions
-versions = ['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v1.4', 'v1.5']
-values = [get_metric_value(v, 'duration_sec') for v in versions]
+versions = ["v1.0", "v1.1", "v1.2", "v1.3", "v1.4", "v1.5"]
+values = [get_metric_value(v, "duration_sec") for v in versions]
 
-stats = detector.analyze_metric_statistics('duration_sec', values)
-trend = stats['trend_analysis']
+stats = detector.analyze_metric_statistics("duration_sec", values)
+trend = stats["trend_analysis"]
 
-if trend['direction'] == 'increasing' and trend['strength'] in ['moderate', 'strong']:
+if trend["direction"] == "increasing" and trend["strength"] in ["moderate", "strong"]:
     print("⚠️ Performance degradation trend detected!")
     print(f"Predicted next value: {trend['predicted_next']:.2f}s")
 ```
@@ -331,10 +328,10 @@ The enhanced statistical analysis is fully backward compatible:
 
 ```python
 # Basic usage still works
-has_regression, details = detector.detect_regression('v1.0', 'v1.1')
+has_regression, details = detector.detect_regression("v1.0", "v1.1")
 
 # Enhanced features available when configured
-if detector.statistical_config['enable_trend_analysis']:
+if detector.statistical_config["enable_trend_analysis"]:
     # Statistical analysis automatically included
     pass
 ```
@@ -346,8 +343,9 @@ Statistical analysis results are published via the event system:
 ```python
 # Listen for enhanced regression events
 def handle_statistical_regression(event_data):
-    if event_data.get('statistical_significance') == 'significant':
+    if event_data.get("statistical_significance") == "significant":
         trigger_detailed_investigation()
+
 
 subscribe(EventType.REGRESSION_DETECTED, handle_statistical_regression)
 ```
@@ -381,23 +379,23 @@ subscribe(EventType.REGRESSION_DETECTED, handle_statistical_regression)
 
 #### Insufficient Historical Data
 ```python
-stats = detector.analyze_metric_statistics('metric', values)
-if 'error' in stats:
+stats = detector.analyze_metric_statistics("metric", values)
+if "error" in stats:
     print("Need more historical data for statistical analysis")
 ```
 
 #### No Trend Detected
 ```python
-trend = stats['trend_analysis']
-if trend.get('strength') == 'negligible':
+trend = stats["trend_analysis"]
+if trend.get("strength") == "negligible":
     print("No significant trend - data may be stable or noisy")
 ```
 
 #### False Positives in Anomaly Detection
 ```python
 # Adjust sensitivity
-config['anomaly_detection']['sensitivity'] = 'low'  # Reduce false positives
-config['statistical_analysis']['outlier_threshold'] = 2.5  # More conservative
+config["anomaly_detection"]["sensitivity"] = "low"  # Reduce false positives
+config["statistical_analysis"]["outlier_threshold"] = 2.5  # More conservative
 ```
 
 ## API Reference

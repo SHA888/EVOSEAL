@@ -84,11 +84,13 @@ cannot silently corrupt itself:
 import asyncio
 from evoseal.prompt_evolution import CoevolutionManager, TaskSpec
 
+
 async def main():
     mgr = CoevolutionManager()  # discovers coder+reviewer models from Ollama
     task = TaskSpec(id="demo", description="Write median(nums) for a list of numbers")
     result = await mgr.run_cycle(task)
     print(result.reason, result.score_before, "->", result.score_after)
+
 
 asyncio.run(main())
 ```

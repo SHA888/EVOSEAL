@@ -29,15 +29,17 @@ learner = FewShotLearner(
     base_model_name="meta-llama/Llama-3.2-1B-Instruct",
     lora_rank=16,
     lora_alpha=32,
-    lora_dropout=0.05
+    lora_dropout=0.05,
 )
 
 # Add examples
-learner.add_example(FewShotExample(
-    input_data="What is the capital of France?",
-    output_data="The capital of France is Paris.",
-    metadata={"difficulty": "easy"}
-))
+learner.add_example(
+    FewShotExample(
+        input_data="What is the capital of France?",
+        output_data="The capital of France is Paris.",
+        metadata={"difficulty": "easy"},
+    )
+)
 
 # Generate a response
 response = learner.generate("What is the capital of Italy?")
@@ -49,10 +51,7 @@ print(response)
 ```python
 # Fine-tune the model on your examples
 learner.fine_tune(
-    output_dir="./few_shot_model",
-    num_epochs=3,
-    per_device_train_batch_size=4,
-    learning_rate=2e-5
+    output_dir="./few_shot_model", num_epochs=3, per_device_train_batch_size=4, learning_rate=2e-5
 )
 
 # Save and load examples
@@ -121,11 +120,9 @@ def custom_formatter(query: str, examples: List[FewShotExample]) -> str:
     prompt += f"Q: {query}\nA:"
     return prompt
 
+
 # Use custom formatter
-response = learner.generate(
-    "What is the capital of Spain?",
-    format_func=custom_formatter
-)
+response = learner.generate("What is the capital of Spain?", format_func=custom_formatter)
 ```
 
 ### Custom Similarity Metrics
@@ -135,6 +132,7 @@ def custom_similarity(query: str, example: FewShotExample) -> float:
     """Custom similarity function."""
     # Implement your similarity logic here
     return 0.5  # Dummy value
+
 
 # Use custom similarity function
 learner.get_relevant_examples("query", similarity_func=custom_similarity)

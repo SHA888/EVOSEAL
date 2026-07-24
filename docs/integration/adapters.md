@@ -138,7 +138,7 @@ adapter = create_openevolve_adapter(
             "request_timeout": 300,
             "poll_interval": 2.0,
             "job": {"initial_program": "..."},
-        }
+        },
     },
 )
 ```
