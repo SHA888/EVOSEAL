@@ -23,6 +23,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from evoseal.fine_tuning.version_manager import ModelVersionManager
 from evoseal.providers.local_models import (
     DEFAULT_OLLAMA_BASE_URL,
     AgentRole,
@@ -278,5 +279,20 @@ class CoevolutionManager:
 
 
 def default_manager(base_dir: Path | str | None = None) -> CoevolutionManager:
-    """Convenience factory: a manager backed by discovered local models."""
-    return CoevolutionManager(prompt_store=PromptStore(base_dir))
+    """Convenience factory: a manager backed by discovered local models.
+
+    If the fine-tuning registry has a currently deployed model, its Ollama
+    tag is passed as ``registry_model`` so the coder provider prefers it
+    over raw family-based discovery.
+    """
+    registry_model: str | None = None
+    try:
+        current = ModelVersionManager().get_current_version()
+        if current and current.get("deployment_status") == "deployed":
+            registry_model = current.get("ollama_model_name")
+    except Exception:
+        logger.warning(
+            "Could not read fine-tuning registry; falling back to family-based model discovery",
+            exc_info=True,
+        )
+    return CoevolutionManager(prompt_store=PromptStore(base_dir), registry_model=registry_model)

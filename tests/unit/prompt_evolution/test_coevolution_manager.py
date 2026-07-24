@@ -215,3 +215,117 @@ def test_score_parsing_variants():
 def test_issue_parsing_none():
     assert CoevolutionManager._parse_issues("- none\nSCORE: 9/10") == []
     assert CoevolutionManager._parse_issues("- a\n- b\nSCORE: 5/10") == ["a", "b"]
+
+
+# -- default_manager registry wiring tests --
+
+
+def test_default_manager_passes_deployed_registry_model(monkeypatch, tmp_path):
+    """A deployed current version is consulted and passed as registry_model."""
+    from evoseal.prompt_evolution import coevolution_manager
+
+    class FakeVersionManager:
+        def get_current_version(self):
+            return {
+                "deployment_status": "deployed",
+                "ollama_model_name": "deepseek-coder-finetuned:v2",
+            }
+
+    monkeypatch.setattr(
+        coevolution_manager,
+        "ModelVersionManager",
+        FakeVersionManager,
+    )
+    captured = {}
+    original_init = CoevolutionManager.__init__
+
+    def spy_init(self, *args, **kwargs):
+        captured["registry_model"] = kwargs.get("registry_model")
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(CoevolutionManager, "__init__", spy_init)
+
+    coevolution_manager.default_manager(base_dir=tmp_path / "d")
+    assert captured["registry_model"] == "deepseek-coder-finetuned:v2"
+
+
+def test_default_manager_no_current_version_falls_back(monkeypatch, tmp_path):
+    """No current version falls back to registry_model=None."""
+    from evoseal.prompt_evolution import coevolution_manager
+
+    class FakeVersionManager:
+        def get_current_version(self):
+            return None
+
+    monkeypatch.setattr(
+        coevolution_manager,
+        "ModelVersionManager",
+        FakeVersionManager,
+    )
+    captured = {}
+    original_init = CoevolutionManager.__init__
+
+    def spy_init(self, *args, **kwargs):
+        captured["registry_model"] = kwargs.get("registry_model")
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(CoevolutionManager, "__init__", spy_init)
+
+    coevolution_manager.default_manager(base_dir=tmp_path / "d")
+    assert captured["registry_model"] is None
+
+
+def test_default_manager_non_deployed_version_falls_back(monkeypatch, tmp_path):
+    """A version present but not 'deployed' falls back to registry_model=None."""
+    from evoseal.prompt_evolution import coevolution_manager
+
+    class FakeVersionManager:
+        def get_current_version(self):
+            return {
+                "deployment_status": "pending",
+                "ollama_model_name": "deepseek-coder-finetuned:v2",
+            }
+
+    monkeypatch.setattr(
+        coevolution_manager,
+        "ModelVersionManager",
+        FakeVersionManager,
+    )
+    captured = {}
+    original_init = CoevolutionManager.__init__
+
+    def spy_init(self, *args, **kwargs):
+        captured["registry_model"] = kwargs.get("registry_model")
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(CoevolutionManager, "__init__", spy_init)
+
+    coevolution_manager.default_manager(base_dir=tmp_path / "d")
+    assert captured["registry_model"] is None
+
+
+def test_default_manager_registry_exception_degrades_gracefully(monkeypatch, tmp_path):
+    """get_current_version raising degrades to registry_model=None, not a crash."""
+    from evoseal.prompt_evolution import coevolution_manager
+
+    class BrokenVersionManager:
+        def get_current_version(self):
+            raise FileNotFoundError("registry.json missing")
+
+    monkeypatch.setattr(
+        coevolution_manager,
+        "ModelVersionManager",
+        BrokenVersionManager,
+    )
+    captured = {}
+    original_init = CoevolutionManager.__init__
+
+    def spy_init(self, *args, **kwargs):
+        captured["registry_model"] = kwargs.get("registry_model")
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(CoevolutionManager, "__init__", spy_init)
+
+    mgr = coevolution_manager.default_manager(base_dir=tmp_path / "d")
+    assert captured["registry_model"] is None
+    assert isinstance(mgr, CoevolutionManager)
