@@ -22,8 +22,7 @@ kb = KnowledgeBase("knowledge_base.json")
 
 # Add an entry
 entry_id = kb.add_entry(
-    "Python is a high-level programming language.",
-    tags=["programming", "python"]
+    "Python is a high-level programming language.", tags=["programming", "python"]
 )
 
 # Retrieve an entry
@@ -50,13 +49,11 @@ seal_kb = SEALKnowledge(KnowledgeBase("seal_knowledge.json"))
 seal_kb.learn_from_interaction(
     prompt="How to implement quicksort in Python?",
     response="Here's a Python implementation of quicksort...",
-    tags=["algorithm", "python", "sorting"]
+    tags=["algorithm", "python", "sorting"],
 )
 
 # Enhance a prompt with relevant knowledge
-enhanced_prompt = seal_kb.enhance_prompt(
-    "I need to implement a sorting algorithm in Python"
-)
+enhanced_prompt = seal_kb.enhance_prompt("I need to implement a sorting algorithm in Python")
 print(enhanced_prompt)
 ```
 

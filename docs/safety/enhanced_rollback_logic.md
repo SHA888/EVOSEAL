@@ -82,13 +82,12 @@ The enhanced rollback logic supports new configuration options:
 ```python
 rollback_config = {
     # Existing options
-    'auto_rollback_enabled': True,
-    'rollback_threshold': 0.1,
-    'max_rollback_attempts': 3,
-
+    "auto_rollback_enabled": True,
+    "rollback_threshold": 0.1,
+    "max_rollback_attempts": 3,
     # New options for enhanced features
-    'enable_cascading_rollback': True,          # Enable cascading rollback
-    'enable_rollback_failure_recovery': True,   # Enable failure recovery
+    "enable_cascading_rollback": True,  # Enable cascading rollback
+    "enable_rollback_failure_recovery": True,  # Enable failure recovery
 }
 ```
 
@@ -107,7 +106,7 @@ success = rollback_manager.rollback_to_version("v2.0", "manual_rollback")
 ```python
 # Attempt cascading rollback with up to 3 attempts
 result = rollback_manager.cascading_rollback("failed_v3.0", max_attempts=3)
-if result['success']:
+if result["success"]:
     print(f"Cascaded to: {result['final_version']}")
     print(f"Chain: {result['rollback_chain']}")
 ```
@@ -116,7 +115,7 @@ if result['success']:
 ```python
 # Handle rollback failures with recovery strategies
 recovery = rollback_manager.handle_rollback_failure("failed_v2.0", "Checkpoint corrupted")
-if recovery['success']:
+if recovery["success"]:
     print(f"Recovered using: {recovery['recovery_strategy']}")
 ```
 
@@ -124,10 +123,12 @@ if recovery['success']:
 ```python
 from evoseal.core.events import subscribe, EventType
 
+
 @subscribe(EventType.ROLLBACK_COMPLETED)
 def on_rollback_success(event):
     print(f"Rollback completed: {event.data['version_id']}")
     print(f"Verification passed: {event.data['verification_passed']}")
+
 
 @subscribe(EventType.CASCADING_ROLLBACK_COMPLETED)
 def on_cascading_success(event):

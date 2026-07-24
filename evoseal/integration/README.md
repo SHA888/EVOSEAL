@@ -49,7 +49,7 @@ The DGM adapter provides integration with the Dynamic Generation Management syst
 dgm_config = {
     "output_dir": "/path/to/dgm/output",
     "prevrun_dir": "/path/to/previous/runs",  # Optional
-    "polyglot": False
+    "polyglot": False,
 }
 ```
 
@@ -73,7 +73,7 @@ openevolve_config = {
     "openevolve_path": "/path/to/openevolve",  # Auto-detected if not provided
     "working_dir": "/path/to/working/directory",
     "python_executable": "python3",
-    "environment": {"ENV_VAR": "value"}  # Optional environment variables
+    "environment": {"ENV_VAR": "value"},  # Optional environment variables
 }
 ```
 
@@ -98,7 +98,7 @@ seal_config = {
     "provider_config": {},
     "rate_limit_per_sec": 1.0,
     "max_retries": 3,
-    "retry_delay": 1.0
+    "retry_delay": 1.0,
 }
 ```
 
@@ -137,8 +137,7 @@ from evoseal.core.evolution_pipeline import EvolutionPipeline, EvolutionConfig
 
 # Create configuration with component configs
 config = EvolutionConfig(
-    dgm_config={"output_dir": "/tmp/dgm"},
-    seal_config={"provider_type": "default"}
+    dgm_config={"output_dir": "/tmp/dgm"}, seal_config={"provider_type": "default"}
 )
 
 # Create and initialize pipeline
@@ -150,7 +149,7 @@ await pipeline.start_components()
 workflow_config = {
     "workflow_id": "example",
     "dgm_config": {"selfimprove_size": 2},
-    "seal_config": {"code": "def example(): pass"}
+    "seal_config": {"code": "def example(): pass"},
 }
 result = await pipeline.execute_evolution_workflow(workflow_config)
 
@@ -242,6 +241,7 @@ To create a custom component adapter:
 ```python
 from evoseal.integration.base_adapter import BaseComponentAdapter, ComponentType
 
+
 class CustomAdapter(BaseComponentAdapter):
     async def _initialize_impl(self) -> bool:
         # Initialize your component
@@ -278,11 +278,12 @@ class CustomSEALProvider:
         # Your custom parsing logic
         pass
 
+
 # Use with SEAL (Self-Adapting Language Models) adapter
 seal_config = {
     "provider_type": "custom",
     "provider_class": CustomSEALProvider,
-    "provider_config": {"api_key": "your_key"}  # pragma: allowlist secret
+    "provider_config": {"api_key": "your_key"},  # pragma: allowlist secret
 }
 ```
 
@@ -321,7 +322,8 @@ Enable debug logging to get detailed information:
 
 ```python
 import logging
-logging.getLogger('evoseal.integration').setLevel(logging.DEBUG)
+
+logging.getLogger("evoseal.integration").setLevel(logging.DEBUG)
 ```
 
 ## Future Enhancements

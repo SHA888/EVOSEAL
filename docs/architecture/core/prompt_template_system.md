@@ -50,12 +50,13 @@ The `TemplateManager` class (see `openevolve/openevolve/prompt/templates.py`) pr
 ```python
 from openevolve.prompt.templates import TemplateManager
 import os
-TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), '../evoseal/prompt_templates/dgm')
+
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "../evoseal/prompt_templates/dgm")
 template_manager = TemplateManager(TEMPLATE_DIR)
 
-prompt = template_manager.get_template('diagnose_improvement_prompt')
-meta = template_manager.get_metadata('diagnose_improvement_prompt')
-print(meta['category'], meta['description'])
+prompt = template_manager.get_template("diagnose_improvement_prompt")
+meta = template_manager.get_metadata("diagnose_improvement_prompt")
+print(meta["category"], meta["description"])
 ```
 
 ## Best Practices

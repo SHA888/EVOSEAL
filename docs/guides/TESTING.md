@@ -125,16 +125,14 @@ Use fixtures for common test setup:
 ```python
 import pytest
 
+
 @pytest.fixture
 def sample_config():
-    return {
-        'population_size': 100,
-        'mutation_rate': 0.1,
-        'crossover_rate': 0.8
-    }
+    return {"population_size": 100, "mutation_rate": 0.1, "crossover_rate": 0.8}
+
 
 def test_evolution_config(sample_config):
-    assert sample_config['population_size'] == 100
+    assert sample_config["population_size"] == 100
 ```
 
 ## Test Coverage

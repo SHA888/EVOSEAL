@@ -42,9 +42,7 @@ db.save_experiment(experiment)
 
 # Query experiments
 experiments = db.list_experiments(
-    status=ExperimentStatus.COMPLETED,
-    experiment_type=ExperimentType.EVOLUTION,
-    limit=10
+    status=ExperimentStatus.COMPLETED, experiment_type=ExperimentType.EVOLUTION, limit=10
 )
 ```
 
@@ -64,14 +62,11 @@ version_db.add_variant(
     source="def solution(): return 42",
     test_results={"passed": True},
     eval_score=0.95,
-    experiment_id="exp_123"
+    experiment_id="exp_123",
 )
 
 # Get best variants
-best_variants = version_db.get_best_variants(
-    experiment_id="exp_123",
-    limit=5
-)
+best_variants = version_db.get_best_variants(experiment_id="exp_123", limit=5)
 ```
 
 ### 3. VersionTracker
@@ -86,20 +81,14 @@ tracker = VersionTracker(work_dir="./evoseal_workspace")
 
 # Create experiment with version info
 experiment = tracker.create_experiment_with_version(
-    name="Evolution Run 1",
-    config=experiment_config,
-    repository_name="my_repo",
-    branch="main"
+    name="Evolution Run 1", config=experiment_config, repository_name="my_repo", branch="main"
 )
 
 # Start experiment
 tracker.start_experiment(experiment.id)
 
 # Create checkpoint
-checkpoint_id = tracker.create_checkpoint(
-    experiment.id,
-    checkpoint_name="mid_evolution"
-)
+checkpoint_id = tracker.create_checkpoint(experiment.id, checkpoint_name="mid_evolution")
 ```
 
 ### 4. ExperimentIntegration
@@ -114,18 +103,14 @@ integration = ExperimentIntegration(version_tracker)
 
 # Create and start experiment
 experiment = integration.create_evolution_experiment(
-    name="My Evolution Run",
-    config=config_dict,
-    repository_name="my_repo"
+    name="My Evolution Run", config=config_dict, repository_name="my_repo"
 )
 
 integration.start_evolution_experiment()
 
 # Track iteration
 integration.track_iteration_complete(
-    iteration=5,
-    fitness_scores=[0.1, 0.3, 0.8, 0.6],
-    best_fitness=0.8
+    iteration=5, fitness_scores=[0.1, 0.3, 0.8, 0.6], best_fitness=0.8
 )
 
 # Complete experiment
@@ -151,7 +136,7 @@ config = ExperimentConfig(
     selection_pressure=2.0,
     dgm_config={"param1": "value1"},
     openevolve_config={"param2": "value2"},
-    seal_config={"param3": "value3"}
+    seal_config={"param3": "value3"},
 )
 ```
 
@@ -167,7 +152,7 @@ experiment = Experiment(
     description="Testing evolution parameters",
     config=config,
     tags=["evolution", "test"],
-    created_by="researcher"
+    created_by="researcher",
 )
 
 # Add metrics
@@ -176,9 +161,7 @@ experiment.add_metric("execution_time", 120.5, MetricType.EXECUTION_TIME)
 
 # Add artifacts
 artifact = experiment.add_artifact(
-    name="final_model",
-    artifact_type="model",
-    file_path="/path/to/model.pkl"
+    name="final_model", artifact_type="model", file_path="/path/to/model.pkl"
 )
 
 # Control experiment lifecycle
@@ -194,11 +177,7 @@ Track metrics during experiments:
 from evoseal.models.experiment import ExperimentMetric, MetricType
 
 metric = ExperimentMetric(
-    name="best_fitness",
-    value=0.92,
-    metric_type=MetricType.ACCURACY,
-    iteration=10,
-    step=500
+    name="best_fitness", value=0.92, metric_type=MetricType.ACCURACY, iteration=10, step=500
 )
 ```
 
@@ -213,31 +192,23 @@ Automatic git integration tracks code changes:
 repo_manager = RepositoryManager(work_dir)
 
 # Clone repository
-repo_path = repo_manager.clone_repository(
-    "https://github.com/user/repo.git",
-    "my_repo"
-)
+repo_path = repo_manager.clone_repository("https://github.com/user/repo.git", "my_repo")
 
 # Create experiment with git info
 experiment = version_tracker.create_experiment_with_version(
     name="Experiment with Git",
     config=config,
     repository_name="my_repo",
-    branch="feature/new-algorithm"
+    branch="feature/new-algorithm",
 )
 
 # Automatic commit before starting
 version_tracker.start_experiment(
-    experiment.id,
-    auto_commit=True,
-    commit_message="Starting experiment"
+    experiment.id, auto_commit=True, commit_message="Starting experiment"
 )
 
 # Automatic tagging on completion
-version_tracker.complete_experiment(
-    experiment.id,
-    create_tag=True
-)
+version_tracker.complete_experiment(experiment.id, create_tag=True)
 ```
 
 ### Code Versioning
@@ -253,7 +224,7 @@ integration.track_variant_creation(
     eval_score=fitness_score,
     parent_ids=["variant_gen4_ind1", "variant_gen4_ind7"],
     generation=5,
-    mutation_type="crossover"
+    mutation_type="crossover",
 )
 
 # Get variant lineage
@@ -272,6 +243,7 @@ history = version_db.get_evolution_history()
 import asyncio
 from evoseal.core.experiment_integration import create_experiment_integration
 
+
 async def run_tracked_evolution():
     # Create integration
     integration = create_experiment_integration("./workspace")
@@ -281,13 +253,11 @@ async def run_tracked_evolution():
         "experiment_type": "evolution",
         "population_size": 30,
         "max_iterations": 50,
-        "mutation_rate": 0.1
+        "mutation_rate": 0.1,
     }
 
     experiment = integration.create_evolution_experiment(
-        name="Tracked Evolution Run",
-        config=config,
-        description="Evolution with full tracking"
+        name="Tracked Evolution Run", config=config, description="Evolution with full tracking"
     )
 
     # Start experiment
@@ -302,19 +272,17 @@ async def run_tracked_evolution():
         best_fitness = max(fitness_scores)
 
         integration.track_iteration_complete(
-            iteration=iteration,
-            fitness_scores=fitness_scores,
-            best_fitness=best_fitness
+            iteration=iteration, fitness_scores=fitness_scores, best_fitness=best_fitness
         )
 
         # Track performance
         integration.track_performance_metrics(
-            execution_time=measure_time(),
-            memory_usage=measure_memory()
+            execution_time=measure_time(), memory_usage=measure_memory()
         )
 
     # Complete experiment
     integration.complete_evolution_experiment()
+
 
 # Run the experiment
 asyncio.run(run_tracked_evolution())
@@ -328,11 +296,11 @@ experiment_ids = ["exp1", "exp2", "exp3"]
 comparison = version_tracker.compare_experiments(experiment_ids)
 
 print("Configuration differences:")
-for param, values in comparison['configurations']['different_parameters'].items():
+for param, values in comparison["configurations"]["different_parameters"].items():
     print(f"  {param}: {values}")
 
 print("Metric comparison:")
-for metric, values in comparison['metrics'].items():
+for metric, values in comparison["metrics"].items():
     print(f"  {metric}: {values}")
 ```
 
@@ -350,10 +318,7 @@ restored_experiment = version_tracker.restore_checkpoint(checkpoint_id)
 
 ```python
 # Export variants
-version_db.export_variants(
-    experiment_id="exp_123",
-    file_path="variants_backup.json"
-)
+version_db.export_variants(experiment_id="exp_123", file_path="variants_backup.json")
 
 # Import variants
 new_db = VersionDatabase()
@@ -416,7 +381,7 @@ experiment = integration.create_evolution_experiment(
     name="DGM_Optimization_v2.1_20240101",
     description="Testing new mutation operators with DGM",
     tags=["dgm", "mutation", "optimization", "v2.1"],
-    created_by="researcher_id"
+    created_by="researcher_id",
 )
 ```
 
@@ -428,9 +393,9 @@ integration.track_iteration_complete(
     iteration=i,
     fitness_scores=scores,
     best_fitness=max(scores),
-    avg_fitness=sum(scores)/len(scores),
+    avg_fitness=sum(scores) / len(scores),
     diversity_score=calculate_diversity(population),
-    convergence_rate=calculate_convergence(scores)
+    convergence_rate=calculate_convergence(scores),
 )
 ```
 
@@ -448,16 +413,11 @@ if iteration % 10 == 0:
 ```python
 # Store important artifacts
 integration.add_artifact(
-    name="best_individual",
-    artifact_type="code",
-    content=best_code,
-    fitness_score=best_fitness
+    name="best_individual", artifact_type="code", content=best_code, fitness_score=best_fitness
 )
 
 integration.add_artifact(
-    name="evolution_plot",
-    artifact_type="visualization",
-    file_path="fitness_evolution.png"
+    name="evolution_plot", artifact_type="visualization", file_path="fitness_evolution.png"
 )
 ```
 
@@ -485,18 +445,9 @@ config = ExperimentConfig(
     max_iterations=100,
     population_size=50,
     # Component-specific configs
-    dgm_config={
-        "output_dir": "./dgm_output",
-        "prevrun_dir": "./dgm_previous"
-    },
-    openevolve_config={
-        "timeout": 300,
-        "parallel_jobs": 4
-    },
-    seal_config={
-        "provider": "openai",
-        "model": "gpt-4"
-    }
+    dgm_config={"output_dir": "./dgm_output", "prevrun_dir": "./dgm_previous"},
+    openevolve_config={"timeout": 300, "parallel_jobs": 4},
+    seal_config={"provider": "openai", "model": "gpt-4"},
 )
 ```
 
@@ -505,10 +456,7 @@ config = ExperimentConfig(
 ```python
 # Regular cleanup of old experiments
 old_experiments = db.list_experiments(
-    status=ExperimentStatus.FAILED,
-    limit=100,
-    order_by="created_at",
-    order_desc=False
+    status=ExperimentStatus.FAILED, limit=100, order_by="created_at", order_desc=False
 )
 
 for exp in old_experiments[:50]:  # Keep only recent 50 failed
