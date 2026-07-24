@@ -81,11 +81,7 @@ Manages version checkpoints with comprehensive metadata storage.
 from evoseal.core.checkpoint_manager import CheckpointManager
 
 # Initialize checkpoint manager
-config = {
-    "checkpoint_dir": "/path/to/checkpoints",
-    "max_checkpoints": 50,
-    "auto_cleanup": True
-}
+config = {"checkpoint_dir": "/path/to/checkpoints", "max_checkpoints": 50, "auto_cleanup": True}
 checkpoint_manager = CheckpointManager(config)
 
 # Create checkpoint
@@ -124,10 +120,7 @@ Provides manual and automatic rollback capabilities with history tracking.
 from evoseal.core.rollback_manager import RollbackManager
 
 # Initialize rollback manager
-config = {
-    "rollback_history_file": "/path/to/history.json",
-    "max_history_entries": 1000
-}
+config = {"rollback_history_file": "/path/to/history.json", "max_history_entries": 1000}
 rollback_manager = RollbackManager(config, checkpoint_manager, version_manager)
 
 # Manual rollback
@@ -172,8 +165,8 @@ config = {
     "regression_threshold": 0.05,  # 5% default threshold
     "metric_thresholds": {
         "success_rate": {"regression": -0.05, "critical": -0.1},
-        "duration_sec": {"regression": 0.1, "critical": 0.25}
-    }
+        "duration_sec": {"regression": 0.1, "critical": 0.25},
+    },
 }
 regression_detector = RegressionDetector(config, metrics_tracker)
 
@@ -236,7 +229,7 @@ config = {
     "regression": {...},
     "auto_checkpoint": True,
     "auto_rollback": True,
-    "safety_checks_enabled": True
+    "safety_checks_enabled": True,
 }
 safety_integration = SafetyIntegration(config, metrics_tracker, version_manager)
 
@@ -245,13 +238,11 @@ result = safety_integration.execute_safe_evolution_step(
     current_version_id="v1.0",
     new_version_data=version_data,
     new_version_id="v1.1",
-    test_results=test_results
+    test_results=test_results,
 )
 
 # Validate version safety
-validation = safety_integration.validate_version_safety(
-    "v1.0", "v1.1", test_results
-)
+validation = safety_integration.validate_version_safety("v1.0", "v1.1", test_results)
 
 # Get safety status
 status = safety_integration.get_safety_status()
@@ -268,19 +259,13 @@ from evoseal.core.evolution_pipeline import EvolutionPipeline
 
 # Initialize pipeline with safety configuration
 config = PipelineConfig(
-    safety_config={
-        "auto_checkpoint": True,
-        "auto_rollback": True,
-        "regression_threshold": 0.05
-    }
+    safety_config={"auto_checkpoint": True, "auto_rollback": True, "regression_threshold": 0.05}
 )
 pipeline = EvolutionPipeline(config)
 
 # Run evolution with safety mechanisms
 results = await pipeline.run_evolution_cycle_with_safety(
-    iterations=10,
-    enable_checkpoints=True,
-    enable_auto_rollback=True
+    iterations=10, enable_checkpoints=True, enable_auto_rollback=True
 )
 ```
 
@@ -304,17 +289,15 @@ safety_config = {
         "checkpoint_dir": "./checkpoints",
         "max_checkpoints": 50,
         "auto_cleanup": True,
-        "compression": True
+        "compression": True,
     },
-
     # Rollback configuration
     "rollback": {
         "rollback_history_file": "./rollback_history.json",
         "max_history_entries": 1000,
         "auto_rollback_enabled": True,
-        "rollback_timeout": 300
+        "rollback_timeout": 300,
     },
-
     # Regression detection configuration
     "regression": {
         "regression_threshold": 0.05,
@@ -323,22 +306,19 @@ safety_config = {
             "duration_sec": {"regression": 0.1, "critical": 0.25},
             "memory_mb": {"regression": 0.1, "critical": 0.3},
             "cpu_percent": {"regression": 0.1, "critical": 0.3},
-
             # Quality metrics (higher is better)
             "success_rate": {"regression": -0.05, "critical": -0.1},
             "accuracy": {"regression": -0.05, "critical": -0.1},
             "precision": {"regression": -0.05, "critical": -0.1},
             "recall": {"regression": -0.05, "critical": -0.1},
-
             # Error metrics (lower is better)
-            "error_rate": {"regression": 0.05, "critical": 0.1}
-        }
+            "error_rate": {"regression": 0.05, "critical": 0.1},
+        },
     },
-
     # Safety integration settings
     "auto_checkpoint": True,
     "auto_rollback": True,
-    "safety_checks_enabled": True
+    "safety_checks_enabled": True,
 }
 ```
 
@@ -422,7 +402,8 @@ Enable detailed logging for debugging:
 
 ```python
 import logging
-logging.getLogger('evoseal.core.safety').setLevel(logging.DEBUG)
+
+logging.getLogger("evoseal.core.safety").setLevel(logging.DEBUG)
 ```
 
 ## API Reference

@@ -206,17 +206,17 @@ The basic EventBus provides core event publishing and subscription functionality
 ```python
 from evoseal.core.events import event_bus, EventType, Event
 
+
 # Subscribe to events
 @event_bus.subscribe(EventType.WORKFLOW_STARTED)
 async def on_workflow_started(event: Event):
     print(f"Workflow started: {event.data}")
 
+
 # Publish events
 await event_bus.publish(
     Event(
-        event_type=EventType.WORKFLOW_STARTED,
-        source="my_component",
-        data={"workflow_id": "wf-001"}
+        event_type=EventType.WORKFLOW_STARTED, source="my_component", data={"workflow_id": "wf-001"}
     )
 )
 ```
@@ -235,10 +235,7 @@ enhanced_event_bus.enable_event_logging(max_history=1000)
 metrics = enhanced_event_bus.get_event_metrics()
 
 # Get event history
-history = enhanced_event_bus.get_event_history(
-    event_type=EventType.ERROR_OCCURRED,
-    limit=50
-)
+history = enhanced_event_bus.get_event_history(event_type=EventType.ERROR_OCCURRED, limit=50)
 
 # Batch publish events
 events = [
@@ -256,9 +253,11 @@ await enhanced_event_bus.publish_batch(events)
 ```python
 from evoseal.core.events import subscribe, EventType
 
+
 @subscribe(EventType.ERROR_OCCURRED)
 async def handle_error(event: Event):
     print(f"Error: {event.data}")
+
 
 @subscribe(priority=100)  # High priority
 async def high_priority_handler(event: Event):
@@ -270,8 +269,10 @@ async def high_priority_handler(event: Event):
 ```python
 from evoseal.core.events import event_bus
 
+
 async def my_handler(event: Event):
     print(f"Received: {event.event_type}")
+
 
 event_bus.subscribe(EventType.WORKFLOW_STARTED, my_handler)
 ```
@@ -284,8 +285,9 @@ from evoseal.core.events import subscribe, create_event_filter
 error_filter = create_event_filter(
     event_types=[EventType.ERROR_OCCURRED],
     sources=["component1", "component2"],
-    severity_levels=["error", "critical"]
+    severity_levels=["error", "critical"],
 )
+
 
 @subscribe(filter_fn=error_filter)
 async def handle_filtered_errors(event: Event):
@@ -302,7 +304,7 @@ await publish(
     EventType.WORKFLOW_STARTED,
     source="my_component",
     workflow_id="wf-001",
-    timestamp="2024-01-01T10:00:00Z"
+    timestamp="2024-01-01T10:00:00Z",
 )
 ```
 
@@ -312,19 +314,13 @@ from evoseal.core.events import create_error_event, create_progress_event
 
 # Create and publish error event
 error_event = create_error_event(
-    error=ValueError("Something went wrong"),
-    source="my_component",
-    severity="error"
+    error=ValueError("Something went wrong"), source="my_component", severity="error"
 )
 await event_bus.publish(error_event)
 
 # Create and publish progress event
 progress_event = create_progress_event(
-    current=50,
-    total=100,
-    stage="processing",
-    source="my_component",
-    message="Half way done"
+    current=50, total=100, stage="processing", source="my_component", message="Half way done"
 )
 await event_bus.publish(progress_event)
 ```
@@ -335,18 +331,12 @@ from evoseal.core.events import publish_component_lifecycle_event, publish_pipel
 
 # Publish component lifecycle event
 await publish_component_lifecycle_event(
-    component_type="DGM",
-    component_id="dgm-001",
-    lifecycle_event="started",
-    source="orchestrator"
+    component_type="DGM", component_id="dgm-001", lifecycle_event="started", source="orchestrator"
 )
 
 # Publish pipeline stage event
 await publish_pipeline_stage_event(
-    stage="analyzing",
-    status="completed",
-    source="pipeline",
-    progress={"current": 1, "total": 5}
+    stage="analyzing", status="completed", source="pipeline", progress={"current": 1, "total": 5}
 )
 ```
 
@@ -360,23 +350,25 @@ from evoseal.core.events import create_event_filter, subscribe
 # Filter by event types and sources
 component_filter = create_event_filter(
     event_types=[EventType.COMPONENT_STARTED, EventType.COMPONENT_STOPPED],
-    sources=["orchestrator", "pipeline"]
+    sources=["orchestrator", "pipeline"],
 )
 
 # Filter by severity levels
 error_filter = create_event_filter(
     event_types=[EventType.ERROR_OCCURRED, EventType.WARNING_ISSUED],
-    severity_levels=["error", "critical"]
+    severity_levels=["error", "critical"],
 )
+
 
 # Custom filter function
 def custom_filter(event: Event) -> bool:
     return "important" in event.data.get("tags", [])
 
+
 combined_filter = create_event_filter(
-    event_types=[EventType.INFO_MESSAGE],
-    custom_filter=custom_filter
+    event_types=[EventType.INFO_MESSAGE], custom_filter=custom_filter
 )
+
 
 @subscribe(filter_fn=combined_filter)
 async def handle_important_info(event: Event):
@@ -405,7 +397,7 @@ error_metrics = enhanced_event_bus.get_event_metrics(EventType.ERROR_OCCURRED)
         "first_seen": 1640995200.0,
         "last_seen": 1640995800.0,
         "sources": ["component1", "component2", "pipeline"],
-        "avg_processing_time": 0.05
+        "avg_processing_time": 0.05,
     }
 }
 ```
@@ -419,10 +411,7 @@ Track and query recent events:
 recent_events = enhanced_event_bus.get_event_history(limit=100)
 
 # Get recent error events
-error_history = enhanced_event_bus.get_event_history(
-    event_type=EventType.ERROR_OCCURRED,
-    limit=50
-)
+error_history = enhanced_event_bus.get_event_history(event_type=EventType.ERROR_OCCURRED, limit=50)
 
 # Clear history
 enhanced_event_bus.clear_event_history()
@@ -449,13 +438,14 @@ Components can publish events using the helper functions:
 ```python
 from evoseal.core.events import publish_component_lifecycle_event
 
+
 class MyComponent:
     async def start(self):
         await publish_component_lifecycle_event(
             component_type="MyComponent",
             component_id=self.component_id,
             lifecycle_event="started",
-            source="my_component"
+            source="my_component",
         )
 ```
 
@@ -504,6 +494,7 @@ class MyComponent:
 import asyncio
 from evoseal.core.events import subscribe, EventType, enhanced_event_bus
 
+
 class PipelineMonitor:
     def __init__(self):
         self.setup_event_handlers()
@@ -516,12 +507,12 @@ class PipelineMonitor:
 
         @subscribe(EventType.ITERATION_COMPLETED)
         async def on_iteration_completed(event):
-            iteration = event.data.get('iteration', '?')
+            iteration = event.data.get("iteration", "?")
             print(f"✅ Iteration {iteration} completed")
 
         @subscribe(EventType.ERROR_OCCURRED, priority=200)
         async def on_error(event):
-            severity = event.data.get('severity', 'unknown')
+            severity = event.data.get("severity", "unknown")
             print(f"❌ Error ({severity}): {event.data.get('error_message', 'Unknown error')}")
 
         @subscribe()  # Subscribe to all events
@@ -536,8 +527,9 @@ class PipelineMonitor:
         return {
             "metrics": metrics,
             "recent_events": len(history),
-            "error_count": metrics.get("error_occurred", {}).get("count", 0)
+            "error_count": metrics.get("error_occurred", {}).get("count", 0),
         }
+
 
 # Usage
 monitor = PipelineMonitor()
@@ -561,10 +553,11 @@ await event_bus.publish(
         data={
             "analysis_id": "analysis-001",
             "results": {"complexity": 8.5, "issues": 3},
-            "duration": 45.2
-        }
+            "duration": 45.2,
+        },
     )
 )
+
 
 # Subscribe to custom events
 @subscribe(CUSTOM_ANALYSIS_COMPLETED)

@@ -98,14 +98,9 @@ class CandidateSelector:
         )
         fitness_range = self.fitness_scores.max() - self.fitness_scores.min() + 1e-8
         mean_fitness = self.fitness_scores.mean()
-        variance_bonus = 1.0 - np.abs(self.fitness_scores - mean_fitness) / (
-            fitness_range
-        )
+        variance_bonus = 1.0 - np.abs(self.fitness_scores - mean_fitness) / (fitness_range)
 
-        composite_score = (
-            fitness_norm * (1 - variance_weight) +
-            variance_bonus * variance_weight
-        )
+        composite_score = fitness_norm * (1 - variance_weight) + variance_bonus * variance_weight
         indices = np.argsort(composite_score)[-k:]
         return sorted(indices)
 

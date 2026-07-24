@@ -17,6 +17,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -255,9 +256,7 @@ class Experiment(BaseModel):
 
     @field_validator("created_at", "started_at", "completed_at", "updated_at", mode="before")
     @classmethod
-    def ensure_timezone_aware(
-        cls, v: datetime | None, info: FieldValidationInfo
-    ) -> datetime | None:
+    def ensure_timezone_aware(cls, v: datetime | None, info: ValidationInfo) -> datetime | None:
         """Ensure datetime fields are timezone-aware."""
         if v is None:
             return None

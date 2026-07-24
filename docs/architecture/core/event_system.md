@@ -54,14 +54,17 @@ Events are represented by the `Event` class, which contains:
 ```python
 engine = WorkflowEngine()
 
+
 # Using decorator syntax
 @engine.register_event_handler(EventType.WORKFLOW_STARTED)
 def on_workflow_start(event):
     print(f"Workflow started: {event.data['workflow']}")
 
+
 # Using method call
 def on_step_complete(event):
     print(f"Step completed: {event.data['step']}")
+
 
 engine.register_event_handler(EventType.STEP_COMPLETED, on_step_complete)
 ```
@@ -71,8 +74,10 @@ engine.register_event_handler(EventType.STEP_COMPLETED, on_step_complete)
 ```python
 from evoseal.core.events import event_bus
 
+
 def custom_handler(event):
     print(f"Custom event: {event.data}")
+
 
 event_bus.subscribe("custom_event", custom_handler)
 ```
@@ -122,7 +127,8 @@ Filter which events are handled:
 
 ```python
 def only_important(event):
-    return event.data.get('priority', 0) > 5
+    return event.data.get("priority", 0) > 5
+
 
 @engine.register_event_handler("data_ready", filter_fn=only_important)
 def handle_important_data(event):
@@ -138,6 +144,7 @@ Control the order of handler execution:
 def high_priority_handler(event):
     print("This runs first")
 
+
 @engine.register_event_handler("process_data", priority=1)
 def low_priority_handler(event):
     print("This runs later")
@@ -152,9 +159,10 @@ Emit and handle custom events:
 event = Event(
     event_type="data_processed",
     source="data_processor",
-    data={"result": "success", "items_processed": 42}
+    data={"result": "success", "items_processed": 42},
 )
 await event_bus.publish(event)
+
 
 # Subscribe to custom events
 @event_bus.subscribe("data_processed")
@@ -177,29 +185,24 @@ def on_data_processed(event):
 class WorkflowMonitor:
     def __init__(self, engine):
         self.engine = engine
-        self.stats = {
-            'started': 0,
-            'completed': 0,
-            'failed': 0,
-            'steps': {}
-        }
+        self.stats = {"started": 0, "completed": 0, "failed": 0, "steps": {}}
         self._register_handlers()
 
     def _register_handlers(self):
         @self.engine.register_event_handler(EventType.WORKFLOW_STARTED)
         def on_start(event):
-            self.stats['started'] += 1
+            self.stats["started"] += 1
             print(f"Workflow started: {event.data['workflow']}")
 
         @self.engine.register_event_handler(EventType.WORKFLOW_COMPLETED)
         def on_complete(event):
-            self.stats['completed'] += 1
+            self.stats["completed"] += 1
             print(f"Workflow completed: {event.data['workflow']}")
 
         @self.engine.register_event_handler(EventType.STEP_COMPLETED)
         def on_step_complete(event):
-            step_name = event.data['step']
-            self.stats['steps'][step_name] = self.stats['steps'].get(step_name, 0) + 1
+            step_name = event.data["step"]
+            self.stats["steps"][step_name] = self.stats["steps"].get(step_name, 0) + 1
 ```
 
 This documentation provides a comprehensive guide to using the event system in the EVOSEAL workflow engine.

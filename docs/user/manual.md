@@ -133,11 +133,7 @@ evoseal = EVOSEAL()
 task = "Create a Python function that implements quicksort"
 
 # Run evolution
-result = evoseal.evolve(
-    task=task,
-    max_iterations=50,
-    population_size=10
-)
+result = evoseal.evolve(task=task, max_iterations=50, population_size=10)
 
 # Access results
 print(f"Best solution: {result.best_solution}")
@@ -160,6 +156,7 @@ def custom_fitness(solution):
     # Add your custom evaluation logic here
 
     return score
+
 
 # Initialize with custom fitness
 custom_evoseal = EVOSEAL(fitness_function=custom_fitness)

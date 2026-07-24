@@ -84,7 +84,8 @@ This guide provides solutions to common issues you might encounter while using o
 4. Use CPU instead of GPU:
    ```python
    import os
-   os.environ['CUDA_VISIBLE_DEVICES'] = ''
+
+   os.environ["CUDA_VISIBLE_DEVICES"] = ""
    ```
 
 ## Performance Problems
@@ -114,6 +115,7 @@ This guide provides solutions to common issues you might encounter while using o
 1. Clear unused variables:
    ```python
    import gc
+
    gc.collect()
    ```
 
@@ -138,6 +140,7 @@ This guide provides solutions to common issues you might encounter while using o
 1. Add delays between requests:
    ```python
    import time
+
    time.sleep(1)  # 1 second delay
    ```
 
@@ -146,10 +149,11 @@ This guide provides solutions to common issues you might encounter while using o
    import time
    import random
 
+
    def exponential_backoff(retries):
        base_delay = 1  # seconds
        max_delay = 60  # seconds
-       delay = min(max_delay, (2 ** retries) * base_delay + random.uniform(0, 1))
+       delay = min(max_delay, (2**retries) * base_delay + random.uniform(0, 1))
        time.sleep(delay)
    ```
 
@@ -176,13 +180,16 @@ This guide provides solutions to common issues you might encounter while using o
 
 ```python
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 ```
 
 ### 2. Use pdb for Debugging
 
 ```python
-import pdb; pdb.set_trace()  # Add this line where you want to start debugging
+import pdb
+
+pdb.set_trace()  # Add this line where you want to start debugging
 ```
 
 ### 3. Check Intermediate Results

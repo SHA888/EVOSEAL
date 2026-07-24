@@ -85,9 +85,10 @@ integration:
 **Example usage:**
 ```python
 from evoseal.models.system_config import SystemConfig
-config = SystemConfig.from_yaml('configs/evoseal.yaml')
+
+config = SystemConfig.from_yaml("configs/evoseal.yaml")
 config.validate()  # Raises if required sections are missing
-max_iters = config.get('dgm.max_iterations', 100)
+max_iters = config.get("dgm.max_iterations", 100)
 ```
 
 ### Environment-Specific Configuration
