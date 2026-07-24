@@ -172,7 +172,7 @@
 - [x] **3. validate_model must serve the fine-tuned model, not baseline** _(done 2026-07-21)_ — all 5 test suites now use `model_path` when provided via `_resolve_model_for_validation()`; removed dead `TRANSFORMERS_AVAILABLE` import block. **Known limitation:** `model_path` must be an Ollama-resolvable model tag — directory paths from `register_version()` will surface an Ollama error until item 4 (real deployment) lands.
 - [x] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
 - [x] **5. Generation must consult the fine-tuning registry** _(done 2026-07-24, PR #73)_ — `default_manager()` now calls `ModelVersionManager().get_current_version()` and passes the deployed model's Ollama tag as `registry_model` to `CoevolutionManager`, so the coder provider prefers the fine-tuned model over raw family-based discovery
-- [ ] **6. Wire bidirectional_manager to orchestrate the full loop** — `bidirectional_manager.py`'s docstring promises evolve → collect → train → deploy → repeat, but the class only implements reporting/statistics methods (`get_evolution_status`, `get_evolution_history`, `generate_evolution_report`); no method actually drives the sequence end-to-end
+- [x] **6. Wire bidirectional_manager to orchestrate the full loop** _(done 2026-07-23)_ — added `run_loop_cycle()` that drives one full iteration: check training readiness → run training cycle → deploy the improved model (when validation passes) → record results. Also added `_deploy_trained_model()` helper and `_record_cycle()` to update the previously-stale `stats`/`evolution_history`/`is_running`/`last_check_time` fields. 9 new unit tests cover: skip-when-not-ready, training failure, full success, validation-fail-skip-deploy, deploy failure, exception handling, state mutation, missing-current-version, and missing-validation-results.
 - [ ] **Add end-to-end bidirectional loop test** — exercise the full cycle: collect → train → validate → deploy → regenerate; no such test exists today (write once steps 1–6 land)
 
 ### Phase 3 (Bidirectional Evolution) Documentation
@@ -206,7 +206,7 @@
 
 ### Medium-Priority Bugs Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **`bidirectional_manager.py` state fields are never mutated** — `self.stats`, `self.evolution_history`, `self.is_running`, `self.last_check_time` are set in `__init__` but nothing in the codebase ever updates them (confirmed via repo-wide grep); `continuous_evolution_service.py` maintains its own separate loop state instead. `get_evolution_status()`/`generate_evolution_report()` always report zero cycles and `is_running=False` even while the loop actively runs
+- [x] **`bidirectional_manager.py` state fields are never mutated** _(done 2026-07-23)_ — fixed by `run_loop_cycle()` in item #6 above; `stats`, `evolution_history`, `is_running`, and `last_check_time` are now all mutated each cycle.
 - [ ] **`version_manager.py` registry file has no atomic write** — `_save_registry()` (lines 70-77, PR #72 branch) writes directly via `open(...,"w")` + `json.dump`; a crash/kill mid-write leaves a truncated file, and `_load_registry()` silently resets to an empty registry on parse failure, losing all version history
 - [ ] **`version_manager.py` has no locking around concurrent registry mutation** — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`
 - [ ] **`model_fine_tuner.py:160-178` uses `trust_remote_code=True`** on both `AutoTokenizer`/`AutoModelForCausalLM.from_pretrained`, combined with a fallback (`_resolve_hf_base_model()`, lines 107-120) that uses `model_name` verbatim as an HF repo id for unknown families — a bad config value or env var (`EVOSEAL_CODER_MODEL`) can execute arbitrary remote code locally. `# nosec B615` suppresses the linter, not the risk
@@ -303,9 +303,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 29    | 7    | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
+| 🟡 P2    | 29    | 9    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
 | 🟢 P3    | 24    | 8    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **36** | |
+| **Total** | **88** | **38** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
