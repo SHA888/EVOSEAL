@@ -72,6 +72,7 @@ def custom_fitness(solution):
     # ... evaluation logic ...
     return score
 
+
 evoseal = EVOSEAL(fitness_function=custom_fitness)
 ```
 

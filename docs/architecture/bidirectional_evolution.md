@@ -188,9 +188,9 @@ improvement.
 ```python
 # Examples from regression_detector.py (inside metric_thresholds dict)
 metric_thresholds = {
-    "pass_rate":    {"regression": -0.05, "critical": -0.1},   # 5% / 10% drop
-    "duration_sec": {"regression":  0.10, "critical":  0.25},  # 10% / 25% slower
-    "correctness":  {"regression": -0.01, "critical": -0.05},  # 1% / 5% drop
+    "pass_rate": {"regression": -0.05, "critical": -0.1},  # 5% / 10% drop
+    "duration_sec": {"regression": 0.10, "critical": 0.25},  # 10% / 25% slower
+    "correctness": {"regression": -0.01, "critical": -0.05},  # 1% / 5% drop
 }
 ```
 

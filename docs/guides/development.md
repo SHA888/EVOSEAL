@@ -207,13 +207,14 @@ import pytest
 from unittest.mock import Mock, patch
 from evoseal.core import EvolutionPipeline
 
+
 class TestEvolutionPipeline:
     def test_initialization(self):
         """Test pipeline initialization."""
         pipeline = EvolutionPipeline()
         assert pipeline is not None
 
-    @patch('evoseal.core.evolution_pipeline.SomeExternalService')
+    @patch("evoseal.core.evolution_pipeline.SomeExternalService")
     def test_with_mock(self, mock_service):
         """Test with mocked external dependency."""
         mock_service.return_value.process.return_value = "success"
@@ -306,13 +307,18 @@ pip freeze > requirements/pinned_requirements.txt
 ```python
 # Enable debug logging
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 
 # Use debugger
-import pdb; pdb.set_trace()
+import pdb
+
+pdb.set_trace()
 
 # Or use ipdb for better experience
-import ipdb; ipdb.set_trace()
+import ipdb
+
+ipdb.set_trace()
 ```
 
 ### Common Debugging Scenarios

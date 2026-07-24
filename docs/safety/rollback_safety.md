@@ -134,7 +134,7 @@ version_manager.working_dir = "/home/user"  # DANGEROUS!
 # 4. Validates safe directory in _validate_rollback_target()
 # 5. Proceeds with rollback safely
 
-result = rollback_manager.rollback_to_version('stable_v1.0')
+result = rollback_manager.rollback_to_version("stable_v1.0")
 # result = True (rollback succeeded safely)
 
 # Your original codebase is NEVER touched!
@@ -189,8 +189,8 @@ For production deployment, configure a proper working directory:
 ```python
 # Recommended: Configure dedicated rollback directory
 config = {
-    'version_manager': {
-        'working_dir': '/opt/evoseal/rollback_workspace'  # Safe, isolated directory
+    "version_manager": {
+        "working_dir": "/opt/evoseal/rollback_workspace"  # Safe, isolated directory
     }
 }
 

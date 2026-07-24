@@ -136,7 +136,9 @@ if success:
     # Execute workflow
     result = await orchestrator.execute_workflow(pipeline_instance)
 
-    print(f"Workflow completed: {result.success_count}/{len(result.iterations)} iterations successful")
+    print(
+        f"Workflow completed: {result.success_count}/{len(result.iterations)} iterations successful"
+    )
     print(f"Total execution time: {result.total_execution_time:.2f}s")
     print(f"Checkpoints created: {result.checkpoints_created}")
 ```
@@ -168,12 +170,12 @@ orchestrator = WorkflowOrchestrator(
 
 ```python
 resource_thresholds = ResourceThresholds(
-    memory_warning=0.7,      # 70% memory usage warning
-    memory_critical=0.85,    # 85% memory usage critical
-    cpu_warning=0.8,         # 80% CPU usage warning
-    cpu_critical=0.9,        # 90% CPU usage critical
-    disk_warning=0.8,        # 80% disk usage warning
-    disk_critical=0.9,       # 90% disk usage critical
+    memory_warning=0.7,  # 70% memory usage warning
+    memory_critical=0.85,  # 85% memory usage critical
+    cpu_warning=0.8,  # 80% CPU usage warning
+    cpu_critical=0.9,  # 90% CPU usage critical
+    disk_warning=0.8,  # 80% disk usage warning
+    disk_critical=0.9,  # 90% disk usage critical
 )
 
 orchestrator = WorkflowOrchestrator(
@@ -209,8 +211,7 @@ checkpoint_id = await orchestrator._create_checkpoint(CheckpointType.MANUAL)
 
 # Resume from checkpoint
 result = await orchestrator.execute_workflow(
-    pipeline_instance,
-    resume_from_checkpoint=checkpoint_id
+    pipeline_instance, resume_from_checkpoint=checkpoint_id
 )
 
 # List checkpoints
@@ -220,9 +221,7 @@ for cp in checkpoints:
 
 # Cleanup old checkpoints
 deleted_count = orchestrator.checkpoint_manager.cleanup_old_checkpoints(
-    max_age_days=7,
-    max_count=50,
-    keep_milestone=True
+    max_age_days=7, max_count=50, keep_milestone=True
 )
 ```
 
@@ -301,9 +300,11 @@ The orchestration system publishes events throughout execution:
 ```python
 from evoseal.core.events import event_bus
 
+
 @event_bus.subscribe("orchestration.checkpoint_created")
 async def on_checkpoint_created(event):
     print(f"Checkpoint created: {event.data['checkpoint_id']}")
+
 
 @event_bus.subscribe("orchestration.recovery_initiated")
 async def on_recovery_initiated(event):
@@ -377,6 +378,7 @@ async def custom_recovery_action(error, execution_context, iteration, step_id):
     logger.info(f"Attempting custom recovery for {error}")
     # Implement custom recovery logic
     return True  # Return True if recovery successful
+
 
 # Add to recovery strategy
 recovery_strategy.custom_recovery_actions.append(custom_recovery_action)
@@ -508,7 +510,8 @@ Enable detailed logging:
 
 ```python
 import logging
-logging.getLogger('evoseal.core.orchestration').setLevel(logging.DEBUG)
+
+logging.getLogger("evoseal.core.orchestration").setLevel(logging.DEBUG)
 ```
 
 Check orchestrator status:

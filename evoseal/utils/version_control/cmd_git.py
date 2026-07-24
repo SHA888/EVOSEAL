@@ -974,7 +974,10 @@ class CmdGit(GitInterface):
                 if force:
                     cmd.append("-f")
                 if sign or sign_key:
-                    cmd.append("-s" if not sign_key else f"-u {sign_key}")
+                    if sign_key:
+                        cmd.extend(["-u", sign_key])
+                    else:
+                        cmd.append("-s")
                 cmd.append(name)
                 if commit:
                     cmd.append(commit)

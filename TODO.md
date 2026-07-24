@@ -252,7 +252,7 @@
 
 ### Low-Priority / Hygiene Issues Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **`cmd_git.py:977` `tag()` builds a malformed argv token** — `cmd.append("-s" if not sign_key else f"-u {sign_key}")` appends `"-u <key>"` as one argv element instead of `["-u", sign_key]`; since commands run via `subprocess.run(list, shell=False)`, git receives one malformed token and signed-tag-with-explicit-key fails
+- [x] **`cmd_git.py:977` `tag()` builds a malformed argv token** — `cmd.append("-s" if not sign_key else f"-u {sign_key}")` appends `"-u <key>"` as one argv element instead of `["-u", sign_key]`; since commands run via `subprocess.run(list, shell=False)`, git receives one malformed token and signed-tag-with-explicit-key fails
 - [ ] **`git_interface.py` credential-helper config is broken** — sets `credential.helper` to the literal string `'cache --timeout=300'` including the quotes (no shell involved, so they're taken literally), via two non-`--add` `--local` sets where the second silently overwrites the first with a bogus value — HTTPS credential caching silently doesn't work
 - [ ] **Stray `evoseal/utils/validator.py.bak`** — a 1132-line backup committed to the repo tree (not gitignored), diverged from `validator.py`; risk of editing the wrong file
 - [ ] **`evoseal/utils/testing/environment.py:180`** — `suffix: str = None` type-annotation mismatch (should be `Optional[str]`)
@@ -304,8 +304,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
 | 🟡 P2    | 29    | 6    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
-| 🟢 P3    | 24    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **34** | |
+| 🟢 P3    | 24    | 7    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
+| **Total** | **88** | **35** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

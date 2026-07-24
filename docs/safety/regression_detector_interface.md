@@ -23,10 +23,10 @@ Establishes a baseline from a specific version's metrics.
 
 ```python
 # Establish a production baseline
-success = detector.establish_baseline('v1.0', 'production_baseline')
+success = detector.establish_baseline("v1.0", "production_baseline")
 
 # Establish a development baseline
-success = detector.establish_baseline('v1.1-dev', 'dev_baseline')
+success = detector.establish_baseline("v1.1-dev", "dev_baseline")
 ```
 
 **Parameters:**
@@ -40,7 +40,7 @@ success = detector.establish_baseline('v1.1-dev', 'dev_baseline')
 Retrieves baseline data by name.
 
 ```python
-baseline = detector.get_baseline('production_baseline')
+baseline = detector.get_baseline("production_baseline")
 if baseline:
     print(f"Baseline version: {baseline['version_id']}")
     print(f"Metrics count: {len(baseline['metrics'])}")
@@ -61,7 +61,7 @@ for baseline in baselines:
 Compares a version against an established baseline.
 
 ```python
-has_regression, details = detector.compare_against_baseline('v1.2', 'production_baseline')
+has_regression, details = detector.compare_against_baseline("v1.2", "production_baseline")
 if has_regression:
     print(f"Regressions detected in {len(details)} metrics")
 ```
@@ -73,7 +73,7 @@ if has_regression:
 Core regression detection between two specific versions.
 
 ```python
-has_regression, details = detector.detect_regression('v1.0', 'v1.1')
+has_regression, details = detector.detect_regression("v1.0", "v1.1")
 ```
 
 #### `run_regression_analysis(version_id, baseline_name="default", trigger_alerts=True) -> Dict[str, Any]`
@@ -81,7 +81,7 @@ has_regression, details = detector.detect_regression('v1.0', 'v1.1')
 Runs comprehensive regression analysis with optional alert triggering.
 
 ```python
-analysis = detector.run_regression_analysis('v1.2', 'production_baseline')
+analysis = detector.run_regression_analysis("v1.2", "production_baseline")
 print(f"Recommendation: {analysis['summary']['recommendation']}")
 ```
 
@@ -94,6 +94,7 @@ Registers a callback function to be called when regressions are detected.
 ```python
 def email_alert(regression_data):
     send_email_to_team(f"Regression detected: {len(regression_data)} metrics affected")
+
 
 detector.register_alert_callback(email_alert)
 ```
@@ -114,12 +115,12 @@ Configures integration with testing frameworks.
 
 ```python
 pytest_config = {
-    'test_command': 'pytest tests/',
-    'coverage_threshold': 0.80,
-    'performance_tests': True
+    "test_command": "pytest tests/",
+    "coverage_threshold": 0.80,
+    "performance_tests": True,
 }
 
-success = detector.integrate_with_test_framework('pytest', pytest_config)
+success = detector.integrate_with_test_framework("pytest", pytest_config)
 ```
 
 **Supported Frameworks:**
@@ -135,36 +136,33 @@ The RegressionDetector accepts comprehensive configuration:
 ```python
 config = {
     # Basic settings
-    'regression_threshold': 0.05,  # 5% default threshold
-    'baseline_storage_path': './baselines.json',
-
+    "regression_threshold": 0.05,  # 5% default threshold
+    "baseline_storage_path": "./baselines.json",
     # Alert system
-    'alert_enabled': True,
-    'auto_baseline_update': False,
-
+    "alert_enabled": True,
+    "auto_baseline_update": False,
     # Monitored metrics
-    'monitored_metrics': [
-        'success_rate', 'accuracy', 'duration_sec',
-        'memory_mb', 'error_rate', 'pass_rate'
+    "monitored_metrics": [
+        "success_rate",
+        "accuracy",
+        "duration_sec",
+        "memory_mb",
+        "error_rate",
+        "pass_rate",
     ],
-
     # Per-metric thresholds
-    'metric_thresholds': {
-        'success_rate': {'regression': 0.03, 'critical': 0.10},
-        'accuracy': {'regression': 0.05, 'critical': 0.15},
-        'duration_sec': {'regression': 0.20, 'critical': 0.50},
-        'memory_mb': {'regression': 0.15, 'critical': 0.30},
-        'error_rate': {'regression': 0.50, 'critical': 1.00},
-        'pass_rate': {'regression': 0.05, 'critical': 0.15}
+    "metric_thresholds": {
+        "success_rate": {"regression": 0.03, "critical": 0.10},
+        "accuracy": {"regression": 0.05, "critical": 0.15},
+        "duration_sec": {"regression": 0.20, "critical": 0.50},
+        "memory_mb": {"regression": 0.15, "critical": 0.30},
+        "error_rate": {"regression": 0.50, "critical": 1.00},
+        "pass_rate": {"regression": 0.05, "critical": 0.15},
     },
-
     # Testing framework integration
-    'test_framework_integration': {
-        'pytest': {
-            'test_command': 'pytest tests/',
-            'coverage_threshold': 0.80
-        }
-    }
+    "test_framework_integration": {
+        "pytest": {"test_command": "pytest tests/", "coverage_threshold": 0.80}
+    },
 }
 
 detector = RegressionDetector(metrics_tracker, config)
@@ -205,6 +203,7 @@ Published when a new baseline is established.
 def handle_baseline_established(event_data):
     print(f"Baseline {event_data['baseline_name']} established from v{event_data['version_id']}")
 
+
 subscribe(EventType.BASELINE_ESTABLISHED, handle_baseline_established)
 ```
 
@@ -213,9 +212,10 @@ Published when regressions are detected and alerts are triggered.
 
 ```python
 def handle_regression_alert(event_data):
-    critical_count = len(event_data['critical_regressions'])
+    critical_count = len(event_data["critical_regressions"])
     if critical_count > 0:
         initiate_emergency_response()
+
 
 subscribe(EventType.REGRESSION_ALERT, handle_regression_alert)
 ```
@@ -236,14 +236,16 @@ Add custom metrics through configuration:
 
 ```python
 config = {
-    'monitored_metrics': [
-        'success_rate', 'accuracy',  # Standard metrics
-        'custom_score', 'business_kpi'  # Custom metrics
+    "monitored_metrics": [
+        "success_rate",
+        "accuracy",  # Standard metrics
+        "custom_score",
+        "business_kpi",  # Custom metrics
     ],
-    'metric_thresholds': {
-        'custom_score': {'regression': 0.10, 'critical': 0.25},
-        'business_kpi': {'regression': 0.05, 'critical': 0.15}
-    }
+    "metric_thresholds": {
+        "custom_score": {"regression": 0.10, "critical": 0.25},
+        "business_kpi": {"regression": 0.05, "critical": 0.15},
+    },
 }
 ```
 
@@ -256,14 +258,14 @@ config = {
 detector = RegressionDetector(metrics_tracker, config)
 
 # Establish baseline from stable release
-detector.establish_baseline('v1.0-stable', 'ci_baseline')
+detector.establish_baseline("v1.0-stable", "ci_baseline")
 
 # Test new build
-analysis = detector.run_regression_analysis('build-123', 'ci_baseline')
+analysis = detector.run_regression_analysis("build-123", "ci_baseline")
 
-if analysis['summary']['recommendation'] == 'rollback_required':
+if analysis["summary"]["recommendation"] == "rollback_required":
     trigger_rollback()
-elif analysis['summary']['recommendation'] == 'review_required':
+elif analysis["summary"]["recommendation"] == "review_required":
     notify_development_team()
 ```
 
@@ -271,7 +273,7 @@ elif analysis['summary']['recommendation'] == 'review_required':
 
 ```python
 # Compare A/B test variants
-has_regression, details = detector.detect_regression('variant_a', 'variant_b')
+has_regression, details = detector.detect_regression("variant_a", "variant_b")
 
 if has_regression:
     # Analyze which variant performs better
@@ -288,12 +290,9 @@ detector.register_alert_callback(create_incident_ticket)
 
 # Continuous monitoring
 for new_deployment in production_deployments:
-    analysis = detector.run_regression_analysis(
-        new_deployment.version,
-        'production_baseline'
-    )
+    analysis = detector.run_regression_analysis(new_deployment.version, "production_baseline")
 
-    if analysis['has_regression']:
+    if analysis["has_regression"]:
         handle_production_regression(analysis)
 ```
 
@@ -329,16 +328,16 @@ for new_deployment in production_deployments:
 
 #### Baseline Not Found
 ```python
-baseline = detector.get_baseline('missing_baseline')
+baseline = detector.get_baseline("missing_baseline")
 if not baseline:
     # Establish a new baseline
-    detector.establish_baseline('v1.0', 'missing_baseline')
+    detector.establish_baseline("v1.0", "missing_baseline")
 ```
 
 #### No Metrics Available
 ```python
-has_regression, details = detector.compare_against_baseline('v1.1')
-if 'error' in details:
+has_regression, details = detector.compare_against_baseline("v1.1")
+if "error" in details:
     logger.error(f"Metrics comparison failed: {details['error']}")
     # Check metrics_tracker configuration
 ```

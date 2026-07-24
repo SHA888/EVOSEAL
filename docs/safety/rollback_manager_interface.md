@@ -41,7 +41,7 @@ mock_version_manager.working_dir = "/home/user"  # Dangerous!
 # → Creates: /path/to/project/.evoseal/rollback_target
 # → Logs: "Using safe rollback directory... Configure proper working_dir"
 # → Rollback succeeds safely without deleting codebase
-result = rollback_manager.rollback_to_version('v1.0', 'safety_test')
+result = rollback_manager.rollback_to_version("v1.0", "safety_test")
 # result = True (success with safety)
 ```
 
@@ -71,9 +71,9 @@ python tests/safety/verify_rollback_safety.py
 ```python
 # Example policy configuration
 policy = {
-    'auto_rollback_enabled': True,
-    'rollback_threshold': 0.05,  # 5% regression threshold
-    'max_rollback_attempts': 3
+    "auto_rollback_enabled": True,
+    "rollback_threshold": 0.05,  # 5% regression threshold
+    "max_rollback_attempts": 3,
 }
 rollback_manager.set_rollback_policy(policy)
 ```
@@ -86,9 +86,7 @@ rollback_manager.set_rollback_policy(policy)
 ```python
 # Authorized rollback
 result = rollback_manager.initiate_rollback(
-    'stable_v1.0',
-    authorization_token='admin',
-    reason='production_issue_fix'
+    "stable_v1.0", authorization_token="admin", reason="production_issue_fix"
 )
 ```
 
@@ -101,9 +99,9 @@ result = rollback_manager.initiate_rollback(
 ```python
 # Configure rollback triggers
 triggers = {
-    'auto_rollback_enabled': True,
-    'metrics_regression': {'threshold': 0.08},
-    'max_attempts': 4
+    "auto_rollback_enabled": True,
+    "metrics_regression": {"threshold": 0.08},
+    "max_attempts": 4,
 }
 rollback_manager.configure_rollback_triggers(triggers)
 ```
@@ -123,8 +121,7 @@ rollback_manager.configure_rollback_triggers(triggers)
 ```python
 # Emergency rollback
 result = rollback_manager.emergency_rollback(
-    authorization_token='emergency_admin',
-    reason='critical_system_failure'
+    authorization_token="emergency_admin", reason="critical_system_failure"
 )
 ```
 
@@ -222,9 +219,7 @@ rollback_manager = RollbackManager(config, checkpoint_manager)
 
 # Perform authorized rollback
 result = rollback_manager.initiate_rollback(
-    'stable_v1.0',
-    authorization_token='admin',
-    reason='performance_regression'
+    "stable_v1.0", authorization_token="admin", reason="performance_regression"
 )
 ```
 
@@ -232,26 +227,25 @@ result = rollback_manager.initiate_rollback(
 ```python
 # Configure auto-rollback
 policy = {
-    'auto_rollback_enabled': True,
-    'rollback_threshold': 0.1,  # 10% threshold
-    'max_rollback_attempts': 5
+    "auto_rollback_enabled": True,
+    "rollback_threshold": 0.1,  # 10% threshold
+    "max_rollback_attempts": 5,
 }
 rollback_manager.set_rollback_policy(policy)
 
 # Auto-rollback will trigger on test failures
 test_results = [
-    {'name': 'test_accuracy', 'status': 'fail'},
-    {'name': 'test_performance', 'status': 'pass'}
+    {"name": "test_accuracy", "status": "fail"},
+    {"name": "test_performance", "status": "pass"},
 ]
-rollback_manager.auto_rollback_on_failure('experimental_v3.0', test_results)
+rollback_manager.auto_rollback_on_failure("experimental_v3.0", test_results)
 ```
 
 ### Emergency Rollback
 ```python
 # Emergency rollback with automatic target selection
 result = rollback_manager.emergency_rollback(
-    authorization_token='emergency_admin',
-    reason='critical_production_failure'
+    authorization_token="emergency_admin", reason="critical_production_failure"
 )
 ```
 

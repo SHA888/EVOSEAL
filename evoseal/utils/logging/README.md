@@ -54,6 +54,7 @@ except Exception as e:
 ```python
 from evoseal.utils.logging import LoggingMixin
 
+
 class MyService(LoggingMixin):
     def __init__(self):
         super().__init__()
@@ -71,6 +72,7 @@ from evoseal.utils.logging import with_request_id, setup_logging
 
 logger = setup_logging()
 
+
 @with_request_id(logger)
 def process_request(request_data):
     logger.info("Processing request", extra={"user_id": request_data.user_id})
@@ -83,10 +85,12 @@ def process_request(request_data):
 ```python
 from evoseal.utils.logging import log_execution_time
 
+
 @log_execution_time(logger)
 def expensive_operation():
     # Time-consuming operation
     import time
+
     time.sleep(1)
     return "result"
 ```

@@ -72,34 +72,26 @@ config = EvolutionConfig(
         "storage_path": "metrics/",
         "thresholds": {
             "accuracy": {"threshold": 0.05, "direction": "decrease"},
-            "performance": {"threshold": 0.2, "direction": "increase"}
-        }
+            "performance": {"threshold": 0.2, "direction": "increase"},
+        },
     },
-    validation_config={
-        "enabled": True,
-        "min_improvement_score": 70.0,
-        "confidence_level": 0.95
-    },
-
+    validation_config={"enabled": True, "min_improvement_score": 70.0, "confidence_level": 0.95},
     # Safety integration configuration
     safety_config={
         "auto_checkpoint": True,
         "auto_rollback": True,
         "safety_checks_enabled": True,
-
         "checkpoints": {
             "checkpoint_dir": "checkpoints/",
             "max_checkpoints": 50,
             "auto_cleanup": True,
-            "compression_enabled": True
+            "compression_enabled": True,
         },
-
         "rollback": {
             "enable_rollback_failure_recovery": True,
             "max_rollback_attempts": 3,
-            "rollback_timeout": 30
+            "rollback_timeout": 30,
         },
-
         "regression": {
             "regression_threshold": 0.1,
             "enable_statistical_analysis": True,
@@ -107,10 +99,10 @@ config = EvolutionConfig(
             "metric_thresholds": {
                 "accuracy": {"threshold": 0.05, "direction": "decrease"},
                 "performance": {"threshold": 0.2, "direction": "increase"},
-                "memory_usage": {"threshold": 0.3, "direction": "increase"}
-            }
-        }
-    }
+                "memory_usage": {"threshold": 0.3, "direction": "increase"},
+            },
+        },
+    },
 )
 
 # Create pipeline with safety integration
@@ -126,23 +118,13 @@ safety_config = {
     "auto_checkpoint": True,
     "auto_rollback": True,
     "safety_checks_enabled": True,
-
-    "checkpoints": {
-        "checkpoint_dir": "checkpoints/",
-        "max_checkpoints": 50,
-        "auto_cleanup": True
-    },
-
-    "rollback": {
-        "enable_rollback_failure_recovery": True,
-        "max_rollback_attempts": 3
-    },
-
+    "checkpoints": {"checkpoint_dir": "checkpoints/", "max_checkpoints": 50, "auto_cleanup": True},
+    "rollback": {"enable_rollback_failure_recovery": True, "max_rollback_attempts": 3},
     "regression": {
         "regression_threshold": 0.1,
         "enable_statistical_analysis": True,
-        "enable_anomaly_detection": True
-    }
+        "enable_anomaly_detection": True,
+    },
 }
 
 safety_integration = SafetyIntegration(safety_config, metrics_tracker)
@@ -156,6 +138,7 @@ safety_integration = SafetyIntegration(safety_config, metrics_tracker)
 import asyncio
 from evoseal.core.evolution_pipeline import EvolutionPipeline, EvolutionConfig
 
+
 async def run_safe_evolution():
     # Create configuration
     config = EvolutionConfig(
@@ -164,8 +147,8 @@ async def run_safe_evolution():
         safety_config={
             "auto_checkpoint": True,
             "auto_rollback": True,
-            "safety_checks_enabled": True
-        }
+            "safety_checks_enabled": True,
+        },
     )
 
     # Create pipeline
@@ -173,9 +156,7 @@ async def run_safe_evolution():
 
     # Run safety-aware evolution cycle
     results = await pipeline.run_evolution_cycle_with_safety(
-        iterations=5,
-        enable_checkpoints=True,
-        enable_auto_rollback=True
+        iterations=5, enable_checkpoints=True, enable_auto_rollback=True
     )
 
     # Analyze results
@@ -186,6 +167,7 @@ async def run_safe_evolution():
     print(f"Successful iterations: {successful_iterations}/{len(results)}")
     print(f"Accepted versions: {accepted_versions}")
     print(f"Rollbacks performed: {rollbacks_performed}")
+
 
 # Run the evolution
 asyncio.run(run_safe_evolution())

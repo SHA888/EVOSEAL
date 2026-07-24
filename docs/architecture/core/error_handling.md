@@ -231,21 +231,9 @@ def get_user(user_id: str) -> dict:
 ### Example 2: Using error_handler
 
 ```python
-@error_handler(
-    ValidationError,
-    status_code=400,
-    logger=logger
-)
-@error_handler(
-    DatabaseError,
-    status_code=503,
-    logger=logger
-)
-@error_handler(
-    Exception,
-    status_code=500,
-    logger=logger
-)
+@error_handler(ValidationError, status_code=400, logger=logger)
+@error_handler(DatabaseError, status_code=503, logger=logger)
+@error_handler(Exception, status_code=500, logger=logger)
 def get_user_handler(user_id: str) -> tuple[dict, int]:
     user = get_user(user_id)
     return {"user": user}, 200

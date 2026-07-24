@@ -37,6 +37,7 @@ system.broadcast_message("teamA", "Start round!")
 ## Async Support
 ```python
 import asyncio
+
 asyncio.run(system.assign_task_async("wf1", step))
 ```
 
@@ -45,10 +46,13 @@ asyncio.run(system.assign_task_async("wf1", step))
 class MyAgent:
     def act(self, observation):
         return f"Processed {observation}"
+
     def receive(self, message):
         print(f"Got message: {message}")
+
     def get_status(self):
         return {"status": "ok"}
+
 
 system.create_agent("a1", MyAgent())
 ```
