@@ -318,8 +318,7 @@ class GitInterface(ABC):
             return
 
         # Configure Git to cache credentials in memory for a short time
-        self._run_git_command(["config", "--local", "credential.helper", "cache"])
-        self._run_git_command(["config", "--local", "credential.helper", "'cache --timeout=300'"])
+        self._run_git_command(["config", "--local", "credential.helper", "cache --timeout=300"])
 
     def _get_auth_env(self) -> dict[str, str]:
         """Get the environment variables for authentication."""
