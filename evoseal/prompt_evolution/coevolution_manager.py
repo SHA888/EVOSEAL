@@ -23,6 +23,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from evoseal.fine_tuning.version_manager import ModelVersionManager
 from evoseal.providers.local_models import (
     DEFAULT_OLLAMA_BASE_URL,
     AgentRole,
@@ -76,9 +77,19 @@ class CoevolutionManager:
         accept_threshold: float = 0.7,
         min_score_gain: float = 0.05,
         coder_seed_prompt: str = DEFAULT_CODER_PROMPT,
+        registry_model: str | None = None,
     ) -> None:
         # Providers resolve their model from what is installed (see local_models).
-        self.coder = coder_provider or OllamaProvider(base_url=base_url, role=AgentRole.CODER)
+        # When *registry_model* is given the coder provider prefers the
+        # fine-tuned model from the version registry.
+        self.coder = coder_provider or OllamaProvider(
+            base_url=base_url, role=AgentRole.CODER, registry_model=registry_model
+        )
+        # NOTE: registry_model is only forwarded to the coder provider because
+        # ModelVersionManager tracks a single current_version with no role
+        # distinction — the fine-tuning loop currently manages one model, not
+        # separate coder/reviewer models.  If the registry gains per-role
+        # tracking, pass it here too.
         self.reviewer = reviewer_provider or OllamaProvider(
             base_url=base_url, role=AgentRole.REVIEWER
         )
@@ -268,5 +279,20 @@ class CoevolutionManager:
 
 
 def default_manager(base_dir: Path | str | None = None) -> CoevolutionManager:
-    """Convenience factory: a manager backed by discovered local models."""
-    return CoevolutionManager(prompt_store=PromptStore(base_dir))
+    """Convenience factory: a manager backed by discovered local models.
+
+    If the fine-tuning registry has a currently deployed model, its Ollama
+    tag is passed as ``registry_model`` so the coder provider prefers it
+    over raw family-based discovery.
+    """
+    registry_model: str | None = None
+    try:
+        current = ModelVersionManager().get_current_version()
+        if current and current.get("deployment_status") == "deployed":
+            registry_model = current.get("ollama_model_name")
+    except Exception:
+        logger.warning(
+            "Could not read fine-tuning registry; falling back to family-based model discovery",
+            exc_info=True,
+        )
+    return CoevolutionManager(prompt_store=PromptStore(base_dir), registry_model=registry_model)

@@ -57,9 +57,10 @@ This project and everyone participating in it is governed by our [Code of Conduc
 - Use the `SystemConfig` model (`evoseal.models.system_config.SystemConfig`) to load and validate configuration in new code:
   ```python
   from evoseal.models.system_config import SystemConfig
-  config = SystemConfig.from_yaml('configs/evoseal.yaml')
+
+  config = SystemConfig.from_yaml("configs/evoseal.yaml")
   config.validate()
-  value = config.get('dgm.max_iterations')
+  value = config.get("dgm.max_iterations")
   ```
 - Ensure any new configuration keys are documented and, if required, validated in your code.
 

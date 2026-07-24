@@ -372,15 +372,17 @@ ws.onclose = function() {
 import aiohttp
 import asyncio
 
+
 async def get_metrics():
     async with aiohttp.ClientSession() as session:
-        async with session.get('http://localhost:9613/api/metrics') as response:
+        async with session.get("http://localhost:9613/api/metrics") as response:
             if response.status == 200:
                 metrics = await response.json()
                 return metrics
             else:
                 print(f"Error: {response.status}")
                 return None
+
 
 # Usage
 metrics = asyncio.run(get_metrics())
@@ -393,6 +395,7 @@ import asyncio
 import websockets
 import json
 
+
 async def websocket_client():
     uri = "ws://localhost:9613/ws"
 
@@ -401,9 +404,10 @@ async def websocket_client():
             data = json.loads(message)
             print(f"Received {data['type']}: {data['timestamp']}")
 
-            if data['type'] == 'metrics_update':
+            if data["type"] == "metrics_update":
                 # Process metrics update
-                process_metrics(data['data'])
+                process_metrics(data["data"])
+
 
 # Usage
 asyncio.run(websocket_client())

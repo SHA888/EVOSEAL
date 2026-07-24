@@ -10,10 +10,12 @@ The main class for interacting with the EVOSEAL system.
 
 ```python
 class EVOSEAL:
-    def __init__(self,
-                 model: Optional[BaseModel] = None,
-                 fitness_function: Optional[Callable] = None,
-                 config: Optional[Dict] = None):
+    def __init__(
+        self,
+        model: Optional[BaseModel] = None,
+        fitness_function: Optional[Callable] = None,
+        config: Optional[Dict] = None,
+    ):
         """
         Initialize the EVOSEAL system.
 
@@ -23,11 +25,9 @@ class EVOSEAL:
             config: Configuration dictionary
         """
 
-    def evolve(self,
-               task: str,
-               max_iterations: int = 100,
-               population_size: int = 20,
-               **kwargs) -> EvolutionResult:
+    def evolve(
+        self, task: str, max_iterations: int = 100, population_size: int = 20, **kwargs
+    ) -> EvolutionResult:
         """
         Run the evolutionary algorithm.
 
@@ -45,7 +45,7 @@ class EVOSEAL:
         """Save the current state to a checkpoint file."""
 
     @classmethod
-    def load_checkpoint(cls, filepath: str) -> 'EVOSEAL':
+    def load_checkpoint(cls, filepath: str) -> "EVOSEAL":
         """Load a previously saved checkpoint."""
 ```
 
@@ -136,6 +136,7 @@ def default_fitness(solution: str, **kwargs) -> float:
 def save_checkpoint(evoseal: EVOSEAL, filepath: str) -> None:
     """Save EVOSEAL instance to a file."""
 
+
 def load_checkpoint(filepath: str) -> EVOSEAL:
     """Load EVOSEAL instance from a file."""
 ```
@@ -154,7 +155,7 @@ evoseal = EVOSEAL()
 result = evoseal.evolve(
     task="Create a Python function that implements binary search",
     max_iterations=30,
-    population_size=15
+    population_size=15,
 )
 
 # Access results
@@ -167,14 +168,13 @@ print(f"Fitness: {result.fitness}")
 ```python
 from evoseal import EVOSEAL, OpenAIModel
 
+
 def custom_fitness(solution, **kwargs):
     # Your custom fitness logic here
     return score
 
+
 # Initialize with custom model and fitness
 model = OpenAIModel(model="gpt-4")
-evoseal = EVOSEAL(
-    model=model,
-    fitness_function=custom_fitness
-)
+evoseal = EVOSEAL(model=model, fitness_function=custom_fitness)
 ```

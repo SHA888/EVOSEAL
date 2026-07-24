@@ -94,16 +94,11 @@ from evoseal.core.orchestration import WorkflowOrchestrator
 # Initialize core systems
 event_bus = EventBus()
 resilience = ResilienceManager(event_bus=event_bus)
-orchestrator = WorkflowOrchestrator(
-    event_bus=event_bus,
-    resilience_manager=resilience
-)
+orchestrator = WorkflowOrchestrator(event_bus=event_bus, resilience_manager=resilience)
 
 # Publish events
 event = create_component_event(
-    component_type="evolution_pipeline",
-    component_id="main",
-    operation="started"
+    component_type="evolution_pipeline", component_id="main", operation="started"
 )
 event_bus.publish(event)
 ```

@@ -126,8 +126,8 @@
 
 ### Safety & Correctness Bugs Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **Model-safety validator can be defeated by an incidental safety word**
-  - `evoseal/fine_tuning/model_validator.py:432-454` — `_is_safe_response` returns `has_safety or not has_unsafe`. A response containing both an unsafe instruction and any safety-sounding word (e.g. `"Sorry, but here's how: rm -rf /"`) is classified safe regardless of the unsafe content. Defeats the safety gate that feeds deployment decisions
+- [x] **Model-safety validator can be defeated by an incidental safety word** _(done 2026-07-23, fix/safety-validator-bypass)_
+  - `evoseal/fine_tuning/model_validator.py:432-454` — `_is_safe_response` returned `has_safety or not has_unsafe`. A response containing both an unsafe instruction and any safety-sounding word (e.g. `"Sorry, but here's how: rm -rf /"`) was classified safe regardless of the unsafe content. Fixed to `return not has_unsafe`; added 7 regression tests in `test_model_validator.py`
 - [ ] **Path traversal in git-file read/write helpers**
   - `evoseal/utils/version_control/cmd_git.py:1130-1134` (`get_file_content`) and `:1176-1177` (`write_file_content`) — `full_path = self.repo_path / file_path` with no containment check. `pathlib` resolves an absolute RHS by discarding the LHS (`Path('/repo') / '/etc/passwd'` → `/etc/passwd`), and `..` segments aren't normalized either. Any caller passing an absolute or `..`-containing `file_path` (e.g. a model-generated patch) causes arbitrary file read/write outside the repo
 - [ ] **Monitoring dashboard has no authentication and permissive CORS-with-credentials**
@@ -171,7 +171,7 @@
 - [x] **FIX: training call used nonexistent method** _(done 2026-07-19, commit fix/training-method-name-bug, on `main` as of 81156b3)_ — `continuous_evolution_service.py:234` called `training_manager.start_training()` which did not exist; changed to `run_training_cycle()` and fixed `validation_passed` → `validation_results.passed`
 - [x] **3. validate_model must serve the fine-tuned model, not baseline** _(done 2026-07-21)_ — all 5 test suites now use `model_path` when provided via `_resolve_model_for_validation()`; removed dead `TRANSFORMERS_AVAILABLE` import block. **Known limitation:** `model_path` must be an Ollama-resolvable model tag — directory paths from `register_version()` will surface an Ollama error until item 4 (real deployment) lands.
 - [x] **4. Implement real model deployment** — `version_manager.register_version` only copies weights + sets `current_version` in a JSON registry (no Modelfile / `ollama create` / symlink); need actual deployment so the serving layer can load the model
-- [ ] **5. Generation must consult the fine-tuning registry** — `version_manager.get_current_version()` has zero callers — the generator (`providers/local_models.py resolve_model`, which currently just reads raw installed Ollama tags) must consult the registry instead so the deployed fine-tuned model actually gets used
+- [x] **5. Generation must consult the fine-tuning registry** _(done 2026-07-24, PR #73)_ — `default_manager()` now calls `ModelVersionManager().get_current_version()` and passes the deployed model's Ollama tag as `registry_model` to `CoevolutionManager`, so the coder provider prefers the fine-tuned model over raw family-based discovery
 - [x] **6. Wire bidirectional_manager to orchestrate the full loop** _(done 2026-07-23)_ — added `run_loop_cycle()` that drives one full iteration: check training readiness → run training cycle → deploy the improved model (when validation passes) → record results. Also added `_deploy_trained_model()` helper and `_record_cycle()` to update the previously-stale `stats`/`evolution_history`/`is_running`/`last_check_time` fields. 9 new unit tests cover: skip-when-not-ready, training failure, full success, validation-fail-skip-deploy, deploy failure, exception handling, state mutation, missing-current-version, and missing-validation-results.
 - [ ] **Add end-to-end bidirectional loop test** — exercise the full cycle: collect → train → validate → deploy → regenerate; no such test exists today (write once steps 1–6 land)
 
@@ -182,7 +182,7 @@
   - What prevents the two systems from diverging?
   - What metrics determine "improvement" in the bidirectional context?
   - Added as `docs/architecture/bidirectional_evolution.md`
-- [ ] **Add sequence diagram** showing the Devstral ↔ EVOSEAL message flow
+- [x] **Add sequence diagram** showing the Devstral ↔ EVOSEAL message flow _(done 2026-07-23)_ — Mermaid sequence diagram added to `docs/architecture/bidirectional_evolution.md` covering all 5 phases (evolution → training → deploy → generate → orchestrate), with solid/dashed arrows distinguishing implemented vs. gap paths and a status table
 
 ### Dashboard Improvements
 
@@ -214,7 +214,7 @@
 - [ ] **`agentic_system.py:28` logger bypasses the logging handler hierarchy** — `Logger("AgenticSystem")` is instantiated directly instead of via `logging.getLogger(name)`; `self.parent` stays `None`, no handlers attach, and all INFO-level agent-orchestration logs (create/destroy, message send, task assignment) are silently dropped by default
 - [ ] **`agentic_workflow_agent.py:14` couples to a private API and can crash inside a running event loop** — `WorkflowAgent.act` calls `self.engine._execute_step(...)`, a `_`-prefixed private method of `WorkflowEngine` that internally does `asyncio.run(...)`; invoking a `WorkflowAgent` through the async entry points while already inside a running event loop raises `RuntimeError: asyncio.run() cannot be called from a running event loop`
 - [ ] **`continuous_evolution_service.py:107-115` registers process-wide signal handlers from `__init__`** — `signal.signal()` only works on the main thread (raises `ValueError` if constructed off-thread), and the handler's `asyncio.create_task(self.shutdown())` requires a running event loop in the current thread at signal-time; also clobbers whatever signal handlers an embedding application had installed, since this fires on mere construction, not `start()`
-- [ ] **`models/experiment.py:256-260` references an undefined name `FieldValidationInfo`** — never imported anywhere in the module (only `field_validator`/`model_validator` are imported from pydantic); only survives today because `from __future__ import annotations` defers evaluation. Breaks under `typing.get_type_hints()`, strict mypy/pyright, or Sphinx autodoc. Correct type is `pydantic.ValidationInfo`
+- [x] **`models/experiment.py:256-260` references an undefined name `FieldValidationInfo`** — never imported anywhere in the module (only `field_validator`/`model_validator` are imported from pydantic); only survives today because `from __future__ import annotations` defers evaluation. Breaks under `typing.get_type_hints()`, strict mypy/pyright, or Sphinx autodoc. Correct type is `pydantic.ValidationInfo`
 - [ ] **`models/system_config.py:33-39` `from_yaml` doesn't validate the loaded YAML is a dict** — an empty file yields `None`, a scalar/list document yields a non-dict; `self.config` is set as-is and the first `get()`/`validate()` call raises an opaque `TypeError` instead of a clear config error
 - [ ] **`cmd_git.py:1754` `_find_referenced_by` passes a nonexistent `ref` kwarg** — calls `self._run_git_command(cmd, ref=ref)`, but `GitInterface._run_git_command` has no `ref` parameter; raises `TypeError` any time `find_file_references()` is called with an explicit ref
 
@@ -252,8 +252,8 @@
 
 ### Low-Priority / Hygiene Issues Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **`cmd_git.py:977` `tag()` builds a malformed argv token** — `cmd.append("-s" if not sign_key else f"-u {sign_key}")` appends `"-u <key>"` as one argv element instead of `["-u", sign_key]`; since commands run via `subprocess.run(list, shell=False)`, git receives one malformed token and signed-tag-with-explicit-key fails
-- [ ] **`git_interface.py` credential-helper config is broken** — sets `credential.helper` to the literal string `'cache --timeout=300'` including the quotes (no shell involved, so they're taken literally), via two non-`--add` `--local` sets where the second silently overwrites the first with a bogus value — HTTPS credential caching silently doesn't work
+- [x] **`cmd_git.py:977` `tag()` builds a malformed argv token** — `cmd.append("-s" if not sign_key else f"-u {sign_key}")` appends `"-u <key>"` as one argv element instead of `["-u", sign_key]`; since commands run via `subprocess.run(list, shell=False)`, git receives one malformed token and signed-tag-with-explicit-key fails
+- [x] **`git_interface.py` credential-helper config is broken** _(done 2026-07-24)_ — sets `credential.helper` to the literal string `'cache --timeout=300'` including the quotes (no shell involved, so they're taken literally), via two non-`--add` `--local` sets where the second silently overwrites the first with a bogus value — HTTPS credential caching silently doesn't work. Fixed to a single `config --local credential.helper "cache --timeout=300"` call with no spurious quotes
 - [ ] **Stray `evoseal/utils/validator.py.bak`** — a 1132-line backup committed to the repo tree (not gitignored), diverged from `validator.py`; risk of editing the wrong file
 - [ ] **`evoseal/utils/testing/environment.py:180`** — `suffix: str = None` type-annotation mismatch (should be `Optional[str]`)
 - [ ] **`providers/ollama_provider.py:98-136`** — `submit_prompt` has no retry/backoff on transient network failures despite being the sole retry/timeout surface for local model calls
@@ -302,10 +302,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 10   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 29    | 6    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
-| 🟢 P3    | 24    | 6    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **33** | |
+| 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
+| 🟡 P2    | 29    | 9    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
+| 🟢 P3    | 24    | 8    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
+| **Total** | **88** | **38** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

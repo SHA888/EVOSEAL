@@ -43,12 +43,8 @@ error = BaseError(
     "Database connection failed",
     code="DB_CONNECTION_ERROR",
     category=ErrorCategory.INTEGRATION,
-    severity=ErrorSeverity.ERROR
-).with_context(
-    component="database",
-    operation="connect",
-    retry_count=3
-)
+    severity=ErrorSeverity.ERROR,
+).with_context(component="database", operation="connect", retry_count=3)
 ```
 
 ### 2. Resilience Manager (`evoseal.core.resilience`)
@@ -61,11 +57,7 @@ from evoseal.core.resilience import resilience_manager, CircuitBreakerConfig
 # Register circuit breaker
 resilience_manager.register_circuit_breaker(
     "api_service",
-    CircuitBreakerConfig(
-        failure_threshold=5,
-        recovery_timeout=60,
-        success_threshold=3
-    )
+    CircuitBreakerConfig(failure_threshold=5, recovery_timeout=60, success_threshold=3),
 )
 
 # Execute with resilience
@@ -81,17 +73,19 @@ Provides intelligent error recovery with multiple strategies:
 ```python
 from evoseal.core.error_recovery import with_error_recovery, RecoveryStrategy
 
+
 @with_error_recovery("component", "operation")
 async def risky_operation():
     # Your code here
     pass
+
 
 # Custom recovery strategy
 strategy = RecoveryStrategy(
     max_retries=5,
     retry_delay=2.0,
     backoff_multiplier=1.5,
-    recovery_actions=[RecoveryAction.RETRY, RecoveryAction.FALLBACK]
+    recovery_actions=[RecoveryAction.RETRY, RecoveryAction.FALLBACK],
 )
 ```
 
@@ -110,7 +104,7 @@ logger.log_component_operation(
     operation="fetch_data",
     status="success",
     duration=1.5,
-    records_processed=100
+    records_processed=100,
 )
 
 # Error logging with context
@@ -119,7 +113,7 @@ logger.log_error_with_context(
     component="api_client",
     operation="fetch_data",
     request_id="req_123",
-    user_id="user_456"
+    user_id="user_456",
 )
 ```
 
@@ -170,7 +164,7 @@ error = BaseError("Operation failed").with_context(
     operation="transform_data",
     input_size=1000,
     memory_usage="512MB",
-    execution_time=30.5
+    execution_time=30.5,
 )
 ```
 
@@ -181,11 +175,13 @@ Use decorators for automatic error handling:
 ```python
 from evoseal.core.errors import handle_errors, retry_on_error, error_boundary
 
+
 @handle_errors(reraise=True, log_level=logging.ERROR)
 @retry_on_error(max_retries=3, delay=1.0)
 async def network_operation():
     # Network call that may fail
     pass
+
 
 @error_boundary(default="fallback_value")
 def safe_operation():
@@ -202,10 +198,10 @@ Circuit breakers prevent cascade failures by isolating failing components:
 ```python
 # Configure circuit breaker
 config = CircuitBreakerConfig(
-    failure_threshold=5,      # Open after 5 failures
-    recovery_timeout=60,      # Wait 60s before testing
-    success_threshold=3,      # Close after 3 successes
-    timeout=30.0             # Operation timeout
+    failure_threshold=5,  # Open after 5 failures
+    recovery_timeout=60,  # Wait 60s before testing
+    success_threshold=3,  # Close after 3 successes
+    timeout=30.0,  # Operation timeout
 )
 
 resilience_manager.register_circuit_breaker("service_name", config)
@@ -270,11 +266,7 @@ strategy = RecoveryStrategy(
     backoff_multiplier=2.0,
     max_delay=60.0,
     timeout=30.0,
-    recovery_actions=[
-        RecoveryAction.RETRY,
-        RecoveryAction.FALLBACK,
-        RecoveryAction.ESCALATE
-    ]
+    recovery_actions=[RecoveryAction.RETRY, RecoveryAction.FALLBACK, RecoveryAction.ESCALATE],
 )
 ```
 
@@ -287,9 +279,8 @@ async def api_fallback(*args, context=None, **kwargs):
     # Return cached data or default response
     return {"status": "fallback", "data": cached_data}
 
-error_recovery_manager.fallback_manager.register_fallback(
-    "api_service", "fetch_data", api_fallback
-)
+
+error_recovery_manager.fallback_manager.register_fallback("api_service", "fetch_data", api_fallback)
 ```
 
 ### Custom Recovery Actions
@@ -302,6 +293,7 @@ async def custom_recovery(component: str, operation: str, error: Exception):
     logger.info(f"Executing custom recovery for {component}")
     await restart_component(component)
     await clear_cache(component)
+
 
 error_recovery_manager.register_recovery_strategy("component", custom_recovery)
 ```
@@ -316,12 +308,7 @@ All logging uses structured format with rich context:
 logger = get_logger("component_name")
 
 # Pipeline stage logging
-logger.log_pipeline_stage(
-    stage="data_processing",
-    status="started",
-    iteration=5,
-    input_size=1000
-)
+logger.log_pipeline_stage(stage="data_processing", status="started", iteration=5, input_size=1000)
 
 # Component operation logging
 logger.log_component_operation(
@@ -330,15 +317,12 @@ logger.log_component_operation(
     status="success",
     duration=2.5,
     records_processed=1000,
-    memory_used="256MB"
+    memory_used="256MB",
 )
 
 # Performance metric logging
 logger.log_performance_metric(
-    metric_name="throughput",
-    value=500,
-    unit="records/sec",
-    component="processor"
+    metric_name="throughput", value=500, unit="records/sec", component="processor"
 )
 ```
 
@@ -354,11 +338,7 @@ print(f"Error rate: {metrics.error_rate:.2%}")
 print(f"Logs per minute: {metrics.avg_logs_per_minute}")
 
 # Recent logs with filtering
-recent_errors = logger.get_recent_logs(
-    count=50,
-    level=LogLevel.ERROR,
-    component="api_client"
-)
+recent_errors = logger.get_recent_logs(count=50, level=LogLevel.ERROR, component="api_client")
 ```
 
 ### Log Aggregation
@@ -402,6 +382,7 @@ For custom components, integrate resilience manually:
 from evoseal.core.resilience import resilience_manager
 from evoseal.core.error_recovery import with_error_recovery
 
+
 class MyComponent:
     @with_error_recovery("my_component", "process_data")
     async def process_data(self, data):
@@ -421,12 +402,14 @@ Resilience events are published to the event system:
 ```python
 from evoseal.core.events import event_bus
 
+
 # Subscribe to resilience events
 async def handle_resilience_event(event):
     if event.event_type == "ERROR_RECOVERY_SUCCESS":
         print(f"Recovery successful: {event.data}")
     elif event.event_type == "CIRCUIT_BREAKER_OPEN":
         print(f"Circuit breaker opened: {event.data}")
+
 
 event_bus.subscribe("ERROR_RECOVERY_SUCCESS", handle_resilience_event)
 event_bus.subscribe("CIRCUIT_BREAKER_OPEN", handle_resilience_event)
@@ -510,7 +493,7 @@ Automatic health monitoring with configurable intervals:
 health_status = await resilience_orchestrator._perform_health_checks()
 
 print(f"Overall health: {health_status['overall_health']}")
-for component, status in health_status['components'].items():
+for component, status in health_status["components"].items():
     print(f"{component}: {status['status']} ({status['success_rate']:.2%})")
 ```
 
@@ -520,12 +503,13 @@ Custom alert handlers for different scenarios:
 
 ```python
 async def custom_alert_handler(alert):
-    if alert['type'] == 'high_error_rate':
+    if alert["type"] == "high_error_rate":
         # Send notification
         await send_notification(f"High error rate: {alert['error_rate']:.2%}")
-    elif alert['type'] == 'component_unhealthy':
+    elif alert["type"] == "component_unhealthy":
         # Restart component
-        await restart_component(alert['component'])
+        await restart_component(alert["component"])
+
 
 resilience_orchestrator.alert_handlers.append(custom_alert_handler)
 ```
@@ -656,6 +640,7 @@ status = await resilience_orchestrator.get_comprehensive_status()
 
 # Pretty print status
 import json
+
 print(json.dumps(status, indent=2, default=str))
 ```
 
@@ -665,6 +650,7 @@ print(json.dumps(status, indent=2, default=str))
 # Subscribe to all resilience events
 async def debug_event_handler(event):
     print(f"Event: {event.event_type} - {event.data}")
+
 
 event_bus.subscribe("ERROR_RECOVERY_SUCCESS", debug_event_handler)
 event_bus.subscribe("CIRCUIT_BREAKER_OPEN", debug_event_handler)
@@ -725,13 +711,23 @@ def with_error_recovery(component: str, operation: str, recovery_strategy: Recov
 
 #### `@handle_errors`
 ```python
-def handle_errors(error_types: Tuple[Type[Exception], ...] = None, reraise: bool = True, log_level: int = logging.ERROR, default_message: str = "An error occurred"):
+def handle_errors(
+    error_types: Tuple[Type[Exception], ...] = None,
+    reraise: bool = True,
+    log_level: int = logging.ERROR,
+    default_message: str = "An error occurred",
+):
     """Decorator for comprehensive error handling."""
 ```
 
 #### `@retry_on_error`
 ```python
-def retry_on_error(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0, exceptions: Tuple[Type[Exception], ...] = (Exception,)):
+def retry_on_error(
+    max_retries: int = 3,
+    delay: float = 1.0,
+    backoff: float = 2.0,
+    exceptions: Tuple[Type[Exception], ...] = (Exception,),
+):
     """Decorator to retry functions on error."""
 ```
 
