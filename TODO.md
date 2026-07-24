@@ -215,7 +215,7 @@
 - [ ] **`agentic_workflow_agent.py:14` couples to a private API and can crash inside a running event loop** — `WorkflowAgent.act` calls `self.engine._execute_step(...)`, a `_`-prefixed private method of `WorkflowEngine` that internally does `asyncio.run(...)`; invoking a `WorkflowAgent` through the async entry points while already inside a running event loop raises `RuntimeError: asyncio.run() cannot be called from a running event loop`
 - [ ] **`continuous_evolution_service.py:107-115` registers process-wide signal handlers from `__init__`** — `signal.signal()` only works on the main thread (raises `ValueError` if constructed off-thread), and the handler's `asyncio.create_task(self.shutdown())` requires a running event loop in the current thread at signal-time; also clobbers whatever signal handlers an embedding application had installed, since this fires on mere construction, not `start()`
 - [x] **`models/experiment.py:256-260` references an undefined name `FieldValidationInfo`** — never imported anywhere in the module (only `field_validator`/`model_validator` are imported from pydantic); only survives today because `from __future__ import annotations` defers evaluation. Breaks under `typing.get_type_hints()`, strict mypy/pyright, or Sphinx autodoc. Correct type is `pydantic.ValidationInfo`
-- [ ] **`models/system_config.py:33-39` `from_yaml` doesn't validate the loaded YAML is a dict** — an empty file yields `None`, a scalar/list document yields a non-dict; `self.config` is set as-is and the first `get()`/`validate()` call raises an opaque `TypeError` instead of a clear config error
+- [x] **`models/system_config.py:33-39` `from_yaml` doesn't validate the loaded YAML is a dict** _(done 2026-07-24)_ — an empty file yields `None`, a scalar/list document yields a non-dict; `self.config` is set as-is and the first `get()`/`validate()` call raises an opaque `TypeError` instead of a clear config error
 - [ ] **`cmd_git.py:1754` `_find_referenced_by` passes a nonexistent `ref` kwarg** — calls `self._run_git_command(cmd, ref=ref)`, but `GitInterface._run_git_command` has no `ref` parameter; raises `TypeError` any time `find_file_references()` is called with an explicit ref
 
 ### Evolution Archive & Rollout _(inspired by OpenClaw patterns)_
@@ -303,9 +303,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 29    | 9    | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
+| 🟡 P2    | 29    | 10   | Co-evolution loop gaps (7 items, 6 done) + existing P2 + 12 medium bugs from 2026-07-22 review |
 | 🟢 P3    | 24    | 8    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **88** | **38** | |
+| **Total** | **88** | **39** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

@@ -36,4 +36,10 @@ class SystemConfig:
             raise FileNotFoundError(f"YAML config file not found: {yaml_path}")
         with open(yaml_path) as f:
             config_dict = yaml.safe_load(f)
+        if not isinstance(config_dict, dict):
+            raise ValueError(
+                f"YAML config file {yaml_path} did not produce a mapping "
+                f"(got {type(config_dict).__name__}). "
+                f"Ensure the file contains a valid YAML mapping (key: value pairs)."
+            )
         return cls(config_dict)
