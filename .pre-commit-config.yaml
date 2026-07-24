@@ -23,7 +23,7 @@ repos:
 
   # Ruff: replaces black, isort, flake8, and pylint
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15  # keep in sync with the ruff version used by CI
+    rev: v0.16.0  # keep in sync with the ruff version used by CI
     hooks:
       - id: ruff
         args: [--fix]
