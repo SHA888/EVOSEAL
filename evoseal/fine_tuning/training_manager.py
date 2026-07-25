@@ -167,7 +167,7 @@ class TrainingManager:
 
             # Save training data
             data_dir = self.output_dir / f"training_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            builder.save_training_data(data_dir, format_type="jsonl")
+            builder.save_training_data(data_dir, format_type="huggingface")
 
             stats = builder.get_statistics()
 
@@ -175,7 +175,7 @@ class TrainingManager:
 
             return {
                 "success": True,
-                "data_file": str(data_dir),
+                "data_file": str(data_dir / "train"),
                 "examples_count": len(examples),
                 "quality_score": stats.get("quality_stats", {}).get("avg_quality", 0.0),
                 "preparation_time": datetime.now().isoformat(),

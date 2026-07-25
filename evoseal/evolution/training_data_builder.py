@@ -391,7 +391,7 @@ class TrainingDataBuilder:
 
         Args:
             output_dir: Directory to save training data
-            format_type: Format type ('alpaca', 'chat', 'jsonl')
+            format_type: Format type ('alpaca', 'chat', 'jsonl', 'huggingface')
             split_ratio: Train/validation split ratio
 
         Returns:
@@ -414,6 +414,10 @@ class TrainingDataBuilder:
             saved_files.update(self._save_chat_format(output_dir, train_examples, val_examples))
         elif format_type == "jsonl":
             saved_files.update(self._save_jsonl_format(output_dir, train_examples, val_examples))
+        elif format_type == "huggingface":
+            saved_files.update(
+                self._save_huggingface_format(output_dir, train_examples, val_examples)
+            )
 
         # Save metadata
         metadata_file = output_dir / "metadata.json"
@@ -499,6 +503,29 @@ class TrainingDataBuilder:
                 f.write(json.dumps(example.to_dict()) + "\n")
 
         return {"train_jsonl": train_file, "val_jsonl": val_file}
+
+    def _save_huggingface_format(
+        self,
+        output_dir: Path,
+        train_examples: list[TrainingExample],
+        val_examples: list[TrainingExample],
+    ) -> dict[str, Path]:
+        """Save as a HuggingFace Dataset directory (load_from_disk compatible)."""
+        from datasets import Dataset
+
+        train_dir = output_dir / "train"
+        val_dir = output_dir / "val"
+
+        def _examples_to_dataset(examples: list[TrainingExample]) -> Dataset:
+            return Dataset.from_list([ex.to_alpaca_format() for ex in examples])
+
+        train_ds = _examples_to_dataset(train_examples)
+        train_ds.save_to_disk(str(train_dir))
+
+        val_ds = _examples_to_dataset(val_examples)
+        val_ds.save_to_disk(str(val_dir))
+
+        return {"train_hf": train_dir, "val_hf": val_dir}
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the training data."""
