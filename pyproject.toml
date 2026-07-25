@@ -107,6 +107,7 @@ test = [
     # Optional dependencies for specific tests
     "torch>=2.0.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",
     "transformers>=4.30.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",
+    "datasets>=2.10.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",
 ]
 
 dev = [
