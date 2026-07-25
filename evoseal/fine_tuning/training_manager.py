@@ -53,9 +53,7 @@ class TrainingManager:
         self.data_collector = data_collector
         self.fine_tuner = fine_tuner or ModelFineTuner(output_dir=self.output_dir / "models")
         self.validator = validator or ModelValidator()
-        self.version_manager = version_manager or ModelVersionManager(
-            versions_dir=self.output_dir / "versions"
-        )
+        self.version_manager = version_manager or ModelVersionManager()
 
         # Training configuration
         self.min_training_samples = min_training_samples
@@ -87,8 +85,9 @@ class TrainingManager:
                 return readiness
 
             # Get training candidates
-            stats = self.data_collector.get_statistics()
-            training_candidates = stats.get("training_candidates", 0)
+            training_candidates = len(
+                self.data_collector.get_training_candidates(min_samples=self.min_training_samples)
+            )
 
             readiness["details"]["training_candidates"] = training_candidates
             readiness["details"]["min_required"] = self.min_training_samples
@@ -161,30 +160,24 @@ class TrainingManager:
                 }
 
             # Build training dataset
-            training_data = await builder.build_training_dataset(results)
+            examples = builder.build_training_data(results)
 
-            if not training_data.get("success"):
-                return {"success": False, "error": "Failed to build training dataset"}
+            if not examples:
+                return {"success": False, "error": "No training examples produced from results"}
 
             # Save training data
-            data_file = (
-                self.output_dir / f"training_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            )
+            data_dir = self.output_dir / f"training_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            builder.save_training_data(data_dir, format_type="jsonl")
 
-            with open(data_file, "w") as f:
-                import json
+            stats = builder.get_statistics()
 
-                json.dump(training_data["dataset"], f, indent=2)
-
-            logger.info(
-                f"Training data prepared: {len(training_data['dataset']['examples'])} examples"
-            )
+            logger.info(f"Training data prepared: {len(examples)} examples")
 
             return {
                 "success": True,
-                "data_file": str(data_file),
-                "examples_count": len(training_data["dataset"]["examples"]),
-                "quality_score": training_data["dataset"]["metadata"]["quality_score"],
+                "data_file": str(data_dir),
+                "examples_count": len(examples),
+                "quality_score": stats.get("quality_stats", {}).get("avg_quality", 0.0),
                 "preparation_time": datetime.now().isoformat(),
             }
 
