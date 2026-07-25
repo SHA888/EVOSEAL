@@ -1754,7 +1754,16 @@ class CmdGit(GitInterface):
                 patterns = " ".join(f"*.{ft.lstrip('.')}" for ft in file_types)
                 cmd.extend(["--"] + patterns.split())
 
-            success, stdout, _ = self._run_git_command(cmd, ref=ref)
+            # If a ref is specified, insert it so `git grep` searches that
+            # revision.  It must go before any "--" pathspec separator.
+            if ref:
+                try:
+                    dd = cmd.index("--")
+                    cmd.insert(dd, ref)
+                except ValueError:
+                    cmd.append(ref)
+
+            success, stdout, _ = self._run_git_command(cmd)
 
             if not success or not stdout.strip():
                 return []

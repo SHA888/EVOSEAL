@@ -219,7 +219,7 @@
 - [x] **`models/experiment.py:256-260` references an undefined name `FieldValidationInfo`** — never imported anywhere in the module (only `field_validator`/`model_validator` are imported from pydantic); only survives today because `from __future__ import annotations` defers evaluation. Breaks under `typing.get_type_hints()`, strict mypy/pyright, or Sphinx autodoc. Correct type is `pydantic.ValidationInfo`
 - [x] **`models/system_config.py:33-39` `from_yaml` doesn't validate the loaded YAML is a dict** _(done 2026-07-24)_ — an empty file yields `None`, a scalar/list document yields a non-dict; `self.config` is set as-is and the first `get()`/`validate()` call raises an opaque `TypeError` instead of a clear config error
 - [x] **`models/system_config.py` `from_yaml` doesn't catch `yaml.YAMLError` on malformed YAML syntax** — `yaml.safe_load()` raises `yaml.YAMLError` on invalid YAML (e.g. bad indentation, unclosed braces); the raw exception propagates without context about which file failed to parse
-- [ ] **`cmd_git.py:1754` `_find_referenced_by` passes a nonexistent `ref` kwarg** — calls `self._run_git_command(cmd, ref=ref)`, but `GitInterface._run_git_command` has no `ref` parameter; raises `TypeError` any time `find_file_references()` is called with an explicit ref
+- [x] **`cmd_git.py:1754` `_find_referenced_by` passes a nonexistent `ref` kwarg** — calls `self._run_git_command(cmd, ref=ref)`, but `GitInterface._run_git_command` has no `ref` parameter; raises `TypeError` any time `find_file_references()` is called with an explicit ref
 
 ### Evolution Archive & Rollout _(inspired by OpenClaw patterns)_
 
@@ -306,9 +306,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 30    | 13   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 12 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
+| 🟡 P2    | 30    | 14   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
 | 🟢 P3    | 24    | 8    | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **42** | |
+| **Total** | **89** | **43** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
