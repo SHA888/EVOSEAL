@@ -18,6 +18,11 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+#: Default registry location, shared with callers (e.g. ``TrainingManager``,
+#: ``default_manager()``) that need to agree on where the deployed model
+#: lives without each hardcoding their own path.
+DEFAULT_VERSIONS_DIR = Path("models/versions")
+
 
 class ModelVersionManager:
     """
@@ -34,7 +39,7 @@ class ModelVersionManager:
         Args:
             versions_dir: Directory to store model versions
         """
-        self.versions_dir = versions_dir or Path("models/versions")
+        self.versions_dir = versions_dir or DEFAULT_VERSIONS_DIR
         self.versions_dir.mkdir(parents=True, exist_ok=True)
 
         # Version registry file

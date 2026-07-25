@@ -217,6 +217,30 @@ class EvolutionDataCollector:
             logger.error(f"Error loading historical data: {e}")
             return []
 
+    def get_recent_results(self, days: int = 7) -> list[EvolutionResult]:
+        """
+        Get successful evolution results from the last *days* days.
+
+        Combines in-memory results (not yet flushed to disk) with historical
+        results loaded from disk, deduplicated by result id.
+
+        Args:
+            days: Number of days to look back
+
+        Returns:
+            List of recent successful evolution results
+        """
+        cutoff_date = datetime.now() - timedelta(days=days)
+        recent_in_memory = [r for r in self.successful_results if r.timestamp >= cutoff_date]
+        historical = self.load_historical_data(days_back=days)
+
+        seen_ids = {r.id for r in recent_in_memory}
+        combined = list(recent_in_memory)
+        combined.extend(r for r in historical if r.id not in seen_ids)
+
+        logger.info(f"Found {len(combined)} recent results from last {days} days")
+        return combined
+
     def get_training_candidates(self, min_samples: int = 100) -> list[EvolutionResult]:
         """
         Get evolution results suitable for training.

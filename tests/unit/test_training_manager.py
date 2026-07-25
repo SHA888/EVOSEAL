@@ -21,7 +21,7 @@ from evoseal.fine_tuning.training_manager import TrainingManager
 def _make_manager(min_samples: int = 10) -> TrainingManager:
     """Build a TrainingManager with a mock data_collector that reports enough samples."""
     collector = MagicMock()
-    collector.get_statistics.return_value = {"training_candidates": min_samples + 5}
+    collector.get_training_candidates.return_value = [MagicMock()] * (min_samples + 5)
     return TrainingManager(data_collector=collector, min_training_samples=min_samples)
 
 
@@ -93,7 +93,7 @@ async def test_run_training_cycle_resets_state_on_readiness_failure():
     """After a readiness failure, current_training must remain None (not leak)."""
     manager = _make_manager()
     # Override to report fewer candidates than required so readiness fails.
-    manager.data_collector.get_statistics.return_value = {"training_candidates": 0}
+    manager.data_collector.get_training_candidates.return_value = []
 
     result = await manager.run_training_cycle()
     assert result["success"] is False
