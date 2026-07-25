@@ -5,7 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from datasets import Dataset, load_from_disk
+
+datasets = pytest.importorskip(
+    "datasets", reason="'datasets' package required for huggingface format tests"
+)
+Dataset = datasets.Dataset
+load_from_disk = datasets.load_from_disk
 
 from evoseal.evolution.models import TrainingExample
 from evoseal.evolution.training_data_builder import TrainingDataBuilder

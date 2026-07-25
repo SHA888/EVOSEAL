@@ -511,7 +511,13 @@ class TrainingDataBuilder:
         val_examples: list[TrainingExample],
     ) -> dict[str, Path]:
         """Save as a HuggingFace Dataset directory (load_from_disk compatible)."""
-        from datasets import Dataset
+        try:
+            from datasets import Dataset
+        except ImportError as exc:
+            raise RuntimeError(
+                "The 'datasets' package is required for HuggingFace format. "
+                "Install it with: pip install 'datasets>=2.10.0'"
+            ) from exc
 
         train_dir = output_dir / "train"
         val_dir = output_dir / "val"
