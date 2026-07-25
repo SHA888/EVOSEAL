@@ -35,7 +35,12 @@ class SystemConfig:
         if not os.path.exists(yaml_path):
             raise FileNotFoundError(f"YAML config file not found: {yaml_path}")
         with open(yaml_path) as f:
-            config_dict = yaml.safe_load(f)
+            try:
+                config_dict = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                raise ValueError(
+                    f"YAML config file {yaml_path} contains invalid YAML syntax: {e}"
+                ) from e
         if not isinstance(config_dict, dict):
             raise ValueError(
                 f"YAML config file {yaml_path} did not produce a mapping "

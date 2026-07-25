@@ -76,3 +76,15 @@ def test_from_yaml_list_raises():
             SystemConfig.from_yaml(yaml_path)
     finally:
         os.remove(yaml_path)
+
+
+def test_from_yaml_malformed_syntax_raises():
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+        # Invalid YAML: bad indentation triggers yaml.YAMLError
+        f.write("key:\n  - item\n bad_indent")
+        yaml_path = f.name
+    try:
+        with pytest.raises(ValueError, match="invalid YAML syntax"):
+            SystemConfig.from_yaml(yaml_path)
+    finally:
+        os.remove(yaml_path)
