@@ -72,3 +72,18 @@ def test_save_huggingface_metadata(tmp_path, populated_builder):
     metadata = json.loads((tmp_path / "metadata.json").read_text())
     assert metadata["format_type"] == "huggingface"
     assert metadata["total_examples"] == 10
+
+
+@pytest.mark.unit
+def test_save_huggingface_single_example(tmp_path):
+    """A single example (split_idx would be 0) must not crash or produce empty train."""
+    builder = TrainingDataBuilder()
+    builder.training_examples = [_make_example(0)]
+
+    saved = builder.save_training_data(tmp_path, format_type="huggingface")
+
+    # Train split must exist and be loadable
+    assert "train_hf" in saved
+    train_ds = load_from_disk(str(saved["train_hf"]))
+    assert len(train_ds) == 1
+    assert "instruction" in train_ds.column_names

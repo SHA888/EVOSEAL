@@ -403,6 +403,11 @@ class TrainingDataBuilder:
         # Split data
         random.shuffle(self.training_examples)
         split_idx = int(len(self.training_examples) * split_ratio)
+        # Ensure the train split is never empty when there are examples;
+        # an empty list would break format serializers that need a schema
+        # (e.g. HuggingFace Dataset.from_list).  Leave val empty instead.
+        if split_idx == 0 and self.training_examples:
+            split_idx = 1
         train_examples = self.training_examples[:split_idx]
         val_examples = self.training_examples[split_idx:]
 
@@ -525,13 +530,19 @@ class TrainingDataBuilder:
         def _examples_to_dataset(examples: list[TrainingExample]) -> Dataset:
             return Dataset.from_list([ex.to_alpaca_format() for ex in examples])
 
-        train_ds = _examples_to_dataset(train_examples)
-        train_ds.save_to_disk(str(train_dir))
+        saved: dict[str, Path] = {}
 
-        val_ds = _examples_to_dataset(val_examples)
-        val_ds.save_to_disk(str(val_dir))
+        if train_examples:
+            train_ds = _examples_to_dataset(train_examples)
+            train_ds.save_to_disk(str(train_dir))
+            saved["train_hf"] = train_dir
 
-        return {"train_hf": train_dir, "val_hf": val_dir}
+        if val_examples:
+            val_ds = _examples_to_dataset(val_examples)
+            val_ds.save_to_disk(str(val_dir))
+            saved["val_hf"] = val_dir
+
+        return saved
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the training data."""
