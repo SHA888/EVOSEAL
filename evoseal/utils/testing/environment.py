@@ -154,7 +154,7 @@ def temp_dir() -> Generator[Path, None, None]:
 
 
 @contextmanager
-def temp_file(content: str = "", suffix: str = None) -> Generator[Path, None, None]:
+def temp_file(content: str = "", suffix: Optional[str] = None) -> Generator[Path, None, None]:
     """Context manager for creating a temporary file.
 
     The file will be automatically removed when the context exits.

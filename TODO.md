@@ -258,7 +258,7 @@
 - [x] **`cmd_git.py:977` `tag()` builds a malformed argv token** — `cmd.append("-s" if not sign_key else f"-u {sign_key}")` appends `"-u <key>"` as one argv element instead of `["-u", sign_key]`; since commands run via `subprocess.run(list, shell=False)`, git receives one malformed token and signed-tag-with-explicit-key fails
 - [x] **`git_interface.py` credential-helper config is broken** _(done 2026-07-24)_ — sets `credential.helper` to the literal string `'cache --timeout=300'` including the quotes (no shell involved, so they're taken literally), via two non-`--add` `--local` sets where the second silently overwrites the first with a bogus value — HTTPS credential caching silently doesn't work. Fixed to a single `config --local credential.helper "cache --timeout=300"` call with no spurious quotes
 - [x] **Stray `evoseal/utils/validator.py.bak`** _(done 2026-07-26)_ — a 1132-line backup committed to the repo tree (not gitignored), diverged from `validator.py`; risk of editing the wrong file
-- [ ] **`evoseal/utils/testing/environment.py:180`** — `suffix: str = None` type-annotation mismatch (should be `Optional[str]`)
+- [x] **`evoseal/utils/testing/environment.py:180`** — `suffix: str = None` type-annotation mismatch (should be `Optional[str]`)
 - [ ] **`providers/ollama_provider.py:98-136`** — `submit_prompt` has no retry/backoff on transient network failures despite being the sole retry/timeout surface for local model calls
 - [ ] **`providers/local_models.py:103-119`** — `_query_installed_models` is `lru_cache`d indefinitely with no TTL; a newly pulled/removed Ollama model isn't picked up until something explicitly calls `clear_model_cache()`
 - [ ] **`model_fine_tuner.py:122-137`** — `_check_gpu_availability()` is defined but never called; despite the module docstring claiming "Requires a CUDA GPU," `initialize_model()` silently proceeds on CPU instead of failing fast
@@ -307,8 +307,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
 | 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
-| 🟢 P3    | 24    | 10   | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **48** |
+| 🟢 P3    | 24    | 11   | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
+| **Total** | **89** | **49** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
