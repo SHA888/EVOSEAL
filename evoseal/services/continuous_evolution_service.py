@@ -116,7 +116,20 @@ class ContinuousEvolutionService:
 
         def _handler(signum: int, frame: Any) -> None:
             logger.info("Received signal %s, initiating graceful shutdown...", signum)
-            loop.call_soon_threadsafe(asyncio.ensure_future, self.shutdown())
+            if loop.is_closed():
+                logger.warning(
+                    "Event loop already closed, cannot schedule shutdown for signal %s",
+                    signum,
+                )
+                return
+            try:
+                loop.call_soon_threadsafe(asyncio.ensure_future, self.shutdown())
+            except RuntimeError:
+                # Loop stopped/closed between our check and the call
+                logger.warning(
+                    "Failed to schedule shutdown for signal %s (loop stopped)",
+                    signum,
+                )
 
         self._original_sigint = signal.signal(signal.SIGINT, _handler)
         self._original_sigterm = signal.signal(signal.SIGTERM, _handler)
@@ -143,10 +156,13 @@ class ContinuousEvolutionService:
         self.last_evolution_check = datetime.now()
         self.last_training_check = datetime.now()
 
-        # Install signal handlers now that we're in an async context
-        self._setup_signal_handlers()
-
         try:
+            # Install signal handlers now that we're in an async context.
+            # This is inside the try so that if signal.signal() raises (e.g.
+            # off the main thread), the finally block resets is_running and
+            # runs cleanup.
+            self._setup_signal_handlers()
+
             # Start main service loop
             await self._run_service_loop()
 
