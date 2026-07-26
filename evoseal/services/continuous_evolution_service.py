@@ -86,6 +86,8 @@ class ContinuousEvolutionService:
         self.last_evolution_check = None
         self.last_training_check = None
         self.shutdown_event = asyncio.Event()
+        self._original_sigint = None
+        self._original_sigterm = None
 
         # Statistics
         self.service_stats = {
@@ -99,20 +101,33 @@ class ContinuousEvolutionService:
             "last_activity": None,
         }
 
-        # Setup signal handlers
-        self._setup_signal_handlers()
-
         logger.info("ContinuousEvolutionService initialized")
 
-    def _setup_signal_handlers(self):
-        """Setup signal handlers for graceful shutdown."""
+    def _setup_signal_handlers(self) -> None:
+        """Install signal handlers for graceful shutdown.
 
-        def signal_handler(signum, frame):
-            logger.info(f"Received signal {signum}, initiating graceful shutdown...")
-            asyncio.create_task(self.shutdown())
+        Must be called from ``start()`` (inside a running event loop),
+        not from ``__init__`` — ``signal.signal()`` only works on the
+        main thread, and the handler needs a live event loop to schedule
+        the ``shutdown()`` coroutine.
+        """
+        loop = asyncio.get_running_loop()
 
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        def _handler(signum: int, frame: Any) -> None:
+            logger.info("Received signal %s, initiating graceful shutdown...", signum)
+            loop.call_soon_threadsafe(asyncio.ensure_future, self.shutdown())
+
+        self._original_sigint = signal.signal(signal.SIGINT, _handler)
+        self._original_sigterm = signal.signal(signal.SIGTERM, _handler)
+
+    def _restore_signal_handlers(self) -> None:
+        """Restore the signal handlers that were active before ``start()``."""
+        if self._original_sigint is not None:
+            signal.signal(signal.SIGINT, self._original_sigint)
+            self._original_sigint = None
+        if self._original_sigterm is not None:
+            signal.signal(signal.SIGTERM, self._original_sigterm)
+            self._original_sigterm = None
 
     async def start(self):
         """Start the continuous evolution service."""
@@ -125,6 +140,9 @@ class ContinuousEvolutionService:
         self.start_time = datetime.now()
         self.last_evolution_check = datetime.now()
         self.last_training_check = datetime.now()
+
+        # Install signal handlers now that we're in an async context
+        self._setup_signal_handlers()
 
         try:
             # Start main service loop
@@ -463,7 +481,7 @@ class ContinuousEvolutionService:
     async def _cleanup(self):
         """Cleanup resources."""
         logger.info("🧹 Cleaning up service resources")
-        # Add any cleanup logic here
+        self._restore_signal_handlers()
 
     def get_service_status(self) -> dict[str, Any]:
         """Get current service status."""
