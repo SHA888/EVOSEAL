@@ -137,6 +137,7 @@ class ContinuousEvolutionService:
             return
 
         logger.info("🚀 Starting Continuous Evolution Service")
+        self._shutting_down = False
         self.is_running = True
         self.start_time = datetime.now()
         self.last_evolution_check = datetime.now()
