@@ -1133,8 +1133,13 @@ class CmdGit(GitInterface):
 
             # Get file content from working directory
             full_path = self.repo_path / file_path
+            # Prevent path traversal: resolved path must stay within repo root
+            resolved = full_path.resolve()
+            repo_root = self.repo_path.resolve()
+            if not resolved.is_relative_to(repo_root):
+                raise GitError(f"Invalid file path '{file_path}': escapes repository root")
             try:
-                return full_path.read_text(encoding=encoding)
+                return resolved.read_text(encoding=encoding)
             except UnicodeDecodeError as e:
                 raise GitError(
                     f"Failed to decode file '{file_path}' with encoding {encoding}"
@@ -1178,6 +1183,12 @@ class CmdGit(GitInterface):
             self._check_initialized()
             file_path = Path(file_path)
             full_path = self.repo_path / file_path
+            # Prevent path traversal: resolved path must stay within repo root
+            resolved = full_path.resolve()
+            repo_root = self.repo_path.resolve()
+            if not resolved.is_relative_to(repo_root):
+                raise GitError(f"Invalid file path '{file_path}': escapes repository root")
+            full_path = resolved
 
             # Create parent directories if needed
             if create_parents:
