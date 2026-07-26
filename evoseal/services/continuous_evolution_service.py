@@ -88,6 +88,7 @@ class ContinuousEvolutionService:
         self.shutdown_event = asyncio.Event()
         self._original_sigint = None
         self._original_sigterm = None
+        self._shutting_down = False
 
         # Statistics
         self.service_stats = {
@@ -156,6 +157,10 @@ class ContinuousEvolutionService:
 
     async def shutdown(self):
         """Gracefully shutdown the service."""
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+
         logger.info("🛑 Shutting down Continuous Evolution Service")
         self.is_running = False
         self.shutdown_event.set()
