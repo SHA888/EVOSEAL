@@ -162,6 +162,29 @@ def test_path_traversal_blocked_on_write(git_repo_with_commit: CmdGit):
         git_repo_with_commit.write_file_content("a/b/../../../tmp/evil.txt", "pwned")
 
 
+def test_symlink_traversal_blocked(git_repo_with_commit: CmdGit):
+    """Test that symlinks pointing outside the repo are rejected."""
+    import os
+
+    # Create a symlink inside the repo that points outside
+    outside_dir = git_repo_with_commit.repo_path.parent / "outside"
+    outside_dir.mkdir(exist_ok=True)
+    (outside_dir / "secret.txt").write_text("secret data")
+    link_path = git_repo_with_commit.repo_path / "evil_link"
+    try:
+        os.symlink(outside_dir, link_path)
+        # The symlink itself is inside the repo, but resolve() follows it
+        # to outside — must be caught
+        with pytest.raises(GitError, match="escapes repository root"):
+            git_repo_with_commit.get_file_content("evil_link/secret.txt")
+        with pytest.raises(GitError, match="escapes repository root"):
+            git_repo_with_commit.write_file_content("evil_link/evil.txt", "pwned")
+    finally:
+        link_path.unlink(missing_ok=True)
+        (outside_dir / "secret.txt").unlink(missing_ok=True)
+        outside_dir.rmdir()
+
+
 def test_valid_subdir_file_ops(git_repo_with_commit: CmdGit):
     """Test that legitimate subdirectory file operations still work."""
     result = git_repo_with_commit.write_file_content("sub/dir/file.txt", "hello")
