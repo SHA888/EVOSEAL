@@ -8,7 +8,7 @@ The framework is designed to be extensible for different agent types and behavio
 import inspect
 from typing import Any, Protocol
 
-from evoseal.utils.logging import Logger
+from evoseal.utils.logging import Logger, get_logger
 
 
 class Agent(Protocol):
@@ -28,7 +28,7 @@ class AgenticSystem:
         self.agents: dict[str, Agent] = {}
         self.performance: dict[str, list[Any]] = {}
         self.groups: dict[str, list[str]] = {}  # group_name -> list of agent_ids
-        self.logger = logger or Logger("AgenticSystem")
+        self.logger = logger or get_logger("AgenticSystem")
 
     def create_agent(self, agent_id: str, agent: Agent, group: str | None = None) -> None:
         """Register a new agent. Optionally assign to a group."""
