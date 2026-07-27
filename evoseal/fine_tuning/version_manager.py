@@ -97,13 +97,24 @@ class ModelVersionManager:
                 # permissions.
                 try:
                     mode = stat.S_IMODE(os.stat(self.registry_file).st_mode)
-                except OSError:
+                except FileNotFoundError:
                     mode = 0o644
-                os.fchmod(fd, mode)
+                # os.fchmod is POSIX-only; fall back to os.chmod on Windows.
+                if hasattr(os, "fchmod"):
+                    os.fchmod(fd, mode)
+                else:
+                    os.chmod(tmp_path, mode)
                 with os.fdopen(fd, "w") as f:
+                    fd = -1  # fdopen took ownership; prevent double-close.
                     json.dump(self.registry, f, indent=2, default=str)
                 os.replace(tmp_path, self.registry_file)
             except BaseException:
+                # Close the raw fd if fdopen hasn't taken ownership yet.
+                if fd >= 0:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        pass
                 # Clean up the temp file on any failure (write error, SIGKILL
                 # during replace, etc.) so we don't leak orphan files.
                 try:
