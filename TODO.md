@@ -244,7 +244,7 @@
 - [x] **Add pre-commit hooks** _(done 2026-06-04)_
   - ruff (lint + format), bandit, detect-secrets, hadolint, trufflehog, pytest fast-check
   - Config in `.pre-commit-config.yaml`; install with `pre-commit install`
-- [x] **Add `CHANGELOG.md`** tracking releases (v0.3.7 is latest but no changelog visible)
+- [x] **Add `CHANGELOG.md`** tracking releases
 - [x] **Docker support** _(already present)_
   - `Dockerfile` (python:3.11-slim + uv) and `docker-compose.evoseal.yml`
   - Dashboard on port 9613; volumes for checkpoints, data, reports, benchmarks
