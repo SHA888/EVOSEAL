@@ -81,6 +81,15 @@ class ModelVersionManager:
         Writes to a temporary file in the same directory then performs an
         ``os.replace`` so the registry file is never left in a partially-
         written state (e.g. after a crash or power loss).
+
+        .. note::
+            ``os.replace`` operates on the path itself, not its target.  If
+            ``self.registry_file`` is a symlink, the old write-via-open
+            behaviour preserved the link; the atomic-rename pattern will
+            *replace* the symlink with a regular file.  Callers that point
+            the registry at shared/mounted storage via a symlink should
+            pass the resolved path (e.g. ``Path.realpath(registry_file)``)
+            or avoid symlinks entirely.
         """
         try:
             self.registry["updated"] = datetime.now().isoformat()
@@ -97,7 +106,9 @@ class ModelVersionManager:
                 # permissions.
                 try:
                     mode = stat.S_IMODE(os.stat(self.registry_file).st_mode)
-                except FileNotFoundError:
+                except OSError:
+                    # FileNotFoundError (new registry), PermissionError, or
+                    # any other stat failure — fall back to a sane default.
                     mode = 0o644
                 # os.fchmod is POSIX-only; fall back to os.chmod on Windows.
                 if hasattr(os, "fchmod"):
@@ -113,14 +124,22 @@ class ModelVersionManager:
                 if fd >= 0:
                     try:
                         os.close(fd)
-                    except OSError:
-                        pass
+                    except OSError as exc:
+                        logger.debug(
+                            "Failed to close temp fd %d during cleanup: %s",
+                            fd,
+                            exc,
+                        )
                 # Clean up the temp file on any failure (write error, SIGKILL
                 # during replace, etc.) so we don't leak orphan files.
                 try:
                     os.unlink(tmp_path)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    logger.warning(
+                        "Could not remove temp file %s during cleanup: %s",
+                        tmp_path,
+                        exc,
+                    )
                 raise
         except Exception as e:
             logger.error(f"Error saving version registry: {e}")

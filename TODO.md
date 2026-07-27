@@ -308,7 +308,7 @@
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
 | 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
 | 🟢 P3    | 24    | 10   | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **45** |
+| **Total** | **89** | **48** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
