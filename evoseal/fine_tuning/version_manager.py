@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 from datetime import datetime
@@ -90,6 +91,15 @@ class ModelVersionManager:
                 prefix=".version_registry_",
             )
             try:
+                # mkstemp creates the file with mode 0o600 regardless of
+                # umask.  Preserve the existing file's mode (or fall back to
+                # 0o644) so that os.replace doesn't silently tighten
+                # permissions.
+                try:
+                    mode = stat.S_IMODE(os.stat(self.registry_file).st_mode)
+                except OSError:
+                    mode = 0o644
+                os.fchmod(fd, mode)
                 with os.fdopen(fd, "w") as f:
                     json.dump(self.registry, f, indent=2, default=str)
                 os.replace(tmp_path, self.registry_file)
@@ -98,7 +108,6 @@ class ModelVersionManager:
                 # during replace, etc.) so we don't leak orphan files.
                 try:
                     os.unlink(tmp_path)
-                    pass
                 except OSError:
                     pass
                 raise

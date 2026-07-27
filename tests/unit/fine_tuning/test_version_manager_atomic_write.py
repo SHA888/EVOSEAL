@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 from pathlib import Path
 from unittest.mock import patch
 
@@ -98,3 +100,25 @@ class TestAtomicSaveRegistry:
 
         data = json.loads(vm.registry_file.read_text())
         assert len(data["versions"]) == 2
+
+    def test_save_preserves_existing_file_permissions(self, versions_dir: Path) -> None:
+        """Registry file permissions must not tighten after atomic save."""
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        vm._save_registry()
+
+        # Set a deliberate mode (0o644) and verify it survives a round-trip.
+        os.chmod(vm.registry_file, 0o644)
+        vm.registry["versions"].append({"id": "v1"})
+        vm._save_registry()
+
+        mode = stat.S_IMODE(os.stat(vm.registry_file).st_mode)
+        assert mode == 0o644, f"Expected 0o644 but got {oct(mode)}"
+
+    def test_save_defaults_to_0644_when_file_is_new(self, versions_dir: Path) -> None:
+        """A brand-new registry file should be created with mode 0o644."""
+        vm = ModelVersionManager(versions_dir=versions_dir)
+        # registry_file doesn't exist yet — _save_registry should use 0o644.
+        vm._save_registry()
+
+        mode = stat.S_IMODE(os.stat(vm.registry_file).st_mode)
+        assert mode == 0o644, f"Expected 0o644 but got {oct(mode)}"
