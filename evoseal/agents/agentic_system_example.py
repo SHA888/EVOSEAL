@@ -4,7 +4,7 @@ Example usage of AgenticSystem with a simple agent.
 
 from typing import Any
 
-from evoseal.agentic_system import Agent, AgenticSystem
+from evoseal.agents.agentic_system import Agent, AgenticSystem
 
 
 class EchoAgent(Agent):
