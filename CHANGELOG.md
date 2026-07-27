@@ -40,6 +40,40 @@ All notable changes to the EVOSEAL project are documented here.
 - **Configuration**: Ensured backward compatibility with existing deployments
 
 
+## [0.3.4] - 2025-07-27 - Release Script Improvements
+
+### 🔧 Improvements
+
+#### Release Script
+- **Unified Release Script**: Added `scripts/release.sh` for consistent releases
+- **Submodule Handling**: Improved release script to properly handle git submodules
+- **Uncommitted Changes Check**: Simplified and hardened pre-release validation
+
+### 📚 Documentation
+- **Release Notes**: Generated release notes for v0.3.3 and v0.3.4
+
+> **Note:** v0.3.5 was prepared but never released; v0.3.6 superseded it with additional CI fixes.
+
+## [0.3.3] - 2025-07-27 - CI/CD Reliability
+
+### 🔧 Fixes
+
+#### CI/CD Pipeline
+- **Release Workflow Failures**: Fixed critical Release and Cleanup workflow failures
+- **Black Configuration**: Fixed CI Black configuration to use `pyproject.toml` settings
+- **Black Exclude Pattern**: Fixed exclude pattern for CI compatibility
+- **CodeQL Analysis**: Fixed YAML syntax error in workflow
+- **Formatting Consistency**: Fixed formatting configuration across all tools
+
+#### Dependency Updates
+- **actions/setup-python**: Bumped from v4 to v5 (PR #14)
+- **softprops/action-gh-release**: Bumped from v1 to v2 (PR #15)
+
+### 🧹 Cleanup
+- **Pre-commit Configuration**: Streamlined for release preparation
+- **Virtual Environment Exclusions**: Added comprehensive exclusions for linters
+- **Code Formatting**: Applied consistent formatting across entire codebase
+
 ## [0.3.2] - 2025-07-27 - Port Consistency and Configuration Standardization
 
 ### 🔧 Fixes
