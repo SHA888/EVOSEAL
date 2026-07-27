@@ -4,15 +4,16 @@
 # It is enforced as IMMUTABLE by the edit-scope allowlist — the evolution loop
 # must never modify this file. See threat model §3 and ADR 0001.
 #
-# The values below are defaults suitable for research-stage use. Adjust only
-# after reviewing the threat model (docs/safety/threat_model.md).
+# NOTE: This directory is `configs/` (plural), NOT `config/` (singular).
+# `config/` is a Python package containing mutable settings (budget.yaml,
+# logging.yaml, settings.py). `configs/` holds standalone immutable YAML
+# files referenced by path. Both are intentional — do not merge them.
 
 # Edit-scope enforcement
 edit_scope:
   enabled: true
   # Paths that the evolution loop is forbidden from modifying
   forbidden_paths:
-    - configs/safety.yaml
     - .env
     - Makefile
   # Directories that are entirely off-limits

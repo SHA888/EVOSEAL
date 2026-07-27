@@ -96,7 +96,7 @@
   - Only `config/` (singular) exists, containing `budget.yaml`, `logging.yaml`, etc. — no `safety.yaml`
   - Referenced by: `evoseal/core/edit_scope_validator.py` (lines 27, 52, 80), `evoseal/core/safety_integration.py` (line 286), `evoseal/core/testrunner.py` (line 652), `evoseal/cli/commands/doctor.py` (line 181), and multiple safety tests
   - Impact: `evoseal doctor` reports 'safety.yaml not found'; edit-scope allowlist references a nonexistent path; safety tests assert against a file that does not exist on disk
-  - Created `configs/safety.yaml` with defaults for edit-scope enforcement, regression detection thresholds, checkpoint/rollback policy, and sandboxed test execution. Code already references `configs/safety.yaml` (plural) consistently — no path changes needed.
+  - Created `configs/safety.yaml` with defaults for edit-scope enforcement, regression detection thresholds, checkpoint/rollback policy, and sandboxed test execution. Code already references `configs/safety.yaml` (plural) consistently — no path changes needed. Verified: `check_safety_yaml()` returns well-formed, `pytest tests/safety/ tests/unit/test_doctor_command.py` passes (54 tests), `evoseal doctor` check passes.
 
 ### Integration Testing
 
