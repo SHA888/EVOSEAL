@@ -91,12 +91,12 @@
 
 - [ ] **Tier 2 container isolation (DEFERRED — trigger-gated per ADR 0001 section 5; implement only if a trust-model trigger fires, e.g. untrusted generation, multi-tenant host)**
 
-- [ ] **Fix missing `configs/safety.yaml` and `config/` vs `configs/` path discrepancy**
+- [x] **Fix missing `configs/safety.yaml` and `config/` vs `configs/` path discrepancy** _(done 2026-07-27)_
   - Multiple safety-critical modules reference `configs/safety.yaml` (plural `configs/`) as the immutable safety configuration, but neither that file nor a `configs/` directory exists
   - Only `config/` (singular) exists, containing `budget.yaml`, `logging.yaml`, etc. — no `safety.yaml`
   - Referenced by: `evoseal/core/edit_scope_validator.py` (lines 27, 52, 80), `evoseal/core/safety_integration.py` (line 286), `evoseal/core/testrunner.py` (line 652), `evoseal/cli/commands/doctor.py` (line 181), and multiple safety tests
   - Impact: `evoseal doctor` reports 'safety.yaml not found'; edit-scope allowlist references a nonexistent path; safety tests assert against a file that does not exist on disk
-  - Resolve by deciding whether the canonical path is `config/safety.yaml` or `configs/safety.yaml`, creating the file with appropriate defaults, and updating all references to match
+  - Created `configs/safety.yaml` with defaults for edit-scope enforcement, regression detection thresholds, checkpoint/rollback policy, and sandboxed test execution. Code already references `configs/safety.yaml` (plural) consistently — no path changes needed.
 
 ### Integration Testing
 
@@ -304,10 +304,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 13   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix |
+| 🟠 P1    | 24    | 14   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created |
 | 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
 | 🟢 P3    | 24    | 11   | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **51** |
+| **Total** | **89** | **52** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
