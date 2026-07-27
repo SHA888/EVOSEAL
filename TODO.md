@@ -209,7 +209,7 @@
 ### Medium-Priority Bugs Found in Whole-Repo Code Review (2026-07-22)
 
 - [x] **`bidirectional_manager.py` state fields are never mutated** _(done 2026-07-23)_ — fixed by `run_loop_cycle()` in item #6 above; `stats`, `evolution_history`, `is_running`, and `last_check_time` are now all mutated each cycle.
-- [ ] **`version_manager.py` registry file has no atomic write** — `_save_registry()` (lines 70-77, PR #72 branch) writes directly via `open(...,"w")` + `json.dump`; a crash/kill mid-write leaves a truncated file, and `_load_registry()` silently resets to an empty registry on parse failure, losing all version history
+- [x] **`version_manager.py` registry file has no atomic write** — `_save_registry()` (lines 70-77, PR #72 branch) writes directly via `open(...,"w")` + `json.dump`; a crash/kill mid-write leaves a truncated file, and `_load_registry()` silently resets to an empty registry on parse failure, losing all version history
 - [ ] **`version_manager.py` has no locking around concurrent registry mutation** — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`
 - [ ] **`model_fine_tuner.py:160-178` uses `trust_remote_code=True`** on both `AutoTokenizer`/`AutoModelForCausalLM.from_pretrained`, combined with a fallback (`_resolve_hf_base_model()`, lines 107-120) that uses `model_name` verbatim as an HF repo id for unknown families — a bad config value or env var (`EVOSEAL_CODER_MODEL`) can execute arbitrary remote code locally. `# nosec B615` suppresses the linter, not the risk
 - [ ] **`provider_manager.py` treats unhealthy providers as healthy when called from a running event loop** — `get_best_available_provider()` (lines 100-111) and `list_providers()` (lines 196-201) create a health-check task via `loop.create_task(...)` but never await/consume it, then unconditionally set `is_healthy = True`, discarding the real result; the orphaned task can also produce unretrieved-exception warnings
@@ -306,9 +306,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 11   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review |
-| 🟡 P2    | 30    | 15   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
+| 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
 | 🟢 P3    | 24    | 10   | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **45** |
+| **Total** | **89** | **48** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

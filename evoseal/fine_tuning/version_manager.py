@@ -9,9 +9,12 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
+import stat
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -73,11 +76,71 @@ class ModelVersionManager:
             }
 
     def _save_registry(self) -> None:
-        """Save the version registry to disk."""
+        """Save the version registry to disk atomically.
+
+        Writes to a temporary file in the same directory then performs an
+        ``os.replace`` so the registry file is never left in a partially-
+        written state (e.g. after a crash or power loss).
+
+        .. note::
+            ``os.replace`` operates on the path itself, not its target.  If
+            ``self.registry_file`` is a symlink, the old write-via-open
+            behaviour preserved the link; the atomic-rename pattern will
+            *replace* the symlink with a regular file.  Callers that point
+            the registry at shared/mounted storage via a symlink should
+            pass the resolved path (e.g. ``Path.realpath(registry_file)``)
+            or avoid symlinks entirely.
+        """
         try:
             self.registry["updated"] = datetime.now().isoformat()
-            with open(self.registry_file, "w") as f:
-                json.dump(self.registry, f, indent=2, default=str)
+            self.registry_file.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.registry_file.parent,
+                suffix=".tmp",
+                prefix=".version_registry_",
+            )
+            try:
+                # mkstemp creates the file with mode 0o600 regardless of
+                # umask.  Preserve the existing file's mode (or fall back to
+                # 0o644) so that os.replace doesn't silently tighten
+                # permissions.
+                try:
+                    mode = stat.S_IMODE(os.stat(self.registry_file).st_mode)
+                except OSError:
+                    # FileNotFoundError (new registry), PermissionError, or
+                    # any other stat failure — fall back to a sane default.
+                    mode = 0o644
+                # os.fchmod is POSIX-only; fall back to os.chmod on Windows.
+                if hasattr(os, "fchmod"):
+                    os.fchmod(fd, mode)
+                else:
+                    os.chmod(tmp_path, mode)
+                with os.fdopen(fd, "w") as f:
+                    fd = -1  # fdopen took ownership; prevent double-close.
+                    json.dump(self.registry, f, indent=2, default=str)
+                os.replace(tmp_path, self.registry_file)
+            except BaseException:
+                # Close the raw fd if fdopen hasn't taken ownership yet.
+                if fd >= 0:
+                    try:
+                        os.close(fd)
+                    except OSError as exc:
+                        logger.debug(
+                            "Failed to close temp fd %d during cleanup: %s",
+                            fd,
+                            exc,
+                        )
+                # Clean up the temp file on any failure (write error, SIGKILL
+                # during replace, etc.) so we don't leak orphan files.
+                try:
+                    os.unlink(tmp_path)
+                except OSError as exc:
+                    logger.warning(
+                        "Could not remove temp file %s during cleanup: %s",
+                        tmp_path,
+                        exc,
+                    )
+                raise
         except Exception as e:
             logger.error(f"Error saving version registry: {e}")
 
