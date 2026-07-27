@@ -9,9 +9,11 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -73,11 +75,33 @@ class ModelVersionManager:
             }
 
     def _save_registry(self) -> None:
-        """Save the version registry to disk."""
+        """Save the version registry to disk atomically.
+
+        Writes to a temporary file in the same directory then performs an
+        ``os.replace`` so the registry file is never left in a partially-
+        written state (e.g. after a crash or power loss).
+        """
         try:
             self.registry["updated"] = datetime.now().isoformat()
-            with open(self.registry_file, "w") as f:
-                json.dump(self.registry, f, indent=2, default=str)
+            self.registry_file.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.registry_file.parent,
+                suffix=".tmp",
+                prefix=".version_registry_",
+            )
+            try:
+                with os.fdopen(fd, "w") as f:
+                    json.dump(self.registry, f, indent=2, default=str)
+                os.replace(tmp_path, self.registry_file)
+            except BaseException:
+                # Clean up the temp file on any failure (write error, SIGKILL
+                # during replace, etc.) so we don't leak orphan files.
+                try:
+                    os.unlink(tmp_path)
+                    pass
+                except OSError:
+                    pass
+                raise
         except Exception as e:
             logger.error(f"Error saving version registry: {e}")
 
