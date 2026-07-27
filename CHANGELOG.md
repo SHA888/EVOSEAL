@@ -40,7 +40,7 @@ All notable changes to the EVOSEAL project are documented here.
 - **Configuration**: Ensured backward compatibility with existing deployments
 
 
-## [0.3.4] - 2025-07-27 - Release Script Improvements
+## [0.3.4] - 2025-07-28 - Release Script Improvements
 
 ### 🔧 Improvements
 
@@ -54,7 +54,7 @@ All notable changes to the EVOSEAL project are documented here.
 
 > **Note:** v0.3.5 was prepared but never released; v0.3.6 superseded it with additional CI fixes.
 
-## [0.3.3] - 2025-07-27 - CI/CD Reliability
+## [0.3.3] - 2025-07-28 - CI/CD Reliability
 
 ### 🔧 Fixes
 
