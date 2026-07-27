@@ -24,6 +24,7 @@ edit_scope:
     - __pycache__
     - .venv
     - venv
+    - configs
   # Directories that ARE mutable by the evolution loop
   allowed_dirs:
     - evoseal/
