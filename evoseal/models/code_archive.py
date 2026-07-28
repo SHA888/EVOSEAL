@@ -124,29 +124,18 @@ class CodeArchive(BaseModel):
         validate_assignment=True,
     )
 
-    def __init__(self, **data: Any) -> None:
-        """Initialize the code archive with default values."""
-        # Set default values
-        if "id" not in data:
-            data["id"] = str(uuid4())
-        if "created_at" not in data:
-            data["created_at"] = datetime.now(UTC)
-        if "updated_at" not in data:
-            data["updated_at"] = data["created_at"]
-        if "version" not in data:
-            data["version"] = "1.0.0"
-        if "tags" not in data:
-            data["tags"] = []
-        if "visibility" not in data:
-            data["visibility"] = CodeVisibility.PRIVATE
-        if "is_archived" not in data:
-            data["is_archived"] = False
-        if "dependencies" not in data:
-            data["dependencies"] = []
-        if "metadata" not in data:
-            data["metadata"] = {}
+    def model_post_init(self, __context: Any) -> None:
+        """Ensure updated_at mirrors created_at on first construction.
 
-        super().__init__(**data)
+        The old custom __init__ set ``updated_at = created_at`` when not
+        explicitly provided.  With plain field defaults each factory calls
+        ``datetime.now(UTC)`` independently, introducing a microsecond
+        drift.  This hook restores the original guarantee — but only when
+        ``updated_at`` was not explicitly set (e.g. on fresh programmatic
+        construction, not deserialization, which supplies the value).
+        """
+        if "updated_at" not in self.model_fields_set:
+            self.updated_at = self.created_at
 
     @field_validator("content")
     @classmethod
