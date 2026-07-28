@@ -66,6 +66,15 @@ class TestWorkflowEngineExecuteStep:
         with pytest.raises(ValueError, match="missing required 'component'"):
             engine.execute_step(step)
 
+    @pytest.mark.asyncio
+    async def test_execute_step_async(self, engine_with_component):
+        """execute_step_async works from an async context."""
+        engine, comp = engine_with_component
+        step = {"name": "s1", "component": "greeter", "method": "greet", "params": {}}
+        result = await engine.execute_step_async(step)
+        assert result == "hello"
+        comp.greet.assert_called_once()
+
 
 class TestWorkflowAgent:
     """Tests for WorkflowAgent."""
@@ -105,6 +114,22 @@ class TestWorkflowAgent:
 
         result = await agent.act_async(step)
 
+        assert result == "hello"
+        assert agent.last_result == "hello"
+
+    def test_act_async_uses_public_execute_step_async(self, engine_with_component, monkeypatch):
+        """act_async() calls the public execute_step_async, not the private _execute_step_async."""
+        engine, _ = engine_with_component
+        agent = WorkflowAgent(engine)
+        step = {"name": "s1", "component": "greeter", "method": "greet", "params": {}}
+        fake_coro = MagicMock()
+
+        async def _fake(step):
+            return "hello"
+
+        monkeypatch.setattr(engine, "execute_step_async", _fake)
+
+        result = asyncio.run(agent.act_async(step))
         assert result == "hello"
         assert agent.last_result == "hello"
 

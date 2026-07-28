@@ -29,7 +29,7 @@ class WorkflowAgent(Agent):
 
         Use this variant when the caller is already in an async context.
         """
-        self.last_result = await self.engine._execute_step_async(observation)
+        self.last_result = await self.engine.execute_step_async(observation)
         return self.last_result
 
     def receive(self, message: Any) -> None:

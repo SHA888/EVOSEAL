@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import logging
+import threading
 from collections.abc import Awaitable, Callable, Sequence
 from enum import Enum
 from typing import Any, NotRequired, TypeAlias, TypeVar
@@ -124,6 +125,8 @@ class WorkflowEngine:
         self.event_bus = EventBus()
         self.status = WorkflowStatus.IDLE
         self._event_handlers: dict[EventType | str, list[dict[str, Any]]] = {}
+        self._step_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self._step_lock = threading.Lock()
         logger.info("WorkflowEngine initialized")
 
     @property
@@ -361,8 +364,8 @@ class WorkflowEngine:
 
         Safe to call from both sync contexts and from within a running
         event loop.  When a loop is already running the coroutine is
-        offloaded to a short-lived thread so that ``asyncio.run()`` is
-        not re-entered.
+        offloaded to a persistent single-worker thread so that
+        ``asyncio.run()`` is not re-entered.
 
         .. warning::
            When called from inside a running event loop, the calling
@@ -374,11 +377,8 @@ class WorkflowEngine:
 
         .. note::
            Concurrent calls from multiple coroutines (e.g. via
-           ``asyncio.gather``) will execute ``_execute_step_async`` in
-           separate threads against the same engine instance.  The
-           current implementation only reads shared state
-           (``self.components``) and publishes events, so this is safe
-           for typical use, but callers should be aware.
+           ``asyncio.gather``) are serialized by an internal lock to
+           prevent concurrent mutation of shared engine state.
 
         Args:
             step: Dictionary containing step configuration.
@@ -392,10 +392,27 @@ class WorkflowEngine:
             loop = None
 
         if loop is not None and loop.is_running():
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, self._execute_step_async(step)).result()
+            with self._step_lock:
+                return self._step_executor.submit(
+                    asyncio.run, self._execute_step_async(step)
+                ).result()
 
         return asyncio.run(self._execute_step_async(step))
+
+    async def execute_step_async(self, step: dict[str, Any]) -> Any:
+        """Execute a single workflow step asynchronously.
+
+        Public async counterpart of :meth:`execute_step` for callers
+        already inside an async context.  Prefer this over calling the
+        private ``_execute_step_async`` directly.
+
+        Args:
+            step: Dictionary containing step configuration.
+
+        Returns:
+            The result of the step execution.
+        """
+        return await self._execute_step_async(step)
 
     async def _on_workflow_event(self, event: Event) -> None:
         """Handle workflow-related events.
@@ -522,7 +539,7 @@ class WorkflowEngine:
         return decorator(handler)
 
     def cleanup(self) -> None:
-        """Clean up all event handlers.
+        """Clean up all event handlers and the step executor.
 
         This should be called when the workflow engine is no longer needed
         to prevent memory leaks from event handlers.
@@ -531,6 +548,7 @@ class WorkflowEngine:
             for handler in handlers:
                 handler["unsubscribe"]()
         self._event_handlers.clear()
+        self._step_executor.shutdown(wait=False)
         logger.debug("Cleaned up all event handlers")
 
     async def _publish_event(
