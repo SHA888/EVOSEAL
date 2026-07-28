@@ -23,6 +23,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+pytest.importorskip(
+    "datasets", reason="Bidirectional loop tests require 'datasets' for HuggingFace format"
+)
+
 from evoseal.evolution import EvolutionDataCollector
 from evoseal.evolution.data_collector import create_evolution_result
 from evoseal.fine_tuning.bidirectional_manager import BidirectionalEvolutionManager

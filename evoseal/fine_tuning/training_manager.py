@@ -165,21 +165,37 @@ class TrainingManager:
             if not examples:
                 return {"success": False, "error": "No training examples produced from results"}
 
-            # Save training data
+            # Save training data — prefer HuggingFace format for the real
+            # fine-tuning path, but fall back to JSONL when the `datasets`
+            # package isn't installed (the fallback training path doesn't
+            # need HF format).
             data_dir = self.output_dir / f"training_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            builder.save_training_data(data_dir, format_type="jsonl")
+            format_type = "huggingface"
+            try:
+                builder.save_training_data(data_dir, format_type=format_type)
+            except RuntimeError:
+                logger.warning(
+                    "HuggingFace 'datasets' package not available; falling back to JSONL format"
+                )
+                format_type = "jsonl"
+                builder.save_training_data(data_dir, format_type=format_type)
 
             stats = builder.get_statistics()
 
             logger.info(f"Training data prepared: {len(examples)} examples")
 
-            return {
+            result: dict[str, Any] = {
                 "success": True,
-                "data_file": str(data_dir),
+                "data_file": str(data_dir / "train" if format_type == "huggingface" else data_dir),
                 "examples_count": len(examples),
                 "quality_score": stats.get("quality_stats", {}).get("avg_quality", 0.0),
                 "preparation_time": datetime.now().isoformat(),
             }
+            # Expose val split path when available (HF format writes it).
+            val_path = data_dir / "val"
+            if val_path.exists():
+                result["val_data_file"] = str(val_path)
+            return result
 
         except Exception as e:
             logger.error(f"Error preparing training data: {e}")
