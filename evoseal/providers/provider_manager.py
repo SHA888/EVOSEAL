@@ -17,18 +17,37 @@ from evoseal.providers.seal_providers import SEALProvider
 logger = logging.getLogger(__name__)
 
 
-def _run_coro_sync(coro):  # type: ignore[no-untyped-def]
+def _run_coro_sync(coro, executor=None):  # type: ignore[no-untyped-def]
     """Run *coro* synchronously, even from inside a running event loop.
 
     When no event loop is running, ``asyncio.run`` is used directly.  When
     called from within a running loop (e.g. an async handler), the coroutine
-    is scheduled in a short-lived background thread so the caller is not
-    blocked.
+    is executed in a background thread with its own event loop to avoid the
+    ``asyncio.run() cannot be called from a running event loop`` error.
+
+    **Note:** the caller *is* blocked in both branches (``.result()`` waits
+    for the background thread to finish).  This is a synchronous bridge
+    intended for code paths that genuinely cannot be made async.
+
+    Caveat: each call (without a shared *executor*) creates a fresh event
+    loop in a new thread.  If a coroutine caches loop-bound resources
+    (e.g. ``aiohttp.ClientSession``) across invocations, those resources
+    would be bound to different loops.  Current ``health_check()``
+    implementations create fresh sessions per call, so this is safe today
+    but worth keeping in mind for future changes.
+
+    Args:
+        coro: The coroutine to run.
+        executor: Optional shared ``ThreadPoolExecutor``.  When *None*, a
+            new single-thread executor is created (and torn down) per call.
     """
     try:
         asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(coro)
+
+    if executor is not None:
+        return executor.submit(asyncio.run, coro).result()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         return pool.submit(asyncio.run, coro).result()
@@ -180,29 +199,44 @@ class ProviderManager:
         """
         provider_info = {}
 
-        for name, config in settings.seal.providers.items():
-            info = {
-                "name": config.name,
-                "enabled": config.enabled,
-                "priority": config.priority,
-                "config": config.config,
-                "available": name in self._provider_classes,
-                "initialized": name in self._providers,
-            }
+        # Use a shared executor when running inside an event loop to avoid
+        # spinning up a separate thread pool per provider.
+        shared_pool: concurrent.futures.ThreadPoolExecutor | None = None
+        try:
+            asyncio.get_running_loop()
+            shared_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        except RuntimeError:
+            pass  # No running loop; _run_coro_sync will use asyncio.run directly
 
-            # Add health status if provider is initialized
-            if name in self._providers:
-                provider = self._providers[name]
-                if hasattr(provider, "health_check"):
-                    try:
-                        info["healthy"] = _run_coro_sync(provider.health_check())
-                    except Exception as e:
-                        info["healthy"] = False
-                        info["health_error"] = str(e)
-                else:
-                    info["healthy"] = True  # Assume healthy if no health check
+        try:
+            for name, config in settings.seal.providers.items():
+                info = {
+                    "name": config.name,
+                    "enabled": config.enabled,
+                    "priority": config.priority,
+                    "config": config.config,
+                    "available": name in self._provider_classes,
+                    "initialized": name in self._providers,
+                }
 
-            provider_info[name] = info
+                # Add health status if provider is initialized
+                if name in self._providers:
+                    provider = self._providers[name]
+                    if hasattr(provider, "health_check"):
+                        try:
+                            info["healthy"] = _run_coro_sync(
+                                provider.health_check(), executor=shared_pool
+                            )
+                        except Exception as e:
+                            info["healthy"] = False
+                            info["health_error"] = str(e)
+                    else:
+                        info["healthy"] = True  # Assume healthy if no health check
+
+                provider_info[name] = info
+        finally:
+            if shared_pool is not None:
+                shared_pool.shutdown(wait=False)
 
         return provider_info
 

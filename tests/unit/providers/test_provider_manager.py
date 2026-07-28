@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -40,6 +41,21 @@ class TestRunCoroSync:
 
         with pytest.raises(RuntimeError, match="async boom"):
             _run_coro_sync(_fail())
+
+    @pytest.mark.asyncio
+    async def test_accepts_shared_executor(self):
+        """When an executor is provided, it is reused instead of creating a new one."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            r1 = _run_coro_sync(asyncio.sleep(0, result=1), executor=pool)
+            r2 = _run_coro_sync(asyncio.sleep(0, result=2), executor=pool)
+        assert r1 == 1
+        assert r2 == 2
+
+    def test_shared_executor_ignored_in_sync_context(self):
+        """Outside a running loop, the executor arg is ignored (asyncio.run is used)."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            result = _run_coro_sync(asyncio.sleep(0, result=99), executor=pool)
+        assert result == 99
 
 
 # ---------------------------------------------------------------------------
