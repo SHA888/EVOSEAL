@@ -86,6 +86,17 @@ def _make_provider(healthy: bool):
     return provider
 
 
+def _mock_config(name: str, **kw):
+    """Build a mock config whose ``.name`` attribute returns *name*.
+
+    ``MagicMock(name=...)`` sets the mock's *repr*, not an attribute, so we
+    assign ``.name`` explicitly after construction.
+    """
+    m = MagicMock(**kw)
+    m.name = name
+    return m
+
+
 def _make_manager_with_providers(providers: dict[str, tuple]):
     """Build a ProviderManager whose `_providers` are pre-populated mocks.
 
@@ -177,8 +188,8 @@ class TestListProviders:
         mgr._provider_classes = {}
 
         mock_cfg = {
-            "healthy": MagicMock(name="h", enabled=True, priority=10, config={}),
-            "unhealthy": MagicMock(name="u", enabled=True, priority=5, config={}),
+            "healthy": _mock_config("h", enabled=True, priority=10, config={}),
+            "unhealthy": _mock_config("u", enabled=True, priority=5, config={}),
         }
         with patch("evoseal.providers.provider_manager.settings") as mock_settings:
             mock_settings.seal.providers = mock_cfg
@@ -197,7 +208,7 @@ class TestListProviders:
         mgr._provider_classes = {}
 
         mock_cfg = {
-            "broken": MagicMock(name="b", enabled=True, priority=10, config={}),
+            "broken": _mock_config("b", enabled=True, priority=10, config={}),
         }
         with patch("evoseal.providers.provider_manager.settings") as mock_settings:
             mock_settings.seal.providers = mock_cfg
@@ -205,3 +216,104 @@ class TestListProviders:
 
         assert result["broken"]["healthy"] is False
         assert "timed out" in result["broken"]["health_error"]
+
+
+# ---------------------------------------------------------------------------
+# Async-native methods: aget_best_available_provider / alist_providers
+# ---------------------------------------------------------------------------
+
+
+class TestAGetBestAvailableProvider:
+    @pytest.mark.asyncio
+    async def test_selects_healthy_provider(self):
+        healthy_prov = _make_provider(True)
+        mgr, mock_cfg = _make_manager_with_providers({"p": (healthy_prov, 10)})
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            result = await mgr.aget_best_available_provider()
+        assert result is healthy_prov
+        healthy_prov.health_check.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_skips_unhealthy_provider(self):
+        bad_prov = _make_provider(False)
+        good_prov = _make_provider(True)
+        mgr, mock_cfg = _make_manager_with_providers(
+            {"bad": (bad_prov, 10), "good": (good_prov, 5)}
+        )
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            result = await mgr.aget_best_available_provider()
+        assert result is good_prov
+
+    @pytest.mark.asyncio
+    async def test_raises_when_all_unhealthy(self):
+        bad = _make_provider(False)
+        mgr, mock_cfg = _make_manager_with_providers({"a": (bad, 10)})
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            with pytest.raises(RuntimeError, match="No healthy"):
+                await mgr.aget_best_available_provider()
+
+    @pytest.mark.asyncio
+    async def test_respects_timeout(self):
+        slow = _make_provider(True)
+        slow.health_check = AsyncMock(side_effect=asyncio.TimeoutError)
+        fast = _make_provider(True)
+        mgr, mock_cfg = _make_manager_with_providers({"slow": (slow, 10), "fast": (fast, 5)})
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            result = await mgr.aget_best_available_provider(health_check_timeout=0.1)
+        assert result is fast
+
+
+class TestAListProviders:
+    @pytest.mark.asyncio
+    async def test_reports_actual_health_status(self):
+        healthy = _make_provider(True)
+        unhealthy = _make_provider(False)
+        mgr = ProviderManager.__new__(ProviderManager)
+        mgr._providers = {"healthy": healthy, "unhealthy": unhealthy}
+        mgr._provider_classes = {}
+        mock_cfg = {
+            "healthy": _mock_config("h", enabled=True, priority=10, config={}),
+            "unhealthy": _mock_config("u", enabled=True, priority=5, config={}),
+        }
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            result = await mgr.alist_providers()
+        assert result["healthy"]["healthy"] is True
+        assert result["unhealthy"]["healthy"] is False
+        healthy.health_check.assert_awaited_once()
+        unhealthy.health_check.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_health_check_exception_is_reported(self):
+        broken = _make_provider(True)
+        broken.health_check = AsyncMock(side_effect=TimeoutError("timed out"))
+        mgr = ProviderManager.__new__(ProviderManager)
+        mgr._providers = {"broken": broken}
+        mgr._provider_classes = {}
+        mock_cfg = {
+            "broken": _mock_config("b", enabled=True, priority=10, config={}),
+        }
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            result = await mgr.alist_providers()
+        assert result["broken"]["healthy"] is False
+        assert "timed out" in result["broken"]["health_error"]
+
+    @pytest.mark.asyncio
+    async def test_respects_timeout(self):
+        slow = _make_provider(True)
+        slow.health_check = AsyncMock(side_effect=asyncio.TimeoutError)
+        mgr = ProviderManager.__new__(ProviderManager)
+        mgr._providers = {"slow": slow}
+        mgr._provider_classes = {}
+        mock_cfg = {
+            "slow": _mock_config("s", enabled=True, priority=10, config={}),
+        }
+        with patch("evoseal.providers.provider_manager.settings") as mock_settings:
+            mock_settings.seal.providers = mock_cfg
+            result = await mgr.alist_providers(health_check_timeout=0.1)
+        assert result["slow"]["healthy"] is False

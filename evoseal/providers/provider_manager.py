@@ -113,8 +113,77 @@ class ProviderManager:
         logger.info(f"Created provider instance: {provider_name}")
         return provider_instance
 
-    def get_best_available_provider(self) -> SEALProvider:
+    async def aget_best_available_provider(
+        self, *, health_check_timeout: float | None = 30
+    ) -> SEALProvider:
+        """Async version — await health checks without blocking the event loop.
+
+        Use this instead of :meth:`get_best_available_provider` when already
+        inside a coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
+
+        Returns:
+            The best available provider instance
+
+        Raises:
+            RuntimeError: If no providers are available
+        """
+        enabled_providers = [
+            (name, config) for name, config in settings.seal.providers.items() if config.enabled
+        ]
+        if not enabled_providers:
+            raise RuntimeError("No SEAL providers are enabled")
+        enabled_providers.sort(key=lambda x: x[1].priority, reverse=True)
+
+        for provider_name, provider_config in enabled_providers:
+            try:
+                provider = self.get_provider(provider_name)
+                if hasattr(provider, "health_check"):
+                    try:
+                        coro = provider.health_check()
+                        if health_check_timeout is not None:
+                            coro = asyncio.wait_for(coro, timeout=health_check_timeout)
+                        is_healthy = await coro
+                    except Exception as e:
+                        logger.warning(f"Health check failed for {provider_name}: {e}")
+                        continue
+                    if is_healthy:
+                        logger.info(
+                            f"Selected provider: {provider_name} "
+                            f"(priority: {provider_config.priority})"
+                        )
+                        return provider
+                    else:
+                        logger.warning(f"Provider {provider_name} failed health check")
+                        continue
+                else:
+                    logger.info(
+                        f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                    )
+                    return provider
+            except Exception as e:
+                logger.warning(f"Failed to initialize provider {provider_name}: {e}")
+                continue
+
+        raise RuntimeError("No healthy SEAL providers are available")
+
+    def get_best_available_provider(
+        self, *, health_check_timeout: float | None = 30
+    ) -> SEALProvider:
         """Get the best available provider based on priority and availability.
+
+        This is the synchronous wrapper — it blocks the calling thread while
+        running health checks.  Prefer :meth:`aget_best_available_provider`
+        when already inside a coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
 
         Returns:
             The best available provider instance
@@ -152,7 +221,9 @@ class ProviderManager:
                     if hasattr(provider, "health_check"):
                         try:
                             is_healthy = _run_coro_sync(
-                                provider.health_check(), executor=shared_pool
+                                provider.health_check(),
+                                executor=shared_pool,
+                                timeout=health_check_timeout,
                             )
                         except Exception as e:
                             logger.warning(f"Health check failed for {provider_name}: {e}")
@@ -214,8 +285,61 @@ class ProviderManager:
             logger.error(f"Failed to create {provider_name} provider: {e}")
             raise
 
-    def list_providers(self) -> dict[str, dict[str, Any]]:
+    async def alist_providers(
+        self, *, health_check_timeout: float | None = 30
+    ) -> dict[str, dict[str, Any]]:
+        """Async version — await health checks without blocking the event loop.
+
+        Use this instead of :meth:`list_providers` when already inside a
+        coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
+
+        Returns:
+            Dictionary with provider information
+        """
+        provider_info = {}
+        for name, config in settings.seal.providers.items():
+            info = {
+                "name": config.name,
+                "enabled": config.enabled,
+                "priority": config.priority,
+                "config": config.config,
+                "available": name in self._provider_classes,
+                "initialized": name in self._providers,
+            }
+            if name in self._providers:
+                provider = self._providers[name]
+                if hasattr(provider, "health_check"):
+                    try:
+                        coro = provider.health_check()
+                        if health_check_timeout is not None:
+                            coro = asyncio.wait_for(coro, timeout=health_check_timeout)
+                        info["healthy"] = await coro
+                    except Exception as e:
+                        info["healthy"] = False
+                        info["health_error"] = str(e)
+                else:
+                    info["healthy"] = True
+            provider_info[name] = info
+        return provider_info
+
+    def list_providers(
+        self, *, health_check_timeout: float | None = 30
+    ) -> dict[str, dict[str, Any]]:
         """List all configured providers with their status.
+
+        This is the synchronous wrapper — it blocks the calling thread while
+        running health checks.  Prefer :meth:`alist_providers` when already
+        inside a coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
 
         Returns:
             Dictionary with provider information
@@ -248,7 +372,9 @@ class ProviderManager:
                     if hasattr(provider, "health_check"):
                         try:
                             info["healthy"] = _run_coro_sync(
-                                provider.health_check(), executor=shared_pool
+                                provider.health_check(),
+                                executor=shared_pool,
+                                timeout=health_check_timeout,
                             )
                         except Exception as e:
                             info["healthy"] = False
