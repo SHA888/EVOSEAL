@@ -124,6 +124,16 @@ class CodeArchive(BaseModel):
         validate_assignment=True,
     )
 
+    def model_post_init(self, __context: Any) -> None:
+        """Ensure updated_at mirrors created_at on first construction.
+
+        The old custom __init__ set ``updated_at = created_at`` when not
+        explicitly provided.  With plain field defaults each factory calls
+        ``datetime.now(UTC)`` independently, introducing a microsecond
+        drift.  This hook restores the original guarantee.
+        """
+        self.updated_at = self.created_at
+
     @field_validator("content")
     @classmethod
     def validate_content_not_empty(cls: type[ModelT], v: str) -> str:
