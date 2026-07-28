@@ -130,9 +130,11 @@ class CodeArchive(BaseModel):
         The old custom __init__ set ``updated_at = created_at`` when not
         explicitly provided.  With plain field defaults each factory calls
         ``datetime.now(UTC)`` independently, introducing a microsecond
-        drift.  This hook restores the original guarantee.
+        drift.  This hook restores the original guarantee — but only when
+        ``updated_at`` was not explicitly set (e.g. on deserialization).
         """
-        self.updated_at = self.created_at
+        if "updated_at" not in self.model_fields_set:
+            self.updated_at = self.created_at
 
     @field_validator("content")
     @classmethod
