@@ -124,30 +124,6 @@ class CodeArchive(BaseModel):
         validate_assignment=True,
     )
 
-    def __init__(self, **data: Any) -> None:
-        """Initialize the code archive with default values."""
-        # Set default values
-        if "id" not in data:
-            data["id"] = str(uuid4())
-        if "created_at" not in data:
-            data["created_at"] = datetime.now(UTC)
-        if "updated_at" not in data:
-            data["updated_at"] = data["created_at"]
-        if "version" not in data:
-            data["version"] = "1.0.0"
-        if "tags" not in data:
-            data["tags"] = []
-        if "visibility" not in data:
-            data["visibility"] = CodeVisibility.PRIVATE
-        if "is_archived" not in data:
-            data["is_archived"] = False
-        if "dependencies" not in data:
-            data["dependencies"] = []
-        if "metadata" not in data:
-            data["metadata"] = {}
-
-        super().__init__(**data)
-
     @field_validator("content")
     @classmethod
     def validate_content_not_empty(cls: type[ModelT], v: str) -> str:

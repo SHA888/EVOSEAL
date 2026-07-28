@@ -262,7 +262,7 @@
 - [ ] **`providers/local_models.py:103-119`** — `_query_installed_models` is `lru_cache`d indefinitely with no TTL; a newly pulled/removed Ollama model isn't picked up until something explicitly calls `clear_model_cache()`
 - [ ] **`model_fine_tuner.py:122-137`** — `_check_gpu_availability()` is defined but never called; despite the module docstring claiming "Requires a CUDA GPU," `initialize_model()` silently proceeds on CPU instead of failing fast
 - [ ] **`model_fine_tuner.py:220,240`** — `example['instruction']`/`example['output']` direct dict access with no `.get()`; a malformed training example raises `KeyError` surfaced only as a generic error string instead of a clear validation message
-- [ ] **`models/code_archive.py:127-149`** — `__init__` manually re-implements every default already provided by `Field(default_factory=...)`, a drift hazard (two sources of truth for the same defaults)
+- [x] **`models/code_archive.py:127-149`** — `__init__` manually re-implements every default already provided by `Field(default_factory=...)`, a drift hazard (two sources of truth for the same defaults)
 - [x] **`evoseal/agents/agentic_system_example.py:7`** — `from evoseal.agentic_system import ...` is the wrong module path (actual: `evoseal.agents.agentic_system`); the example fails immediately with `ModuleNotFoundError`
 
 ### Documentation Polish
@@ -306,8 +306,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 14   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created |
 | 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
-| 🟢 P3    | 24    | 12   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **53** |
+| 🟢 P3    | 24    | 13   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review |
+| **Total** | **89** | **54** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
