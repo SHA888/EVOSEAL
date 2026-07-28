@@ -75,7 +75,7 @@ async def test_provider_listing():
     """Test provider listing functionality."""
     logger.info("Testing provider listing...")
 
-    provider_info = provider_manager.list_providers()
+    provider_info = await provider_manager.alist_providers()
 
     for name, info in provider_info.items():
         status = "✅" if info["enabled"] and info["available"] else "❌"
@@ -123,7 +123,7 @@ async def test_best_provider_selection():
     logger.info("Testing best provider selection...")
 
     try:
-        best_provider = provider_manager.get_best_available_provider()
+        best_provider = await provider_manager.aget_best_available_provider()
         logger.info(f"✅ Best provider: {type(best_provider).__name__}")
 
         # Test a simple prompt with the best provider
@@ -152,7 +152,7 @@ async def test_provider_fallback():
             provider_manager.reload_providers()
 
             logger.info("Disabled Ollama provider, testing fallback...")
-            fallback_provider = provider_manager.get_best_available_provider()
+            fallback_provider = await provider_manager.aget_best_available_provider()
             logger.info(f"✅ Fallback provider: {type(fallback_provider).__name__}")
 
             return True

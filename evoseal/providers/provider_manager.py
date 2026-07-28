@@ -5,6 +5,8 @@ Handles provider selection, instantiation, and management.
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
 import logging
 from typing import Any
 
@@ -13,6 +15,48 @@ from evoseal.providers.ollama_provider import OllamaProvider
 from evoseal.providers.seal_providers import SEALProvider
 
 logger = logging.getLogger(__name__)
+
+
+def _run_coro_sync(coro, executor=None, timeout=30):  # type: ignore[no-untyped-def]
+    """Run *coro* synchronously, even from inside a running event loop.
+
+    When no event loop is running, ``asyncio.run`` is used directly.  When
+    called from within a running loop (e.g. an async handler), the coroutine
+    is executed in a background thread with its own event loop to avoid the
+    ``asyncio.run() cannot be called from a running event loop`` error.
+
+    **Note:** the caller *is* blocked in both branches (``.result()`` waits
+    for the background thread to finish).  This is a synchronous bridge
+    intended for code paths that genuinely cannot be made async.
+
+    Caveat: each call (without a shared *executor*) creates a fresh event
+    loop in a new thread.  If a coroutine caches loop-bound resources
+    (e.g. ``aiohttp.ClientSession``) across invocations, those resources
+    would be bound to different loops.  Current ``health_check()``
+    implementations create fresh sessions per call, so this is safe today
+    but worth keeping in mind for future changes.
+
+    Args:
+        coro: The coroutine to run.
+        executor: Optional shared ``ThreadPoolExecutor``.  When *None*, a
+            new single-thread executor is created (and torn down) per call.
+        timeout: Maximum seconds to wait for *coro* to complete.  Applied
+            via ``asyncio.wait_for`` inside the event loop that runs *coro*.
+            Defaults to 30 s.  Set to ``None`` to disable (not recommended).
+    """
+    if timeout is not None:
+        coro = asyncio.wait_for(coro, timeout=timeout)
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    if executor is not None:
+        return executor.submit(asyncio.run, coro).result()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 class ProviderManager:
@@ -69,8 +113,77 @@ class ProviderManager:
         logger.info(f"Created provider instance: {provider_name}")
         return provider_instance
 
-    def get_best_available_provider(self) -> SEALProvider:
+    async def aget_best_available_provider(
+        self, *, health_check_timeout: float | None = 30
+    ) -> SEALProvider:
+        """Async version — await health checks without blocking the event loop.
+
+        Use this instead of :meth:`get_best_available_provider` when already
+        inside a coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
+
+        Returns:
+            The best available provider instance
+
+        Raises:
+            RuntimeError: If no providers are available
+        """
+        enabled_providers = [
+            (name, config) for name, config in settings.seal.providers.items() if config.enabled
+        ]
+        if not enabled_providers:
+            raise RuntimeError("No SEAL providers are enabled")
+        enabled_providers.sort(key=lambda x: x[1].priority, reverse=True)
+
+        for provider_name, provider_config in enabled_providers:
+            try:
+                provider = self.get_provider(provider_name)
+                if hasattr(provider, "health_check"):
+                    try:
+                        coro = provider.health_check()
+                        if health_check_timeout is not None:
+                            coro = asyncio.wait_for(coro, timeout=health_check_timeout)
+                        is_healthy = await coro
+                    except Exception as e:
+                        logger.warning(f"Health check failed for {provider_name}: {e}")
+                        continue
+                    if is_healthy:
+                        logger.info(
+                            f"Selected provider: {provider_name} "
+                            f"(priority: {provider_config.priority})"
+                        )
+                        return provider
+                    else:
+                        logger.warning(f"Provider {provider_name} failed health check")
+                        continue
+                else:
+                    logger.info(
+                        f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                    )
+                    return provider
+            except Exception as e:
+                logger.warning(f"Failed to initialize provider {provider_name}: {e}")
+                continue
+
+        raise RuntimeError("No healthy SEAL providers are available")
+
+    def get_best_available_provider(
+        self, *, health_check_timeout: float | None = 30
+    ) -> SEALProvider:
         """Get the best available provider based on priority and availability.
+
+        This is the synchronous wrapper — it blocks the calling thread while
+        running health checks.  Prefer :meth:`aget_best_available_provider`
+        when already inside a coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
 
         Returns:
             The best available provider instance
@@ -89,29 +202,32 @@ class ProviderManager:
         # Sort by priority (higher priority first)
         enabled_providers.sort(key=lambda x: x[1].priority, reverse=True)
 
-        # Try providers in order of priority
-        for provider_name, provider_config in enabled_providers:
-            try:
-                provider = self.get_provider(provider_name)
+        # Use a shared executor when running inside an event loop to avoid
+        # spinning up a separate thread pool per provider.
+        shared_pool: concurrent.futures.ThreadPoolExecutor | None = None
+        try:
+            asyncio.get_running_loop()
+            shared_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        except RuntimeError:
+            pass  # No running loop; _run_coro_sync will use asyncio.run directly
 
-                # Test provider health if it supports it
-                if hasattr(provider, "health_check"):
-                    import asyncio
+        try:
+            # Try providers in order of priority
+            for provider_name, provider_config in enabled_providers:
+                try:
+                    provider = self.get_provider(provider_name)
 
-                    try:
-                        # Check if we're already in an event loop
+                    # Test provider health if it supports it
+                    if hasattr(provider, "health_check"):
                         try:
-                            loop = asyncio.get_running_loop()
-                            # We're in an event loop, create a task instead
-                            task = loop.create_task(provider.health_check())
-                            # For now, skip health check in running loop and assume healthy
-                            logger.info(
-                                f"Skipping health check in running event loop for {provider_name}"
+                            is_healthy = _run_coro_sync(
+                                provider.health_check(),
+                                executor=shared_pool,
+                                timeout=health_check_timeout,
                             )
-                            is_healthy = True
-                        except RuntimeError:
-                            # No running event loop, safe to use asyncio.run
-                            is_healthy = asyncio.run(provider.health_check())
+                        except Exception as e:
+                            logger.warning(f"Health check failed for {provider_name}: {e}")
+                            continue
 
                         if is_healthy:
                             logger.info(
@@ -121,21 +237,23 @@ class ProviderManager:
                         else:
                             logger.warning(f"Provider {provider_name} failed health check")
                             continue
-                    except Exception as e:
-                        logger.warning(f"Health check failed for {provider_name}: {e}")
-                        continue
-                else:
-                    # No health check available, assume it's working
-                    logger.info(
-                        f"Selected provider: {provider_name} (priority: {provider_config.priority})"
-                    )
-                    return provider
+                    else:
+                        # No health check available, assume it's working
+                        logger.info(
+                            f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                        )
+                        return provider
 
-            except Exception as e:
-                logger.warning(f"Failed to initialize provider {provider_name}: {e}")
-                continue
+                except Exception as e:
+                    logger.warning(f"Failed to initialize provider {provider_name}: {e}")
+                    continue
 
-        raise RuntimeError("No healthy SEAL providers are available")
+            raise RuntimeError("No healthy SEAL providers are available")
+        finally:
+            if shared_pool is not None:
+                # All futures are already resolved via .result() above, so
+                # wait=False is safe — there is nothing left to drain.
+                shared_pool.shutdown(wait=False)
 
     def _create_provider(self, provider_name: str, provider_config: Any) -> SEALProvider:
         """Create a provider instance.
@@ -167,14 +285,23 @@ class ProviderManager:
             logger.error(f"Failed to create {provider_name} provider: {e}")
             raise
 
-    def list_providers(self) -> dict[str, dict[str, Any]]:
-        """List all configured providers with their status.
+    async def alist_providers(
+        self, *, health_check_timeout: float | None = 30
+    ) -> dict[str, dict[str, Any]]:
+        """Async version — await health checks without blocking the event loop.
+
+        Use this instead of :meth:`list_providers` when already inside a
+        coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
 
         Returns:
             Dictionary with provider information
         """
         provider_info = {}
-
         for name, config in settings.seal.providers.items():
             info = {
                 "name": config.name,
@@ -184,29 +311,83 @@ class ProviderManager:
                 "available": name in self._provider_classes,
                 "initialized": name in self._providers,
             }
-
-            # Add health status if provider is initialized
             if name in self._providers:
                 provider = self._providers[name]
                 if hasattr(provider, "health_check"):
                     try:
-                        import asyncio
-
-                        # Check if we're in an event loop
-                        try:
-                            asyncio.get_running_loop()
-                            # Skip health check in running loop
-                            info["healthy"] = True
-                            info["health_note"] = "Health check skipped (in event loop)"
-                        except RuntimeError:
-                            info["healthy"] = asyncio.run(provider.health_check())
+                        coro = provider.health_check()
+                        if health_check_timeout is not None:
+                            coro = asyncio.wait_for(coro, timeout=health_check_timeout)
+                        info["healthy"] = await coro
                     except Exception as e:
                         info["healthy"] = False
                         info["health_error"] = str(e)
                 else:
-                    info["healthy"] = True  # Assume healthy if no health check
-
+                    info["healthy"] = True
             provider_info[name] = info
+        return provider_info
+
+    def list_providers(
+        self, *, health_check_timeout: float | None = 30
+    ) -> dict[str, dict[str, Any]]:
+        """List all configured providers with their status.
+
+        This is the synchronous wrapper — it blocks the calling thread while
+        running health checks.  Prefer :meth:`alist_providers` when already
+        inside a coroutine.
+
+        Args:
+            health_check_timeout: Per-provider timeout in seconds for
+                ``health_check()``.  Defaults to 30.  Set to ``None`` to
+                disable (not recommended).
+
+        Returns:
+            Dictionary with provider information
+        """
+        provider_info = {}
+
+        # Use a shared executor when running inside an event loop to avoid
+        # spinning up a separate thread pool per provider.
+        shared_pool: concurrent.futures.ThreadPoolExecutor | None = None
+        try:
+            asyncio.get_running_loop()
+            shared_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        except RuntimeError:
+            pass  # No running loop; _run_coro_sync will use asyncio.run directly
+
+        try:
+            for name, config in settings.seal.providers.items():
+                info = {
+                    "name": config.name,
+                    "enabled": config.enabled,
+                    "priority": config.priority,
+                    "config": config.config,
+                    "available": name in self._provider_classes,
+                    "initialized": name in self._providers,
+                }
+
+                # Add health status if provider is initialized
+                if name in self._providers:
+                    provider = self._providers[name]
+                    if hasattr(provider, "health_check"):
+                        try:
+                            info["healthy"] = _run_coro_sync(
+                                provider.health_check(),
+                                executor=shared_pool,
+                                timeout=health_check_timeout,
+                            )
+                        except Exception as e:
+                            info["healthy"] = False
+                            info["health_error"] = str(e)
+                    else:
+                        info["healthy"] = True  # Assume healthy if no health check
+
+                provider_info[name] = info
+        finally:
+            if shared_pool is not None:
+                # All futures are already resolved via .result() above, so
+                # wait=False is safe — there is nothing left to drain.
+                shared_pool.shutdown(wait=False)
 
         return provider_info
 
