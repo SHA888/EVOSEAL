@@ -65,6 +65,7 @@ class EditScopeValidator:
                 "__pycache__",
                 ".venv",
                 "venv",
+                "configs",
             }
         )
 

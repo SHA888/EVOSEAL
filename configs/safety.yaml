@@ -1,0 +1,83 @@
+# EVOSEAL Safety Configuration (Immutable)
+#
+# This file defines safety thresholds and constraints for the evolution pipeline.
+# It is enforced as IMMUTABLE by the edit-scope allowlist — the evolution loop
+# must never modify this file. See threat model §3 and ADR 0001.
+#
+# NOTE: This directory is `configs/` (plural), NOT `config/` (singular).
+# `config/` is a Python package containing mutable settings (budget.yaml,
+# logging.yaml, settings.py). `configs/` holds standalone immutable YAML
+# files referenced by path. Both are intentional — do not merge them.
+
+# Edit-scope enforcement
+edit_scope:
+  enabled: true
+  # Paths that the evolution loop is forbidden from modifying
+  forbidden_paths:
+    - .env
+    - Makefile
+  # Directories that are entirely off-limits
+  forbidden_dirs:
+    - .git
+    - .github/workflows
+    - .evoseal
+    - .pytest_cache
+    - __pycache__
+    - .venv
+    - venv
+    - configs
+  # Directories that ARE mutable by the evolution loop
+  allowed_dirs:
+    - evoseal/
+    - tests/
+    - examples/
+    - docs/
+    - scripts/
+    - benchmarks/
+    - config/
+
+# Regression detection thresholds
+regression:
+  # Global default regression threshold (5%)
+  regression_threshold: 0.05
+  # Per-metric thresholds (positive = increase is regression, negative = decrease is regression)
+  metric_thresholds:
+    # Performance metrics (lower is better)
+    duration_sec:
+      regression: 0.10
+      critical: 0.25
+    memory_mb:
+      regression: 0.10
+      critical: 0.30
+    execution_time:
+      regression: 0.10
+      critical: 0.25
+    # Quality metrics (higher is better — negative thresholds)
+    success_rate:
+      regression: -0.05
+      critical: -0.10
+    pass_rate:
+      regression: -0.05
+      critical: -0.10
+    correctness:
+      regression: -0.01
+      critical: -0.05
+
+# Checkpoint and rollback policy
+checkpoint:
+  # Maximum number of checkpoints to retain (oldest pruned first)
+  max_checkpoints: 10
+  # Automatically rollback on critical regression
+  auto_rollback_on_critical: true
+
+# Sandboxed test execution
+sandbox:
+  enabled: true
+  # Files mounted read-only during test execution
+  readonly_files:
+    - configs/safety.yaml
+    - .env
+  # Resource limits for test subprocesses
+  cpu_limit_secs: 120
+  memory_limit_mb: 512
+  fd_limit: 256
