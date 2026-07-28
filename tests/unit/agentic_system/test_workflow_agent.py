@@ -70,16 +70,19 @@ class TestWorkflowEngineExecuteStep:
 class TestWorkflowAgent:
     """Tests for WorkflowAgent."""
 
-    def test_act_uses_public_execute_step(self, engine_with_component):
+    def test_act_uses_public_execute_step(self, engine_with_component, monkeypatch):
         """act() calls the public execute_step, not the private _execute_step."""
-        engine, comp = engine_with_component
+        engine, _ = engine_with_component
         agent = WorkflowAgent(engine)
         step = {"name": "s1", "component": "greeter", "method": "greet", "params": {}}
+        execute_step = MagicMock(return_value="hello")
+        monkeypatch.setattr(engine, "execute_step", execute_step)
 
         result = agent.act(step)
 
         assert result == "hello"
         assert agent.last_result == "hello"
+        execute_step.assert_called_once_with(step)
 
     def test_act_inside_running_loop(self, engine_with_component):
         """act() works when called from inside a running event loop."""

@@ -8,6 +8,7 @@ for managing and executing workflows in the EVOSEAL system.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import logging
 from collections.abc import Awaitable, Callable, Sequence
 from enum import Enum
@@ -363,6 +364,22 @@ class WorkflowEngine:
         offloaded to a short-lived thread so that ``asyncio.run()`` is
         not re-entered.
 
+        .. warning::
+           When called from inside a running event loop, the calling
+           **thread** blocks until the step completes (via
+           ``ThreadPoolExecutor.submit(…).result()``).  Other tasks
+           scheduled on the same loop will not progress until this
+           method returns — it prevents the ``RuntimeError`` but is
+           *not* concurrency-friendly.
+
+        .. note::
+           Concurrent calls from multiple coroutines (e.g. via
+           ``asyncio.gather``) will execute ``_execute_step_async`` in
+           separate threads against the same engine instance.  The
+           current implementation only reads shared state
+           (``self.components``) and publishes events, so this is safe
+           for typical use, but callers should be aware.
+
         Args:
             step: Dictionary containing step configuration.
 
@@ -375,26 +392,9 @@ class WorkflowEngine:
             loop = None
 
         if loop is not None and loop.is_running():
-            import concurrent.futures
-
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 return pool.submit(asyncio.run, self._execute_step_async(step)).result()
 
-        return asyncio.run(self._execute_step_async(step))
-
-    def _execute_step(self, step: dict[str, Any]) -> Any:
-        """Synchronous wrapper for _execute_step_async.
-
-        Args:
-            step: Dictionary containing step configuration
-
-        Returns:
-            The result of the step execution, or None if no result
-
-        Note:
-            Uses asyncio.run() to manage the event loop lifecycle automatically.
-            This creates a new event loop for each step execution and closes it properly.
-        """
         return asyncio.run(self._execute_step_async(step))
 
     async def _on_workflow_event(self, event: Event) -> None:
