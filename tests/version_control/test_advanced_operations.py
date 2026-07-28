@@ -132,6 +132,67 @@ def test_file_operations(git_repo_with_commit: CmdGit):
     assert git_repo_with_commit.get_file_content("non_existent.txt") is None
 
 
+def test_path_traversal_blocked_on_read(git_repo_with_commit: CmdGit):
+    """Test that get_file_content rejects paths that escape the repo root."""
+    # Dot-dot traversal
+    with pytest.raises(GitError, match="escapes repository root"):
+        git_repo_with_commit.get_file_content("../../etc/passwd")
+
+    # Absolute path
+    with pytest.raises(GitError, match="escapes repository root"):
+        git_repo_with_commit.get_file_content("/etc/passwd")
+
+    # Nested traversal
+    with pytest.raises(GitError, match="escapes repository root"):
+        git_repo_with_commit.get_file_content("subdir/../../etc/passwd")
+
+
+def test_path_traversal_blocked_on_write(git_repo_with_commit: CmdGit):
+    """Test that write_file_content rejects paths that escape the repo root."""
+    # Dot-dot traversal
+    with pytest.raises(GitError, match="escapes repository root"):
+        git_repo_with_commit.write_file_content("../../tmp/evil.txt", "pwned")
+
+    # Absolute path
+    with pytest.raises(GitError, match="escapes repository root"):
+        git_repo_with_commit.write_file_content("/tmp/evil.txt", "pwned")
+
+    # Nested traversal
+    with pytest.raises(GitError, match="escapes repository root"):
+        git_repo_with_commit.write_file_content("a/b/../../../tmp/evil.txt", "pwned")
+
+
+def test_symlink_traversal_blocked(git_repo_with_commit: CmdGit):
+    """Test that symlinks pointing outside the repo are rejected."""
+    import os
+
+    # Create a symlink inside the repo that points outside
+    outside_dir = git_repo_with_commit.repo_path.parent / "outside"
+    outside_dir.mkdir(exist_ok=True)
+    (outside_dir / "secret.txt").write_text("secret data")
+    link_path = git_repo_with_commit.repo_path / "evil_link"
+    try:
+        os.symlink(outside_dir, link_path)
+        # The symlink itself is inside the repo, but resolve() follows it
+        # to outside — must be caught
+        with pytest.raises(GitError, match="escapes repository root"):
+            git_repo_with_commit.get_file_content("evil_link/secret.txt")
+        with pytest.raises(GitError, match="escapes repository root"):
+            git_repo_with_commit.write_file_content("evil_link/evil.txt", "pwned")
+    finally:
+        link_path.unlink(missing_ok=True)
+        (outside_dir / "secret.txt").unlink(missing_ok=True)
+        outside_dir.rmdir()
+
+
+def test_valid_subdir_file_ops(git_repo_with_commit: CmdGit):
+    """Test that legitimate subdirectory file operations still work."""
+    result = git_repo_with_commit.write_file_content("sub/dir/file.txt", "hello")
+    assert result
+    content = git_repo_with_commit.get_file_content("sub/dir/file.txt")
+    assert content == "hello"
+
+
 def test_repository_structure(git_repo_with_commit: CmdGit):
     """Test repository structure inspection."""
     # Create and stage some files and directories
