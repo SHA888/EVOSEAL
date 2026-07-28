@@ -277,6 +277,39 @@ class ModelFineTuner:
             logger.error(f"Error preparing training data: {e}")
             return {"success": False, "error": str(e)}
 
+    def _tokenize_if_needed(self, dataset: Dataset, max_length: int) -> Dataset:
+        """Tokenize a loaded dataset if it isn't already.
+
+        ``TrainingDataBuilder``'s HuggingFace export writes raw
+        ``instruction``/``input``/``output`` string columns (Alpaca format),
+        not the ``input_ids`` the ``DataCollatorForLanguageModeling`` used
+        below requires. Detect that case and tokenize here so any dataset
+        loaded from disk works, whether or not it was pre-tokenized upstream.
+        """
+        if "input_ids" in dataset.column_names:
+            return dataset
+
+        def format_example(example: dict[str, Any]) -> dict[str, str]:
+            return {
+                "text": f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+            }
+
+        def tokenize_function(examples: dict[str, list[str]]) -> Any:
+            return self.tokenizer(
+                examples["text"],
+                truncation=True,
+                padding=False,
+                max_length=max_length,
+                return_overflowing_tokens=False,
+            )
+
+        formatted = dataset.map(format_example)
+        return formatted.map(
+            tokenize_function,
+            batched=True,
+            remove_columns=formatted.column_names,
+        )
+
     async def fine_tune_model(
         self,
         training_data_path: str | None = None,
@@ -347,6 +380,7 @@ echo "Training data prepared at: {training_data_path}"
             from datasets import load_from_disk
 
             dataset = load_from_disk(training_data_path)
+            dataset = self._tokenize_if_needed(dataset, max_length)
 
             # Set up LoRA configuration
             lora_config = LoraConfig(
