@@ -16,8 +16,20 @@ class WorkflowAgent(Agent):
         self.last_message = None
 
     def act(self, observation: Any) -> Any:
-        # Treat observation as a workflow step or config
-        self.last_result = self.engine._execute_step(observation)
+        """Execute a workflow step.
+
+        Delegates to the engine's public ``execute_step`` which is safe to
+        call from within a running event loop.
+        """
+        self.last_result = self.engine.execute_step(observation)
+        return self.last_result
+
+    async def act_async(self, observation: Any) -> Any:
+        """Execute a workflow step asynchronously.
+
+        Use this variant when the caller is already in an async context.
+        """
+        self.last_result = await self.engine._execute_step_async(observation)
         return self.last_result
 
     def receive(self, message: Any) -> None:

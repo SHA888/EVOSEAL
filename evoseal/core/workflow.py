@@ -355,6 +355,33 @@ class WorkflowEngine:
             )
             raise
 
+    def execute_step(self, step: dict[str, Any]) -> Any:
+        """Execute a single workflow step.
+
+        Safe to call from both sync contexts and from within a running
+        event loop.  When a loop is already running the coroutine is
+        offloaded to a short-lived thread so that ``asyncio.run()`` is
+        not re-entered.
+
+        Args:
+            step: Dictionary containing step configuration.
+
+        Returns:
+            The result of the step execution.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and loop.is_running():
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, self._execute_step_async(step)).result()
+
+        return asyncio.run(self._execute_step_async(step))
+
     def _execute_step(self, step: dict[str, Any]) -> Any:
         """Synchronous wrapper for _execute_step_async.
 
