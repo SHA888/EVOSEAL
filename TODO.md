@@ -244,7 +244,7 @@
 - [x] **Add pre-commit hooks** _(done 2026-06-04)_
   - ruff (lint + format), bandit, detect-secrets, hadolint, trufflehog, pytest fast-check
   - Config in `.pre-commit-config.yaml`; install with `pre-commit install`
-- [ ] **Add `CHANGELOG.md`** tracking releases (v0.3.7 is latest but no changelog visible)
+- [x] **Add `CHANGELOG.md`** tracking releases
 - [x] **Docker support** _(already present)_
   - `Dockerfile` (python:3.11-slim + uv) and `docker-compose.evoseal.yml`
   - Dashboard on port 9613; volumes for checkpoints, data, reports, benchmarks
@@ -306,8 +306,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 14   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created |
 | 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
-| 🟢 P3    | 24    | 11   | Makefile, pre-commit, Docker, ADRs, ADR refresh complete; +10 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **52** |
+| 🟢 P3    | 24    | 12   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +10 hygiene items from 2026-07-22 review |
+| **Total** | **89** | **53** |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
