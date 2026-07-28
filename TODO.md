@@ -307,7 +307,7 @@
 | 🟠 P1    | 24    | 14   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created |
 | 🟡 P2    | 30    | 16   | Co-evolution loop gaps (7 items, 7 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap logged) |
 | 🟢 P3    | 24    | 13   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review |
-| **Total** | **89** | **54** |
+| **Total** | **89** | **54** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

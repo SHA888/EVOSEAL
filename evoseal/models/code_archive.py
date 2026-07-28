@@ -131,7 +131,8 @@ class CodeArchive(BaseModel):
         explicitly provided.  With plain field defaults each factory calls
         ``datetime.now(UTC)`` independently, introducing a microsecond
         drift.  This hook restores the original guarantee — but only when
-        ``updated_at`` was not explicitly set (e.g. on deserialization).
+        ``updated_at`` was not explicitly set (e.g. on fresh programmatic
+        construction, not deserialization, which supplies the value).
         """
         if "updated_at" not in self.model_fields_set:
             self.updated_at = self.created_at
