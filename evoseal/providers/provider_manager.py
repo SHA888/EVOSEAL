@@ -17,7 +17,7 @@ from evoseal.providers.seal_providers import SEALProvider
 logger = logging.getLogger(__name__)
 
 
-def _run_coro_sync(coro, executor=None):  # type: ignore[no-untyped-def]
+def _run_coro_sync(coro, executor=None, timeout=30):  # type: ignore[no-untyped-def]
     """Run *coro* synchronously, even from inside a running event loop.
 
     When no event loop is running, ``asyncio.run`` is used directly.  When
@@ -40,7 +40,13 @@ def _run_coro_sync(coro, executor=None):  # type: ignore[no-untyped-def]
         coro: The coroutine to run.
         executor: Optional shared ``ThreadPoolExecutor``.  When *None*, a
             new single-thread executor is created (and torn down) per call.
+        timeout: Maximum seconds to wait for *coro* to complete.  Applied
+            via ``asyncio.wait_for`` inside the event loop that runs *coro*.
+            Defaults to 30 s.  Set to ``None`` to disable (not recommended).
     """
+    if timeout is not None:
+        coro = asyncio.wait_for(coro, timeout=timeout)
+
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -127,39 +133,56 @@ class ProviderManager:
         # Sort by priority (higher priority first)
         enabled_providers.sort(key=lambda x: x[1].priority, reverse=True)
 
-        # Try providers in order of priority
-        for provider_name, provider_config in enabled_providers:
-            try:
-                provider = self.get_provider(provider_name)
+        # Use a shared executor when running inside an event loop to avoid
+        # spinning up a separate thread pool per provider.
+        shared_pool: concurrent.futures.ThreadPoolExecutor | None = None
+        try:
+            asyncio.get_running_loop()
+            shared_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        except RuntimeError:
+            pass  # No running loop; _run_coro_sync will use asyncio.run directly
 
-                # Test provider health if it supports it
-                if hasattr(provider, "health_check"):
-                    try:
-                        is_healthy = _run_coro_sync(provider.health_check())
-                    except Exception as e:
-                        logger.warning(f"Health check failed for {provider_name}: {e}")
-                        continue
+        try:
+            # Try providers in order of priority
+            for provider_name, provider_config in enabled_providers:
+                try:
+                    provider = self.get_provider(provider_name)
 
-                    if is_healthy:
+                    # Test provider health if it supports it
+                    if hasattr(provider, "health_check"):
+                        try:
+                            is_healthy = _run_coro_sync(
+                                provider.health_check(), executor=shared_pool
+                            )
+                        except Exception as e:
+                            logger.warning(f"Health check failed for {provider_name}: {e}")
+                            continue
+
+                        if is_healthy:
+                            logger.info(
+                                f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                            )
+                            return provider
+                        else:
+                            logger.warning(f"Provider {provider_name} failed health check")
+                            continue
+                    else:
+                        # No health check available, assume it's working
                         logger.info(
                             f"Selected provider: {provider_name} (priority: {provider_config.priority})"
                         )
                         return provider
-                    else:
-                        logger.warning(f"Provider {provider_name} failed health check")
-                        continue
-                else:
-                    # No health check available, assume it's working
-                    logger.info(
-                        f"Selected provider: {provider_name} (priority: {provider_config.priority})"
-                    )
-                    return provider
 
-            except Exception as e:
-                logger.warning(f"Failed to initialize provider {provider_name}: {e}")
-                continue
+                except Exception as e:
+                    logger.warning(f"Failed to initialize provider {provider_name}: {e}")
+                    continue
 
-        raise RuntimeError("No healthy SEAL providers are available")
+            raise RuntimeError("No healthy SEAL providers are available")
+        finally:
+            if shared_pool is not None:
+                # All futures are already resolved via .result() above, so
+                # wait=False is safe — there is nothing left to drain.
+                shared_pool.shutdown(wait=False)
 
     def _create_provider(self, provider_name: str, provider_config: Any) -> SEALProvider:
         """Create a provider instance.
@@ -236,6 +259,8 @@ class ProviderManager:
                 provider_info[name] = info
         finally:
             if shared_pool is not None:
+                # All futures are already resolved via .result() above, so
+                # wait=False is safe — there is nothing left to drain.
                 shared_pool.shutdown(wait=False)
 
         return provider_info

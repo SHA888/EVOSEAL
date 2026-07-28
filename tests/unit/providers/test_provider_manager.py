@@ -57,6 +57,22 @@ class TestRunCoroSync:
             result = _run_coro_sync(asyncio.sleep(0, result=99), executor=pool)
         assert result == 99
 
+    def test_raises_on_timeout_from_sync_context(self):
+        """A coroutine that exceeds the timeout raises asyncio.TimeoutError."""
+        with pytest.raises(asyncio.TimeoutError):
+            _run_coro_sync(asyncio.sleep(999), timeout=0.05)
+
+    @pytest.mark.asyncio
+    async def test_raises_on_timeout_from_async_context(self):
+        """Timeout enforcement works inside a running event loop too."""
+        with pytest.raises(asyncio.TimeoutError):
+            _run_coro_sync(asyncio.sleep(999), timeout=0.05)
+
+    def test_timeout_none_disables_enforcement(self):
+        """Passing timeout=None disables the wait_for wrapper."""
+        result = _run_coro_sync(asyncio.sleep(0, result=42), timeout=None)
+        assert result == 42
+
 
 # ---------------------------------------------------------------------------
 # ProviderManager.get_best_available_provider — health check is awaited
