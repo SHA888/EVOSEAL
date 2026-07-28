@@ -122,7 +122,6 @@ class TestWorkflowAgent:
         engine, _ = engine_with_component
         agent = WorkflowAgent(engine)
         step = {"name": "s1", "component": "greeter", "method": "greet", "params": {}}
-        fake_coro = MagicMock()
 
         async def _fake(step):
             return "hello"

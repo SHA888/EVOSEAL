@@ -127,6 +127,9 @@ class WorkflowEngine:
         self._event_handlers: dict[EventType | str, list[dict[str, Any]]] = {}
         self._step_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self._step_lock = threading.Lock()
+        self._step_active_threads: set[int] = set()
+        self._step_active_lock = threading.Lock()
+        self._step_shutdown = False
         logger.info("WorkflowEngine initialized")
 
     @property
@@ -376,28 +379,58 @@ class WorkflowEngine:
            *not* concurrency-friendly.
 
         .. note::
-           Concurrent calls from multiple coroutines (e.g. via
-           ``asyncio.gather``) are serialized by an internal lock to
+           Concurrent calls are serialized by an internal lock to
            prevent concurrent mutation of shared engine state.
+           Recursive/nested calls (e.g. a composite step that itself
+           calls ``execute_step``) are detected and routed through a
+           temporary thread to avoid deadlock on the single-worker
+           executor.
 
         Args:
             step: Dictionary containing step configuration.
 
         Returns:
             The result of the step execution.
+
+        Raises:
+            RuntimeError: If :meth:`cleanup` has been called.
         """
+        if self._step_shutdown:
+            raise RuntimeError(
+                "execute_step() called after cleanup(); the engine is no longer usable"
+            )
+
+        tid = threading.current_thread().ident
+
+        # Detect recursive/nested re-entry on the same thread.
+        with self._step_active_lock:
+            re_entry = tid in self._step_active_threads
+            self._step_active_threads.add(tid)
+
         try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
+            if re_entry:
+                # Already inside execute_step on this thread — the main
+                # executor is busy (single worker) and the lock is held
+                # by the outer call.  Use a temporary thread so the
+                # nested step gets its own event loop.
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tmp:
+                    return tmp.submit(asyncio.run, self._execute_step_async(step)).result()
 
-        if loop is not None and loop.is_running():
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
             with self._step_lock:
-                return self._step_executor.submit(
-                    asyncio.run, self._execute_step_async(step)
-                ).result()
+                if loop is not None and loop.is_running():
+                    return self._step_executor.submit(
+                        asyncio.run, self._execute_step_async(step)
+                    ).result()
 
-        return asyncio.run(self._execute_step_async(step))
+                return asyncio.run(self._execute_step_async(step))
+        finally:
+            with self._step_active_lock:
+                self._step_active_threads.discard(tid)
 
     async def execute_step_async(self, step: dict[str, Any]) -> Any:
         """Execute a single workflow step asynchronously.
@@ -543,12 +576,14 @@ class WorkflowEngine:
 
         This should be called when the workflow engine is no longer needed
         to prevent memory leaks from event handlers.
+        After cleanup, :meth:`execute_step` raises ``RuntimeError``.
         """
         for handlers in self._event_handlers.values():
             for handler in handlers:
                 handler["unsubscribe"]()
         self._event_handlers.clear()
         self._step_executor.shutdown(wait=False)
+        self._step_shutdown = True
         logger.debug("Cleaned up all event handlers")
 
     async def _publish_event(
