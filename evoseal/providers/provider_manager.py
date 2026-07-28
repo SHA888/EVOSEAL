@@ -5,6 +5,8 @@ Handles provider selection, instantiation, and management.
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
 import logging
 from typing import Any
 
@@ -13,6 +15,23 @@ from evoseal.providers.ollama_provider import OllamaProvider
 from evoseal.providers.seal_providers import SEALProvider
 
 logger = logging.getLogger(__name__)
+
+
+def _run_coro_sync(coro):  # type: ignore[no-untyped-def]
+    """Run *coro* synchronously, even from inside a running event loop.
+
+    When no event loop is running, ``asyncio.run`` is used directly.  When
+    called from within a running loop (e.g. an async handler), the coroutine
+    is scheduled in a short-lived background thread so the caller is not
+    blocked.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 class ProviderManager:
@@ -96,33 +115,19 @@ class ProviderManager:
 
                 # Test provider health if it supports it
                 if hasattr(provider, "health_check"):
-                    import asyncio
-
                     try:
-                        # Check if we're already in an event loop
-                        try:
-                            loop = asyncio.get_running_loop()
-                            # We're in an event loop, create a task instead
-                            task = loop.create_task(provider.health_check())
-                            # For now, skip health check in running loop and assume healthy
-                            logger.info(
-                                f"Skipping health check in running event loop for {provider_name}"
-                            )
-                            is_healthy = True
-                        except RuntimeError:
-                            # No running event loop, safe to use asyncio.run
-                            is_healthy = asyncio.run(provider.health_check())
-
-                        if is_healthy:
-                            logger.info(
-                                f"Selected provider: {provider_name} (priority: {provider_config.priority})"
-                            )
-                            return provider
-                        else:
-                            logger.warning(f"Provider {provider_name} failed health check")
-                            continue
+                        is_healthy = _run_coro_sync(provider.health_check())
                     except Exception as e:
                         logger.warning(f"Health check failed for {provider_name}: {e}")
+                        continue
+
+                    if is_healthy:
+                        logger.info(
+                            f"Selected provider: {provider_name} (priority: {provider_config.priority})"
+                        )
+                        return provider
+                    else:
+                        logger.warning(f"Provider {provider_name} failed health check")
                         continue
                 else:
                     # No health check available, assume it's working
@@ -190,16 +195,7 @@ class ProviderManager:
                 provider = self._providers[name]
                 if hasattr(provider, "health_check"):
                     try:
-                        import asyncio
-
-                        # Check if we're in an event loop
-                        try:
-                            asyncio.get_running_loop()
-                            # Skip health check in running loop
-                            info["healthy"] = True
-                            info["health_note"] = "Health check skipped (in event loop)"
-                        except RuntimeError:
-                            info["healthy"] = asyncio.run(provider.health_check())
+                        info["healthy"] = _run_coro_sync(provider.health_check())
                     except Exception as e:
                         info["healthy"] = False
                         info["health_error"] = str(e)
