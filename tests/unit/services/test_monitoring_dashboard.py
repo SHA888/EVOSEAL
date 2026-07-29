@@ -155,6 +155,78 @@ class TestAuthMiddleware:
         status, _, _ = await _make_request(app, "GET", "/api/report")
         assert status == 401
 
+    @pytest.mark.asyncio
+    async def test_ws_auth_via_sec_protocol_header(self, dashboard_with_auth):
+        """WebSocket auth via Sec-WebSocket-Protocol: Bearer <token> header."""
+        import aiohttp
+
+        app = dashboard_with_auth.app
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/ws"
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(
+                    url, headers={"Sec-WebSocket-Protocol": "Bearer test-secret-token"}
+                ) as ws:
+                    msg = await ws.receive()
+                    # Should receive initial data, not a 401 rejection
+                    assert msg.type == aiohttp.WSMsgType.TEXT
+
+    @pytest.mark.asyncio
+    async def test_ws_auth_rejects_wrong_sec_protocol(self, dashboard_with_auth):
+        """Wrong token in Sec-WebSocket-Protocol is rejected at HTTP upgrade (401)."""
+        import aiohttp
+
+        app = dashboard_with_auth.app
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/ws"
+            async with aiohttp.ClientSession() as session:
+                with pytest.raises(aiohttp.WSServerHandshakeError) as exc_info:
+                    await session.ws_connect(
+                        url, headers={"Sec-WebSocket-Protocol": "Bearer wrong-token"}
+                    )
+                assert exc_info.value.status == 401
+
+    @pytest.mark.asyncio
+    async def test_non_ascii_token_does_not_500(self, mock_service):
+        """A non-ASCII auth_token must not cause an unhandled TypeError."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=18090,
+            auth_token="über-sécret",
+        )
+        app = dash.app
+        app.router.add_get("/api/status", dash.api_status)
+
+        # Correct non-ASCII token should be accepted
+        status, _, _ = await _make_request(
+            app,
+            "GET",
+            "/api/status",
+            headers={"Authorization": "Bearer über-sécret"},
+        )
+        assert status == 200
+
+        # Wrong non-ASCII token should be rejected cleanly (401, not 500)
+        status, _, _ = await _make_request(
+            app,
+            "GET",
+            "/api/status",
+            headers={"Authorization": "Bearer wrong"},
+        )
+        assert status == 401
+
+    def test_constant_compare_non_ascii(self):
+        """_constant_compare handles non-ASCII strings without raising."""
+        cmp = MonitoringDashboard._constant_compare
+        assert cmp("abc", "abc") is True
+        assert cmp("abc", "def") is False
+        assert cmp("über", "über") is True
+        assert cmp("über", "other") is False
+        assert cmp("", "") is True
+
 
 class TestCorsHardening:
     """Test that CORS is restricted, not wildcard."""
@@ -237,7 +309,7 @@ class TestDashboardDefaults:
         assert dashboard_no_auth.auth_token is None
 
     def test_0_0_0_0_default_origins_are_localhost(self, mock_service):
-        """When host is 0.0.0.0, default origins should still be localhost."""
+        """When host is 0.0.0.0, default origins include localhost:<port> only."""
         dash = MonitoringDashboard(
             evolution_service=mock_service,
             host="0.0.0.0",
@@ -245,3 +317,5 @@ class TestDashboardDefaults:
         )
         assert "*" not in dash.allowed_origins
         assert "http://localhost:9613" in dash.allowed_origins
+        # Bare http://localhost (no port) should NOT be included
+        assert "http://localhost" not in dash.allowed_origins

@@ -73,7 +73,7 @@ class MonitoringDashboard:
         # Build default CORS origins from host/port
         if allowed_origins is None:
             if host in ("0.0.0.0", "::"):
-                allowed_origins = ["http://localhost", f"http://localhost:{port}"]
+                allowed_origins = [f"http://localhost:{port}"]
             else:
                 allowed_origins = [f"http://{host}:{port}"]
         self.allowed_origins = allowed_origins
@@ -116,16 +116,40 @@ class MonitoringDashboard:
             if request.method == "OPTIONS":
                 return await handler(request)
             auth_header = request.headers.get("Authorization", "")
-            if hmac.compare_digest(auth_header, f"Bearer {self.auth_token}"):
+            expected = f"Bearer {self.auth_token}"
+            if self._constant_compare(auth_header, expected):
                 pass
             elif request.path == "/ws":
-                # WebSocket clients can pass ?token= as query param
-                token = request.query.get("token", "")
-                if not hmac.compare_digest(token, self.auth_token):
-                    return web.json_response({"error": "Unauthorized"}, status=401)
+                # Preferred: Sec-WebSocket-Protocol header (token not in URL/logs).
+                # Fallback: ?token= query param (logged in access/proxy logs —
+                # only use when the client cannot set headers, e.g. browser JS
+                # without Sec-WebSocket-Protocol support).
+                ws_protocols = request.headers.get("Sec-WebSocket-Protocol", "")
+                token_from_protocol = ""
+                for proto in ws_protocols.split(","):
+                    proto = proto.strip()
+                    if proto.startswith("Bearer "):
+                        token_from_protocol = proto[7:]
+                        break
+                if token_from_protocol and self._constant_compare(
+                    token_from_protocol, self.auth_token
+                ):
+                    pass
+                else:
+                    token = request.query.get("token", "")
+                    if not self._constant_compare(token, self.auth_token):
+                        return web.json_response({"error": "Unauthorized"}, status=401)
             else:
                 return web.json_response({"error": "Unauthorized"}, status=401)
         return await handler(request)
+
+    @staticmethod
+    def _constant_compare(a: str, b: str) -> bool:
+        """Constant-time string comparison that handles non-ASCII safely."""
+        try:
+            return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
+        except (UnicodeEncodeError, AttributeError):
+            return False
 
     def setup_cors(self):
         """Setup CORS for API access."""
@@ -596,11 +620,21 @@ class MonitoringDashboard:
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
 
+        let authToken = null;
+
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-            ws = new WebSocket(wsUrl);
+            // Read token from page URL query param (set by the operator).
+            // The token is sent via Sec-WebSocket-Protocol header so it does
+            // not appear in server/proxy access logs.
+            if (!authToken) {
+                const params = new URLSearchParams(window.location.search);
+                authToken = params.get('token');
+            }
+
+            ws = new WebSocket(wsUrl, authToken ? ['Bearer ' + authToken] : undefined);
 
             ws.onopen = function() {
                 console.log('WebSocket connected');
@@ -730,7 +764,8 @@ class MonitoringDashboard:
             // Periodic fallback updates via HTTP
             setInterval(async function() {
                 try {
-                    const response = await fetch('/api/metrics');
+                    const headers = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+                    const response = await fetch('/api/metrics', { headers });
                     const data = await response.json();
                     updateDashboard(data);
                 } catch (e) {
