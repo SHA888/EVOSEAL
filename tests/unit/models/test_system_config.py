@@ -141,10 +141,14 @@ def test_get_through_non_dict_intermediate_returns_default():
 
 
 def test_get_with_numeric_key_in_path():
-    """Dot notation with numeric-looking string keys works correctly."""
-    config = {"port": 8080, "servers": {"0": {"host": "localhost"}}}
+    """Dot notation traverses dict keys that look numeric (e.g. '0').
+
+    This tests dict-key traversal only — 'servers' is a dict with a string
+    key '0', not a list.  If get() ever adds list-index support, this test
+    ensures a numeric-looking dict key is still treated as a string lookup.
+    """
+    config = {"servers": {"0": {"host": "localhost"}}}
     sys_config = SystemConfig(config)
-    assert sys_config.get("port") == 8080
     assert sys_config.get("servers.0.host") == "localhost"
 
 
