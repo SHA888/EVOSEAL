@@ -256,6 +256,66 @@ def test_cache_is_bounded(monkeypatch):
         assert len(_model_cache) <= _MAX_CACHE_SIZE
 
 
+def test_concurrent_calls_coalesce(monkeypatch):
+    """Multiple threads for the same key must fire only one HTTP request."""
+    import threading
+    import time as _time
+
+    calls: list[str] = []
+    # Barrier ensures all 4 threads are ready before any checks the cache.
+    ready_barrier = threading.Barrier(4, timeout=5)
+
+    class _SlowResponse:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def read(self):
+            return json.dumps(self._payload).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _slow_urlopen(url, timeout=None):
+        calls.append(url)
+        # Simulate slow network so the fetching thread doesn't complete
+        # before the others have a chance to check the cache.
+        _time.sleep(0.2)
+        return _SlowResponse({"models": [{"name": DEEPSEEK}]})
+
+    monkeypatch.setattr(local_models.urllib.request, "urlopen", _slow_urlopen)
+
+    results: list[list[str]] = [[] for _ in range(4)]
+
+    def worker(idx):
+        # Wait for all threads to be ready so they all see a cache miss.
+        ready_barrier.wait()
+        results[idx] = list_installed_models()
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+
+    # Only one thread should have performed the HTTP call.
+    assert len(calls) == 1, f"Expected 1 HTTP call, got {len(calls)}"
+    # All threads must get the correct result.
+    for r in results:
+        assert r == [DEEPSEEK]
+
+
+def test_trailing_slash_normalized_in_cache_key(monkeypatch):
+    """'http://host:11434' and 'http://host:11434/' share one cache entry."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [DEEPSEEK], calls=calls):
+        list_installed_models(base_url="http://localhost:11434")
+        list_installed_models(base_url="http://localhost:11434/")
+    assert len(calls) == 1, f"Expected 1 call, got {len(calls)}"
+
+
 # -- resolve_model --------------------------------------------------------
 
 

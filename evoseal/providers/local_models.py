@@ -111,10 +111,18 @@ _CACHE_TTL_SECONDS: float = 120.0
 #: after an outage, but long enough to prevent a flood of connection attempts).
 _FAILURE_TTL_SECONDS: float = 60.0
 
-# { (base_url, timeout): (monotonic_timestamp, result_tuple) }
+# { (base_url, timeout): (monotonic_timestamp, last_access, result_tuple) }
 # Bounded to avoid unbounded growth when callers pass varying timeout values.
-_model_cache: dict[tuple[str, float], tuple[float, tuple[str, ...]]] = {}
+# ``last_access`` is refreshed on every cache hit so eviction can prefer
+# least-recently-used entries rather than just oldest-written.
+_model_cache: dict[tuple[str, float], tuple[float, float, tuple[str, ...]]] = {}
 _model_cache_lock: threading.Lock = threading.Lock()
+# Per-key events used to coalesce concurrent requests for the same key.
+# Only one thread performs the blocking HTTP call; others wait and reuse
+# the cached result.  This is the key difference from the old ``lru_cache``
+# which serialized the whole function — here we serialize per key only when
+# there is an actual cache miss.
+_in_flight: dict[tuple[str, float], threading.Event] = {}
 _MAX_CACHE_SIZE: int = 64
 
 
@@ -123,18 +131,52 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
 
     Returns a tuple so the cache stays immutable.  Entries older than
     :data:`_CACHE_TTL_SECONDS` are silently re-queried.
+
+    Concurrent callers for the same ``(base_url, timeout)`` key are coalesced:
+    only one thread performs the blocking HTTP query while the others wait and
+    reuse the result.  This matches the old ``lru_cache`` serialization guarantee
+    but without blocking callers that use *different* keys.
     """
     # Normalize timeout to 1 decimal place so callers passing 5.0 and 5.01
     # share the same cache entry instead of growing the dict unboundedly.
-    key = (base_url, round(timeout, 1))
+    # Normalize base_url the same way the request URL is built so that
+    # "http://host:11434" and "http://host:11434/" share one cache entry.
+    key = (base_url.rstrip("/"), round(timeout, 1))
     now = time.monotonic()
     with _model_cache_lock:
         cached = _model_cache.get(key)
-    if cached is not None:
-        ts, result = cached
-        if now - ts < _CACHE_TTL_SECONDS:
-            return result
-    url = f"{base_url.rstrip('/')}/api/tags"
+        if cached is not None:
+            ts, _last_access, result = cached
+            if now - ts < _CACHE_TTL_SECONDS:
+                # Refresh access time for LRU eviction.
+                _model_cache[key] = (ts, now, result)
+                return result
+
+        # Cache miss (or stale).  Check whether another thread is already
+        # fetching this key.
+        event = _in_flight.get(key)
+        if event is not None:
+            # Another thread is in-flight — wait for it, then re-check cache.
+            lock = _model_cache_lock
+            lock.release()
+            try:
+                event.wait()
+            finally:
+                lock.acquire()
+            cached = _model_cache.get(key)
+            if cached is not None:
+                ts, _last_access, result = cached
+                _model_cache[key] = (ts, now, result)
+                return result
+            # If still missing (e.g. clear_model_cache ran), fall through.
+
+        # We are the fetching thread for this key.
+        event = threading.Event()
+        _in_flight[key] = event
+
+    # Perform the blocking HTTP call without holding the global lock so that
+    # callers for *different* keys are not serialized against us.
+    url = f"{key[0]}/api/tags"
     try:
         # Fixed http(s) Ollama endpoint from config, not user input.
         with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310  # nosec B310
@@ -146,9 +188,15 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
         # Always cache an empty result on failure — never reuse a stale
         # *success* entry, which would silently mask an outage.
         _cache_write(key, now, (), failure=True)
+        event.set()
+        with _model_cache_lock:
+            _in_flight.pop(key, None)
         return ()
     result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
     _cache_write(key, now, result)
+    event.set()
+    with _model_cache_lock:
+        _in_flight.pop(key, None)
     return result
 
 
@@ -169,15 +217,17 @@ def _cache_write(
     """
     with _model_cache_lock:
         if len(_model_cache) >= _MAX_CACHE_SIZE and key not in _model_cache:
-            # Evict the oldest entry to keep the dict bounded.
-            oldest_key = min(_model_cache, key=lambda k: _model_cache[k][0])
-            del _model_cache[oldest_key]
+            # Evict the least-recently-accessed entry to keep the dict
+            # bounded.  ``_last_access`` is refreshed on every read so a
+            # frequently-hit entry survives even if it was written long ago.
+            lru_key = min(_model_cache, key=lambda k: _model_cache[k][1])
+            del _model_cache[lru_key]
         if failure:
             # Backdate so the entry expires after _FAILURE_TTL_SECONDS.
             ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS
         else:
             ts = now
-        _model_cache[key] = (ts, result)
+        _model_cache[key] = (ts, now, result)
 
 
 def clear_model_cache() -> None:
