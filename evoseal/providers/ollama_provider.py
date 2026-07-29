@@ -23,6 +23,14 @@ from evoseal.providers.seal_providers import SEALProvider
 logger = logging.getLogger(__name__)
 
 
+class _OllamaServerError(Exception):
+    """Internal: raised on HTTP 5xx to unify retry logic."""
+
+    def __init__(self, status: int, body: str):
+        super().__init__(f"Ollama API request failed with status {status}: {body}")
+        self.status = status
+
+
 class OllamaProvider(SEALProvider):
     """Ollama provider for EVOSEAL using local Ollama instance."""
 
@@ -80,6 +88,8 @@ class OllamaProvider(SEALProvider):
 
     def _is_retryable(self, exc: Exception) -> bool:
         """Return True if the exception represents a transient failure worth retrying."""
+        if isinstance(exc, _OllamaServerError):
+            return True
         if isinstance(exc, (TimeoutError, aiohttp.ClientError)):
             return True
         msg = str(exc).lower()
@@ -142,13 +152,7 @@ class OllamaProvider(SEALProvider):
                     ) as response:
                         if response.status >= 500:
                             error_text = await response.text()
-                            last_exc = Exception(
-                                f"Ollama API request failed with status {response.status}: {error_text}"
-                            )
-                            logger.warning(
-                                f"Attempt {attempt}/{self.max_retries}: server error {response.status}"
-                            )
-                            continue
+                            raise _OllamaServerError(response.status, error_text)
                         elif response.status != 200:
                             error_text = await response.text()
                             raise Exception(
@@ -165,22 +169,21 @@ class OllamaProvider(SEALProvider):
                         logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
                         return response_text
 
-            except TimeoutError as e:
-                last_exc = Exception(f"Ollama request timed out after {self.timeout} seconds")
-                last_exc.__cause__ = e
-                logger.warning(
-                    f"Attempt {attempt}/{self.max_retries}: timeout after {self.timeout}s"
-                )
-            except aiohttp.ClientError as e:
-                last_exc = Exception(f"Failed to connect to Ollama at {self.base_url}: {e}")
-                last_exc.__cause__ = e
-                logger.warning(f"Attempt {attempt}/{self.max_retries}: network error: {e}")
-            except json.JSONDecodeError as e:
-                # Non-retryable: bad response format
-                logger.error(f"Invalid JSON response from Ollama: {e}")
-                raise Exception(f"Invalid response format from Ollama: {e}") from e
             except Exception as e:
-                raise
+                if isinstance(e, json.JSONDecodeError):
+                    # Non-retryable: bad response format
+                    logger.error(f"Invalid JSON response from Ollama: {e}")
+                    raise Exception(f"Invalid response format from Ollama: {e}") from e
+                if not self._is_retryable(e):
+                    raise
+                if isinstance(e, TimeoutError):
+                    last_exc = Exception(f"Ollama request timed out after {self.timeout} seconds")
+                elif isinstance(e, _OllamaServerError):
+                    last_exc = Exception(str(e))
+                else:
+                    last_exc = Exception(f"Failed to connect to Ollama at {self.base_url}: {e}")
+                last_exc.__cause__ = e
+                logger.warning(f"Attempt {attempt}/{self.max_retries}: retryable error: {e}")
 
             # Back off before next attempt (skip delay after last attempt)
             if attempt < self.max_retries:
@@ -189,7 +192,11 @@ class OllamaProvider(SEALProvider):
                 await asyncio.sleep(delay)
 
         # All retries exhausted
-        assert last_exc is not None
+        if last_exc is None:
+            raise RuntimeError(
+                f"Ollama request failed after {self.max_retries} attempts "
+                f"but no exception was captured — this is a bug"
+            )
         logger.error(f"Ollama request failed after {self.max_retries} attempts")
         raise last_exc
 

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
 
-from evoseal.providers.ollama_provider import OllamaProvider
+from evoseal.providers.ollama_provider import OllamaProvider, _OllamaServerError
 
 
 @pytest.fixture
@@ -217,6 +218,35 @@ async def test_submit_prompt_retries_on_500_status(provider):
 
 
 @pytest.mark.asyncio
+async def test_submit_prompt_500_retries_with_backoff(provider):
+    """5xx retries actually sleep for backoff (not immediate)."""
+    call_count = 0
+    sleep_durations: list[float] = []
+
+    real_sleep = asyncio.sleep
+
+    async def _tracking_sleep(delay):
+        sleep_durations.append(delay)
+        await real_sleep(0)  # yield without actual delay
+
+    def _make_session(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return _MockSession([_MockResponse(500, text_body="internal error")])
+        else:
+            return _MockSession([_MockResponse(200, {"response": "ok"})])
+
+    with patch("aiohttp.ClientSession", side_effect=_make_session):
+        with patch("asyncio.sleep", side_effect=_tracking_sleep):
+            result = await provider.submit_prompt("test")
+
+    assert result == "ok"
+    assert len(sleep_durations) == 1, "should sleep once between retry attempts"
+    assert sleep_durations[0] > 0, "backoff delay must be positive"
+
+
+@pytest.mark.asyncio
 async def test_submit_prompt_exhausts_retries(provider):
     """Raises after all retries exhausted."""
     sessions = [_FailSession(TimeoutError("timeout")) for _ in range(provider.max_retries)]
@@ -269,6 +299,10 @@ def test_is_retryable_timeout(provider):
 
 def test_is_retryable_client_error(provider):
     assert provider._is_retryable(aiohttp.ClientError("x")) is True
+
+
+def test_is_retryable_server_error(provider):
+    assert provider._is_retryable(_OllamaServerError(503, "busy")) is True
 
 
 def test_is_not_retryable_generic(provider):
