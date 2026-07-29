@@ -19,9 +19,11 @@ by model *family* (case-insensitive substring). Resolution order per role:
 This keeps the co-evolution loop durable across model swaps: as long as *some*
 coder/reviewer-family model is pulled, it will be found and used.
 
-The installed-model query is cached (see :func:`clear_model_cache`): it is a
-blocking HTTP call, and ``resolve_model`` is reached from constructors and from
-async code, so re-querying per call would stall the event loop.
+The installed-model query is cached with a TTL (see :data:`_CACHE_TTL_SECONDS` and
+:func:`clear_model_cache`): it is a blocking HTTP call, and ``resolve_model`` is
+reached from constructors and from async code, so re-querying per call would stall
+the event loop.  Cached entries expire automatically after the TTL so a newly
+pulled or removed model is discovered without manual intervention.
 
 Only the standard library is imported here so the module stays cheap and free of
 import cycles (it is loaded very early via ``ollama_provider``).
@@ -29,13 +31,15 @@ import cycles (it is loaded very early via ``ollama_provider``).
 
 from __future__ import annotations
 
+import http.client
 import json
 import logging
 import os
+import threading
+import time
 import urllib.error
 import urllib.request
 from enum import Enum
-from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -100,23 +104,172 @@ def env_override_for(role: AgentRole) -> str | None:
     return value or None
 
 
-@lru_cache(maxsize=8)
+#: Seconds before a cached model-list entry is considered stale and re-queried.
+#: A pull or remove between calls will be picked up within this window.
+_CACHE_TTL_SECONDS: float = 120.0
+
+#: TTL for cached failure results (shorter than success TTL so we retry sooner
+#: after an outage, but long enough to prevent a flood of connection attempts).
+_FAILURE_TTL_SECONDS: float = 60.0
+
+# { (base_url, timeout): (monotonic_timestamp, last_access, result_tuple) }
+# Bounded to avoid unbounded growth when callers pass varying timeout values.
+# ``last_access`` is refreshed on every cache hit so eviction can prefer
+# least-recently-used entries rather than just oldest-written.
+_model_cache: dict[tuple[str, float], tuple[float, float, tuple[str, ...]]] = {}
+_model_cache_lock: threading.Lock = threading.Lock()
+# Per-key events used to coalesce concurrent requests for the same key.
+# Only one thread performs the blocking HTTP call; others wait and reuse
+# the cached result.  This is the key difference from the old ``lru_cache``
+# which serialized the whole function — here we serialize per key only when
+# there is an actual cache miss.
+_in_flight: dict[tuple[str, float], threading.Event] = {}
+_MAX_CACHE_SIZE: int = 64
+
+# Invariant required by the failure-TTL backdating formula in _cache_write:
+# ``ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS`` must be less than
+# ``now`` (so the entry actually expires sooner than a normal success entry).
+# A future edit that violates this would produce a negative effective failure
+# TTL (entries expiring immediately) or worse (never expiring).
+assert _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS, (
+    f"_FAILURE_TTL_SECONDS ({_FAILURE_TTL_SECONDS}) must be less than"
+    f" _CACHE_TTL_SECONDS ({_CACHE_TTL_SECONDS})"
+)
+
+
 def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
-    """Cached Ollama /api/tags query. Returns a tuple so the cache stays immutable."""
-    url = f"{base_url.rstrip('/')}/api/tags"
+    """Cached Ollama /api/tags query with TTL-based expiry.
+
+    Returns a tuple so the cache stays immutable.  Entries older than
+    :data:`_CACHE_TTL_SECONDS` are silently re-queried.
+
+    Concurrent callers for the same ``(base_url, timeout)`` key are coalesced:
+    only one thread performs the blocking HTTP query while the others wait and
+    reuse the result.  This matches the old ``lru_cache`` serialization guarantee
+    but without blocking callers that use *different* keys.
+    """
+    # Normalize timeout to 1 decimal place so callers passing 5.0 and 5.01
+    # share the same cache entry instead of growing the dict unboundedly.
+    # Normalize base_url the same way the request URL is built so that
+    # "http://host:11434" and "http://host:11434/" share one cache entry.
+    key = (base_url.rstrip("/"), round(timeout, 1))
+    now = time.monotonic()
+    with _model_cache_lock:
+        cached = _model_cache.get(key)
+        if cached is not None:
+            ts, _last_access, result = cached
+            if now - ts < _CACHE_TTL_SECONDS:
+                # Refresh access time for LRU eviction.
+                _model_cache[key] = (ts, now, result)
+                return result
+
+        # Cache miss (or stale).  Check whether another thread is already
+        # fetching this key.
+        event = _in_flight.get(key)
+        if event is not None:
+            # Another thread is in-flight — wait for it, then re-check cache.
+            lock = _model_cache_lock
+            lock.release()
+            try:
+                event.wait()
+            finally:
+                lock.acquire()
+            cached = _model_cache.get(key)
+            if cached is not None:
+                ts, _last_access, result = cached
+                _model_cache[key] = (ts, now, result)
+                return result
+            # If still missing (e.g. clear_model_cache ran), fall through.
+
+        # We are the fetching thread for this key.
+        event = threading.Event()
+        _in_flight[key] = event
+
+    # Perform the blocking HTTP call without holding the global lock so that
+    # callers for *different* keys are not serialized against us.
+    #
+    # ``event.set()`` and ``_in_flight.pop(key, None)`` MUST run in a
+    # ``finally`` block so that *any* exception — including ones not covered
+    # by the ``except`` clause below (e.g. ``http.client.IncompleteRead``
+    # which inherits from ``HTTPException`` not ``OSError``, or
+    # ``AttributeError`` when the response JSON is not a dict) — still
+    # releases waiting threads and cleans up the in-flight entry.  Without
+    # this, a single malformed/edge-case server response permanently hangs
+    # every thread that coalesces on the same key (``event.wait()`` has no
+    # timeout) and poisons the key for all future calls.
+    url = f"{key[0]}/api/tags"
     try:
-        # Fixed http(s) Ollama endpoint from config, not user input.
-        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310  # nosec B310
-            payload = json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
-        logger.warning("Could not query Ollama at %s: %s", url, exc)
-        return ()
-    return tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
+        try:
+            # Fixed http(s) Ollama endpoint from config, not user input.
+            with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310  # nosec B310
+                payload = json.loads(response.read().decode("utf-8"))
+            result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
+            _cache_write(key, now, result)
+            return result
+        except (
+            urllib.error.URLError,
+            OSError,
+            ValueError,
+            TimeoutError,
+            http.client.HTTPException,
+            AttributeError,
+            TypeError,
+        ) as exc:
+            logger.warning("Could not query Ollama at %s: %s", url, exc)
+            # Cache failures so a down Ollama doesn't generate a flood of
+            # connection attempts, but with a shorter TTL than successes.
+            # Always cache an empty result on failure — never reuse a stale
+            # *success* entry, which would silently mask an outage.
+            _cache_write(key, now, (), failure=True)
+            return ()
+    finally:
+        # Always release waiting threads and clean up the in-flight entry,
+        # even if an unexpected exception type escapes the inner try/except.
+        event.set()
+        with _model_cache_lock:
+            # Remove only our own in-flight marker — not a newer one that
+            # another thread may have registered after our fetch failed
+            # without caching (which would leave _model_cache[key] missing).
+            # An unconditional ``pop(key)`` would delete the *new* thread's
+            # marker, defeating request coalescing.
+            if _in_flight.get(key) is event:
+                _in_flight.pop(key, None)
+
+
+def _cache_write(
+    key: tuple[str, float],
+    now: float,
+    result: tuple[str, ...],
+    *,
+    failure: bool = False,
+) -> None:
+    """Write to ``_model_cache`` with eviction and TTL bookkeeping.
+
+    When *failure* is ``True`` the entry is backdated so it expires after
+    :data:`_FAILURE_TTL_SECONDS` instead of :data:`_CACHE_TTL_SECONDS`.
+
+    Protected by :data:`_model_cache_lock` for thread safety — this module
+    is reached from constructors and from async code (via thread-pool).
+    """
+    with _model_cache_lock:
+        if len(_model_cache) >= _MAX_CACHE_SIZE and key not in _model_cache:
+            # Evict the least-recently-accessed entry to keep the dict
+            # bounded.  ``_last_access`` is refreshed on every read so a
+            # frequently-hit entry survives even if it was written long ago.
+            lru_key = min(_model_cache, key=lambda k: _model_cache[k][1])
+            del _model_cache[lru_key]
+        if failure:
+            # Backdate so the entry expires after _FAILURE_TTL_SECONDS.
+            ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS
+        else:
+            ts = now
+        _model_cache[key] = (ts, now, result)
 
 
 def clear_model_cache() -> None:
     """Drop the cached installed-model list (call after pulling a new model)."""
-    _query_installed_models.cache_clear()
+    with _model_cache_lock:
+        _model_cache.clear()
 
 
 def list_installed_models(
@@ -124,8 +277,9 @@ def list_installed_models(
 ) -> list[str]:
     """Return the names of models installed in the local Ollama instance.
 
-    The underlying HTTP query is cached (see :func:`clear_model_cache`) because
-    this is blocking I/O reached from constructors and from async code.
+    The underlying HTTP query is cached with a TTL (see :data:`_CACHE_TTL_SECONDS`
+    and :func:`clear_model_cache`) because this is blocking I/O reached from
+    constructors and from async code.
 
     Returns an empty list (and logs a warning) if Ollama cannot be reached, so
     callers can fall back gracefully instead of crashing.

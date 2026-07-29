@@ -159,12 +159,216 @@ def test_clear_model_cache_forces_requery(monkeypatch):
     assert len(calls) == 2
 
 
+def test_cache_expires_after_ttl(monkeypatch):
+    """A stale cache entry triggers a fresh HTTP query."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [DEEPSEEK, QWEN], calls=calls):
+        list_installed_models()
+        assert len(calls) == 1
+        # Simulate TTL expiry by advancing the monotonic clock.
+        import time
+
+        original_monotonic = time.monotonic
+        monkeypatch.setattr(time, "monotonic", lambda: original_monotonic() + 999)
+        list_installed_models()
+        assert len(calls) == 2
+
+
 def test_cache_returns_a_copy(monkeypatch):
     """Callers must not be able to mutate the cached list."""
     with _fake_ollama(monkeypatch, [DEEPSEEK]):
         first = list_installed_models()
         first.append("mutated")
         assert list_installed_models() == [DEEPSEEK]
+
+
+def test_failure_result_is_cached(monkeypatch):
+    """A failed query must cache its result to prevent request floods."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        list_installed_models()  # 1st call: fails, should cache the failure
+        list_installed_models()  # 2nd call: should use cached failure
+        list_installed_models()  # 3rd call: should use cached failure
+    assert len(calls) == 1
+
+
+def test_failure_with_no_prior_cache_is_cached(monkeypatch):
+    """First-ever call that fails must still cache the empty result."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        assert list_installed_models() == []
+        assert list_installed_models() == []
+    assert len(calls) == 1
+
+
+def test_failure_cache_uses_shorter_ttl(monkeypatch):
+    """Failure cache entries expire sooner than success entries."""
+    from evoseal.providers.local_models import _CACHE_TTL_SECONDS, _FAILURE_TTL_SECONDS
+
+    assert _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS
+
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        list_installed_models()
+        assert len(calls) == 1
+        # Advance past the failure TTL but not past the success TTL.
+        import time
+
+        original_monotonic = time.monotonic
+        monkeypatch.setattr(
+            time, "monotonic", lambda: original_monotonic() + _FAILURE_TTL_SECONDS + 1
+        )
+        list_installed_models()  # Should retry since failure TTL expired
+        assert len(calls) == 2
+
+
+def test_success_then_expiry_then_failure_returns_empty(monkeypatch):
+    """Success → TTL expiry → failure must return empty, not stale models."""
+    calls: list[str] = []
+    # First call: Ollama is up, returns models.
+    with _fake_ollama(monkeypatch, [DEEPSEEK, QWEN], calls=calls):
+        result = list_installed_models()
+        assert result == [DEEPSEEK, QWEN]
+        assert len(calls) == 1
+
+    import time
+
+    original_monotonic = time.monotonic
+    # Advance past the success TTL so the cache entry is stale.
+    monkeypatch.setattr(time, "monotonic", lambda: original_monotonic() + 999)
+
+    # Second call: Ollama is down.  Must return empty, not the stale models.
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        result = list_installed_models()
+        assert result == [], f"Expected empty on outage, got {result}"
+        assert len(calls) == 2
+
+
+def test_cache_is_bounded(monkeypatch):
+    """_model_cache does not grow without bound."""
+    from evoseal.providers.local_models import _MAX_CACHE_SIZE, _model_cache
+
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [DEEPSEEK], calls=calls):
+        # Fill the cache with entries using different keys.
+        for i in range(_MAX_CACHE_SIZE + 10):
+            list_installed_models(timeout=1.0 + i * 0.1)
+        assert len(_model_cache) <= _MAX_CACHE_SIZE
+
+
+def test_malformed_response_returns_empty(monkeypatch):
+    """A non-dict JSON response must not crash — returns empty list."""
+
+    class _BadPayloadResponse:
+        def read(self):
+            return json.dumps(["not", "a", "dict"]).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _urlopen_bad(url, timeout=None):
+        return _BadPayloadResponse()
+
+    monkeypatch.setattr(local_models.urllib.request, "urlopen", _urlopen_bad)
+    assert list_installed_models() == []
+
+
+def test_models_list_with_non_dict_entries_returns_empty(monkeypatch):
+    """A response where 'models' contains non-dict entries must not crash."""
+
+    class _BadModelsResponse:
+        def read(self):
+            return json.dumps({"models": ["string", 42, None]}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _urlopen_bad(url, timeout=None):
+        return _BadModelsResponse()
+
+    monkeypatch.setattr(local_models.urllib.request, "urlopen", _urlopen_bad)
+    assert list_installed_models() == []
+
+
+def test_http_exception_returns_empty(monkeypatch):
+    """http.client.HTTPException (e.g. IncompleteRead) is handled gracefully."""
+    import http.client
+
+    with _fake_ollama(monkeypatch, [], error=http.client.IncompleteRead(partial=b"", expected=100)):
+        assert list_installed_models() == []
+
+
+def test_failure_ttl_invariant_enforced():
+    """Module asserts _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS at import time."""
+    from evoseal.providers.local_models import _CACHE_TTL_SECONDS, _FAILURE_TTL_SECONDS
+
+    assert _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS
+
+
+def test_concurrent_calls_coalesce(monkeypatch):
+    """Multiple threads for the same key must fire only one HTTP request."""
+    import threading
+    import time as _time
+
+    calls: list[str] = []
+    # Barrier ensures all 4 threads are ready before any checks the cache.
+    ready_barrier = threading.Barrier(4, timeout=5)
+
+    class _SlowResponse:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def read(self):
+            return json.dumps(self._payload).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _slow_urlopen(url, timeout=None):
+        calls.append(url)
+        # Simulate slow network so the fetching thread doesn't complete
+        # before the others have a chance to check the cache.
+        _time.sleep(0.2)
+        return _SlowResponse({"models": [{"name": DEEPSEEK}]})
+
+    monkeypatch.setattr(local_models.urllib.request, "urlopen", _slow_urlopen)
+
+    results: list[list[str]] = [[] for _ in range(4)]
+
+    def worker(idx):
+        # Wait for all threads to be ready so they all see a cache miss.
+        ready_barrier.wait()
+        results[idx] = list_installed_models()
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+
+    # Only one thread should have performed the HTTP call.
+    assert len(calls) == 1, f"Expected 1 HTTP call, got {len(calls)}"
+    # All threads must get the correct result.
+    for r in results:
+        assert r == [DEEPSEEK]
+
+
+def test_trailing_slash_normalized_in_cache_key(monkeypatch):
+    """'http://host:11434' and 'http://host:11434/' share one cache entry."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [DEEPSEEK], calls=calls):
+        list_installed_models(base_url="http://localhost:11434")
+        list_installed_models(base_url="http://localhost:11434/")
+    assert len(calls) == 1, f"Expected 1 call, got {len(calls)}"
 
 
 # -- resolve_model --------------------------------------------------------
