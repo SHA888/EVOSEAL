@@ -132,6 +132,21 @@ class TestAuthMiddleware:
         assert status == 401
 
     @pytest.mark.asyncio
+    async def test_auth_allows_options_preflight(self, dashboard_with_auth):
+        """OPTIONS requests pass through auth for CORS preflight."""
+        app = dashboard_with_auth.app
+        app.router.add_get("/api/status", dashboard_with_auth.api_status)
+
+        import aiohttp
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/status"
+            async with aiohttp.ClientSession() as session:
+                async with session.options(url) as resp:
+                    # Should NOT be 401 — OPTIONS must pass through
+                    assert resp.status != 401
+
+    @pytest.mark.asyncio
     async def test_auth_api_report_rejected_without_token(self, dashboard_with_auth):
         """/api/report requires auth when token is set."""
         app = dashboard_with_auth.app
@@ -186,6 +201,36 @@ class TestCorsHardening:
             )
 
         assert any("0.0.0.0" in r.message for r in caplog.records)
+
+    def test_bind_ipv6_wildcard_warns(self, mock_service, caplog):
+        """Binding to :: logs a security warning."""
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            MonitoringDashboard(
+                evolution_service=mock_service,
+                host="::",
+                port=18086,
+            )
+
+        assert any("::" in r.message for r in caplog.records)
+
+    def test_wildcard_origins_with_auth_token_warns(self, mock_service, caplog):
+        """Combining allowed_origins=['*'] with auth_token logs a warning."""
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            MonitoringDashboard(
+                evolution_service=mock_service,
+                host="localhost",
+                port=18087,
+                auth_token="secret",
+                allowed_origins=["*"],
+            )
+
+        assert any(
+            "allowed_origins" in r.message and "auth_token" in r.message for r in caplog.records
+        )
 
 
 class TestDashboardDefaults:

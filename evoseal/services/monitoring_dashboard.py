@@ -6,6 +6,7 @@ evolution system, displaying metrics, progress, and system health.
 """
 
 import asyncio
+import hmac
 import json
 import logging
 import weakref
@@ -59,10 +60,11 @@ class MonitoringDashboard:
         self.update_interval = update_interval
         self.auth_token = auth_token
 
-        if host == "0.0.0.0":
+        if host in ("0.0.0.0", "::"):
             logger.warning(
-                "Dashboard is bound to 0.0.0.0 — accessible from any network "
-                "interface. Ensure auth_token is set or restrict access via firewall."
+                "Dashboard is bound to %s — accessible from any network "
+                "interface. Ensure auth_token is set or restrict access via firewall.",
+                host,
             )
 
         # Build default CORS origins from host/port
@@ -72,6 +74,13 @@ class MonitoringDashboard:
             else:
                 allowed_origins = [f"http://{host}:{port}"]
         self.allowed_origins = allowed_origins
+
+        if self.auth_token and "*" in self.allowed_origins:
+            logger.warning(
+                "allowed_origins=['*'] combined with auth_token is insecure — "
+                "any origin can make authenticated requests. "
+                "Restrict allowed_origins to trusted origins."
+            )
 
         # Web application
         self.app = web.Application(middlewares=[self._auth_middleware])
@@ -100,13 +109,16 @@ class MonitoringDashboard:
     async def _auth_middleware(self, request: web.Request, handler):
         """Reject unauthenticated API/WebSocket requests when auth_token is set."""
         if self.auth_token and request.path != "/":
+            # Let CORS preflight through — aiohttp_cors handles these.
+            if request.method == "OPTIONS":
+                return await handler(request)
             auth_header = request.headers.get("Authorization", "")
-            if auth_header == f"Bearer {self.auth_token}":
+            if hmac.compare_digest(auth_header, f"Bearer {self.auth_token}"):
                 pass
             elif request.path == "/ws":
                 # WebSocket clients can pass ?token= as query param
                 token = request.query.get("token", "")
-                if token != self.auth_token:
+                if not hmac.compare_digest(token, self.auth_token):
                     return web.json_response({"error": "Unauthorized"}, status=401)
             else:
                 return web.json_response({"error": "Unauthorized"}, status=401)
