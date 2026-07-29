@@ -57,8 +57,9 @@ class OllamaProvider(SEALProvider):
             registry_model: Ollama model name of the currently deployed
                 fine-tuned model from the version registry.  When provided and
                 installed, it is preferred over raw family-based discovery.
-            max_retries: Maximum number of retry attempts for transient failures
-                (timeouts, connection errors, 5xx). Defaults to 3.
+            max_retries: Maximum number of retries for transient failures
+                (timeouts, connection errors, 5xx) *after* the initial attempt.
+                Total attempts = 1 + max_retries.  Defaults to 3.
             backoff_base: Base delay in seconds for exponential backoff. The actual
                 delay is ``backoff_base * 2^(attempt-1) + jitter``. Defaults to 1.0.
             **kwargs: Additional configuration options
@@ -72,7 +73,7 @@ class OllamaProvider(SEALProvider):
         )
         self.timeout = timeout
         self.config = kwargs
-        self.max_retries = max(1, max_retries)
+        self.max_retries = max(0, max_retries)
         self.backoff_base = backoff_base
 
         # Default generation parameters
@@ -88,23 +89,24 @@ class OllamaProvider(SEALProvider):
 
     def _is_retryable(self, exc: Exception) -> bool:
         """Return True if the exception represents a transient failure worth retrying."""
-        if isinstance(exc, _OllamaServerError):
-            return True
         # asyncio.TimeoutError is explicitly checked because on Python < 3.11
         # it is *not* a subclass of the builtin TimeoutError.  The project
         # targets >= 3.11 where they alias, but this is defensive.
         if isinstance(exc, (asyncio.TimeoutError, TimeoutError, aiohttp.ClientError)):
             return True
-        msg = str(exc).lower()
-        if "timed out" in msg:
+        if isinstance(exc, _OllamaServerError):
             return True
+        # No substring fallback: a bare "timed out" sniff on the message would
+        # incorrectly match 4xx / API-level error bodies that happen to contain
+        # that substring.  If a new timeout-like exception type appears, add it
+        # to the isinstance check above.
         return False
 
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str:
         """Submit a prompt to the Ollama instance.
 
         Retries transient failures (timeouts, connection errors, 5xx) with
-        exponential backoff + jitter up to ``self.max_retries`` times.
+        exponential backoff + jitter.  Total attempts = 1 + self.max_retries.
 
         Args:
             prompt: The prompt to submit
@@ -138,14 +140,15 @@ class OllamaProvider(SEALProvider):
             payload["system"] = kwargs["system"]
 
         last_exc: Exception | None = None
-        for attempt in range(1, self.max_retries + 1):
+        for attempt in range(self.max_retries + 1):
             try:
                 # Use a longer timeout for Ollama requests as they can be slow
                 timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
+                    total_attempts = self.max_retries + 1
                     logger.debug(
                         f"Sending request to Ollama: {self.base_url}/api/generate"
-                        f" (attempt {attempt}/{self.max_retries})"
+                        f" (attempt {attempt + 1}/{total_attempts})"
                     )
 
                     async with session.post(
@@ -188,21 +191,23 @@ class OllamaProvider(SEALProvider):
                 else:
                     last_exc = Exception(f"Ollama request failed: {e}")
                 last_exc.__cause__ = e
-                logger.warning(f"Attempt {attempt}/{self.max_retries}: retryable error: {e}")
+                logger.warning(
+                    f"Attempt {attempt + 1}/{self.max_retries + 1}: retryable error: {e}"
+                )
 
             # Back off before next attempt (skip delay after last attempt)
             if attempt < self.max_retries:
-                delay = self.backoff_base * (2 ** (attempt - 1)) + random.uniform(0, 0.5)
+                delay = self.backoff_base * (2**attempt) + random.uniform(0, 0.5)
                 logger.debug(f"Retrying in {delay:.1f}s...")
                 await asyncio.sleep(delay)
 
         # All retries exhausted
         if last_exc is None:
             raise RuntimeError(
-                f"Ollama request failed after {self.max_retries} attempts "
+                f"Ollama request failed after {self.max_retries + 1} attempts "
                 f"but no exception was captured — this is a bug"
             )
-        logger.error(f"Ollama request failed after {self.max_retries} attempts")
+        logger.error(f"Ollama request failed after {self.max_retries + 1} attempts")
         raise last_exc
 
     async def parse_response(self, response: str) -> dict[str, Any]:

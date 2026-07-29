@@ -30,7 +30,7 @@ def provider(monkeypatch):
 
 @pytest.fixture
 def provider_no_retry(monkeypatch):
-    """Create an OllamaProvider with retries disabled."""
+    """Create an OllamaProvider with retries disabled (max_retries=0 → 1 attempt)."""
     monkeypatch.setattr(
         "evoseal.providers.ollama_provider.resolve_model",
         lambda *a, **kw: "test-model:latest",
@@ -39,7 +39,7 @@ def provider_no_retry(monkeypatch):
         base_url="http://localhost:11434",
         model="test-model:latest",
         timeout=10,
-        max_retries=1,
+        max_retries=0,
         backoff_base=0.01,
     )
 
@@ -249,7 +249,9 @@ async def test_submit_prompt_500_retries_with_backoff(provider):
 @pytest.mark.asyncio
 async def test_submit_prompt_exhausts_retries(provider):
     """Raises after all retries exhausted."""
-    sessions = [_FailSession(asyncio.TimeoutError("timeout")) for _ in range(provider.max_retries)]
+    sessions = [
+        _FailSession(asyncio.TimeoutError("timeout")) for _ in range(provider.max_retries + 1)
+    ]
 
     with patch("aiohttp.ClientSession", side_effect=sessions):
         with pytest.raises(Exception, match="timed out"):
@@ -321,6 +323,27 @@ def test_is_not_retryable_generic(provider):
     assert provider._is_retryable(ValueError("bad input")) is False
 
 
+def test_is_not_retryable_generic_exception_with_timed_out(provider):
+    """A generic Exception with 'timed out' in the message is NOT retryable.
+
+    This covers the case where a 4xx body or Ollama API error message
+    happens to contain the substring 'timed out' — it must not be retried.
+    """
+    exc = Exception("Ollama API request failed with status 400: context timed out")
+    assert provider._is_retryable(exc) is False
+
+
+@pytest.mark.asyncio
+async def test_submit_prompt_no_retry_on_400_with_timed_out_body(provider_no_retry):
+    """HTTP 4xx with 'timed out' in the body is NOT retried."""
+    mock_resp = _MockResponse(400, text_body="context timed out loading model")
+    mock_session = _MockSession([mock_resp])
+
+    with patch("aiohttp.ClientSession", return_value=mock_session):
+        with pytest.raises(Exception, match="status 400"):
+            await provider_no_retry.submit_prompt("test")
+
+
 # -- Configuration ---------------------------------------------------------
 
 
@@ -334,15 +357,15 @@ def test_max_retries_configurable(monkeypatch):
 
 
 def test_max_retries_clamped_to_minimum(monkeypatch):
-    """max_retries < 1 is clamped to 1 to avoid an empty retry loop."""
+    """max_retries < 0 is clamped to 0 (single attempt, no retries)."""
     monkeypatch.setattr(
         "evoseal.providers.ollama_provider.resolve_model",
         lambda *a, **kw: "test-model:latest",
     )
     p = OllamaProvider(model="test-model:latest", max_retries=0)
-    assert p.max_retries == 1
+    assert p.max_retries == 0
     p2 = OllamaProvider(model="test-model:latest", max_retries=-3)
-    assert p2.max_retries == 1
+    assert p2.max_retries == 0
 
 
 def test_backoff_base_configurable(monkeypatch):
