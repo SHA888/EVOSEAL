@@ -34,6 +34,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -113,6 +114,7 @@ _FAILURE_TTL_SECONDS: float = 60.0
 # { (base_url, timeout): (monotonic_timestamp, result_tuple) }
 # Bounded to avoid unbounded growth when callers pass varying timeout values.
 _model_cache: dict[tuple[str, float], tuple[float, tuple[str, ...]]] = {}
+_model_cache_lock: threading.Lock = threading.Lock()
 _MAX_CACHE_SIZE: int = 64
 
 
@@ -126,7 +128,8 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
     # share the same cache entry instead of growing the dict unboundedly.
     key = (base_url, round(timeout, 1))
     now = time.monotonic()
-    cached = _model_cache.get(key)
+    with _model_cache_lock:
+        cached = _model_cache.get(key)
     if cached is not None:
         ts, result = cached
         if now - ts < _CACHE_TTL_SECONDS:
@@ -140,9 +143,10 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
         logger.warning("Could not query Ollama at %s: %s", url, exc)
         # Cache failures so a down Ollama doesn't generate a flood of
         # connection attempts, but with a shorter TTL than successes.
-        failure_result = cached[1] if cached is not None else ()
-        _cache_write(key, now, failure_result, failure=True)
-        return failure_result
+        # Always cache an empty result on failure — never reuse a stale
+        # *success* entry, which would silently mask an outage.
+        _cache_write(key, now, (), failure=True)
+        return ()
     result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
     _cache_write(key, now, result)
     return result
@@ -159,22 +163,27 @@ def _cache_write(
 
     When *failure* is ``True`` the entry is backdated so it expires after
     :data:`_FAILURE_TTL_SECONDS` instead of :data:`_CACHE_TTL_SECONDS`.
+
+    Protected by :data:`_model_cache_lock` for thread safety — this module
+    is reached from constructors and from async code (via thread-pool).
     """
-    if len(_model_cache) >= _MAX_CACHE_SIZE and key not in _model_cache:
-        # Evict the oldest entry to keep the dict bounded.
-        oldest_key = min(_model_cache, key=lambda k: _model_cache[k][0])
-        del _model_cache[oldest_key]
-    if failure:
-        # Backdate so the entry expires after _FAILURE_TTL_SECONDS.
-        ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS
-    else:
-        ts = now
-    _model_cache[key] = (ts, result)
+    with _model_cache_lock:
+        if len(_model_cache) >= _MAX_CACHE_SIZE and key not in _model_cache:
+            # Evict the oldest entry to keep the dict bounded.
+            oldest_key = min(_model_cache, key=lambda k: _model_cache[k][0])
+            del _model_cache[oldest_key]
+        if failure:
+            # Backdate so the entry expires after _FAILURE_TTL_SECONDS.
+            ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS
+        else:
+            ts = now
+        _model_cache[key] = (ts, result)
 
 
 def clear_model_cache() -> None:
     """Drop the cached installed-model list (call after pulling a new model)."""
-    _model_cache.clear()
+    with _model_cache_lock:
+        _model_cache.clear()
 
 
 def list_installed_models(

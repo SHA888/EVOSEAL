@@ -222,6 +222,28 @@ def test_failure_cache_uses_shorter_ttl(monkeypatch):
         assert len(calls) == 2
 
 
+def test_success_then_expiry_then_failure_returns_empty(monkeypatch):
+    """Success → TTL expiry → failure must return empty, not stale models."""
+    calls: list[str] = []
+    # First call: Ollama is up, returns models.
+    with _fake_ollama(monkeypatch, [DEEPSEEK, QWEN], calls=calls):
+        result = list_installed_models()
+        assert result == [DEEPSEEK, QWEN]
+        assert len(calls) == 1
+
+    import time
+
+    original_monotonic = time.monotonic
+    # Advance past the success TTL so the cache entry is stale.
+    monkeypatch.setattr(time, "monotonic", lambda: original_monotonic() + 999)
+
+    # Second call: Ollama is down.  Must return empty, not the stale models.
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        result = list_installed_models()
+        assert result == [], f"Expected empty on outage, got {result}"
+        assert len(calls) == 2
+
+
 def test_cache_is_bounded(monkeypatch):
     """_model_cache does not grow without bound."""
     from evoseal.providers.local_models import _MAX_CACHE_SIZE, _model_cache
