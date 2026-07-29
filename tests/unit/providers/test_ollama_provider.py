@@ -249,6 +249,54 @@ async def test_submit_prompt_exhausts_retries(provider):
 
 
 @pytest.mark.asyncio
+async def test_submit_prompt_aborts_early_when_overall_deadline_exhausted(monkeypatch):
+    """The overall-deadline guard abandons further attempts and raises the
+    last captured error, instead of falling through to the "no exception
+    was captured — this is a bug" RuntimeError.
+
+    The guard checks ``remaining < self.timeout * 0.5`` once per attempt.
+    Faking the loop clock lets attempt 0 proceed (and fail) but forces the
+    attempt-1 check to see the deadline as exhausted, so attempt 1 must
+    never be submitted.
+    """
+    monkeypatch.setattr(
+        "evoseal.providers.ollama_provider.resolve_model",
+        lambda *a, **kw: "test-model:latest",
+    )
+    provider = OllamaProvider(
+        base_url="http://localhost:11434",
+        model="test-model:latest",
+        timeout=10,
+        max_retries=2,
+        backoff_base=0.01,
+    )
+
+    # Call order: deadline baseline, attempt-0 guard check (proceeds),
+    # attempt-1 guard check (reports the deadline as exhausted).
+    fake_times = iter([0.0, 0.0, 1_000_000.0])
+
+    class _FakeLoop:
+        def time(self):
+            return next(fake_times)
+
+    monkeypatch.setattr(
+        "evoseal.providers.ollama_provider.asyncio.get_event_loop",
+        lambda: _FakeLoop(),
+    )
+
+    mock_session = _MockSession([_FailResponse(asyncio.TimeoutError("read timeout"))])
+
+    with patch("aiohttp.ClientSession", return_value=mock_session):
+        with patch("asyncio.sleep", new=AsyncMock()):
+            with pytest.raises(Exception, match="timed out"):
+                await provider.submit_prompt("test")
+
+    # Only attempt 0 was made — attempt 1 was abandoned by the deadline guard,
+    # not exhausted by max_retries (which would have allowed 3 attempts).
+    assert mock_session._call_count == 1
+
+
+@pytest.mark.asyncio
 async def test_submit_prompt_no_retry_on_bad_json(provider_no_retry):
     """JSON parse errors are not retried (bad response format)."""
     mock_resp = _MockResponse(200)
