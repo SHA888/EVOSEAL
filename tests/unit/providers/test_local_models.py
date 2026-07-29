@@ -182,6 +182,58 @@ def test_cache_returns_a_copy(monkeypatch):
         assert list_installed_models() == [DEEPSEEK]
 
 
+def test_failure_result_is_cached(monkeypatch):
+    """A failed query must cache its result to prevent request floods."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        list_installed_models()  # 1st call: fails, should cache the failure
+        list_installed_models()  # 2nd call: should use cached failure
+        list_installed_models()  # 3rd call: should use cached failure
+    assert len(calls) == 1
+
+
+def test_failure_with_no_prior_cache_is_cached(monkeypatch):
+    """First-ever call that fails must still cache the empty result."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        assert list_installed_models() == []
+        assert list_installed_models() == []
+    assert len(calls) == 1
+
+
+def test_failure_cache_uses_shorter_ttl(monkeypatch):
+    """Failure cache entries expire sooner than success entries."""
+    from evoseal.providers.local_models import _CACHE_TTL_SECONDS, _FAILURE_TTL_SECONDS
+
+    assert _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS
+
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [], calls=calls, error=urllib.error.URLError("refused")):
+        list_installed_models()
+        assert len(calls) == 1
+        # Advance past the failure TTL but not past the success TTL.
+        import time
+
+        original_monotonic = time.monotonic
+        monkeypatch.setattr(
+            time, "monotonic", lambda: original_monotonic() + _FAILURE_TTL_SECONDS + 1
+        )
+        list_installed_models()  # Should retry since failure TTL expired
+        assert len(calls) == 2
+
+
+def test_cache_is_bounded(monkeypatch):
+    """_model_cache does not grow without bound."""
+    from evoseal.providers.local_models import _MAX_CACHE_SIZE, _model_cache
+
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [DEEPSEEK], calls=calls):
+        # Fill the cache with entries using different keys.
+        for i in range(_MAX_CACHE_SIZE + 10):
+            list_installed_models(timeout=1.0 + i * 0.1)
+        assert len(_model_cache) <= _MAX_CACHE_SIZE
+
+
 # -- resolve_model --------------------------------------------------------
 
 

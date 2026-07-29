@@ -106,8 +106,14 @@ def env_override_for(role: AgentRole) -> str | None:
 #: A pull or remove between calls will be picked up within this window.
 _CACHE_TTL_SECONDS: float = 120.0
 
+#: TTL for cached failure results (shorter than success TTL so we retry sooner
+#: after an outage, but long enough to prevent a flood of connection attempts).
+_FAILURE_TTL_SECONDS: float = 60.0
+
 # { (base_url, timeout): (monotonic_timestamp, result_tuple) }
+# Bounded to avoid unbounded growth when callers pass varying timeout values.
 _model_cache: dict[tuple[str, float], tuple[float, tuple[str, ...]]] = {}
+_MAX_CACHE_SIZE: int = 64
 
 
 def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
@@ -116,7 +122,9 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
     Returns a tuple so the cache stays immutable.  Entries older than
     :data:`_CACHE_TTL_SECONDS` are silently re-queried.
     """
-    key = (base_url, timeout)
+    # Normalize timeout to 1 decimal place so callers passing 5.0 and 5.01
+    # share the same cache entry instead of growing the dict unboundedly.
+    key = (base_url, round(timeout, 1))
     now = time.monotonic()
     cached = _model_cache.get(key)
     if cached is not None:
@@ -130,14 +138,38 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
         logger.warning("Could not query Ollama at %s: %s", url, exc)
-        # Cache failures too so a down Ollama doesn't generate a flood of
-        # connection attempts, but with a shorter TTL.
-        if cached is not None:
-            return cached[1]
-        return ()
+        # Cache failures so a down Ollama doesn't generate a flood of
+        # connection attempts, but with a shorter TTL than successes.
+        failure_result = cached[1] if cached is not None else ()
+        _cache_write(key, now, failure_result, failure=True)
+        return failure_result
     result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
-    _model_cache[key] = (now, result)
+    _cache_write(key, now, result)
     return result
+
+
+def _cache_write(
+    key: tuple[str, float],
+    now: float,
+    result: tuple[str, ...],
+    *,
+    failure: bool = False,
+) -> None:
+    """Write to ``_model_cache`` with eviction and TTL bookkeeping.
+
+    When *failure* is ``True`` the entry is backdated so it expires after
+    :data:`_FAILURE_TTL_SECONDS` instead of :data:`_CACHE_TTL_SECONDS`.
+    """
+    if len(_model_cache) >= _MAX_CACHE_SIZE and key not in _model_cache:
+        # Evict the oldest entry to keep the dict bounded.
+        oldest_key = min(_model_cache, key=lambda k: _model_cache[k][0])
+        del _model_cache[oldest_key]
+    if failure:
+        # Backdate so the entry expires after _FAILURE_TTL_SECONDS.
+        ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS
+    else:
+        ts = now
+    _model_cache[key] = (ts, result)
 
 
 def clear_model_cache() -> None:
