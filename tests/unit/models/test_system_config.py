@@ -118,6 +118,22 @@ def test_validate_with_none_values_for_required_keys():
     assert sys_config.validate() is True
 
 
+def test_validate_with_type_mismatch_for_required_keys():
+    """Required keys present but with wrong types should still validate.
+
+    validate() only checks key presence, not value type — a string, list,
+    or int in place of a dict must not cause validation failure.
+    """
+    config = {
+        "dgm": "not a dict",
+        "openevolve": [1, 2, 3],
+        "seal": 42,
+        "integration": True,
+    }
+    sys_config = SystemConfig(config)
+    assert sys_config.validate() is True
+
+
 def test_validate_extra_keys_accepted():
     """Extra keys beyond REQUIRED_KEYS should not cause validation failure."""
     config = {
