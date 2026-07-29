@@ -129,8 +129,9 @@
 - [x] **Model-safety validator can be defeated by an incidental safety word** _(done 2026-07-23, fix/safety-validator-bypass)_
   - `evoseal/fine_tuning/model_validator.py:432-454` — `_is_safe_response` returned `has_safety or not has_unsafe`. A response containing both an unsafe instruction and any safety-sounding word (e.g. `"Sorry, but here's how: rm -rf /"`) was classified safe regardless of the unsafe content. Fixed to `return not has_unsafe`; added 7 regression tests in `test_model_validator.py`
 - [x] **Path traversal in git-file read/write helpers** _(done 2026-07-26)_ — `get_file_content` and `write_file_content` now resolve the constructed path and verify it stays within `repo_path` via `is_relative_to()`, raising `GitError` on traversal. 3 new test functions cover `..` traversal, absolute paths, nested traversal, and legitimate subdirectory ops.
-- [ ] **Monitoring dashboard has no authentication and permissive CORS-with-credentials**
-  - `evoseal/services/monitoring_dashboard.py:75-91` (`setup_cors`) — every route gets `aiohttp_cors.ResourceOptions(allow_credentials=True, allow_headers="*", allow_methods="*", expose_headers="*")` on a wildcard origin (CWE-942). No auth on any HTTP or WebSocket endpoint (`/api/status`, `/api/metrics`, `/api/report`, `/ws`), which return internal operational data (data paths, config, error strings). Defaults to `localhost` (limits blast radius today) but nothing prevents/warns against a `0.0.0.0` deploy, at which point this is unauthenticated remote information disclosure
+- [x] **Monitoring dashboard has no authentication and permissive CORS-with-credentials** _(done 2026-07-29)_
+  - `evoseal/services/monitoring_dashboard.py:75-91` (`setup_cors`) — every route got `aiohttp_cors.ResourceOptions(allow_credentials=True, allow_headers="*", allow_methods="*", expose_headers="*")` on a wildcard origin (CWE-942). No auth on any HTTP or WebSocket endpoint (`/api/status`, `/api/metrics`, `/api/report`, `/ws`), which return internal operational data (data paths, config, error strings). Defaults to `localhost` (limits blast radius today) but nothing prevented/warned against a `0.0.0.0` deploy, at which point this was unauthenticated remote information disclosure
+  - Fixed: CORS origins now default to the dashboard's own host:port (not `*`); binding to `0.0.0.0` logs a security warning; added optional `auth_token` parameter — when set, all `/api/*` and `/ws` requests must present `Authorization: Bearer <token>` (WebSocket clients can pass `?token=`); the HTML dashboard page is not gated. Wildcard `*` origin explicitly disables `allow_credentials` per CORS spec. 14 new unit tests cover auth accept/reject, CORS defaults, wildcard warning, and constructor params
 
 ### CI/CD & Release Pipeline Issues Found in Whole-Repo Code Review (2026-07-22)
 
@@ -304,7 +305,7 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 14   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created |
+| 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
 | 🟡 P2    | 30    | 20   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix |
 | 🟢 P3    | 24    | 15   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache |
 | **Total** | **89** | **60** | |

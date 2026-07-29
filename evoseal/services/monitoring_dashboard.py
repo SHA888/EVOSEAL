@@ -34,6 +34,8 @@ class MonitoringDashboard:
         host: str = "localhost",
         port: int = 8081,
         update_interval: int = 30,
+        auth_token: str | None = None,
+        allowed_origins: list[str] | None = None,
     ):
         """
         Initialize the monitoring dashboard.
@@ -43,14 +45,36 @@ class MonitoringDashboard:
             host: Dashboard host address
             port: Dashboard port
             update_interval: Seconds between dashboard updates
+            auth_token: Optional bearer token for API/WebSocket auth.
+                When set, all /api/* and /ws requests must include
+                Authorization: Bearer <token>. The dashboard HTML page is
+                not gated (it only loads the JS client).
+            allowed_origins: Origins allowed for CORS. Defaults to the
+                dashboard's own origin(s). Pass ["*"] explicitly to allow
+                all origins (insecure — never combine with auth_token).
         """
         self.evolution_service = evolution_service
         self.host = host
         self.port = port
         self.update_interval = update_interval
+        self.auth_token = auth_token
+
+        if host == "0.0.0.0":
+            logger.warning(
+                "Dashboard is bound to 0.0.0.0 — accessible from any network "
+                "interface. Ensure auth_token is set or restrict access via firewall."
+            )
+
+        # Build default CORS origins from host/port
+        if allowed_origins is None:
+            if host in ("0.0.0.0", "::"):
+                allowed_origins = ["http://localhost", f"http://localhost:{port}"]
+            else:
+                allowed_origins = [f"http://{host}:{port}"]
+        self.allowed_origins = allowed_origins
 
         # Web application
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[self._auth_middleware])
         self.setup_routes()
         self.setup_cors()
 
@@ -72,18 +96,44 @@ class MonitoringDashboard:
         self.app.router.add_get("/ws", self.websocket_handler)
         # Static files embedded in HTML, no separate static directory needed
 
+    @web.middleware
+    async def _auth_middleware(self, request: web.Request, handler):
+        """Reject unauthenticated API/WebSocket requests when auth_token is set."""
+        if self.auth_token and request.path != "/":
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header == f"Bearer {self.auth_token}":
+                pass
+            elif request.path == "/ws":
+                # WebSocket clients can pass ?token= as query param
+                token = request.query.get("token", "")
+                if token != self.auth_token:
+                    return web.json_response({"error": "Unauthorized"}, status=401)
+            else:
+                return web.json_response({"error": "Unauthorized"}, status=401)
+        return await handler(request)
+
     def setup_cors(self):
         """Setup CORS for API access."""
+        if "*" in self.allowed_origins:
+            # Explicit wildcard — allow_credentials must be False for safety.
+            logger.warning("CORS origin is '*'; disabling allow_credentials per CORS spec.")
+            default_opts = aiohttp_cors.ResourceOptions(
+                allow_credentials=False,
+                expose_headers="*",
+                allow_headers="*",
+                allow_methods="*",
+            )
+        else:
+            default_opts = aiohttp_cors.ResourceOptions(
+                allow_credentials=True,
+                expose_headers="*",
+                allow_headers="*",
+                allow_methods="*",
+            )
+
         cors = aiohttp_cors.setup(
             self.app,
-            defaults={
-                "*": aiohttp_cors.ResourceOptions(
-                    allow_credentials=True,
-                    expose_headers="*",
-                    allow_headers="*",
-                    allow_methods="*",
-                )
-            },
+            defaults={origin: default_opts for origin in self.allowed_origins},
         )
 
         # Add CORS to all routes
