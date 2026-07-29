@@ -256,6 +256,61 @@ def test_cache_is_bounded(monkeypatch):
         assert len(_model_cache) <= _MAX_CACHE_SIZE
 
 
+def test_malformed_response_returns_empty(monkeypatch):
+    """A non-dict JSON response must not crash — returns empty list."""
+
+    class _BadPayloadResponse:
+        def read(self):
+            return json.dumps(["not", "a", "dict"]).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _urlopen_bad(url, timeout=None):
+        return _BadPayloadResponse()
+
+    monkeypatch.setattr(local_models.urllib.request, "urlopen", _urlopen_bad)
+    assert list_installed_models() == []
+
+
+def test_models_list_with_non_dict_entries_returns_empty(monkeypatch):
+    """A response where 'models' contains non-dict entries must not crash."""
+
+    class _BadModelsResponse:
+        def read(self):
+            return json.dumps({"models": ["string", 42, None]}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _urlopen_bad(url, timeout=None):
+        return _BadModelsResponse()
+
+    monkeypatch.setattr(local_models.urllib.request, "urlopen", _urlopen_bad)
+    assert list_installed_models() == []
+
+
+def test_http_exception_returns_empty(monkeypatch):
+    """http.client.HTTPException (e.g. IncompleteRead) is handled gracefully."""
+    import http.client
+
+    with _fake_ollama(monkeypatch, [], error=http.client.IncompleteRead(partial=b"", expected=100)):
+        assert list_installed_models() == []
+
+
+def test_failure_ttl_invariant_enforced():
+    """Module asserts _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS at import time."""
+    from evoseal.providers.local_models import _CACHE_TTL_SECONDS, _FAILURE_TTL_SECONDS
+
+    assert _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS
+
+
 def test_concurrent_calls_coalesce(monkeypatch):
     """Multiple threads for the same key must fire only one HTTP request."""
     import threading

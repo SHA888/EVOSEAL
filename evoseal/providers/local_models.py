@@ -31,6 +31,7 @@ import cycles (it is loaded very early via ``ollama_provider``).
 
 from __future__ import annotations
 
+import http.client
 import json
 import logging
 import os
@@ -125,6 +126,16 @@ _model_cache_lock: threading.Lock = threading.Lock()
 _in_flight: dict[tuple[str, float], threading.Event] = {}
 _MAX_CACHE_SIZE: int = 64
 
+# Invariant required by the failure-TTL backdating formula in _cache_write:
+# ``ts = now - _CACHE_TTL_SECONDS + _FAILURE_TTL_SECONDS`` must be less than
+# ``now`` (so the entry actually expires sooner than a normal success entry).
+# A future edit that violates this would produce a negative effective failure
+# TTL (entries expiring immediately) or worse (never expiring).
+assert _FAILURE_TTL_SECONDS < _CACHE_TTL_SECONDS, (
+    f"_FAILURE_TTL_SECONDS ({_FAILURE_TTL_SECONDS}) must be less than"
+    f" _CACHE_TTL_SECONDS ({_CACHE_TTL_SECONDS})"
+)
+
 
 def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
     """Cached Ollama /api/tags query with TTL-based expiry.
@@ -195,7 +206,15 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
             result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
             _cache_write(key, now, result)
             return result
-        except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
+        except (
+            urllib.error.URLError,
+            OSError,
+            ValueError,
+            TimeoutError,
+            http.client.HTTPException,
+            AttributeError,
+            TypeError,
+        ) as exc:
             logger.warning("Could not query Ollama at %s: %s", url, exc)
             # Cache failures so a down Ollama doesn't generate a flood of
             # connection attempts, but with a shorter TTL than successes.
@@ -208,7 +227,13 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
         # even if an unexpected exception type escapes the inner try/except.
         event.set()
         with _model_cache_lock:
-            _in_flight.pop(key, None)
+            # Remove only our own in-flight marker — not a newer one that
+            # another thread may have registered after our fetch failed
+            # without caching (which would leave _model_cache[key] missing).
+            # An unconditional ``pop(key)`` would delete the *new* thread's
+            # marker, defeating request coalescing.
+            if _in_flight.get(key) is event:
+                _in_flight.pop(key, None)
 
 
 def _cache_write(
