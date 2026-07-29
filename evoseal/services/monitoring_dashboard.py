@@ -51,8 +51,11 @@ class MonitoringDashboard:
                 Authorization: Bearer <token>. The dashboard HTML page is
                 not gated (it only loads the JS client).
             allowed_origins: Origins allowed for CORS. Defaults to the
-                dashboard's own origin(s). Pass ["*"] explicitly to allow
-                all origins (insecure — never combine with auth_token).
+                dashboard's own origin(s) using http://. If the dashboard
+                is behind TLS termination or accessed via a different
+                hostname than the bind host, pass the correct origins
+                explicitly. Pass ["*"] explicitly to allow all origins
+                (raises ValueError when combined with auth_token).
         """
         self.evolution_service = evolution_service
         self.host = host
@@ -76,7 +79,7 @@ class MonitoringDashboard:
         self.allowed_origins = allowed_origins
 
         if self.auth_token and "*" in self.allowed_origins:
-            logger.warning(
+            raise ValueError(
                 "allowed_origins=['*'] combined with auth_token is insecure — "
                 "any origin can make authenticated requests. "
                 "Restrict allowed_origins to trusted origins."

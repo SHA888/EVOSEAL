@@ -215,11 +215,9 @@ class TestCorsHardening:
 
         assert any("::" in r.message for r in caplog.records)
 
-    def test_wildcard_origins_with_auth_token_warns(self, mock_service, caplog):
-        """Combining allowed_origins=['*'] with auth_token logs a warning."""
-        import logging
-
-        with caplog.at_level(logging.WARNING):
+    def test_wildcard_origins_with_auth_token_raises(self, mock_service):
+        """Combining allowed_origins=['*'] with auth_token raises ValueError."""
+        with pytest.raises(ValueError, match="allowed_origins.*auth_token"):
             MonitoringDashboard(
                 evolution_service=mock_service,
                 host="localhost",
@@ -227,10 +225,6 @@ class TestCorsHardening:
                 auth_token="secret",
                 allowed_origins=["*"],
             )
-
-        assert any(
-            "allowed_origins" in r.message and "auth_token" in r.message for r in caplog.records
-        )
 
 
 class TestDashboardDefaults:
