@@ -176,28 +176,39 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
 
     # Perform the blocking HTTP call without holding the global lock so that
     # callers for *different* keys are not serialized against us.
+    #
+    # ``event.set()`` and ``_in_flight.pop(key, None)`` MUST run in a
+    # ``finally`` block so that *any* exception — including ones not covered
+    # by the ``except`` clause below (e.g. ``http.client.IncompleteRead``
+    # which inherits from ``HTTPException`` not ``OSError``, or
+    # ``AttributeError`` when the response JSON is not a dict) — still
+    # releases waiting threads and cleans up the in-flight entry.  Without
+    # this, a single malformed/edge-case server response permanently hangs
+    # every thread that coalesces on the same key (``event.wait()`` has no
+    # timeout) and poisons the key for all future calls.
     url = f"{key[0]}/api/tags"
     try:
-        # Fixed http(s) Ollama endpoint from config, not user input.
-        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310  # nosec B310
-            payload = json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
-        logger.warning("Could not query Ollama at %s: %s", url, exc)
-        # Cache failures so a down Ollama doesn't generate a flood of
-        # connection attempts, but with a shorter TTL than successes.
-        # Always cache an empty result on failure — never reuse a stale
-        # *success* entry, which would silently mask an outage.
-        _cache_write(key, now, (), failure=True)
+        try:
+            # Fixed http(s) Ollama endpoint from config, not user input.
+            with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310  # nosec B310
+                payload = json.loads(response.read().decode("utf-8"))
+            result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
+            _cache_write(key, now, result)
+            return result
+        except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
+            logger.warning("Could not query Ollama at %s: %s", url, exc)
+            # Cache failures so a down Ollama doesn't generate a flood of
+            # connection attempts, but with a shorter TTL than successes.
+            # Always cache an empty result on failure — never reuse a stale
+            # *success* entry, which would silently mask an outage.
+            _cache_write(key, now, (), failure=True)
+            return ()
+    finally:
+        # Always release waiting threads and clean up the in-flight entry,
+        # even if an unexpected exception type escapes the inner try/except.
         event.set()
         with _model_cache_lock:
             _in_flight.pop(key, None)
-        return ()
-    result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
-    _cache_write(key, now, result)
-    event.set()
-    with _model_cache_lock:
-        _in_flight.pop(key, None)
-    return result
 
 
 def _cache_write(
