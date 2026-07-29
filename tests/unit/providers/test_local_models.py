@@ -159,6 +159,21 @@ def test_clear_model_cache_forces_requery(monkeypatch):
     assert len(calls) == 2
 
 
+def test_cache_expires_after_ttl(monkeypatch):
+    """A stale cache entry triggers a fresh HTTP query."""
+    calls: list[str] = []
+    with _fake_ollama(monkeypatch, [DEEPSEEK, QWEN], calls=calls):
+        list_installed_models()
+        assert len(calls) == 1
+        # Simulate TTL expiry by advancing the monotonic clock.
+        import time
+
+        original_monotonic = time.monotonic
+        monkeypatch.setattr(time, "monotonic", lambda: original_monotonic() + 999)
+        list_installed_models()
+        assert len(calls) == 2
+
+
 def test_cache_returns_a_copy(monkeypatch):
     """Callers must not be able to mutate the cached list."""
     with _fake_ollama(monkeypatch, [DEEPSEEK]):

@@ -19,9 +19,11 @@ by model *family* (case-insensitive substring). Resolution order per role:
 This keeps the co-evolution loop durable across model swaps: as long as *some*
 coder/reviewer-family model is pulled, it will be found and used.
 
-The installed-model query is cached (see :func:`clear_model_cache`): it is a
-blocking HTTP call, and ``resolve_model`` is reached from constructors and from
-async code, so re-querying per call would stall the event loop.
+The installed-model query is cached with a TTL (see :data:`_CACHE_TTL_SECONDS` and
+:func:`clear_model_cache`): it is a blocking HTTP call, and ``resolve_model`` is
+reached from constructors and from async code, so re-querying per call would stall
+the event loop.  Cached entries expire automatically after the TTL so a newly
+pulled or removed model is discovered without manual intervention.
 
 Only the standard library is imported here so the module stays cheap and free of
 import cycles (it is loaded very early via ``ollama_provider``).
@@ -32,10 +34,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import urllib.error
 import urllib.request
 from enum import Enum
-from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +102,27 @@ def env_override_for(role: AgentRole) -> str | None:
     return value or None
 
 
-@lru_cache(maxsize=8)
+#: Seconds before a cached model-list entry is considered stale and re-queried.
+#: A pull or remove between calls will be picked up within this window.
+_CACHE_TTL_SECONDS: float = 120.0
+
+# { (base_url, timeout): (monotonic_timestamp, result_tuple) }
+_model_cache: dict[tuple[str, float], tuple[float, tuple[str, ...]]] = {}
+
+
 def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
-    """Cached Ollama /api/tags query. Returns a tuple so the cache stays immutable."""
+    """Cached Ollama /api/tags query with TTL-based expiry.
+
+    Returns a tuple so the cache stays immutable.  Entries older than
+    :data:`_CACHE_TTL_SECONDS` are silently re-queried.
+    """
+    key = (base_url, timeout)
+    now = time.monotonic()
+    cached = _model_cache.get(key)
+    if cached is not None:
+        ts, result = cached
+        if now - ts < _CACHE_TTL_SECONDS:
+            return result
     url = f"{base_url.rstrip('/')}/api/tags"
     try:
         # Fixed http(s) Ollama endpoint from config, not user input.
@@ -110,13 +130,19 @@ def _query_installed_models(base_url: str, timeout: float) -> tuple[str, ...]:
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, OSError, ValueError, TimeoutError) as exc:
         logger.warning("Could not query Ollama at %s: %s", url, exc)
+        # Cache failures too so a down Ollama doesn't generate a flood of
+        # connection attempts, but with a shorter TTL.
+        if cached is not None:
+            return cached[1]
         return ()
-    return tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
+    result = tuple(m.get("name", "") for m in payload.get("models", []) if m.get("name"))
+    _model_cache[key] = (now, result)
+    return result
 
 
 def clear_model_cache() -> None:
     """Drop the cached installed-model list (call after pulling a new model)."""
-    _query_installed_models.cache_clear()
+    _model_cache.clear()
 
 
 def list_installed_models(
@@ -124,8 +150,9 @@ def list_installed_models(
 ) -> list[str]:
     """Return the names of models installed in the local Ollama instance.
 
-    The underlying HTTP query is cached (see :func:`clear_model_cache`) because
-    this is blocking I/O reached from constructors and from async code.
+    The underlying HTTP query is cached with a TTL (see :data:`_CACHE_TTL_SECONDS`
+    and :func:`clear_model_cache`) because this is blocking I/O reached from
+    constructors and from async code.
 
     Returns an empty list (and logs a warning) if Ollama cannot be reached, so
     callers can fall back gracefully instead of crashing.
