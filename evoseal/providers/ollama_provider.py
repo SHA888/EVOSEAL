@@ -64,7 +64,7 @@ class OllamaProvider(SEALProvider):
         )
         self.timeout = timeout
         self.config = kwargs
-        self.max_retries = max_retries
+        self.max_retries = max(1, max_retries)
         self.backoff_base = backoff_base
 
         # Default generation parameters
@@ -84,8 +84,6 @@ class OllamaProvider(SEALProvider):
             return True
         msg = str(exc).lower()
         if "timed out" in msg:
-            return True
-        if "status 5" in msg:
             return True
         return False
 
@@ -142,7 +140,16 @@ class OllamaProvider(SEALProvider):
                         json=payload,
                         headers={"Content-Type": "application/json"},
                     ) as response:
-                        if response.status != 200:
+                        if response.status >= 500:
+                            error_text = await response.text()
+                            last_exc = Exception(
+                                f"Ollama API request failed with status {response.status}: {error_text}"
+                            )
+                            logger.warning(
+                                f"Attempt {attempt}/{self.max_retries}: server error {response.status}"
+                            )
+                            continue
+                        elif response.status != 200:
                             error_text = await response.text()
                             raise Exception(
                                 f"Ollama API request failed with status {response.status}: {error_text}"
@@ -170,13 +177,10 @@ class OllamaProvider(SEALProvider):
                 logger.warning(f"Attempt {attempt}/{self.max_retries}: network error: {e}")
             except json.JSONDecodeError as e:
                 # Non-retryable: bad response format
+                logger.error(f"Invalid JSON response from Ollama: {e}")
                 raise Exception(f"Invalid response format from Ollama: {e}") from e
             except Exception as e:
-                if self._is_retryable(e):
-                    last_exc = e
-                    logger.warning(f"Attempt {attempt}/{self.max_retries}: retryable error: {e}")
-                else:
-                    raise
+                raise
 
             # Back off before next attempt (skip delay after last attempt)
             if attempt < self.max_retries:

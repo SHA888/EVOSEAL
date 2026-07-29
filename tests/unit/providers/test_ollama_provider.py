@@ -271,10 +271,6 @@ def test_is_retryable_client_error(provider):
     assert provider._is_retryable(aiohttp.ClientError("x")) is True
 
 
-def test_is_retryable_status_500(provider):
-    assert provider._is_retryable(Exception("status 503")) is True
-
-
 def test_is_not_retryable_generic(provider):
     assert provider._is_retryable(ValueError("bad input")) is False
 
@@ -289,6 +285,18 @@ def test_max_retries_configurable(monkeypatch):
     )
     p = OllamaProvider(model="test-model:latest", max_retries=5)
     assert p.max_retries == 5
+
+
+def test_max_retries_clamped_to_minimum(monkeypatch):
+    """max_retries < 1 is clamped to 1 to avoid an empty retry loop."""
+    monkeypatch.setattr(
+        "evoseal.providers.ollama_provider.resolve_model",
+        lambda *a, **kw: "test-model:latest",
+    )
+    p = OllamaProvider(model="test-model:latest", max_retries=0)
+    assert p.max_retries == 1
+    p2 = OllamaProvider(model="test-model:latest", max_retries=-3)
+    assert p2.max_retries == 1
 
 
 def test_backoff_base_configurable(monkeypatch):
