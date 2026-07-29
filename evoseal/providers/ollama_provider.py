@@ -5,8 +5,10 @@ Integrates with local Ollama instance for code generation and analysis.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import random
 from typing import Any
 
 import aiohttp
@@ -31,6 +33,8 @@ class OllamaProvider(SEALProvider):
         timeout: int = 120,
         role: AgentRole | str = AgentRole.CODER,
         registry_model: str | None = None,
+        max_retries: int = 3,
+        backoff_base: float = 1.0,
         **kwargs: Any,
     ) -> None:
         """Initialize the Ollama provider.
@@ -45,6 +49,10 @@ class OllamaProvider(SEALProvider):
             registry_model: Ollama model name of the currently deployed
                 fine-tuned model from the version registry.  When provided and
                 installed, it is preferred over raw family-based discovery.
+            max_retries: Maximum number of retry attempts for transient failures
+                (timeouts, connection errors, 5xx). Defaults to 3.
+            backoff_base: Base delay in seconds for exponential backoff. The actual
+                delay is ``backoff_base * 2^(attempt-1) + jitter``. Defaults to 1.0.
             **kwargs: Additional configuration options
         """
         self.base_url = base_url.rstrip("/")
@@ -56,6 +64,8 @@ class OllamaProvider(SEALProvider):
         )
         self.timeout = timeout
         self.config = kwargs
+        self.max_retries = max_retries
+        self.backoff_base = backoff_base
 
         # Default generation parameters
         self.default_options = {
@@ -68,8 +78,22 @@ class OllamaProvider(SEALProvider):
 
         logger.info(f"Initialized Ollama provider with model {self.model} at {base_url}")
 
+    def _is_retryable(self, exc: Exception) -> bool:
+        """Return True if the exception represents a transient failure worth retrying."""
+        if isinstance(exc, (TimeoutError, aiohttp.ClientError)):
+            return True
+        msg = str(exc).lower()
+        if "timed out" in msg:
+            return True
+        if "status 5" in msg:
+            return True
+        return False
+
     async def submit_prompt(self, prompt: str, **kwargs: Any) -> str:
         """Submit a prompt to the Ollama instance.
+
+        Retries transient failures (timeouts, connection errors, 5xx) with
+        exponential backoff + jitter up to ``self.max_retries`` times.
 
         Args:
             prompt: The prompt to submit
@@ -79,7 +103,7 @@ class OllamaProvider(SEALProvider):
             The raw response from Ollama
 
         Raises:
-            Exception: If the request fails or times out
+            Exception: If the request fails after all retries
         """
         # Merge default options with provided kwargs
         options = {**self.default_options}
@@ -102,45 +126,68 @@ class OllamaProvider(SEALProvider):
         if "system" in kwargs:
             payload["system"] = kwargs["system"]
 
-        try:
-            # Use a longer timeout for Ollama requests as they can be slow
-            timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                logger.debug(f"Sending request to Ollama: {self.base_url}/api/generate")
+        last_exc: Exception | None = None
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                # Use a longer timeout for Ollama requests as they can be slow
+                timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    logger.debug(
+                        f"Sending request to Ollama: {self.base_url}/api/generate"
+                        f" (attempt {attempt}/{self.max_retries})"
+                    )
 
-                async with session.post(
-                    f"{self.base_url}/api/generate",
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        raise Exception(
-                            f"Ollama API request failed with status {response.status}: {error_text}"
-                        )
+                    async with session.post(
+                        f"{self.base_url}/api/generate",
+                        json=payload,
+                        headers={"Content-Type": "application/json"},
+                    ) as response:
+                        if response.status != 200:
+                            error_text = await response.text()
+                            raise Exception(
+                                f"Ollama API request failed with status {response.status}: {error_text}"
+                            )
 
-                    result = await response.json()
+                        result = await response.json()
 
-                    if "error" in result:
-                        raise Exception(f"Ollama API error: {result['error']}")
+                        if "error" in result:
+                            raise Exception(f"Ollama API error: {result['error']}")
 
-                    response_text = result.get("response", "")
+                        response_text = result.get("response", "")
 
-                    logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
-                    return response_text
+                        logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
+                        return response_text
 
-        except TimeoutError as e:
-            logger.error(f"Timeout error communicating with Ollama after {self.timeout}s: {e}")
-            raise Exception(f"Ollama request timed out after {self.timeout} seconds") from e
-        except aiohttp.ClientError as e:
-            logger.error(f"Network error communicating with Ollama: {e}")
-            raise Exception(f"Failed to connect to Ollama at {self.base_url}: {e}") from e
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON response from Ollama: {e}")
-            raise Exception(f"Invalid response format from Ollama: {e}") from e
-        except Exception as e:
-            logger.error(f"Unexpected error in Ollama request: {type(e).__name__}: {e}")
-            raise
+            except TimeoutError as e:
+                last_exc = Exception(f"Ollama request timed out after {self.timeout} seconds")
+                last_exc.__cause__ = e
+                logger.warning(
+                    f"Attempt {attempt}/{self.max_retries}: timeout after {self.timeout}s"
+                )
+            except aiohttp.ClientError as e:
+                last_exc = Exception(f"Failed to connect to Ollama at {self.base_url}: {e}")
+                last_exc.__cause__ = e
+                logger.warning(f"Attempt {attempt}/{self.max_retries}: network error: {e}")
+            except json.JSONDecodeError as e:
+                # Non-retryable: bad response format
+                raise Exception(f"Invalid response format from Ollama: {e}") from e
+            except Exception as e:
+                if self._is_retryable(e):
+                    last_exc = e
+                    logger.warning(f"Attempt {attempt}/{self.max_retries}: retryable error: {e}")
+                else:
+                    raise
+
+            # Back off before next attempt (skip delay after last attempt)
+            if attempt < self.max_retries:
+                delay = self.backoff_base * (2 ** (attempt - 1)) + random.uniform(0, 0.5)
+                logger.debug(f"Retrying in {delay:.1f}s...")
+                await asyncio.sleep(delay)
+
+        # All retries exhausted
+        assert last_exc is not None
+        logger.error(f"Ollama request failed after {self.max_retries} attempts")
+        raise last_exc
 
     async def parse_response(self, response: str) -> dict[str, Any]:
         """Parse the response from Ollama.
@@ -237,4 +284,6 @@ class OllamaProvider(SEALProvider):
             "model": self.model,
             "timeout": self.timeout,
             "default_options": self.default_options,
+            "max_retries": self.max_retries,
+            "backoff_base": self.backoff_base,
         }
