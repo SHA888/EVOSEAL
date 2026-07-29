@@ -166,7 +166,7 @@ async def test_submit_prompt_retries_on_timeout(provider):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            return _FailSession(TimeoutError("read timeout"))
+            return _FailSession(asyncio.TimeoutError("read timeout"))
         else:
             return _MockSession([_MockResponse(200, {"response": "recovered"})])
 
@@ -249,7 +249,7 @@ async def test_submit_prompt_500_retries_with_backoff(provider):
 @pytest.mark.asyncio
 async def test_submit_prompt_exhausts_retries(provider):
     """Raises after all retries exhausted."""
-    sessions = [_FailSession(TimeoutError("timeout")) for _ in range(provider.max_retries)]
+    sessions = [_FailSession(asyncio.TimeoutError("timeout")) for _ in range(provider.max_retries)]
 
     with patch("aiohttp.ClientSession", side_effect=sessions):
         with pytest.raises(Exception, match="timed out"):
@@ -295,6 +295,18 @@ async def test_submit_prompt_no_retry_on_400(provider_no_retry):
 
 def test_is_retryable_timeout(provider):
     assert provider._is_retryable(TimeoutError("x")) is True
+
+
+def test_is_retryable_asyncio_timeout(provider):
+    """asyncio.TimeoutError is retryable even on Python < 3.11."""
+    assert provider._is_retryable(asyncio.TimeoutError()) is True
+
+
+def test_is_retryable_asyncio_timeout_empty_message(provider):
+    """Bare asyncio.TimeoutError() has an empty str() on Python < 3.11."""
+    exc = asyncio.TimeoutError()
+    assert str(exc) == ""  # sanity: empty message
+    assert provider._is_retryable(exc) is True
 
 
 def test_is_retryable_client_error(provider):

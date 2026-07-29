@@ -90,7 +90,10 @@ class OllamaProvider(SEALProvider):
         """Return True if the exception represents a transient failure worth retrying."""
         if isinstance(exc, _OllamaServerError):
             return True
-        if isinstance(exc, (TimeoutError, aiohttp.ClientError)):
+        # asyncio.TimeoutError is explicitly checked because on Python < 3.11
+        # it is *not* a subclass of the builtin TimeoutError.  The project
+        # targets >= 3.11 where they alias, but this is defensive.
+        if isinstance(exc, (asyncio.TimeoutError, TimeoutError, aiohttp.ClientError)):
             return True
         msg = str(exc).lower()
         if "timed out" in msg:
@@ -176,12 +179,14 @@ class OllamaProvider(SEALProvider):
                     raise Exception(f"Invalid response format from Ollama: {e}") from e
                 if not self._is_retryable(e):
                     raise
-                if isinstance(e, TimeoutError):
+                if isinstance(e, (asyncio.TimeoutError, TimeoutError)):
                     last_exc = Exception(f"Ollama request timed out after {self.timeout} seconds")
                 elif isinstance(e, _OllamaServerError):
                     last_exc = Exception(str(e))
+                elif isinstance(e, aiohttp.ClientError):
+                    last_exc = Exception(f"Ollama request failed ({type(e).__name__}): {e}")
                 else:
-                    last_exc = Exception(f"Failed to connect to Ollama at {self.base_url}: {e}")
+                    last_exc = Exception(f"Ollama request failed: {e}")
                 last_exc.__cause__ = e
                 logger.warning(f"Attempt {attempt}/{self.max_retries}: retryable error: {e}")
 
