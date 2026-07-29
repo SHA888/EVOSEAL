@@ -160,67 +160,58 @@ async def test_submit_prompt_success_with_system(provider):
 @pytest.mark.asyncio
 async def test_submit_prompt_retries_on_timeout(provider):
     """Retries on TimeoutError and succeeds on second attempt."""
-    call_count = 0
+    # Single session: fail on first post(), succeed on second.
+    mock_session = _MockSession(
+        [
+            _FailResponse(asyncio.TimeoutError("read timeout")),
+            _MockResponse(200, {"response": "recovered"}),
+        ]
+    )
 
-    def _make_session(*args, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return _FailSession(asyncio.TimeoutError("read timeout"))
-        else:
-            return _MockSession([_MockResponse(200, {"response": "recovered"})])
-
-    with patch("aiohttp.ClientSession", side_effect=_make_session):
+    with patch("aiohttp.ClientSession", return_value=mock_session):
         result = await provider.submit_prompt("test")
 
     assert result == "recovered"
-    assert call_count == 2
+    assert mock_session._call_count == 2
 
 
 @pytest.mark.asyncio
 async def test_submit_prompt_retries_on_client_error(provider):
     """Retries on aiohttp.ClientError and succeeds on second attempt."""
-    call_count = 0
+    mock_session = _MockSession(
+        [
+            _FailResponse(aiohttp.ClientError("connection refused")),
+            _MockResponse(200, {"response": "ok"}),
+        ]
+    )
 
-    def _make_session(*args, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return _FailSession(aiohttp.ClientError("connection refused"))
-        else:
-            return _MockSession([_MockResponse(200, {"response": "ok"})])
-
-    with patch("aiohttp.ClientSession", side_effect=_make_session):
+    with patch("aiohttp.ClientSession", return_value=mock_session):
         result = await provider.submit_prompt("test")
 
     assert result == "ok"
-    assert call_count == 2
+    assert mock_session._call_count == 2
 
 
 @pytest.mark.asyncio
 async def test_submit_prompt_retries_on_500_status(provider):
     """Retries on HTTP 500 and succeeds on second attempt."""
-    call_count = 0
+    mock_session = _MockSession(
+        [
+            _MockResponse(500, text_body="internal error"),
+            _MockResponse(200, {"response": "ok"}),
+        ]
+    )
 
-    def _make_session(*args, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return _MockSession([_MockResponse(500, text_body="internal error")])
-        else:
-            return _MockSession([_MockResponse(200, {"response": "ok"})])
-
-    with patch("aiohttp.ClientSession", side_effect=_make_session):
+    with patch("aiohttp.ClientSession", return_value=mock_session):
         result = await provider.submit_prompt("test")
 
     assert result == "ok"
-    assert call_count == 2
+    assert mock_session._call_count == 2
 
 
 @pytest.mark.asyncio
 async def test_submit_prompt_500_retries_with_backoff(provider):
     """5xx retries actually sleep for backoff (not immediate)."""
-    call_count = 0
     sleep_durations: list[float] = []
 
     real_sleep = asyncio.sleep
@@ -229,15 +220,14 @@ async def test_submit_prompt_500_retries_with_backoff(provider):
         sleep_durations.append(delay)
         await real_sleep(0)  # yield without actual delay
 
-    def _make_session(*args, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return _MockSession([_MockResponse(500, text_body="internal error")])
-        else:
-            return _MockSession([_MockResponse(200, {"response": "ok"})])
+    mock_session = _MockSession(
+        [
+            _MockResponse(500, text_body="internal error"),
+            _MockResponse(200, {"response": "ok"}),
+        ]
+    )
 
-    with patch("aiohttp.ClientSession", side_effect=_make_session):
+    with patch("aiohttp.ClientSession", return_value=mock_session):
         with patch("asyncio.sleep", side_effect=_tracking_sleep):
             result = await provider.submit_prompt("test")
 
@@ -249,11 +239,11 @@ async def test_submit_prompt_500_retries_with_backoff(provider):
 @pytest.mark.asyncio
 async def test_submit_prompt_exhausts_retries(provider):
     """Raises after all retries exhausted."""
-    sessions = [
-        _FailSession(asyncio.TimeoutError("timeout")) for _ in range(provider.max_retries + 1)
-    ]
+    mock_session = _MockSession(
+        [_FailResponse(asyncio.TimeoutError("timeout"))] * (provider.max_retries + 1)
+    )
 
-    with patch("aiohttp.ClientSession", side_effect=sessions):
+    with patch("aiohttp.ClientSession", return_value=mock_session):
         with pytest.raises(Exception, match="timed out"):
             await provider.submit_prompt("test")
 
@@ -381,3 +371,4 @@ def test_get_model_info_includes_retry_config(provider):
     info = provider.get_model_info()
     assert info["max_retries"] == 3
     assert info["backoff_base"] == 0.01
+    assert info["max_backoff"] == 30.0

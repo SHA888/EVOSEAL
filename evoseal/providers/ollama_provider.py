@@ -43,6 +43,7 @@ class OllamaProvider(SEALProvider):
         registry_model: str | None = None,
         max_retries: int = 3,
         backoff_base: float = 1.0,
+        max_backoff: float = 30.0,
         **kwargs: Any,
     ) -> None:
         """Initialize the Ollama provider.
@@ -61,7 +62,10 @@ class OllamaProvider(SEALProvider):
                 (timeouts, connection errors, 5xx) *after* the initial attempt.
                 Total attempts = 1 + max_retries.  Defaults to 3.
             backoff_base: Base delay in seconds for exponential backoff. The actual
-                delay is ``backoff_base * 2^(attempt-1) + jitter``. Defaults to 1.0.
+                delay is ``min(backoff_base * 2^attempt, max_backoff) + jitter``.
+                Defaults to 1.0.
+            max_backoff: Upper cap in seconds on the exponential backoff delay
+                (excluding jitter).  Defaults to 30.0.
             **kwargs: Additional configuration options
         """
         self.base_url = base_url.rstrip("/")
@@ -75,6 +79,7 @@ class OllamaProvider(SEALProvider):
         self.config = kwargs
         self.max_retries = max(0, max_retries)
         self.backoff_base = backoff_base
+        self.max_backoff = max_backoff
 
         # Default generation parameters
         self.default_options = {
@@ -108,6 +113,12 @@ class OllamaProvider(SEALProvider):
         Retries transient failures (timeouts, connection errors, 5xx) with
         exponential backoff + jitter.  Total attempts = 1 + self.max_retries.
 
+        An overall deadline of ``self.timeout * (1 + self.max_retries)`` is
+        enforced across all attempts so that a single call is bounded even
+        when retries are enabled.  Each attempt still uses ``self.timeout``
+        as its individual request timeout, but the loop aborts early when
+        the remaining time would be too short for another attempt.
+
         Args:
             prompt: The prompt to submit
             **kwargs: Additional options for generation
@@ -140,12 +151,24 @@ class OllamaProvider(SEALProvider):
             payload["system"] = kwargs["system"]
 
         last_exc: Exception | None = None
-        for attempt in range(self.max_retries + 1):
-            try:
-                # Use a longer timeout for Ollama requests as they can be slow
-                timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    total_attempts = self.max_retries + 1
+        total_attempts = self.max_retries + 1
+        # Overall deadline so a single call is bounded even with retries.
+        deadline = asyncio.get_event_loop().time() + self.timeout * total_attempts
+
+        # Reuse a single session across all attempts to avoid connection churn.
+        timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            for attempt in range(total_attempts):
+                # Abort if the remaining time is too short for a meaningful attempt.
+                remaining = deadline - asyncio.get_event_loop().time()
+                if remaining < self.timeout * 0.5:
+                    logger.warning(
+                        f"Overall deadline reached before attempt {attempt + 1}/{total_attempts}; "
+                        f"abandoning retries"
+                    )
+                    break
+
+                try:
                     logger.debug(
                         f"Sending request to Ollama: {self.base_url}/api/generate"
                         f" (attempt {attempt + 1}/{total_attempts})"
@@ -175,39 +198,41 @@ class OllamaProvider(SEALProvider):
                         logger.debug(f"Received response from Ollama ({len(response_text)} chars)")
                         return response_text
 
-            except Exception as e:
-                if isinstance(e, json.JSONDecodeError):
-                    # Non-retryable: bad response format
-                    logger.error(f"Invalid JSON response from Ollama: {e}")
-                    raise Exception(f"Invalid response format from Ollama: {e}") from e
-                if not self._is_retryable(e):
-                    raise
-                if isinstance(e, (asyncio.TimeoutError, TimeoutError)):
-                    last_exc = Exception(f"Ollama request timed out after {self.timeout} seconds")
-                elif isinstance(e, _OllamaServerError):
-                    last_exc = Exception(str(e))
-                elif isinstance(e, aiohttp.ClientError):
-                    last_exc = Exception(f"Ollama request failed ({type(e).__name__}): {e}")
-                else:
-                    last_exc = Exception(f"Ollama request failed: {e}")
-                last_exc.__cause__ = e
-                logger.warning(
-                    f"Attempt {attempt + 1}/{self.max_retries + 1}: retryable error: {e}"
-                )
+                except Exception as e:
+                    if isinstance(e, json.JSONDecodeError):
+                        # Non-retryable: bad response format
+                        logger.error(f"Invalid JSON response from Ollama: {e}")
+                        raise Exception(f"Invalid response format from Ollama: {e}") from e
+                    if not self._is_retryable(e):
+                        raise
+                    if isinstance(e, (asyncio.TimeoutError, TimeoutError)):
+                        last_exc = Exception(
+                            f"Ollama request timed out after {self.timeout} seconds"
+                        )
+                    elif isinstance(e, _OllamaServerError):
+                        last_exc = Exception(str(e))
+                    elif isinstance(e, aiohttp.ClientError):
+                        last_exc = Exception(f"Ollama request failed ({type(e).__name__}): {e}")
+                    else:
+                        last_exc = Exception(f"Ollama request failed: {e}")
+                    last_exc.__cause__ = e
+                    logger.warning(f"Attempt {attempt + 1}/{total_attempts}: retryable error: {e}")
 
-            # Back off before next attempt (skip delay after last attempt)
-            if attempt < self.max_retries:
-                delay = self.backoff_base * (2**attempt) + random.uniform(0, 0.5)
-                logger.debug(f"Retrying in {delay:.1f}s...")
-                await asyncio.sleep(delay)
+                # Back off before next attempt (skip delay after last attempt)
+                if attempt < self.max_retries:
+                    delay = min(
+                        self.backoff_base * (2**attempt), self.max_backoff
+                    ) + random.uniform(0, 0.5)
+                    logger.debug(f"Retrying in {delay:.1f}s...")
+                    await asyncio.sleep(delay)
 
         # All retries exhausted
         if last_exc is None:
             raise RuntimeError(
-                f"Ollama request failed after {self.max_retries + 1} attempts "
+                f"Ollama request failed after {total_attempts} attempts "
                 f"but no exception was captured — this is a bug"
             )
-        logger.error(f"Ollama request failed after {self.max_retries + 1} attempts")
+        logger.error(f"Ollama request failed after {total_attempts} attempts")
         raise last_exc
 
     async def parse_response(self, response: str) -> dict[str, Any]:
@@ -307,4 +332,5 @@ class OllamaProvider(SEALProvider):
             "default_options": self.default_options,
             "max_retries": self.max_retries,
             "backoff_base": self.backoff_base,
+            "max_backoff": self.max_backoff,
         }
