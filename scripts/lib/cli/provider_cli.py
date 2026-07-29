@@ -20,7 +20,7 @@ async def list_providers():
     print("📋 EVOSEAL Provider Status:")
     print("=" * 50)
 
-    provider_info = provider_manager.list_providers()
+    provider_info = await provider_manager.alist_providers()
 
     for name, info in provider_info.items():
         status_icon = "✅" if info["enabled"] and info["available"] else "❌"
@@ -52,7 +52,7 @@ async def test_provider(provider_name=None):
             provider = provider_manager.get_provider(provider_name)
         else:
             print("🧪 Testing best available provider...")
-            provider = provider_manager.get_best_available_provider()
+            provider = await provider_manager.aget_best_available_provider()
             provider_name = type(provider).__name__
 
         print(f"✅ Using provider: {provider_name}")
