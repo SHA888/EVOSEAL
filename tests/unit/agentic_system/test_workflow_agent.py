@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 from unittest.mock import MagicMock
 
 import pytest
@@ -74,6 +76,90 @@ class TestWorkflowEngineExecuteStep:
         result = await engine.execute_step_async(step)
         assert result == "hello"
         comp.greet.assert_called_once()
+
+    def test_execute_step_nested_offloaded_no_deadlock(self, engine_with_component):
+        """Nested execute_step from within an offloaded worker avoids deadlock."""
+        engine, comp = engine_with_component
+
+        outer_step = {"name": "outer", "component": "greeter", "method": "greet", "params": {}}
+        inner_step = {"name": "inner", "component": "greeter", "method": "greet", "params": {}}
+
+        # composite_step calls execute_step again while already offloaded.
+        def composite_step_handler(params):
+            return engine.execute_step(inner_step)
+
+        comp.composite.side_effect = lambda **kw: composite_step_handler(kw)
+        outer_step["method"] = "composite"
+
+        async def _run():
+            return engine.execute_step(outer_step)
+
+        # Must complete within a few seconds — a deadlock would hang.
+        result = asyncio.run(_run())
+        assert result == "hello"
+        comp.composite.assert_called_once()
+        comp.greet.assert_called_once()
+
+    def test_execute_step_concurrent_offloaded_calls(self, engine_with_component):
+        """Two concurrent offloaded execute_step calls are serialized by the lock."""
+        import concurrent.futures as cfutures
+
+        engine, comp = engine_with_component
+
+        active_count = 0
+        max_active = 0
+        lock = threading.Lock()
+        proceed = threading.Event()
+
+        def tracked_greet(**kw):
+            nonlocal active_count, max_active
+            with lock:
+                active_count += 1
+                max_active = max(max_active, active_count)
+            proceed.wait(timeout=5)
+            with lock:
+                active_count -= 1
+            return "hello"
+
+        comp.greet.side_effect = tracked_greet
+        step = {"name": "s1", "component": "greeter", "method": "greet", "params": {}}
+
+        async def _run_one():
+            return engine.execute_step(step)
+
+        async def _run_both():
+            loop = asyncio.get_running_loop()
+            with cfutures.ThreadPoolExecutor(max_workers=2) as pool:
+                f1 = loop.run_in_executor(pool, lambda: asyncio.run(_run_one()))
+                f2 = loop.run_in_executor(pool, lambda: asyncio.run(_run_one()))
+                # Let both calls progress, then release the step body.
+                await asyncio.sleep(0.2)
+                proceed.set()
+                return await asyncio.gather(f1, f2)
+
+        results = asyncio.run(_run_both())
+        assert all(r == "hello" for r in results)
+        # If serialized, at most 1 step body runs at a time.
+        assert max_active == 1, f"Expected max 1 concurrent step body, got {max_active}"
+
+    def test_cleanup_prevents_new_submissions(self):
+        """After cleanup(), execute_step raises RuntimeError."""
+        engine = WorkflowEngine()
+        engine.register_component("c", MagicMock())
+        step = {"name": "s1", "component": "c", "method": "run", "params": {}}
+        engine.cleanup()
+        with pytest.raises(RuntimeError, match="cleanup"):
+            engine.execute_step(step)
+
+    def test_context_manager_cleans_up(self):
+        """WorkflowEngine works as a context manager and cleans up on exit."""
+        with WorkflowEngine() as engine:
+            engine.register_component("c", MagicMock())
+            step = {"name": "s1", "component": "c", "method": "run", "params": {}}
+            result = engine.execute_step(step)
+        # After exiting, cleanup has been called.
+        with pytest.raises(RuntimeError, match="cleanup"):
+            engine.execute_step(step)
 
 
 class TestWorkflowAgent:

@@ -126,7 +126,7 @@ class WorkflowEngine:
         self.status = WorkflowStatus.IDLE
         self._event_handlers: dict[EventType | str, list[dict[str, Any]]] = {}
         self._step_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        self._step_lock = threading.Lock()
+        self._step_lock = threading.RLock()
         self._step_active_threads: set[int] = set()
         self._step_active_lock = threading.Lock()
         self._step_shutdown = False
@@ -379,12 +379,12 @@ class WorkflowEngine:
            *not* concurrency-friendly.
 
         .. note::
-           Concurrent calls are serialized by an internal lock to
-           prevent concurrent mutation of shared engine state.
+           Concurrent top-level calls are serialized by an internal
+           lock to prevent concurrent mutation of shared engine state.
            Recursive/nested calls (e.g. a composite step that itself
-           calls ``execute_step``) are detected and routed through a
-           temporary thread to avoid deadlock on the single-worker
-           executor.
+           calls ``execute_step``) are detected via a per-thread set
+           and routed through a temporary thread to avoid deadlock on
+           the single-worker executor.
 
         Args:
             step: Dictionary containing step configuration.
@@ -395,10 +395,12 @@ class WorkflowEngine:
         Raises:
             RuntimeError: If :meth:`cleanup` has been called.
         """
-        if self._step_shutdown:
-            raise RuntimeError(
-                "execute_step() called after cleanup(); the engine is no longer usable"
-            )
+        # Atomic shutdown check — prevents TOCTOU with cleanup().
+        with self._step_active_lock:
+            if self._step_shutdown:
+                raise RuntimeError(
+                    "execute_step() called after cleanup(); the engine is no longer usable"
+                )
 
         tid = threading.current_thread().ident
 
@@ -409,10 +411,9 @@ class WorkflowEngine:
 
         try:
             if re_entry:
-                # Already inside execute_step on this thread — the main
-                # executor is busy (single worker) and the lock is held
-                # by the outer call.  Use a temporary thread so the
-                # nested step gets its own event loop.
+                # Already inside execute_step on this thread — use a
+                # temporary thread so the nested step gets its own
+                # event loop without touching the main lock or executor.
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tmp:
                     return tmp.submit(asyncio.run, self._execute_step_async(step)).result()
 
@@ -423,9 +424,28 @@ class WorkflowEngine:
 
             with self._step_lock:
                 if loop is not None and loop.is_running():
-                    return self._step_executor.submit(
-                        asyncio.run, self._execute_step_async(step)
-                    ).result()
+                    # Offload to the single-worker executor.  Track the
+                    # worker thread's ident in _step_active_threads so
+                    # that if the step body calls execute_step()
+                    # recursively, the nested call is detected as
+                    # re-entry and routed to a tmp thread — the worker
+                    # never tries to acquire _step_lock.
+                    worker_ready = threading.Event()
+
+                    def _run() -> Any:
+                        wtid = threading.current_thread().ident
+                        with self._step_active_lock:
+                            self._step_active_threads.add(wtid)
+                        worker_ready.set()
+                        try:
+                            return asyncio.run(self._execute_step_async(step))
+                        finally:
+                            with self._step_active_lock:
+                                self._step_active_threads.discard(wtid)
+
+                    fut = self._step_executor.submit(_run)
+                    worker_ready.wait()
+                    return fut.result()
 
                 return asyncio.run(self._execute_step_async(step))
         finally:
@@ -438,6 +458,14 @@ class WorkflowEngine:
         Public async counterpart of :meth:`execute_step` for callers
         already inside an async context.  Prefer this over calling the
         private ``_execute_step_async`` directly.
+
+        .. note::
+           Unlike :meth:`execute_step`, this method does **not** serialize
+           concurrent invocations.  Asyncio is single-threaded, so two
+           ``await`` calls cannot interleave mid-step, but callers using
+           ``asyncio.gather`` or similar concurrency primitives must
+           ensure that the steps themselves (or the components they call)
+           are safe to run concurrently.
 
         Args:
             step: Dictionary containing step configuration.
@@ -571,19 +599,37 @@ class WorkflowEngine:
         # Handle the case when called directly
         return decorator(handler)
 
+    def __enter__(self) -> WorkflowEngine:
+        """Enter the context manager."""
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        """Exit the context manager, cleaning up resources."""
+        self.cleanup()
+
     def cleanup(self) -> None:
         """Clean up all event handlers and the step executor.
 
         This should be called when the workflow engine is no longer needed
-        to prevent memory leaks from event handlers.
+        to prevent memory leaks from event handlers and the background
+        worker thread.  Can also be used as a context manager:
+
+            with WorkflowEngine() as engine:
+                ...
+
         After cleanup, :meth:`execute_step` raises ``RuntimeError``.
         """
         for handlers in self._event_handlers.values():
             for handler in handlers:
                 handler["unsubscribe"]()
         self._event_handlers.clear()
+        # Atomically set shutdown flag under the same lock that
+        # execute_step uses to check it, preventing a TOCTOU race
+        # where a concurrent caller passes the check before the flag
+        # is set but then submits to the already-shut-down executor.
+        with self._step_active_lock:
+            self._step_shutdown = True
         self._step_executor.shutdown(wait=False)
-        self._step_shutdown = True
         logger.debug("Cleaned up all event handlers")
 
     async def _publish_event(
