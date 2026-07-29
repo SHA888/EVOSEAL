@@ -629,7 +629,15 @@ class WorkflowEngine:
         # is set but then submits to the already-shut-down executor.
         with self._step_active_lock:
             self._step_shutdown = True
-        self._step_executor.shutdown(wait=False)
+        # Wait for any in-flight offloaded call to finish before shutting
+        # the executor down. execute_step holds _step_lock for the full
+        # duration of its offload-and-wait critical section, so acquiring
+        # it here closes the remaining race: a call that already passed
+        # the shutdown check and is submitting to (or awaiting) the
+        # executor would otherwise hit "cannot schedule new futures after
+        # shutdown" instead of completing normally.
+        with self._step_lock:
+            self._step_executor.shutdown(wait=False)
         logger.debug("Cleaned up all event handlers")
 
     async def _publish_event(

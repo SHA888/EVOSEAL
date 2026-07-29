@@ -161,6 +161,53 @@ class TestWorkflowEngineExecuteStep:
         with pytest.raises(RuntimeError, match="cleanup"):
             engine.execute_step(step)
 
+    def test_cleanup_waits_for_in_flight_offloaded_call(self, engine_with_component):
+        """cleanup() racing an in-flight offloaded execute_step() must not
+        surface a raw "cannot schedule new futures after shutdown" error.
+
+        cleanup() only flips _step_shutdown under _step_active_lock before
+        shutting the executor down; that alone doesn't stop a call that
+        already passed the shutdown check and is mid-submit inside the
+        _step_lock critical section from racing the executor's shutdown.
+        cleanup() must also acquire _step_lock so it waits for any such
+        in-flight call to finish first.
+        """
+        engine, comp = engine_with_component
+        entered = threading.Event()
+        release = threading.Event()
+
+        def slow_greet(**kw):
+            entered.set()
+            release.wait(timeout=5)
+            return "hello"
+
+        comp.greet.side_effect = slow_greet
+        step = {"name": "s1", "component": "greeter", "method": "greet", "params": {}}
+
+        async def _run():
+            return engine.execute_step(step)
+
+        result_box: dict[str, Any] = {}
+
+        def _call_from_loop():
+            result_box["result"] = asyncio.run(_run())
+
+        caller = threading.Thread(target=_call_from_loop)
+        caller.start()
+        entered.wait(timeout=5)  # step body is running on the offloaded worker
+
+        cleanup_thread = threading.Thread(target=engine.cleanup)
+        cleanup_thread.start()
+        time.sleep(0.1)  # give cleanup a chance to race the in-flight call
+        release.set()
+
+        caller.join(timeout=5)
+        cleanup_thread.join(timeout=5)
+
+        assert not caller.is_alive()
+        assert not cleanup_thread.is_alive()
+        assert result_box["result"] == "hello"
+
 
 class TestWorkflowAgent:
     """Tests for WorkflowAgent."""
