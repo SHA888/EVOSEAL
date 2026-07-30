@@ -14,7 +14,11 @@ from unittest.mock import MagicMock
 import pytest
 from datasets import Dataset
 
-from evoseal.fine_tuning.model_fine_tuner import ModelFineTuner
+from evoseal.fine_tuning.model_fine_tuner import (
+    ModelFineTuner,
+    _is_valid_example,
+    _validate_training_examples,
+)
 
 
 @pytest.fixture()
@@ -87,3 +91,80 @@ class TestTokenizeIfNeeded:
         assert "input_ids" in result.column_names
         assert len(result) == 2
         fine_tuner.tokenizer.assert_called_once()
+
+    @pytest.mark.parametrize("bad_input", [None, [1, 2], 42])
+    def test_filters_non_string_input(self, fine_tuner, bad_input):
+        """Examples with non-string input (e.g. None, list, int) must be rejected."""
+        # Each type needs its own Dataset because HF/Arrow can't mix column types.
+        ds = Dataset.from_list([{"instruction": "ok", "input": bad_input, "output": "out"}])
+
+        with pytest.raises(ValueError, match="no valid training examples"):
+            fine_tuner._tokenize_if_needed(ds, max_length=512)
+
+    def test_accepts_string_input(self, fine_tuner):
+        """Valid string input (including empty string) should be accepted."""
+        ds = Dataset.from_list(
+            [
+                {"instruction": "a", "input": "", "output": "b"},
+                {"instruction": "c", "input": "context", "output": "d"},
+            ]
+        )
+
+        result = fine_tuner._tokenize_if_needed(ds, max_length=512)
+        assert len(result) == 2
+
+
+class TestIsValidExample:
+    """Tests for the shared _is_valid_example predicate."""
+
+    def test_valid_with_input(self):
+        assert _is_valid_example({"instruction": "i", "input": "ctx", "output": "o"})
+
+    def test_valid_without_input(self):
+        assert _is_valid_example({"instruction": "i", "output": "o"})
+
+    def test_valid_empty_string_input(self):
+        assert _is_valid_example({"instruction": "i", "input": "", "output": "o"})
+
+    def test_invalid_none_input(self):
+        assert not _is_valid_example({"instruction": "i", "input": None, "output": "o"})
+
+    def test_invalid_list_input(self):
+        assert not _is_valid_example({"instruction": "i", "input": [1], "output": "o"})
+
+    def test_invalid_int_input(self):
+        assert not _is_valid_example({"instruction": "i", "input": 42, "output": "o"})
+
+    def test_invalid_missing_instruction(self):
+        assert not _is_valid_example({"output": "o"})
+
+    def test_invalid_empty_instruction(self):
+        assert not _is_valid_example({"instruction": "  ", "output": "o"})
+
+    def test_invalid_not_a_dict(self):
+        assert not _is_valid_example("not a dict")
+
+
+class TestValidateTrainingExamples:
+    """Tests for _validate_training_examples with input validation."""
+
+    def test_rejects_none_input(self):
+        examples = [{"instruction": "i", "input": None, "output": "o"}]
+        assert _validate_training_examples(examples) == []
+
+    def test_accepts_empty_string_input(self):
+        examples = [{"instruction": "i", "input": "", "output": "o"}]
+        assert len(_validate_training_examples(examples)) == 1
+
+    def test_rejects_non_string_input(self):
+        examples = [{"instruction": "i", "input": 123, "output": "o"}]
+        assert _validate_training_examples(examples) == []
+
+    def test_mixed_valid_and_invalid_input(self):
+        examples = [
+            {"instruction": "a", "input": "valid", "output": "b"},
+            {"instruction": "c", "input": None, "output": "d"},
+            {"instruction": "e", "output": "f"},  # no input key — valid
+        ]
+        valid = _validate_training_examples(examples)
+        assert len(valid) == 2
