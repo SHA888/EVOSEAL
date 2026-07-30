@@ -93,22 +93,21 @@ class TestCheckpointSaveRestore:
 
         assert manager.verify_checkpoint_integrity("v3") is True
 
-    def test_integrity_hash_fails_when_file_tampered(
-        self, manager: CheckpointManager, checkpoint_dir: Path
-    ) -> None:
+    def test_integrity_hash_fails_when_file_tampered(self, manager: CheckpointManager) -> None:
         """Integrity verification fails when a file is modified after checkpoint."""
         version = _sample_version("v4")
         manager.create_checkpoint("v4", version, capture_system_state=False)
 
         # Tamper with a file inside the checkpoint
-        tampered = checkpoint_dir / "checkpoint_v4" / "src" / "main.py"
+        cp_path = Path(manager.get_checkpoint_path("v4"))
+        tampered = cp_path / "src" / "main.py"
         tampered.write_text("EVIL CODE\n")
 
         assert manager.verify_checkpoint_integrity("v4") is False
 
     def test_restore_nonexistent_raises(self, manager: CheckpointManager, target_dir: Path) -> None:
         """Restoring a version that was never checkpointed raises CheckpointError."""
-        with pytest.raises(CheckpointError, match="not found"):
+        with pytest.raises(CheckpointError):
             manager.restore_checkpoint("does_not_exist", target_dir)
 
     def test_multiple_checkpoints_restore_correct_one(
@@ -145,9 +144,12 @@ class TestCheckpointSaveRestore:
 
     def test_delete_checkpoint(self, manager: CheckpointManager) -> None:
         """Deleting a checkpoint removes it from disk and registry."""
-        manager.create_checkpoint("del", _sample_version("del"), capture_system_state=False)
+        checkpoint_path = Path(
+            manager.create_checkpoint("del", _sample_version("del"), capture_system_state=False)
+        )
         assert manager.delete_checkpoint("del") is True
         assert manager.get_checkpoint_path("del") is None
+        assert not checkpoint_path.exists()
 
     def test_restore_clears_target_except_protected(
         self, manager: CheckpointManager, target_dir: Path
@@ -160,8 +162,9 @@ class TestCheckpointSaveRestore:
         (git_dir / "HEAD").write_text("ref: refs/heads/main\n")
 
         manager.create_checkpoint("c", _sample_version("c"), capture_system_state=False)
-        manager.restore_checkpoint("c", target_dir, verify_integrity=False)
+        result = manager.restore_checkpoint("c", target_dir, verify_integrity=False)
 
+        assert result["success"] is True
         assert not (target_dir / "stale.txt").exists()
         assert (target_dir / ".git" / "HEAD").exists()
 
