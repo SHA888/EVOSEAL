@@ -94,7 +94,12 @@ class TestCheckpointSaveRestore:
         assert manager.verify_checkpoint_integrity("v3") is True
 
     def test_integrity_hash_fails_when_file_tampered(self, manager: CheckpointManager) -> None:
-        """Integrity verification fails when a file is modified after checkpoint."""
+        """Integrity verification fails when a file is modified after checkpoint.
+
+        NOTE: This test mutates a file directly inside the checkpoint directory,
+        coupling to the current plain-file storage layout.  If the storage
+        backend changes (e.g. compressed/archived), this test will need updating.
+        """
         version = _sample_version("v4")
         manager.create_checkpoint("v4", version, capture_system_state=False)
 
@@ -104,6 +109,20 @@ class TestCheckpointSaveRestore:
         tampered.write_text("EVIL CODE\n")
 
         assert manager.verify_checkpoint_integrity("v4") is False
+
+    def test_restore_rejects_tampered_checkpoint(
+        self, manager: CheckpointManager, target_dir: Path
+    ) -> None:
+        """restore_checkpoint(verify_integrity=True) raises on a tampered checkpoint."""
+        version = _sample_version("v4b")
+        manager.create_checkpoint("v4b", version, capture_system_state=False)
+
+        # Tamper with a file inside the checkpoint
+        cp_path = Path(manager.get_checkpoint_path("v4b"))
+        (cp_path / "src" / "main.py").write_text("EVIL CODE\n")
+
+        with pytest.raises(CheckpointError, match="Integrity verification failed"):
+            manager.restore_checkpoint("v4b", target_dir, verify_integrity=True)
 
     def test_restore_nonexistent_raises(self, manager: CheckpointManager, target_dir: Path) -> None:
         """Restoring a version that was never checkpointed raises CheckpointError."""
@@ -169,11 +188,19 @@ class TestCheckpointSaveRestore:
         assert (target_dir / ".git" / "HEAD").exists()
 
     def test_checkpoint_size_reported(self, manager: CheckpointManager) -> None:
-        """get_checkpoint_size returns a positive number for a saved checkpoint."""
-        manager.create_checkpoint("sz", _sample_version("sz"), capture_system_state=False)
+        """get_checkpoint_size returns a plausible size for a known-content checkpoint."""
+        version = _sample_version("sz")
+        manager.create_checkpoint("sz", version, capture_system_state=False)
         size = manager.get_checkpoint_size("sz")
         assert size is not None
-        assert size > 0
+
+        # Content files are deterministic: "print('hello')\n" (15 B) +
+        # "def helper():\n    return 42\n" (28 B) = 43 B of content.
+        # Metadata.json adds a variable amount (~1 KB).  Assert the size
+        # covers the known content and stays within a sane upper bound.
+        expected_content_bytes = sum(len(v.encode()) for v in version["changes"].values())
+        assert size >= expected_content_bytes
+        assert size < 10_000  # sanity: a few KB, not orders-of-magnitude wrong
 
     def test_restore_with_system_state(self, manager: CheckpointManager, target_dir: Path) -> None:
         """Restoring with capture_system_state=True returns system_state in result."""

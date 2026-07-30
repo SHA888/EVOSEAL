@@ -203,7 +203,7 @@
   - Malformed YAML, missing required sections, type mismatches
 - [x] **Add test for checkpoint save/restore** _(done 2026-07-30)_
   - Interrupt mid-evolution, restore from checkpoint, verify state consistency
-  - 12 tests in `tests/unit/core/test_checkpoint_save_restore.py`: basic round-trip, metadata preservation, integrity hash verification, tamper detection, nonexistent restore error, multi-checkpoint isolation, list/delete, target-directory clearing (protected dirs preserved), size reporting, system-state capture, and mid-evolution interruption recovery
+  - 13 tests in `tests/unit/core/test_checkpoint_save_restore.py`: basic round-trip, metadata preservation, integrity hash verification, tamper detection, tamper-restore integration, nonexistent restore error, multi-checkpoint isolation, list/delete, target-directory clearing (protected dirs preserved), size reporting, system-state capture, and mid-evolution interruption recovery
 - [ ] **Add tests for safety-decision orchestration** _(found 2026-07-22 whole-repo review)_ — the code paths behind the checkpoint/ImprovementValidator/resilience-init bugs above have zero regression test coverage today, which is plausibly why they shipped unnoticed
 
 ### Medium-Priority Bugs Found in Whole-Repo Code Review (2026-07-22)
