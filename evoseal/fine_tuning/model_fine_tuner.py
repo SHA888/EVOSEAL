@@ -137,7 +137,8 @@ class ModelFineTuner:
             import torch
 
             return torch.cuda.is_available() and torch.cuda.device_count() > 0
-        except Exception:
+        except Exception as e:
+            logger.debug("GPU check failed: %s", e)
             return False
 
     async def initialize_model(self) -> bool:

@@ -101,3 +101,18 @@ class TestInitializeModelGpuGuard:
 
         mock_tok.from_pretrained.assert_not_called()
         mock_model.from_pretrained.assert_not_called()
+
+    def test_gpu_check_returns_false_on_runtime_error(self, fine_tuner):
+        """_check_gpu_availability catches non-ImportError exceptions (e.g. driver
+        failures) and returns False instead of letting them propagate."""
+        import torch
+
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        with (
+            patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(torch.cuda, "is_available", side_effect=RuntimeError("CUDA driver error")),
+        ):
+            result = fine_tuner._check_gpu_availability()
+
+        assert result is False
