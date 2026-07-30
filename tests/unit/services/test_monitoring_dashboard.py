@@ -157,7 +157,7 @@ class TestAuthMiddleware:
 
     @pytest.mark.asyncio
     async def test_ws_auth_via_sec_protocol_header(self, dashboard_with_auth):
-        """WebSocket auth via Sec-WebSocket-Protocol: Bearer <token> header."""
+        """WebSocket auth via Sec-WebSocket-Protocol: bearer.<token> header."""
         import aiohttp
 
         app = dashboard_with_auth.app
@@ -166,7 +166,7 @@ class TestAuthMiddleware:
             url = f"http://localhost:{server.port}/ws"
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(
-                    url, headers={"Sec-WebSocket-Protocol": "Bearer test-secret-token"}
+                    url, headers={"Sec-WebSocket-Protocol": "bearer.test-secret-token"}
                 ) as ws:
                     msg = await ws.receive()
                     # Should receive initial data, not a 401 rejection
@@ -184,7 +184,24 @@ class TestAuthMiddleware:
             async with aiohttp.ClientSession() as session:
                 with pytest.raises(aiohttp.WSServerHandshakeError) as exc_info:
                     await session.ws_connect(
-                        url, headers={"Sec-WebSocket-Protocol": "Bearer wrong-token"}
+                        url, headers={"Sec-WebSocket-Protocol": "bearer.wrong-token"}
+                    )
+                assert exc_info.value.status == 401
+
+    @pytest.mark.asyncio
+    async def test_ws_auth_rejects_legacy_bearer_space_format(self, dashboard_with_auth):
+        """Old 'Bearer <token>' format with space is rejected (RFC 6455 invalid token)."""
+        import aiohttp
+
+        app = dashboard_with_auth.app
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/ws"
+            async with aiohttp.ClientSession() as session:
+                with pytest.raises(aiohttp.WSServerHandshakeError) as exc_info:
+                    await session.ws_connect(
+                        url,
+                        headers={"Sec-WebSocket-Protocol": "Bearer test-secret-token"},
                     )
                 assert exc_info.value.status == 401
 
@@ -226,6 +243,16 @@ class TestAuthMiddleware:
         assert cmp("über", "über") is True
         assert cmp("über", "other") is False
         assert cmp("", "") is True
+
+    def test_empty_auth_token_raises(self, mock_service):
+        """Setting auth_token='' (empty string) raises ValueError."""
+        with pytest.raises(ValueError, match="auth_token must not be an empty string"):
+            MonitoringDashboard(
+                evolution_service=mock_service,
+                host="localhost",
+                port=18091,
+                auth_token="",
+            )
 
 
 class TestCorsHardening:

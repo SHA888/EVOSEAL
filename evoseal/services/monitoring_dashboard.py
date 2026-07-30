@@ -63,6 +63,12 @@ class MonitoringDashboard:
         self.update_interval = update_interval
         self.auth_token = auth_token
 
+        if auth_token is not None and auth_token == "":
+            raise ValueError(
+                "auth_token must not be an empty string. "
+                "Set auth_token=None to disable authentication."
+            )
+
         if host in ("0.0.0.0", "::"):
             logger.warning(
                 "Dashboard is bound to %s — accessible from any network "
@@ -128,7 +134,7 @@ class MonitoringDashboard:
                 token_from_protocol = ""
                 for proto in ws_protocols.split(","):
                     proto = proto.strip()
-                    if proto.startswith("Bearer "):
+                    if proto.startswith("bearer."):
                         token_from_protocol = proto[7:]
                         break
                 if token_from_protocol and self._constant_compare(
@@ -634,7 +640,13 @@ class MonitoringDashboard:
                 authToken = params.get('token');
             }
 
-            ws = new WebSocket(wsUrl, authToken ? ['Bearer ' + authToken] : undefined);
+            try {
+                ws = new WebSocket(wsUrl, authToken ? ['bearer.' + authToken] : undefined);
+            } catch (e) {
+                console.error('WebSocket constructor failed (bad subprotocol?):', e);
+                addLogEntry('WebSocket setup error: ' + e.message, 'error');
+                return;
+            }
 
             ws.onopen = function() {
                 console.log('WebSocket connected');
