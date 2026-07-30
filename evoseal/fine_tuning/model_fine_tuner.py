@@ -43,6 +43,29 @@ except ImportError as e:
 from ..providers.local_models import AgentRole, resolve_model
 
 
+def _validate_training_examples(examples: list[Any]) -> list[dict[str, Any]]:
+    """Return only valid training examples (dicts with non-empty str instruction/output)."""
+    valid: list[dict[str, Any]] = []
+    for i, example in enumerate(examples):
+        if not isinstance(example, dict):
+            logger.warning(f"Skipping example {i}: not a dict ({type(example).__name__})")
+            continue
+        missing = [k for k in ("instruction", "output") if k not in example]
+        if missing:
+            logger.warning(f"Skipping example {i}: missing required keys {missing}")
+            continue
+        bad = [
+            k
+            for k in ("instruction", "output")
+            if not isinstance(example.get(k), str) or not example[k].strip()
+        ]
+        if bad:
+            logger.warning(f"Skipping example {i}: keys {bad} must be non-empty strings")
+            continue
+        valid.append(example)
+    return valid
+
+
 class ModelFineTuner:
     """
     Fine-tuner for a local coding model using LoRA/QLoRA.
@@ -211,29 +234,12 @@ class ModelFineTuner:
                 return {"success": False, "error": "No training examples found"}
 
             # Validate required keys before processing
-            valid_examples = []
-            for i, example in enumerate(examples):
-                if not isinstance(example, dict):
-                    logger.warning(f"Skipping example {i}: not a dict ({type(example).__name__})")
-                    continue
-                missing = [k for k in ("instruction", "output") if k not in example]
-                if missing:
-                    logger.warning(f"Skipping example {i}: missing required keys {missing}")
-                    continue
-                bad = [
-                    k
-                    for k in ("instruction", "output")
-                    if not isinstance(example.get(k), str) or not example[k].strip()
-                ]
-                if bad:
-                    logger.warning(f"Skipping example {i}: keys {bad} must be non-empty strings")
-                    continue
-                valid_examples.append(example)
+            valid_examples = _validate_training_examples(examples)
 
             if not valid_examples:
                 return {
                     "success": False,
-                    "error": "No valid training examples (all missing required keys)",
+                    "error": "No valid training examples remain after validation",
                 }
 
             if len(valid_examples) < len(examples):
@@ -248,7 +254,7 @@ class ModelFineTuner:
                 # Create simple text format for fallback
                 fallback_data = []
                 for example in examples:
-                    text = f"Instruction: {example.get('instruction', '')}\nInput: {example.get('input', '')}\nOutput: {example.get('output', '')}"
+                    text = f"Instruction: {example['instruction']}\nInput: {example.get('input', '')}\nOutput: {example['output']}"
                     fallback_data.append(text)
 
                 # Save fallback data
@@ -268,7 +274,7 @@ class ModelFineTuner:
             formatted_examples = []
             for example in examples:
                 # Format as instruction-following format
-                text = f"<s>[INST] {example.get('instruction', '')}\n{example.get('input', '')} [/INST] {example.get('output', '')}</s>"
+                text = f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
                 formatted_examples.append({"text": text})
 
             # Create dataset
@@ -320,9 +326,25 @@ class ModelFineTuner:
         if "input_ids" in dataset.column_names:
             return dataset
 
+        valid = _validate_training_examples(dataset.to_list())
+        if not valid:
+            logger.warning(
+                "_tokenize_if_needed: no valid examples after validation; returning dataset as-is"
+            )
+            return dataset
+        if len(valid) < len(dataset):
+            logger.info(
+                "_tokenize_if_needed: kept %d/%d examples after validation",
+                len(valid),
+                len(dataset),
+            )
+        from datasets import Dataset as _RealDataset
+
+        dataset = _RealDataset.from_list(valid)
+
         def format_example(example: dict[str, Any]) -> dict[str, str]:
             return {
-                "text": f"<s>[INST] {example.get('instruction', '')}\n{example.get('input', '')} [/INST] {example.get('output', '')}</s>"
+                "text": f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
             }
 
         def tokenize_function(examples: dict[str, list[str]]) -> Any:
