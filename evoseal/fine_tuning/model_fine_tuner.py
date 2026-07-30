@@ -147,6 +147,13 @@ class ModelFineTuner:
             logger.error("Transformers library not available for fine-tuning")
             return False
 
+        if not self._check_gpu_availability():
+            logger.error(
+                "No CUDA GPU available; model fine-tuning requires a GPU. "
+                "Use the prompt-level path (evoseal.prompt_evolution) on CPU-only hosts."
+            )
+            return False
+
         try:
             logger.info("Initializing model and tokenizer...")
 
