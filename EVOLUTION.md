@@ -40,7 +40,7 @@ These are the next priorities from [TODO.md](TODO.md):
 
 ### Testing coverage
 - [ ] Increase unit test coverage for `core/` modules
-- [x] Add regression test for config validation (done 2026-07-24)
+- [x] Add regression test for config validation (done 2026-07-30)
 - [x] Add test for checkpoint save/restore (done 2026-07-30)
 
 ### Evolution archive and rollout
