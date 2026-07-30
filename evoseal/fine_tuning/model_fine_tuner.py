@@ -220,6 +220,14 @@ class ModelFineTuner:
                 if missing:
                     logger.warning(f"Skipping example {i}: missing required keys {missing}")
                     continue
+                bad = [
+                    k
+                    for k in ("instruction", "output")
+                    if not isinstance(example.get(k), str) or not example[k].strip()
+                ]
+                if bad:
+                    logger.warning(f"Skipping example {i}: keys {bad} must be non-empty strings")
+                    continue
                 valid_examples.append(example)
 
             if not valid_examples:
