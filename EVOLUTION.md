@@ -17,21 +17,19 @@ backing model (Devstral via Ollama). The three sub-phases are:
 | Phase 2 | Fine-tuning infrastructure (`evoseal/fine_tuning/`) | Done |
 | Phase 3 | Continuous evolution service + dashboard (`evoseal/services/`) | Done |
 
-> **Maturity caveat (2026-07-19):** The Phase 3 *modules* are built, but the bidirectional
-> loop is not yet closed. Key gaps: the daemon simulates evolution instead of running the
-> pipeline; the training call has a method-name bug; model validation tests the baseline
-> model rather than fine-tuned weights; deployment only writes to a JSON registry with no
-> serving-layer integration; and the generator never consults the fine-tuning registry.
-> Phase 3 is therefore architectural scaffolding, not yet operational co-evolution.
-> See TODO.md ‘Close the bidirectional co-evolution loop’ for the specific gaps.
+> **Maturity caveat (updated 2026-07-24):** The Phase 3 *modules* are built and the
+> bidirectional co-evolution loop is now closed (items 1–6 in TODO.md are merged).
+> The daemon runs a real `EvolutionPipeline`; model validation serves the fine-tuned
+> model; deployment uses `ollama create`; and the generator consults the fine-tuning
+> registry. Remaining gaps are in P2/P3 dashboard improvements and test coverage.
 
 ## Active goals (P2 — Medium Priority)
 
 These are the next priorities from [TODO.md](TODO.md):
 
 ### Architecture documentation
-- [ ] Write architecture doc for Devstral co-evolution
-- [ ] Add sequence diagram for Devstral ↔ EVOSEAL message flow
+- [x] Write architecture doc for Devstral co-evolution (done 2026-07-21)
+- [x] Add sequence diagram for Devstral ↔ EVOSEAL message flow (done 2026-07-23)
 
 ### Dashboard improvements
 - [ ] Add cost/token usage to the real-time dashboard
@@ -40,8 +38,8 @@ These are the next priorities from [TODO.md](TODO.md):
 
 ### Testing coverage
 - [ ] Increase unit test coverage for `core/` modules
-- [ ] Add regression test for config validation
-- [ ] Add test for checkpoint save/restore
+- [x] Add regression test for config validation (done 2026-07-24)
+- [x] Add test for checkpoint save/restore (done 2026-07-30)
 
 ### Evolution archive and rollout
 - [ ] Structured improvement units in the evolution archive
