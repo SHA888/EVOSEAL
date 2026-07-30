@@ -196,11 +196,14 @@ class TestCheckpointSaveRestore:
 
         # Content files are deterministic: "print('hello')\n" (15 B) +
         # "def helper():\n    return 42\n" (28 B) = 43 B of content.
-        # Metadata.json adds a variable amount (~1 KB).  Assert the size
-        # covers the known content and stays within a sane upper bound.
+        # Metadata.json adds a variable amount (~1-2 KB).  Assert the size
+        # covers the known content and stays within a sane upper bound
+        # derived from actual content rather than an arbitrary constant.
         expected_content_bytes = sum(len(v.encode()) for v in version["changes"].values())
         assert size >= expected_content_bytes
-        assert size < 10_000  # sanity: a few KB, not orders-of-magnitude wrong
+        # Upper bound: content + generous allowance for metadata overhead.
+        # Uses a multiplier so the bound adapts if content grows.
+        assert size < expected_content_bytes * 100
 
     def test_restore_with_system_state(self, manager: CheckpointManager, target_dir: Path) -> None:
         """Restoring with capture_system_state=True returns system_state in result."""
