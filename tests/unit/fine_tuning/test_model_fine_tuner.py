@@ -105,7 +105,7 @@ class TestInitializeModelGpuGuard:
     def test_gpu_check_returns_false_on_runtime_error(self, fine_tuner):
         """_check_gpu_availability catches non-ImportError exceptions (e.g. driver
         failures) and returns False instead of letting them propagate."""
-        import torch
+        torch = pytest.importorskip("torch")
 
         import evoseal.fine_tuning.model_fine_tuner as mod
 
