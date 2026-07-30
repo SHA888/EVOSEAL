@@ -7,8 +7,10 @@ evolution system, displaying metrics, progress, and system health.
 
 import asyncio
 import hmac
+import ipaddress
 import json
 import logging
+import re
 import weakref
 from datetime import datetime
 from typing import Any
@@ -19,6 +21,26 @@ from aiohttp import WSMsgType, web
 from .continuous_evolution_service import ContinuousEvolutionService
 
 logger = logging.getLogger(__name__)
+
+# RFC 7230 §3.2.6 — token characters (tchar) plus the subset safe for
+# WebSocket subprotocol strings (RFC 6455 §4.2.1).
+_HTTP_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+
+def _is_http_token(value: str) -> bool:
+    """Return True if *value* is a valid HTTP token (RFC 7230 §3.2.6)."""
+    return bool(_HTTP_TOKEN_RE.match(value))
+
+
+def _bracket_ipv6(host: str) -> str:
+    """Wrap bare IPv6 literals in brackets for use in URLs."""
+    try:
+        addr = ipaddress.ip_address(host)
+    except ValueError:
+        return host
+    if addr.version == 6:
+        return f"[{host}]"
+    return host
 
 
 class MonitoringDashboard:
@@ -69,6 +91,16 @@ class MonitoringDashboard:
                 "Set auth_token=None to disable authentication."
             )
 
+        if auth_token is not None and not _is_http_token(auth_token):
+            raise ValueError(
+                "auth_token contains characters that are invalid in HTTP "
+                "tokens (RFC 7230 §3.2.6) and WebSocket subprotocol "
+                "strings (RFC 6455 §4.2.1). Characters like '/', '=', "
+                "and whitespace will break the bearer.<token> subprotocol "
+                "auth path. Use secrets.token_urlsafe() or hex for "
+                "token generation."
+            )
+
         if host in ("0.0.0.0", "::"):
             logger.warning(
                 "Dashboard is bound to %s — accessible from any network "
@@ -81,7 +113,7 @@ class MonitoringDashboard:
             if host in ("0.0.0.0", "::"):
                 allowed_origins = [f"http://localhost:{port}"]
             else:
-                allowed_origins = [f"http://{host}:{port}"]
+                allowed_origins = [f"http://{_bracket_ipv6(host)}:{port}"]
         self.allowed_origins = allowed_origins
 
         if self.auth_token and "*" in self.allowed_origins:
@@ -159,26 +191,31 @@ class MonitoringDashboard:
 
     def setup_cors(self):
         """Setup CORS for API access."""
+        # Per-origin options: wildcard gets allow_credentials=False
+        # per the CORS spec; explicit origins keep allow_credentials=True.
         if "*" in self.allowed_origins:
-            # Explicit wildcard — allow_credentials must be False for safety.
             logger.warning("CORS origin is '*'; disabling allow_credentials per CORS spec.")
-            default_opts = aiohttp_cors.ResourceOptions(
-                allow_credentials=False,
-                expose_headers="*",
-                allow_headers="*",
-                allow_methods="*",
-            )
-        else:
-            default_opts = aiohttp_cors.ResourceOptions(
-                allow_credentials=True,
-                expose_headers="*",
-                allow_headers="*",
-                allow_methods="*",
-            )
+
+        cors_defaults = {}
+        for origin in self.allowed_origins:
+            if origin == "*":
+                cors_defaults[origin] = aiohttp_cors.ResourceOptions(
+                    allow_credentials=False,
+                    expose_headers="*",
+                    allow_headers="*",
+                    allow_methods="*",
+                )
+            else:
+                cors_defaults[origin] = aiohttp_cors.ResourceOptions(
+                    allow_credentials=True,
+                    expose_headers="*",
+                    allow_headers="*",
+                    allow_methods="*",
+                )
 
         cors = aiohttp_cors.setup(
             self.app,
-            defaults={origin: default_opts for origin in self.allowed_origins},
+            defaults=cors_defaults,
         )
 
         # Add CORS to all routes
@@ -300,7 +337,20 @@ class MonitoringDashboard:
 
     async def websocket_handler(self, request):
         """WebSocket handler for real-time updates."""
-        ws = web.WebSocketResponse()
+        # Echo the accepted subprotocol so browsers complete the handshake.
+        # Per RFC 6455 §4.2.2, the server must return the selected
+        # subprotocol in the response; otherwise compliant clients abort.
+        accepted_protocol = None
+        req_protocols = request.headers.get("Sec-WebSocket-Protocol", "")
+        for proto in req_protocols.split(","):
+            proto = proto.strip()
+            if proto.startswith("bearer."):
+                accepted_protocol = proto
+                break
+
+        ws = web.WebSocketResponse(
+            protocols=(accepted_protocol,) if accepted_protocol else (),
+        )
         await ws.prepare(request)
 
         # Add to active connections

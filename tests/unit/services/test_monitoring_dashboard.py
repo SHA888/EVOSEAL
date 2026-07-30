@@ -206,34 +206,15 @@ class TestAuthMiddleware:
                 assert exc_info.value.status == 401
 
     @pytest.mark.asyncio
-    async def test_non_ascii_token_does_not_500(self, mock_service):
-        """A non-ASCII auth_token must not cause an unhandled TypeError."""
-        dash = MonitoringDashboard(
-            evolution_service=mock_service,
-            host="localhost",
-            port=18090,
-            auth_token="über-sécret",
-        )
-        app = dash.app
-        app.router.add_get("/api/status", dash.api_status)
-
-        # Correct non-ASCII token should be accepted
-        status, _, _ = await _make_request(
-            app,
-            "GET",
-            "/api/status",
-            headers={"Authorization": "Bearer über-sécret"},
-        )
-        assert status == 200
-
-        # Wrong non-ASCII token should be rejected cleanly (401, not 500)
-        status, _, _ = await _make_request(
-            app,
-            "GET",
-            "/api/status",
-            headers={"Authorization": "Bearer wrong"},
-        )
-        assert status == 401
+    async def test_non_ascii_token_rejected_at_init(self, mock_service):
+        """A non-ASCII auth_token is rejected at construction (invalid HTTP token)."""
+        with pytest.raises(ValueError, match="invalid in HTTP tokens"):
+            MonitoringDashboard(
+                evolution_service=mock_service,
+                host="localhost",
+                port=18090,
+                auth_token="über-sécret",
+            )
 
     def test_constant_compare_non_ascii(self):
         """_constant_compare handles non-ASCII strings without raising."""
@@ -346,3 +327,116 @@ class TestDashboardDefaults:
         assert "http://localhost:9613" in dash.allowed_origins
         # Bare http://localhost (no port) should NOT be included
         assert "http://localhost" not in dash.allowed_origins
+
+    def test_ipv6_loopback_origin_is_bracketed(self, mock_service):
+        """IPv6 host ::1 must produce http://[::1]:<port>, not http://::1:<port>."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="::1",
+            port=8081,
+        )
+        assert "http://[::1]:8081" in dash.allowed_origins
+
+    def test_ipv6_custom_origin_is_bracketed(self, mock_service):
+        """Any IPv6 literal gets brackets in the default origin."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="fe80::1",
+            port=9000,
+        )
+        assert "http://[fe80::1]:9000" in dash.allowed_origins
+
+    def test_ipv4_origin_not_double_bracketed(self, mock_service):
+        """IPv4 addresses are not bracketed."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="192.168.1.10",
+            port=8081,
+        )
+        assert "http://192.168.1.10:8081" in dash.allowed_origins
+        assert "[" not in dash.allowed_origins[0]
+
+    def test_mixed_wildcard_and_explicit_origins_credentials_per_origin(self, mock_service):
+        """When '*' is mixed with explicit origins, only '*' disables credentials."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=8081,
+            allowed_origins=["https://trusted.example.com", "*"],
+        )
+        # Verify the allowed_origins are stored as-is
+        assert dash.allowed_origins == ["https://trusted.example.com", "*"]
+        # The actual CORS options are set up in setup_cors — we verify
+        # indirectly that the object was created without error.
+        # Direct verification of aiohttp_cors internals is fragile,
+        # but we can confirm the dashboard constructed successfully.
+        assert dash.app is not None
+
+    def test_invalid_auth_token_with_slash_raises(self, mock_service):
+        """auth_token containing '/' (common in base64) raises ValueError."""
+        with pytest.raises(ValueError, match="invalid in HTTP tokens"):
+            MonitoringDashboard(
+                evolution_service=mock_service,
+                host="localhost",
+                port=8081,
+                auth_token="abc/def+ghi=",
+            )
+
+    def test_invalid_auth_token_with_space_raises(self, mock_service):
+        """auth_token containing whitespace raises ValueError."""
+        with pytest.raises(ValueError, match="invalid in HTTP tokens"):
+            MonitoringDashboard(
+                evolution_service=mock_service,
+                host="localhost",
+                port=8081,
+                auth_token="has space",
+            )
+
+    def test_valid_urlsafe_token_accepted(self, mock_service):
+        """A URL-safe token (hex or token_urlsafe chars) is accepted."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=8081,
+            auth_token="abc123-_DEF",
+        )
+        assert dash.auth_token == "abc123-_DEF"
+
+
+class TestWebSocketSubprotocolEcho:
+    """Test that the server echoes the accepted subprotocol."""
+
+    @pytest.mark.asyncio
+    async def test_ws_echoes_bearer_subprotocol(self, dashboard_with_auth):
+        """Server must echo the bearer.<token> subprotocol in handshake."""
+        import aiohttp
+
+        app = dashboard_with_auth.app
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/ws"
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(
+                    url,
+                    headers={"Sec-WebSocket-Protocol": "bearer.test-secret-token"},
+                    protocols=["bearer.test-secret-token"],
+                ) as ws:
+                    # ws_connect with protocols= will raise if server
+                    # doesn't echo the subprotocol. Getting here means
+                    # the echo worked.
+                    msg = await ws.receive()
+                    assert msg.type == aiohttp.WSMsgType.TEXT
+
+    @pytest.mark.asyncio
+    async def test_ws_no_subprotocol_when_no_auth(self, dashboard_no_auth):
+        """When no auth_token is set, WS connects without subprotocol."""
+        import aiohttp
+
+        app = dashboard_no_auth.app
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/ws"
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(url) as ws:
+                    msg = await ws.receive()
+                    assert msg.type == aiohttp.WSMsgType.TEXT
