@@ -92,9 +92,9 @@ class TestTokenizeIfNeeded:
         assert len(result) == 2
         fine_tuner.tokenizer.assert_called_once()
 
-    @pytest.mark.parametrize("bad_input", [None, [1, 2], 42])
+    @pytest.mark.parametrize("bad_input", [[1, 2], 42])
     def test_filters_non_string_input(self, fine_tuner, bad_input):
-        """Examples with non-string input (e.g. None, list, int) must be rejected."""
+        """Examples with non-string input (e.g. list, int) must be rejected."""
         # Each type needs its own Dataset because HF/Arrow can't mix column types.
         ds = Dataset.from_list([{"instruction": "ok", "input": bad_input, "output": "out"}])
 
@@ -113,6 +113,20 @@ class TestTokenizeIfNeeded:
         result = fine_tuner._tokenize_if_needed(ds, max_length=512)
         assert len(result) == 2
 
+    def test_accepts_mixed_input_presence(self, fine_tuner):
+        """Rows where Arrow backfills missing ``input`` with None must survive."""
+        ds = Dataset.from_list(
+            [
+                {"instruction": "a", "input": "ctx", "output": "b"},
+                {"instruction": "c", "output": "d"},  # no input key
+            ]
+        )
+        # Arrow schema unification: row 1's "input" is now None
+        assert ds[1]["input"] is None
+
+        result = fine_tuner._tokenize_if_needed(ds, max_length=512)
+        assert len(result) == 2
+
 
 class TestIsValidExample:
     """Tests for the shared _is_valid_example predicate."""
@@ -126,8 +140,9 @@ class TestIsValidExample:
     def test_valid_empty_string_input(self):
         assert _is_valid_example({"instruction": "i", "input": "", "output": "o"})
 
-    def test_invalid_none_input(self):
-        assert not _is_valid_example({"instruction": "i", "input": None, "output": "o"})
+    def test_normalizes_none_input(self):
+        """None input (Arrow backfill for missing keys) should be accepted."""
+        assert _is_valid_example({"instruction": "i", "input": None, "output": "o"})
 
     def test_invalid_list_input(self):
         assert not _is_valid_example({"instruction": "i", "input": [1], "output": "o"})
@@ -148,9 +163,10 @@ class TestIsValidExample:
 class TestValidateTrainingExamples:
     """Tests for _validate_training_examples with input validation."""
 
-    def test_rejects_none_input(self):
+    def test_accepts_none_input(self):
+        """None input (Arrow backfill for missing keys) should be accepted."""
         examples = [{"instruction": "i", "input": None, "output": "o"}]
-        assert _validate_training_examples(examples) == []
+        assert len(_validate_training_examples(examples)) == 1
 
     def test_accepts_empty_string_input(self):
         examples = [{"instruction": "i", "input": "", "output": "o"}]
@@ -167,4 +183,4 @@ class TestValidateTrainingExamples:
             {"instruction": "e", "output": "f"},  # no input key — valid
         ]
         valid = _validate_training_examples(examples)
-        assert len(valid) == 2
+        assert len(valid) == 3

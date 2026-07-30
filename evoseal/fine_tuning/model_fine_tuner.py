@@ -53,7 +53,13 @@ def _is_valid_example(example: dict[str, Any]) -> bool:
         if not isinstance(example[key], str) or not example[key].strip():
             return False
     # input is optional but must be a string if present
-    if "input" in example and not isinstance(example["input"], str):
+    # Arrow-backed Datasets unify schema: missing ``input`` in one row becomes
+    # ``None`` when another row supplies it.  Treat ``None`` the same as absent.
+    if (
+        "input" in example
+        and example["input"] is not None
+        and not isinstance(example["input"], str)
+    ):
         return False
     return True
 
@@ -277,7 +283,7 @@ class ModelFineTuner:
                 # Create simple text format for fallback
                 fallback_data = []
                 for example in examples:
-                    text = f"Instruction: {example['instruction']}\nInput: {example.get('input', '')}\nOutput: {example['output']}"
+                    text = f"Instruction: {example['instruction']}\nInput: {example.get('input') or ''}\nOutput: {example['output']}"
                     fallback_data.append(text)
 
                 # Save fallback data
@@ -297,7 +303,7 @@ class ModelFineTuner:
             formatted_examples = []
             for example in examples:
                 # Format as instruction-following format
-                text = f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+                text = f"<s>[INST] {example['instruction']}\n{example.get('input') or ''} [/INST] {example['output']}</s>"
                 formatted_examples.append({"text": text})
 
             # Create dataset
@@ -365,7 +371,7 @@ class ModelFineTuner:
 
         def format_example(example: dict[str, Any]) -> dict[str, str]:
             return {
-                "text": f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+                "text": f"<s>[INST] {example['instruction']}\n{example.get('input') or ''} [/INST] {example['output']}</s>"
             }
 
         def tokenize_function(examples: dict[str, list[str]]) -> Any:
