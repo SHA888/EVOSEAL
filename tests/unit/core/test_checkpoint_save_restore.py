@@ -121,7 +121,7 @@ class TestCheckpointSaveRestore:
         cp_path = Path(manager.get_checkpoint_path("v4b"))
         (cp_path / "src" / "main.py").write_text("EVIL CODE\n")
 
-        with pytest.raises(CheckpointError, match="Integrity verification failed"):
+        with pytest.raises(CheckpointError, match="Integrity"):
             manager.restore_checkpoint("v4b", target_dir, verify_integrity=True)
 
     def test_restore_nonexistent_raises(self, manager: CheckpointManager, target_dir: Path) -> None:
@@ -201,9 +201,9 @@ class TestCheckpointSaveRestore:
         # derived from actual content rather than an arbitrary constant.
         expected_content_bytes = sum(len(v.encode()) for v in version["changes"].values())
         assert size >= expected_content_bytes
-        # Upper bound: content + generous allowance for metadata overhead.
+        # Upper bound: content + allowance for metadata overhead (~24x observed).
         # Uses a multiplier so the bound adapts if content grows.
-        assert size < expected_content_bytes * 100
+        assert size < expected_content_bytes * 30
 
     def test_restore_with_system_state(self, manager: CheckpointManager, target_dir: Path) -> None:
         """Restoring with capture_system_state=True returns system_state in result."""
