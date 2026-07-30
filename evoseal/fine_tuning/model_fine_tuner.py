@@ -210,6 +210,29 @@ class ModelFineTuner:
             if not examples:
                 return {"success": False, "error": "No training examples found"}
 
+            # Validate required keys before processing
+            valid_examples = []
+            for i, example in enumerate(examples):
+                if not isinstance(example, dict):
+                    logger.warning(f"Skipping example {i}: not a dict ({type(example).__name__})")
+                    continue
+                missing = [k for k in ("instruction", "output") if k not in example]
+                if missing:
+                    logger.warning(f"Skipping example {i}: missing required keys {missing}")
+                    continue
+                valid_examples.append(example)
+
+            if not valid_examples:
+                return {
+                    "success": False,
+                    "error": "No valid training examples (all missing required keys)",
+                }
+
+            if len(valid_examples) < len(examples):
+                logger.info(f"Kept {len(valid_examples)}/{len(examples)} examples after validation")
+
+            examples = valid_examples
+
             # If transformers not available, create fallback data
             if not TRANSFORMERS_AVAILABLE or not self.is_initialized:
                 logger.warning("Creating fallback training data (transformers not available)")
@@ -217,7 +240,7 @@ class ModelFineTuner:
                 # Create simple text format for fallback
                 fallback_data = []
                 for example in examples:
-                    text = f"Instruction: {example['instruction']}\nInput: {example.get('input', '')}\nOutput: {example['output']}"
+                    text = f"Instruction: {example.get('instruction', '')}\nInput: {example.get('input', '')}\nOutput: {example.get('output', '')}"
                     fallback_data.append(text)
 
                 # Save fallback data
@@ -237,7 +260,7 @@ class ModelFineTuner:
             formatted_examples = []
             for example in examples:
                 # Format as instruction-following format
-                text = f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+                text = f"<s>[INST] {example.get('instruction', '')}\n{example.get('input', '')} [/INST] {example.get('output', '')}</s>"
                 formatted_examples.append({"text": text})
 
             # Create dataset
@@ -291,7 +314,7 @@ class ModelFineTuner:
 
         def format_example(example: dict[str, Any]) -> dict[str, str]:
             return {
-                "text": f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+                "text": f"<s>[INST] {example.get('instruction', '')}\n{example.get('input', '')} [/INST] {example.get('output', '')}</s>"
             }
 
         def tokenize_function(examples: dict[str, list[str]]) -> Any:
