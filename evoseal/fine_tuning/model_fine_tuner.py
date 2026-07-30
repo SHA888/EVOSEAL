@@ -326,21 +326,30 @@ class ModelFineTuner:
         if "input_ids" in dataset.column_names:
             return dataset
 
-        valid = _validate_training_examples(dataset.to_list())
-        if not valid:
-            logger.warning(
-                "_tokenize_if_needed: no valid examples after validation; returning dataset as-is"
+        def _is_valid_example(example: dict[str, Any]) -> bool:
+            return (
+                isinstance(example, dict)
+                and "instruction" in example
+                and "output" in example
+                and isinstance(example.get("instruction"), str)
+                and bool(example["instruction"].strip())
+                and isinstance(example.get("output"), str)
+                and bool(example["output"].strip())
             )
-            return dataset
-        if len(valid) < len(dataset):
+
+        filtered = dataset.filter(_is_valid_example)
+        if len(filtered) == 0:
+            raise ValueError(
+                "_tokenize_if_needed: no valid training examples remain after validation "
+                "(all examples missing or have empty instruction/output)"
+            )
+        if len(filtered) < len(dataset):
             logger.info(
                 "_tokenize_if_needed: kept %d/%d examples after validation",
-                len(valid),
+                len(filtered),
                 len(dataset),
             )
-        from datasets import Dataset as _RealDataset
-
-        dataset = _RealDataset.from_list(valid)
+        dataset = filtered
 
         def format_example(example: dict[str, Any]) -> dict[str, str]:
             return {

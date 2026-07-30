@@ -60,3 +60,30 @@ class TestTokenizeIfNeeded:
 
         _, kwargs = fine_tuner.tokenizer.call_args
         assert kwargs["max_length"] == 128
+
+    def test_raises_on_all_invalid_examples(self, fine_tuner):
+        ds = Dataset.from_list(
+            [
+                {"instruction": "", "output": "o"},
+                {"instruction": "i", "output": ""},
+                {"not_instruction": "x", "not_output": "y"},
+            ]
+        )
+
+        with pytest.raises(ValueError, match="no valid training examples"):
+            fine_tuner._tokenize_if_needed(ds, max_length=512)
+
+    def test_filters_mixed_valid_and_invalid(self, fine_tuner):
+        ds = Dataset.from_list(
+            [
+                {"instruction": "good", "input": "", "output": "result"},
+                {"instruction": "", "output": "bad"},
+                {"instruction": "also good", "input": "", "output": "out"},
+            ]
+        )
+
+        result = fine_tuner._tokenize_if_needed(ds, max_length=512)
+
+        assert "input_ids" in result.column_names
+        assert len(result) == 2
+        fine_tuner.tokenizer.assert_called_once()
