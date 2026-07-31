@@ -10,6 +10,8 @@ import pytest
 
 from evoseal.core.evaluator import Evaluator
 
+pytestmark = pytest.mark.unit
+
 
 def test_evaluate_empty_results():
     evaluator = Evaluator()

@@ -13,6 +13,8 @@ import pytest
 
 from evoseal.core.selection import SelectionAlgorithm
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def population():
@@ -122,6 +124,10 @@ def test_num_selected_larger_than_population(population, seeded_rng):
     selector = SelectionAlgorithm()
     selected = selector.select(population, num_selected=10, strategy="tournament")
     assert len(selected) == 10
+    population_ids = {ind["id"] for ind in population}
+    selected_ids = [ind["id"] for ind in selected]
+    assert set(selected_ids) <= population_ids
+    assert len(set(selected_ids)) < len(selected_ids)
 
 
 def test_num_selected_zero(population):
@@ -160,6 +166,7 @@ def test_roulette_with_negative_scores(seeded_rng):
     selector = SelectionAlgorithm()
     selected = selector.select(pop, num_selected=2, strategy="roulette")
     assert len(selected) == 2
+    assert all(s["id"] in {"v0", "v1", "v2"} for s in selected)
 
 
 def test_tournament_missing_eval_score(seeded_rng):
@@ -168,3 +175,4 @@ def test_tournament_missing_eval_score(seeded_rng):
     selector = SelectionAlgorithm()
     selected = selector.select(pop, num_selected=1, strategy="tournament")
     assert len(selected) == 1
+    assert selected[0]["id"] == "v1"

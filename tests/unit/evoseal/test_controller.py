@@ -8,6 +8,8 @@ import pytest
 
 from evoseal.core.controller import Controller
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def controller():
@@ -63,6 +65,8 @@ def test_select_candidates_defaults_missing_score_to_zero(controller):
     # The one without 'score' gets 0.0; top 3 should be 0.8, 0.6, 0.0
     assert len(selected) == 3
     assert selected[0]["score"] == 0.8
+    assert selected[1]["score"] == 0.6
+    assert selected[2].get("score", 0.0) == 0.0
 
 
 # --- run_generation ---

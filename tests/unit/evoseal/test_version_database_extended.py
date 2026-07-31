@@ -13,6 +13,8 @@ import pytest
 
 from evoseal.core.version_database import VersionDatabase
 
+pytestmark = pytest.mark.unit
+
 # --- Experiment tracking ---
 
 
