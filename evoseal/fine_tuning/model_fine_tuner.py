@@ -158,7 +158,7 @@ class ModelFineTuner:
             # Load tokenizer. Base model is operator-configured; revision pinning is
             # left to the caller via base_model_path.
             self.tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
-                base_model, trust_remote_code=True, padding_side="right"
+                base_model, trust_remote_code=False, padding_side="right"
             )
 
             # Add pad token if missing
@@ -167,15 +167,13 @@ class ModelFineTuner:
 
             # Load model
             model_kwargs = {
-                "trust_remote_code": True,
+                "trust_remote_code": False,
                 "torch_dtype": (torch.float16 if torch.cuda.is_available() else torch.float32),
                 "device_map": "auto" if torch.cuda.is_available() else None,
             }
 
             # Revision pinning is left to the caller (see note above).
-            self.model = AutoModelForCausalLM.from_pretrained(  # nosec B615
-                base_model, **model_kwargs
-            )
+            self.model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)  # nosec B615
 
             # Configure for training
             self.model.config.use_cache = False
