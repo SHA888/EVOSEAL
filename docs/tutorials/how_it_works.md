@@ -57,7 +57,7 @@ Both converge on the same core: `EvolutionPipeline.run_evolution_cycle()`.
 
 When the pipeline starts, it sets up the safety infrastructure first:
 
-```
+```text
 EvolutionPipeline.__init__
 ├── SafetyIntegration(config, repo_root=...)  # checkpoint + rollback + regression detection
 ├── MetricsTracker()                          # records fitness scores per iteration
@@ -66,9 +66,11 @@ EvolutionPipeline.__init__
 └── IntegrationOrchestrator()                 # manages DGM/OpenEvolve/SEAL adapters
 ```
 
-The safety layer is not optional — it gates every self-modification. If you
-skip it, the pipeline will still run, but no improvement will ever be
-validated (the validator needs metrics history to compare against).
+The safety layer is initialized automatically — it gates every
+self-modification. If you skip it, the pipeline will still run, but no
+improvement will ever be validated (the validator needs metrics history to
+compare against). Note that the checkpoint/rollback wrapping described in
+Step 8 is a separate, optional safety variant (`run_evolution_cycle_with_safety`).
 
 **Key file:** `evoseal/core/evolution_pipeline.py` — `__init__`
 
@@ -119,15 +121,18 @@ when using OpenEvolve's built-in strategies.
 improvements = await self._generate_improvements(analysis)
 ```
 
-The pipeline method itself is a stub — the real work happens through
-integration adapters. OpenEvolve (via the integration orchestrator) generates
-code variants. Each variant is a candidate improvement — a modified version
-of some part of the codebase.
+The pipeline method itself is a stub — it returns `[]` and delegates nothing
+internally. The real generation logic is intended to live in integration
+adapters (OpenEvolve via the integration orchestrator), but that wiring is
+not yet implemented.
 
-The `Controller` class (`evoseal/core/controller.py`) provides an independent
-inner loop for orchestrating test/evaluate/select cycles:
+For reference, the `Controller` class (`evoseal/core/controller.py`) has its
+own `run_generation()` method that implements a test/evaluate/select loop.
+This is a **separate code path** — it is not called by `_generate_improvements`
+and is not on the pipeline's execution path. It exists as an independent CLI
+entry point and may be wired into the pipeline in the future:
 
-```
+```text
 # Illustrative — see controller.py:run_generation for the real code
 Controller.run_generation()
 ├── test_runner.run_tests(target)     # run tests against the candidate
@@ -135,10 +140,7 @@ Controller.run_generation()
 └── select_candidates(eval_results)   # pick top-k for the next generation
 ```
 
-Multiple generations of candidates may be produced within a single pipeline
-iteration, depending on OpenEvolve's configuration.
-
-**Key file:** `evoseal/core/controller.py` — `run_generation`
+**Key file:** `evoseal/core/evolution_pipeline.py` — `_generate_improvements` (stub); `evoseal/core/controller.py` — `run_generation` (separate code path)
 
 ---
 
@@ -222,7 +224,7 @@ The `run_evolution_cycle_with_safety` variant wraps each iteration with:
 3. **Detect regression** — compare metrics against the checkpoint
 4. **Rollback** — if regression is detected, restore the checkpoint
 
-```
+```text
 # Illustrative flow — see run_evolution_cycle_with_safety for the real code
 CheckpointManager.create_checkpoint()
 → run iteration
@@ -274,7 +276,7 @@ via WebSocket.
 When started via `evoseal start evolution`, the
 `ContinuousEvolutionService` wraps the above in a long-running loop:
 
-```
+```python
 # Illustrative — see continuous_evolution_service.py for the real code
 while not shutdown:
     await _run_evolution_cycle()          # Phase 1: evolve
@@ -326,14 +328,14 @@ This provides:
 Several pieces of the pipeline are stubbed with `# TODO` comments:
 
 - `_analyze_current_version()` returns `{}`
-- `_generate_improvements()` returns `[]` (the real generation logic lives in the OpenEvolve adapter — see `Controller.run_generation` for the test/evaluate/select loop)
+- `_generate_improvements()` returns `[]` (the real generation logic is intended for the OpenEvolve adapter — not yet wired; `Controller.run_generation` is a separate code path, not on the pipeline's execution path)
 - `_adapt_improvements()` is a passthrough (the real SEAL strategy application lives in the integration adapter)
-- `_evaluate_version()` returns `{"metrics": {}}` (the real evaluation lives in the test runner adapter — `SandboxedTestRunner`)
+- `_evaluate_version()` returns `{"metrics": {}}` (the real evaluation lives in `SandboxedTestRunner`)
 
 The pipeline methods are coordination points, not the actual implementations.
-The real logic lives in the integration adapters (DGM, OpenEvolve, SEAL),
-which the resilience manager wraps at runtime (see Step 4-6 above for how
-that works).
+Generation and adaptation logic lives in the DGM/OpenEvolve/SEAL integration
+adapters. Evaluation uses `SandboxedTestRunner`. The resilience manager wraps
+these runtime components (see Steps 4-6 above).
 
 ---
 
