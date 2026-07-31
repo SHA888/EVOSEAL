@@ -197,7 +197,7 @@
 
 ### Testing Coverage
 
-- [ ] **Increase unit test coverage for `core/` modules**
+- [x] **Increase unit test coverage for `core/` modules**
   - `controller.py`, `evaluator.py`, `selection.py`, `version_database.py`
   - Target: meaningful coverage on core logic paths, not just line count
 - [x] **Add regression test for config validation**
@@ -307,9 +307,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
-| 🟡 P2    | 30    | 22   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
+| 🟡 P2    | 30    | 23   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
 | 🟢 P3    | 24    | 16   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions |
-| **Total** | **89** | **64** | |
+| **Total** | **89** | **65** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
