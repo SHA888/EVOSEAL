@@ -7,8 +7,7 @@ from untrusted model repos).
 
 from __future__ import annotations
 
-import inspect
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from datasets import Dataset
@@ -70,24 +69,71 @@ class TestTrustRemoteCodeDefault:
     verbatim as an HF repo id for unknown families.
     """
 
-    def test_source_uses_trust_remote_code_false(self):
-        """Inspect initialize_model source to confirm trust_remote_code=False."""
-        source = inspect.getsource(ModelFineTuner.initialize_model)
-        # Must NOT contain trust_remote_code=True (after the fix)
-        assert "trust_remote_code=True" not in source, (
-            "initialize_model still contains trust_remote_code=True"
+    @pytest.mark.asyncio
+    async def test_from_pretrained_calls_use_trust_remote_code_false(self, tmp_path):
+        """Both from_pretrained calls receive trust_remote_code=False.
+
+        Mocks the HF loading calls and asserts the kwarg on each,
+        consistent with the style of test_passes_max_length_through_to_tokenizer.
+        """
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        tuner = ModelFineTuner.__new__(ModelFineTuner)
+        tuner.model_name = "deepseek-coder"
+        tuner.base_model_path = "deepseek-ai/deepseek-coder-6.7b-instruct"
+        tuner.output_dir = tmp_path
+        tuner.use_lora = True
+        tuner.use_qlora = False
+        tuner.tokenizer = None
+        tuner.model = None
+        tuner.peft_model = None
+        tuner.is_initialized = False
+        tuner.current_training = None
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.pad_token = None
+        mock_tokenizer.eos_token = "</s>"
+        mock_model = MagicMock()
+        mock_model.config = MagicMock()
+
+        # AutoTokenizer / AutoModelForCausalLM aren't in the module namespace
+        # because peft isn't installed (the try/except bailed early). Inject
+        # mock classes so the function can reference them, then patch
+        # from_pretrained on each.
+        mock_tok_cls = MagicMock()
+        mock_tok_cls.from_pretrained.return_value = mock_tokenizer
+        mock_mdl_cls = MagicMock()
+        mock_mdl_cls.from_pretrained.return_value = mock_model
+
+        with (
+            patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(mod, "AutoTokenizer", mock_tok_cls, create=True),
+            patch.object(mod, "AutoModelForCausalLM", mock_mdl_cls, create=True),
+            patch("torch.cuda.is_available", return_value=False),
+        ):
+            result = await tuner.initialize_model()
+
+        assert result is True
+
+        # Tokenizer call must pass trust_remote_code=False
+        _, tok_kwargs = mock_tok_cls.from_pretrained.call_args
+        assert tok_kwargs["trust_remote_code"] is False, (
+            "AutoTokenizer.from_pretrained called with trust_remote_code!=False"
         )
-        # Must contain trust_remote_code=False
-        assert "trust_remote_code=False" in source, (
-            "initialize_model does not set trust_remote_code=False"
+
+        # Model call must pass trust_remote_code=False
+        _, mdl_kwargs = mock_mdl_cls.from_pretrained.call_args
+        assert mdl_kwargs["trust_remote_code"] is False, (
+            "AutoModelForCausalLM.from_pretrained called with trust_remote_code!=False"
         )
-        # nosec B615 is present because revision pinning is left to the caller
-        # (B615 flags missing revision=, not trust_remote_code)
-        assert "nosec B615" in source, "initialize_model missing nosec B615 for revision pinning"
 
     @pytest.mark.asyncio
-    async def test_initialize_returns_false_without_transformers(self, tmp_path):
+    async def test_initialize_returns_false_without_transformers(self, monkeypatch, tmp_path):
         """When TRANSFORMERS_AVAILABLE is False, initialize_model returns False."""
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        monkeypatch.setattr(mod, "TRANSFORMERS_AVAILABLE", False)
+
         tuner = ModelFineTuner.__new__(ModelFineTuner)
         tuner.model_name = "test-model"
         tuner.base_model_path = None

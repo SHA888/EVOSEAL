@@ -157,9 +157,9 @@ class ModelFineTuner:
 
             # Load tokenizer. Base model is operator-configured; revision pinning is
             # left to the caller via base_model_path.
-            self.tokenizer = AutoTokenizer.from_pretrained(
+            self.tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
                 base_model, trust_remote_code=False, padding_side="right"
-            )  # nosec B615
+            )
 
             # Add pad token if missing
             if self.tokenizer.pad_token is None:
