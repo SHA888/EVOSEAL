@@ -279,7 +279,7 @@ When started via `evoseal start evolution`, the
 ```python
 # Illustrative — see continuous_evolution_service.py for the real code
 while not shutdown:
-    await _run_evolution_cycle()          # Phase 1: evolve
+    await _run_evolution_cycle()  # Phase 1: evolve
     await asyncio.sleep(evolution_interval)
 
     if bidirectional_manager.should_train():
