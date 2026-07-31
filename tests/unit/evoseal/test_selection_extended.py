@@ -6,6 +6,9 @@ elitism edge cases, and other paths not covered by the original test_selection.p
 
 from __future__ import annotations
 
+import random
+import secrets
+
 import pytest
 
 from evoseal.core.selection import SelectionAlgorithm
@@ -18,10 +21,17 @@ def population():
     ]
 
 
+@pytest.fixture(autouse=False)
+def seeded_rng(monkeypatch):
+    """Replace secrets.SystemRandom with a seeded RNG for deterministic tests."""
+    rng = random.Random(42)
+    monkeypatch.setattr(secrets, "SystemRandom", lambda: rng)
+
+
 # --- Custom fitness_key ---
 
 
-def test_tournament_custom_fitness_key(population):
+def test_tournament_custom_fitness_key(population, seeded_rng):
     """Tournament selection should respect a custom fitness_key."""
     for ind in population:
         ind["custom_score"] = 1.0 - ind["eval_score"]  # invert scores
@@ -32,8 +42,9 @@ def test_tournament_custom_fitness_key(population):
         strategy="tournament",
         fitness_key="custom_score",
     )
-    # With inverted scores, v4 (eval_score=0.5, custom_score=0.5) should be favored
-    assert any(ind["id"] == "v4" for ind in selected)
+    # v4 has the highest custom_score (0.5) so it is guaranteed as the elite.
+    assert selected[0]["id"] == "v4"
+    assert len(selected) == 3
 
 
 def test_roulette_custom_fitness_key(population):
@@ -106,7 +117,7 @@ def test_elitism_zero(population):
 # --- num_selected edge cases ---
 
 
-def test_num_selected_larger_than_population(population):
+def test_num_selected_larger_than_population(population, seeded_rng):
     """When num_selected > len(population), result is padded with repeats."""
     selector = SelectionAlgorithm()
     selected = selector.select(population, num_selected=10, strategy="tournament")
@@ -136,14 +147,14 @@ def test_custom_strategy():
 # --- Negative / missing scores ---
 
 
-def test_tournament_with_negative_scores():
+def test_tournament_with_negative_scores(seeded_rng):
     pop = [{"id": f"v{i}", "eval_score": s} for i, s in enumerate([-0.5, 0.0, 0.5])]
     selector = SelectionAlgorithm()
     selected = selector.select(pop, num_selected=2, strategy="tournament")
     assert len(selected) == 2
 
 
-def test_roulette_with_negative_scores():
+def test_roulette_with_negative_scores(seeded_rng):
     """Negative scores are clamped to 0 in roulette selection."""
     pop = [{"id": f"v{i}", "eval_score": s} for i, s in enumerate([-0.5, 0.0, 0.5])]
     selector = SelectionAlgorithm()
@@ -151,7 +162,7 @@ def test_roulette_with_negative_scores():
     assert len(selected) == 2
 
 
-def test_tournament_missing_eval_score():
+def test_tournament_missing_eval_score(seeded_rng):
     """Missing eval_score defaults to 0."""
     pop = [{"id": "v0"}, {"id": "v1", "eval_score": 0.9}]
     selector = SelectionAlgorithm()
