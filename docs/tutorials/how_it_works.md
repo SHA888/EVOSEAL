@@ -70,7 +70,7 @@ The safety layer is not optional — it gates every self-modification. If you
 skip it, the pipeline will still run, but no improvement will ever be
 validated (the validator needs metrics history to compare against).
 
-**Key file:** `evoseal/core/evolution_pipeline.py` — `__init__` (line ~140)
+**Key file:** `evoseal/core/evolution_pipeline.py` — `__init__` (line ~95)
 
 ---
 
@@ -81,7 +81,7 @@ one pass through the full analyze → generate → adapt → evaluate → valida
 pipeline:
 
 ```python
-# Simplified from evolution_pipeline.py:_run_single_iteration
+# Simplified from evolution_pipeline.py:run_evolution_cycle
 for i in range(iterations):
     iteration_result = await self._run_single_iteration(i + 1)
     results.append(iteration_result)
@@ -175,7 +175,7 @@ isolated environment:
 - Enforces CPU time and memory limits
 - Captures stdout/stderr for diagnostics
 
-**Key file:** `evoseal/core/testrunner.py` — `SandboxedTestRunner` (line ~630)
+**Key file:** `evoseal/core/testrunner.py` — `SandboxedTestRunner` (line ~595)
 
 ---
 
