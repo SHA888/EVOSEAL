@@ -83,7 +83,7 @@ one pass through the full analyze → generate → adapt → evaluate → valida
 pipeline:
 
 ```python
-# Simplified illustration — see evolution_pipeline.py for the actual code
+# Illustrative — see evolution_pipeline.py for the actual code
 for i in range(iterations):
     iteration_result = await self._run_single_iteration(i + 1)
     results.append(iteration_result)
@@ -225,7 +225,7 @@ The `run_evolution_cycle_with_safety` variant wraps each iteration with:
 4. **Rollback** — if regression is detected, restore the checkpoint
 
 ```text
-# Illustrative flow — see run_evolution_cycle_with_safety for the real code
+# Illustrative — see run_evolution_cycle_with_safety for the real code
 CheckpointManager.create_checkpoint()
 → run iteration
 → RegressionDetector.check_for_regression()
@@ -261,7 +261,7 @@ Events are published at every stage boundary via the `EventBus`
 |---|---|
 | `EVOLUTION_STARTED` | Cycle begins |
 | `ITERATION_STARTED` | Each iteration begins |
-| `STAGE_STARTED` / `STAGE_COMPLETED` | Each pipeline stage |
+| `PIPELINE_STAGE_STARTED` / `PIPELINE_STAGE_COMPLETED` | Each pipeline stage |
 | `ITERATION_COMPLETED` / `ITERATION_FAILED` | Each iteration ends |
 | `EVOLUTION_COMPLETED` | Cycle ends |
 | `ERROR_OCCURRED` | On any unrecovered error |
