@@ -282,7 +282,7 @@
 - [ ] **Add a "How It Actually Works" tutorial**
   - Walk through a single evolution cycle step by step with real logs
   - Lower the barrier for new contributors
-- [ ] **Improve API reference**
+- [x] **Improve API reference** _(done 2026-07-31)_
   - Ensure all public classes/functions have docstrings
   - Auto-generate API docs (MkDocs + mkdocstrings)
 
