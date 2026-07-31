@@ -7,7 +7,6 @@ and edge cases not covered by the original test_version_database.py.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 

@@ -43,6 +43,7 @@ def test_tournament_custom_fitness_key(population, seeded_rng):
         num_selected=3,
         strategy="tournament",
         fitness_key="custom_score",
+        elitism=1,
     )
     # v4 has the highest custom_score (0.5) so it is guaranteed as the elite.
     assert selected[0]["id"] == "v4"
