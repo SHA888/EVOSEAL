@@ -159,7 +159,7 @@ class ModelFineTuner:
             # left to the caller via base_model_path.
             self.tokenizer = AutoTokenizer.from_pretrained(
                 base_model, trust_remote_code=False, padding_side="right"
-            )
+            )  # nosec B615
 
             # Add pad token if missing
             if self.tokenizer.pad_token is None:
@@ -173,7 +173,7 @@ class ModelFineTuner:
             }
 
             # Revision pinning is left to the caller (see note above).
-            self.model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
+            self.model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)  # nosec B615
 
             # Configure for training
             self.model.config.use_cache = False

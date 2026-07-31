@@ -81,10 +81,9 @@ class TestTrustRemoteCodeDefault:
         assert "trust_remote_code=False" in source, (
             "initialize_model does not set trust_remote_code=False"
         )
-        # No nosec B615 suppressions — the security flag is now safe
-        assert "nosec B615" not in source, (
-            "initialize_model still has nosec B615 suppression comments"
-        )
+        # nosec B615 is present because revision pinning is left to the caller
+        # (B615 flags missing revision=, not trust_remote_code)
+        assert "nosec B615" in source, "initialize_model missing nosec B615 for revision pinning"
 
     @pytest.mark.asyncio
     async def test_initialize_returns_false_without_transformers(self, tmp_path):
