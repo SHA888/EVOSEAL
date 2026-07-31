@@ -279,7 +279,7 @@
 - [x] **Refresh ADR 0001 to reflect implemented Tier 1 safety state** _(done 2026-07-19)_
   - Updated tier table, "Current state" block, operator guidance, and Section 6 to reflect that Tier 1 (tasks 2.13–2.15) is now implemented and default-on
 
-- [ ] **Add a "How It Actually Works" tutorial**
+- [x] **Add a "How It Actually Works" tutorial**
   - Walk through a single evolution cycle step by step with real logs
   - Lower the barrier for new contributors
 - [ ] **Improve API reference**
@@ -308,8 +308,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
 | 🟡 P2    | 30    | 22   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
-| 🟢 P3    | 24    | 16   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions |
-| **Total** | **89** | **64** | |
+| 🟢 P3    | 24    | 17   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial |
+| **Total** | **89** | **65** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
