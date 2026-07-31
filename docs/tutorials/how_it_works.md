@@ -70,7 +70,7 @@ The safety layer is not optional — it gates every self-modification. If you
 skip it, the pipeline will still run, but no improvement will ever be
 validated (the validator needs metrics history to compare against).
 
-**Key file:** `evoseal/core/evolution_pipeline.py` — `__init__` (line ~95)
+**Key file:** `evoseal/core/evolution_pipeline.py` — `__init__`
 
 ---
 
@@ -81,7 +81,7 @@ one pass through the full analyze → generate → adapt → evaluate → valida
 pipeline:
 
 ```python
-# Simplified from evolution_pipeline.py:run_evolution_cycle
+# Simplified illustration — see evolution_pipeline.py for the actual code
 for i in range(iterations):
     iteration_result = await self._run_single_iteration(i + 1)
     results.append(iteration_result)
@@ -90,7 +90,7 @@ for i in range(iterations):
         break  # stop early if no improvement found
 ```
 
-**Key file:** `evoseal/core/evolution_pipeline.py` — `run_evolution_cycle` (line ~391)
+**Key file:** `evoseal/core/evolution_pipeline.py` — `run_evolution_cycle`
 
 ---
 
@@ -109,7 +109,7 @@ In the current implementation, this step is a placeholder that returns `{}`
 still works because the generation step can operate without analysis context
 when using OpenEvolve's built-in strategies.
 
-**Key file:** `evoseal/core/evolution_pipeline.py` — `_analyze_current_version` (line ~920)
+**Key file:** `evoseal/core/evolution_pipeline.py` — `_analyze_current_version`
 
 ---
 
@@ -119,15 +119,16 @@ when using OpenEvolve's built-in strategies.
 improvements = await self._generate_improvements(analysis)
 ```
 
-This is where the evolutionary search happens. The pipeline delegates to
-OpenEvolve (via the integration adapter) to generate code variants. Each
-variant is a candidate improvement — a modified version of some part of the
-codebase.
+The pipeline method itself is a stub — the real work happens through
+integration adapters. OpenEvolve (via the integration orchestrator) generates
+code variants. Each variant is a candidate improvement — a modified version
+of some part of the codebase.
 
-The `Controller` class (`evoseal/core/controller.py`) orchestrates the
-inner loop:
+The `Controller` class (`evoseal/core/controller.py`) provides an independent
+inner loop for orchestrating test/evaluate/select cycles:
 
 ```
+# Illustrative — see controller.py:run_generation for the real code
 Controller.run_generation()
 ├── test_runner.run_tests(target)     # run tests against the candidate
 ├── evaluator.evaluate(test_results)  # score the candidate
@@ -137,7 +138,7 @@ Controller.run_generation()
 Multiple generations of candidates may be produced within a single pipeline
 iteration, depending on OpenEvolve's configuration.
 
-**Key file:** `evoseal/core/controller.py` — `run_generation` (line ~37)
+**Key file:** `evoseal/core/controller.py` — `run_generation`
 
 ---
 
@@ -147,14 +148,15 @@ iteration, depending on OpenEvolve's configuration.
 adapted_improvements = await self._adapt_improvements(improvements)
 ```
 
-SEAL (Self-Adapting Language Models) takes the raw improvements from
-OpenEvolve and adapts them — applying learned editing strategies to refine
-the candidates. This is the "self-adapting" part of the system.
+The pipeline method itself is a passthrough — SEAL (Self-Adapting Language
+Models) takes the raw improvements from OpenEvolve via the integration
+adapter and adapts them, applying learned editing strategies to refine the
+candidates. This is the "self-adapting" part of the system.
 
 The adaptation strategies live in `evoseal/integration/seal/self_editor/strategies/`
 and include code-style, documentation, and logic-focused strategies.
 
-**Key file:** `evoseal/core/evolution_pipeline.py` — `_adapt_improvements` (line ~930)
+**Key file:** `evoseal/core/evolution_pipeline.py` — `_adapt_improvements`
 
 ---
 
@@ -164,9 +166,11 @@ and include code-style, documentation, and logic-focused strategies.
 evaluation_result = await self._evaluate_version(adapted_improvements)
 ```
 
-The adapted improvements are applied (or simulated, in dry-run mode) and
-the result is scored. The evaluation runs the test suite against the
-modified code and collects metrics: pass rate, fitness score, runtime, etc.
+The pipeline method itself is a stub — the real evaluation happens through
+the integration adapter. The adapted improvements are applied (or simulated,
+in dry-run mode) and the result is scored. The evaluation runs the test
+suite against the modified code and collects metrics: pass rate, fitness
+score, runtime, etc.
 
 The `SandboxedTestRunner` (`evoseal/core/testrunner.py`) runs tests in an
 isolated environment:
@@ -175,7 +179,7 @@ isolated environment:
 - Enforces CPU time and memory limits
 - Captures stdout/stderr for diagnostics
 
-**Key file:** `evoseal/core/testrunner.py` — `SandboxedTestRunner` (line ~595)
+**Key file:** `evoseal/core/testrunner.py` — `SandboxedTestRunner`
 
 ---
 
@@ -191,7 +195,7 @@ regresses on any critical dimension, the improvement is rejected and the
 cycle stops (`should_continue=False`).
 
 ```python
-# From _validate_improvement (simplified):
+# Illustrative — see _validate_improvement for the real code
 metrics = self.metrics_tracker.get_metrics_history(test_type)
 
 if len(metrics) < 2:
@@ -205,7 +209,7 @@ The `RegressionDetector` (`evoseal/core/regression_detector.py`) provides
 configurable thresholds for what counts as a regression — not just raw
 fitness, but also test pass rate, runtime, and memory usage.
 
-**Key file:** `evoseal/core/evolution_pipeline.py` — `_validate_improvement` (line ~940)
+**Key file:** `evoseal/core/evolution_pipeline.py` — `_validate_improvement`
 
 ---
 
@@ -219,6 +223,7 @@ The `run_evolution_cycle_with_safety` variant wraps each iteration with:
 4. **Rollback** — if regression is detected, restore the checkpoint
 
 ```
+# Illustrative flow — see run_evolution_cycle_with_safety for the real code
 CheckpointManager.create_checkpoint()
 → run iteration
 → RegressionDetector.check_for_regression()
@@ -270,6 +275,7 @@ When started via `evoseal start evolution`, the
 `ContinuousEvolutionService` wraps the above in a long-running loop:
 
 ```
+# Illustrative — see continuous_evolution_service.py for the real code
 while not shutdown:
     await _run_evolution_cycle()          # Phase 1: evolve
     await asyncio.sleep(evolution_interval)
@@ -320,14 +326,14 @@ This provides:
 Several pieces of the pipeline are stubbed with `# TODO` comments:
 
 - `_analyze_current_version()` returns `{}`
-- `_generate_improvements()` returns `[]` (relies on OpenEvolve adapter)
-- `_adapt_improvements()` is a passthrough (relies on SEAL adapter)
-- `_evaluate_version()` returns `{"metrics": {}}` (relies on test runner)
+- `_generate_improvements()` returns `[]` (the real generation logic lives in the OpenEvolve adapter — see `Controller.run_generation` for the test/evaluate/select loop)
+- `_adapt_improvements()` is a passthrough (the real SEAL strategy application lives in the integration adapter)
+- `_evaluate_version()` returns `{"metrics": {}}` (the real evaluation lives in the test runner adapter — `SandboxedTestRunner`)
 
-These work in practice because the real logic lives in the integration
-adapters (DGM, OpenEvolve, SEAL) — the pipeline methods are coordination
-points, not the actual implementations. The adapters delegate to the
-external tools.
+The pipeline methods are coordination points, not the actual implementations.
+The real logic lives in the integration adapters (DGM, OpenEvolve, SEAL),
+which the resilience manager wraps at runtime (see Step 4-6 above for how
+that works).
 
 ---
 
