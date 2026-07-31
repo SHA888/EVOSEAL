@@ -150,3 +150,58 @@ class TestTrustRemoteCodeDefault:
 
         assert result is False
         assert tuner.is_initialized is False
+
+    @pytest.mark.asyncio
+    async def test_initialize_returns_false_when_model_needs_trust_remote_code(
+        self, tmp_path, caplog
+    ):
+        """When a model requires trust_remote_code=True but gets False, initialize_model
+        catches the resulting exception, logs it, and returns False.
+
+        This exercises the failure path that the reviewer flagged: a model that
+        used to load with trust_remote_code=True now hard-fails because custom
+        code execution is blocked.
+        """
+        import logging
+
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        tuner = ModelFineTuner.__new__(ModelFineTuner)
+        tuner.model_name = "custom-model"
+        tuner.base_model_path = "some-org/custom-model-needs-trust"
+        tuner.output_dir = tmp_path
+        tuner.use_lora = True
+        tuner.use_qlora = False
+        tuner.tokenizer = None
+        tuner.model = None
+        tuner.peft_model = None
+        tuner.is_initialized = False
+        tuner.current_training = None
+
+        mock_tok_cls = MagicMock()
+        # Simulate the failure: a model that ships custom code raises when
+        # trust_remote_code=False.  OSError is what transformers actually raises
+        # when the auto-map can't resolve the architecture without custom code.
+        mock_tok_cls.from_pretrained.side_effect = OSError(
+            "does not appear to have a file named configuration_auto.py. "
+            "Checkout 'https://huggingface.co/some-org/custom-model-needs-trust'"
+        )
+        mock_mdl_cls = MagicMock()
+
+        with (
+            patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(mod, "AutoTokenizer", mock_tok_cls, create=True),
+            patch.object(mod, "AutoModelForCausalLM", mock_mdl_cls, create=True),
+            caplog.at_level(logging.ERROR, logger=mod.logger.name),
+        ):
+            result = await tuner.initialize_model()
+
+        # Must surface the failure, not silently succeed
+        assert result is False
+        assert tuner.is_initialized is False
+
+        # Model load should never have been attempted (tokenizer failed first)
+        mock_mdl_cls.from_pretrained.assert_not_called()
+
+        # Error must be logged so operators can diagnose the root cause
+        assert "Error initializing model" in caplog.text
