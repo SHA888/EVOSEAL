@@ -197,7 +197,7 @@
 
 ### Testing Coverage
 
-- [ ] **Increase unit test coverage for `core/` modules**
+- [x] **Increase unit test coverage for `core/` modules**
   - `controller.py`, `evaluator.py`, `selection.py`, `version_database.py`
   - Target: meaningful coverage on core logic paths, not just line count
 - [x] **Add regression test for config validation**
@@ -211,7 +211,7 @@
 
 - [x] **`bidirectional_manager.py` state fields are never mutated** _(done 2026-07-23)_ — fixed by `run_loop_cycle()` in item #6 above; `stats`, `evolution_history`, `is_running`, and `last_check_time` are now all mutated each cycle.
 - [x] **`version_manager.py` registry file has no atomic write** — `_save_registry()` (lines 70-77, PR #72 branch) writes directly via `open(...,"w")` + `json.dump`; a crash/kill mid-write leaves a truncated file, and `_load_registry()` silently resets to an empty registry on parse failure, losing all version history
-- [ ] **`version_manager.py` has no locking around concurrent registry mutation** — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`
+- [x] **`version_manager.py` has no locking around concurrent registry mutation** _(done 2026-08-01)_ — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`. Fixed with `asyncio.Lock` + impl pattern (public methods acquire lock, delegate to `_impl` to avoid reentrant deadlock)
 - [x] **`model_fine_tuner.py:160-178` uses `trust_remote_code=True`** _(done 2026-07-31)_ — changed both `AutoTokenizer` and `AutoModelForCausalLM.from_pretrained` calls to `trust_remote_code=False` (the safe default). The `# nosec B615` suppression comments remain because B615 flags missing `revision=`, not `trust_remote_code`; revision pinning is left to the caller.
 - [x] **`provider_manager.py` treats unhealthy providers as healthy when called from a running event loop** _(done 2026-07-28)_ — `get_best_available_provider()` (lines 100-111) and `list_providers()` (lines 196-201) create a health-check task via `loop.create_task(...)` but never await/consume it, then unconditionally set `is_healthy = True`, discarding the real result; the orphaned task can also produce unretrieved-exception warnings
 - [x] **`agentic_system.py:28` logger bypasses the logging handler hierarchy** _(done 2026-07-26)_ — `Logger("AgenticSystem")` was instantiated directly instead of via `logging.getLogger(name)`; `self.parent` stayed `None`, no handlers attached, and all INFO-level agent-orchestration logs were silently dropped. Changed to `get_logger("AgenticSystem")` to participate in the handler hierarchy
@@ -282,7 +282,7 @@
 - [x] **Add a "How It Actually Works" tutorial**
   - Walk through a single evolution cycle step by step with real logs
   - Lower the barrier for new contributors
-- [ ] **Improve API reference**
+- [x] **Improve API reference** _(done 2026-07-31)_
   - Ensure all public classes/functions have docstrings
   - Auto-generate API docs (MkDocs + mkdocstrings)
 
@@ -307,9 +307,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
-| 🟡 P2    | 30    | 22   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
+| 🟡 P2    | 30    | 23   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
 | 🟢 P3    | 24    | 17   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial |
-| **Total** | **89** | **65** | |
+| **Total** | **89** | **66** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
