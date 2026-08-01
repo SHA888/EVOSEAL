@@ -967,14 +967,15 @@ class EvolutionPipeline:
             result = self.validator.validate_improvement(baseline_id, comparison_id, test_type)
         except Exception as exc:
             logger.error(
-                f"Improvement validation failed with an exception — treating as NOT an improvement: {exc}"
+                f"Improvement validation failed with an exception — treating as NOT an improvement: {exc}",
+                exc_info=True,
             )
             return False
 
         is_improvement = bool(result.get("is_improvement", False))
         logger.info(
             f"Improvement validation result: {'PASS' if is_improvement else 'FAIL'} "
-            f"(score={result.get('score', 0.0):.1f}, "
+            f"(score={(result.get('score') or 0.0):.1f}, "
             f"required_passed={result.get('required_passed')})"
         )
         return is_improvement
