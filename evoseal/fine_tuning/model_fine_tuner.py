@@ -173,10 +173,14 @@ class ModelFineTuner:
 
     def _check_gpu_availability(self) -> bool:
         """
-        Check if GPU is available for training.
+        Check if a CUDA GPU is available for training.
+
+        Only NVIDIA CUDA is checked; ROCm and MPS backends are not
+        considered. This is intentional: the fine-tuning codepath relies
+        on CUDA-specific features (torch.cuda, device_map="auto", fp16).
 
         Returns:
-            True if GPU is available, False otherwise
+            True if a CUDA GPU is available, False otherwise
         """
         if not TRANSFORMERS_AVAILABLE:
             return False
@@ -185,7 +189,8 @@ class ModelFineTuner:
             import torch
 
             return torch.cuda.is_available() and torch.cuda.device_count() > 0
-        except ImportError:
+        except Exception as e:
+            logger.warning("GPU check failed: %s", e)
             return False
 
     async def initialize_model(self) -> bool:
@@ -197,6 +202,14 @@ class ModelFineTuner:
         """
         if not TRANSFORMERS_AVAILABLE:
             logger.error("Transformers library not available for fine-tuning")
+            return False
+
+        if not self._check_gpu_availability():
+            logger.error(
+                "No CUDA GPU available; model fine-tuning requires a CUDA GPU "
+                "(ROCm and MPS are not currently supported). "
+                "Use the prompt-level path (evoseal.prompt_evolution) on non-CUDA hosts."
+            )
             return False
 
         try:

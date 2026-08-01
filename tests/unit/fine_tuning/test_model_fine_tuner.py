@@ -231,6 +231,7 @@ class TestTrustRemoteCodeDefault:
 
         with (
             patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(ModelFineTuner, "_check_gpu_availability", return_value=True),
             patch.object(mod, "AutoTokenizer", mock_tok_cls, create=True),
             patch.object(mod, "AutoModelForCausalLM", mock_mdl_cls, create=True),
             patch("torch.cuda.is_available", return_value=False),
@@ -314,6 +315,7 @@ class TestTrustRemoteCodeDefault:
 
         with (
             patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(ModelFineTuner, "_check_gpu_availability", return_value=True),
             patch.object(mod, "AutoTokenizer", mock_tok_cls, create=True),
             patch.object(mod, "AutoModelForCausalLM", mock_mdl_cls, create=True),
             caplog.at_level(logging.ERROR, logger=mod.logger.name),
@@ -329,3 +331,59 @@ class TestTrustRemoteCodeDefault:
 
         # Error must be logged so operators can diagnose the root cause
         assert "Error initializing model" in caplog.text
+
+
+class TestInitializeModelGpuGuard:
+    """Regression tests for the _check_gpu_availability early-exit path."""
+
+    @pytest.fixture()
+    def fine_tuner(self):
+        ft = ModelFineTuner.__new__(ModelFineTuner)
+        ft.model_name = "test-model"
+        ft.is_initialized = False
+        ft.model = None
+        ft.tokenizer = None
+        return ft
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_gpu_unavailable(self, fine_tuner):
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        with (
+            patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(ModelFineTuner, "_check_gpu_availability", return_value=False),
+        ):
+            result = await fine_tuner.initialize_model()
+
+        assert result is False
+        assert fine_tuner.is_initialized is False
+
+    @pytest.mark.asyncio
+    async def test_does_not_load_model_when_gpu_unavailable(self, fine_tuner):
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        with (
+            patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(ModelFineTuner, "_check_gpu_availability", return_value=False),
+            patch.object(mod, "AutoTokenizer", create=True) as mock_tok,
+            patch.object(mod, "AutoModelForCausalLM", create=True) as mock_model,
+        ):
+            await fine_tuner.initialize_model()
+
+        mock_tok.from_pretrained.assert_not_called()
+        mock_model.from_pretrained.assert_not_called()
+
+    def test_gpu_check_returns_false_on_runtime_error(self, fine_tuner):
+        """_check_gpu_availability catches non-ImportError exceptions (e.g. driver
+        failures) and returns False instead of letting them propagate."""
+        torch = pytest.importorskip("torch")
+
+        import evoseal.fine_tuning.model_fine_tuner as mod
+
+        with (
+            patch.object(mod, "TRANSFORMERS_AVAILABLE", True),
+            patch.object(torch.cuda, "is_available", side_effect=RuntimeError("CUDA driver error")),
+        ):
+            result = fine_tuner._check_gpu_availability()
+
+        assert result is False
