@@ -11,6 +11,8 @@ authors:
 files_changed:
   - evoseal/core/checkpoint_manager.py
   - evoseal/core/version_tracker.py
+  - tests/unit/core/__init__.py
+  - tests/unit/core/test_checkpoint_path_traversal.py
 ```
 
 ## Description
@@ -38,16 +40,16 @@ write primitive. `EditScopeValidator` (which implements the correct `.resolve()`
 
 | Metric | Value |
 |--------|-------|
-| `version_id` sanitization | `Path(version_id).name` strips traversal; `relative_to()` containment check |
+| `version_id` sanitization | `.resolve()` + `relative_to()` containment check; rejects traversal and absolute inputs with `ValueError` |
 | `changes` key sanitization | Keys resolved and validated against checkpoint directory |
 | `EditScopeValidator` usage | Wired into `SafetyIntegration.create_safety_checkpoint()` |
-| `tests/safety/` traversal tests | 3 new test functions covering `..` traversal, absolute paths, nested traversal |
+| `tests/unit/core/` traversal tests | 13 test methods covering `..` traversal, absolute paths, nested traversal, edge cases |
 
 ## Validation
 
 - `ruff format --check .` — pass
 - `ruff check evoseal/ tests/` — pass
-- `pytest tests/safety/ -q` — all pass
+- `pytest tests/unit/core/test_checkpoint_path_traversal.py -q` — 13 passed
 - Manual `grep` confirms no unsanitized path joins remain in `checkpoint_manager.py`
 
 ## Rollback

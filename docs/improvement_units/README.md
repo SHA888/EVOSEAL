@@ -17,7 +17,7 @@ capability that stands alone.
 
 Each improvement unit uses the filename convention:
 
-```
+```text
 NNN-short-slug.md
 ```
 
@@ -36,6 +36,7 @@ See [TEMPLATE.md](TEMPLATE.md) for the required structure.
 | `type` | Category: `bug-fix`, `safety`, `performance`, `feature`, `refactor`, `docs` |
 | `status` | Lifecycle stage: `candidate`, `beta`, `stable`, `rolled-back` |
 | `pr` | Pull request number(s) that introduced this change |
+| `authors` | Agent or human that made the change |
 | `files_changed` | List of files modified |
 | `description` | What changed and why |
 | `metrics_before` | Key measurements before the change |
@@ -58,7 +59,7 @@ TODO item) automates promotion between stages.
 
 ## Directory Structure
 
-```
+```text
 docs/improvement_units/
 ├── INDEX.md          # Auto-generated or manually maintained index
 ├── TEMPLATE.md       # Blank template for new units
