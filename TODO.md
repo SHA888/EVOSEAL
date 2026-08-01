@@ -129,8 +129,9 @@
 - [x] **Model-safety validator can be defeated by an incidental safety word** _(done 2026-07-23, fix/safety-validator-bypass)_
   - `evoseal/fine_tuning/model_validator.py:432-454` — `_is_safe_response` returned `has_safety or not has_unsafe`. A response containing both an unsafe instruction and any safety-sounding word (e.g. `"Sorry, but here's how: rm -rf /"`) was classified safe regardless of the unsafe content. Fixed to `return not has_unsafe`; added 7 regression tests in `test_model_validator.py`
 - [x] **Path traversal in git-file read/write helpers** _(done 2026-07-26)_ — `get_file_content` and `write_file_content` now resolve the constructed path and verify it stays within `repo_path` via `is_relative_to()`, raising `GitError` on traversal. 3 new test functions cover `..` traversal, absolute paths, nested traversal, and legitimate subdirectory ops.
-- [ ] **Monitoring dashboard has no authentication and permissive CORS-with-credentials**
-  - `evoseal/services/monitoring_dashboard.py:75-91` (`setup_cors`) — every route gets `aiohttp_cors.ResourceOptions(allow_credentials=True, allow_headers="*", allow_methods="*", expose_headers="*")` on a wildcard origin (CWE-942). No auth on any HTTP or WebSocket endpoint (`/api/status`, `/api/metrics`, `/api/report`, `/ws`), which return internal operational data (data paths, config, error strings). Defaults to `localhost` (limits blast radius today) but nothing prevents/warns against a `0.0.0.0` deploy, at which point this is unauthenticated remote information disclosure
+- [x] **Monitoring dashboard has no authentication and permissive CORS-with-credentials** _(done 2026-07-29)_
+  - `evoseal/services/monitoring_dashboard.py:75-91` (`setup_cors`) — every route got `aiohttp_cors.ResourceOptions(allow_credentials=True, allow_headers="*", allow_methods="*", expose_headers="*")` on a wildcard origin (CWE-942). No auth on any HTTP or WebSocket endpoint (`/api/status`, `/api/metrics`, `/api/report`, `/ws`), which return internal operational data (data paths, config, error strings). Defaults to `localhost` (limits blast radius today) but nothing prevented/warned against a `0.0.0.0` deploy, at which point this was unauthenticated remote information disclosure
+  - Fixed: CORS origins now default to the dashboard's own host:port (not `*`); binding to `0.0.0.0` logs a security warning; added optional `auth_token` parameter — when set, all `/api/*` and `/ws` requests must present `Authorization: Bearer <token>` (WebSocket clients can pass `?token=`); the HTML dashboard page is not gated. Wildcard `*` origin explicitly disables `allow_credentials` per CORS spec. 14 new unit tests cover auth accept/reject, CORS defaults, wildcard warning, and constructor params
 
 ### CI/CD & Release Pipeline Issues Found in Whole-Repo Code Review (2026-07-22)
 
@@ -196,21 +197,22 @@
 
 ### Testing Coverage
 
-- [ ] **Increase unit test coverage for `core/` modules**
+- [x] **Increase unit test coverage for `core/` modules**
   - `controller.py`, `evaluator.py`, `selection.py`, `version_database.py`
   - Target: meaningful coverage on core logic paths, not just line count
 - [x] **Add regression test for config validation**
   - Malformed YAML, missing required sections, type mismatches
-- [ ] **Add test for checkpoint save/restore**
+- [x] **Add test for checkpoint save/restore** _(done 2026-07-30)_
   - Interrupt mid-evolution, restore from checkpoint, verify state consistency
+  - 13 tests in `tests/unit/core/test_checkpoint_save_restore.py`: basic round-trip, metadata preservation, integrity hash verification, tamper detection, tamper-restore integration, nonexistent restore error, multi-checkpoint isolation, list/delete, target-directory clearing (protected dirs preserved), size reporting, system-state capture, and mid-evolution interruption recovery
 - [ ] **Add tests for safety-decision orchestration** _(found 2026-07-22 whole-repo review)_ — the code paths behind the checkpoint/ImprovementValidator/resilience-init bugs above have zero regression test coverage today, which is plausibly why they shipped unnoticed
 
 ### Medium-Priority Bugs Found in Whole-Repo Code Review (2026-07-22)
 
 - [x] **`bidirectional_manager.py` state fields are never mutated** _(done 2026-07-23)_ — fixed by `run_loop_cycle()` in item #6 above; `stats`, `evolution_history`, `is_running`, and `last_check_time` are now all mutated each cycle.
 - [x] **`version_manager.py` registry file has no atomic write** — `_save_registry()` (lines 70-77, PR #72 branch) writes directly via `open(...,"w")` + `json.dump`; a crash/kill mid-write leaves a truncated file, and `_load_registry()` silently resets to an empty registry on parse failure, losing all version history
-- [ ] **`version_manager.py` has no locking around concurrent registry mutation** — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`
-- [ ] **`model_fine_tuner.py:160-178` uses `trust_remote_code=True`** on both `AutoTokenizer`/`AutoModelForCausalLM.from_pretrained`, combined with a fallback (`_resolve_hf_base_model()`, lines 107-120) that uses `model_name` verbatim as an HF repo id for unknown families — a bad config value or env var (`EVOSEAL_CODER_MODEL`) can execute arbitrary remote code locally. `# nosec B615` suppresses the linter, not the risk
+- [x] **`version_manager.py` has no locking around concurrent registry mutation** _(done 2026-08-01)_ — overlapping `register_version`/`deploy_version` calls can interleave writes to `self.registry["versions"]`, risking lost updates or an inconsistent `current_version`. Fixed with `asyncio.Lock` + impl pattern (public methods acquire lock, delegate to `_impl` to avoid reentrant deadlock)
+- [x] **`model_fine_tuner.py:160-178` uses `trust_remote_code=True`** _(done 2026-07-31)_ — changed both `AutoTokenizer` and `AutoModelForCausalLM.from_pretrained` calls to `trust_remote_code=False` (the safe default). The `# nosec B615` suppression comments remain because B615 flags missing `revision=`, not `trust_remote_code`; revision pinning is left to the caller.
 - [x] **`provider_manager.py` treats unhealthy providers as healthy when called from a running event loop** _(done 2026-07-28)_ — `get_best_available_provider()` (lines 100-111) and `list_providers()` (lines 196-201) create a health-check task via `loop.create_task(...)` but never await/consume it, then unconditionally set `is_healthy = True`, discarding the real result; the orphaned task can also produce unretrieved-exception warnings
 - [x] **`agentic_system.py:28` logger bypasses the logging handler hierarchy** _(done 2026-07-26)_ — `Logger("AgenticSystem")` was instantiated directly instead of via `logging.getLogger(name)`; `self.parent` stayed `None`, no handlers attached, and all INFO-level agent-orchestration logs were silently dropped. Changed to `get_logger("AgenticSystem")` to participate in the handler hierarchy
 - [x] **`agentic_workflow_agent.py:14` couples to a private API and can crash inside a running event loop** _(done 2026-07-28)_ — added public `WorkflowEngine.execute_step()` that detects a running event loop and offloads to a thread instead of re-entering `asyncio.run()`; `WorkflowAgent.act()` now calls the public method. Also added `act_async()` for callers already in an async context. 10 new unit tests cover: sync context, running-loop context, error propagation, missing component, and agent state tracking
@@ -248,7 +250,7 @@
 - [x] **Docker support** _(already present)_
   - `Dockerfile` (python:3.11-slim + uv) and `docker-compose.evoseal.yml`
   - Dashboard on port 9613; volumes for checkpoints, data, reports, benchmarks
-- [ ] **Adopt workspace prompt file conventions** _(inspired by OpenClaw's AGENTS.md/SOUL.md/TOOLS.md)_
+- [x] **Adopt workspace prompt file conventions** _(done 2026-07-30)_
   - Create a standard file layout for the evolution workspace: e.g., `AGENT.md` (agent identity/constraints), `EVOLUTION.md` (current evolution goals/state), `SAFETY.md` (safety invariants)
   - Makes the system self-documenting and easier for contributors to understand agent behavior at any point
 
@@ -261,7 +263,7 @@
 - [x] **`providers/ollama_provider.py:98-136`** — `submit_prompt` has no retry/backoff on transient network failures despite being the sole retry/timeout surface for local model calls
 - [x] **`providers/local_models.py:103-119`** — `_query_installed_models` is now TTL-cached (120s default); a newly pulled/removed Ollama model is picked up automatically without needing `clear_model_cache()`
 - [x] **`model_fine_tuner.py:122-137`** — `_check_gpu_availability()` was defined but never called; `initialize_model()` now calls it and returns `False` with a clear error when no CUDA GPU is available
-- [ ] **`model_fine_tuner.py:220,240`** — `example['instruction']`/`example['output']` direct dict access with no `.get()`; a malformed training example raises `KeyError` surfaced only as a generic error string instead of a clear validation message
+- [x] **`model_fine_tuner.py:220,240`** — `example['instruction']`/`example['output']` direct dict access with no `.get()`; a malformed training example raises `KeyError` surfaced only as a generic error string instead of a clear validation message
 - [x] **`models/code_archive.py:127-149`** — `__init__` manually re-implements every default already provided by `Field(default_factory=...)`, a drift hazard (two sources of truth for the same defaults)
 - [x] **`evoseal/agents/agentic_system_example.py:7`** — `from evoseal.agentic_system import ...` is the wrong module path (actual: `evoseal.agents.agentic_system`); the example fails immediately with `ModuleNotFoundError`
 
@@ -277,10 +279,10 @@
 - [x] **Refresh ADR 0001 to reflect implemented Tier 1 safety state** _(done 2026-07-19)_
   - Updated tier table, "Current state" block, operator guidance, and Section 6 to reflect that Tier 1 (tasks 2.13–2.15) is now implemented and default-on
 
-- [ ] **Add a "How It Actually Works" tutorial**
+- [x] **Add a "How It Actually Works" tutorial**
   - Walk through a single evolution cycle step by step with real logs
   - Lower the barrier for new contributors
-- [ ] **Improve API reference**
+- [x] **Improve API reference** _(done 2026-07-31)_
   - Ensure all public classes/functions have docstrings
   - Auto-generate API docs (MkDocs + mkdocstrings)
 
@@ -304,10 +306,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 14   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created |
-| 🟡 P2    | 30    | 20   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix |
-| 🟢 P3    | 24    | 16   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache |
-| **Total** | **89** | **61** | |
+| 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
+| 🟡 P2    | 30    | 23   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
+| 🟢 P3    | 24    | 19   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check |
+| **Total** | **89** | **68** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

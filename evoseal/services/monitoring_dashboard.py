@@ -6,8 +6,11 @@ evolution system, displaying metrics, progress, and system health.
 """
 
 import asyncio
+import hmac
+import ipaddress
 import json
 import logging
+import re
 import weakref
 from datetime import datetime
 from typing import Any
@@ -18,6 +21,26 @@ from aiohttp import WSMsgType, web
 from .continuous_evolution_service import ContinuousEvolutionService
 
 logger = logging.getLogger(__name__)
+
+# RFC 7230 §3.2.6 — token characters (tchar) plus the subset safe for
+# WebSocket subprotocol strings (RFC 6455 §4.2.1).
+_HTTP_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+
+def _is_http_token(value: str) -> bool:
+    """Return True if *value* is a valid HTTP token (RFC 7230 §3.2.6)."""
+    return bool(_HTTP_TOKEN_RE.match(value))
+
+
+def _bracket_ipv6(host: str) -> str:
+    """Wrap bare IPv6 literals in brackets for use in URLs."""
+    try:
+        addr = ipaddress.ip_address(host)
+    except ValueError:
+        return host
+    if addr.version == 6:
+        return f"[{host}]"
+    return host
 
 
 class MonitoringDashboard:
@@ -34,6 +57,8 @@ class MonitoringDashboard:
         host: str = "localhost",
         port: int = 8081,
         update_interval: int = 30,
+        auth_token: str | None = None,
+        allowed_origins: list[str] | None = None,
     ):
         """
         Initialize the monitoring dashboard.
@@ -43,14 +68,63 @@ class MonitoringDashboard:
             host: Dashboard host address
             port: Dashboard port
             update_interval: Seconds between dashboard updates
+            auth_token: Optional bearer token for API/WebSocket auth.
+                When set, all /api/* and /ws requests must include
+                Authorization: Bearer <token>. The dashboard HTML page is
+                not gated (it only loads the JS client).
+            allowed_origins: Origins allowed for CORS. Defaults to the
+                dashboard's own origin(s) using http://. If the dashboard
+                is behind TLS termination or accessed via a different
+                hostname than the bind host, pass the correct origins
+                explicitly. Pass ["*"] explicitly to allow all origins
+                (raises ValueError when combined with auth_token).
         """
         self.evolution_service = evolution_service
         self.host = host
         self.port = port
         self.update_interval = update_interval
+        self.auth_token = auth_token
+
+        if auth_token is not None and auth_token == "":
+            raise ValueError(
+                "auth_token must not be an empty string. "
+                "Set auth_token=None to disable authentication."
+            )
+
+        if auth_token is not None and not _is_http_token(auth_token):
+            raise ValueError(
+                "auth_token contains characters that are invalid in HTTP "
+                "tokens (RFC 7230 §3.2.6) and WebSocket subprotocol "
+                "strings (RFC 6455 §4.2.1). Characters like '/', '=', "
+                "and whitespace will break the bearer.<token> subprotocol "
+                "auth path. Use secrets.token_urlsafe() or hex for "
+                "token generation."
+            )
+
+        if host in ("0.0.0.0", "::"):
+            logger.warning(
+                "Dashboard is bound to %s — accessible from any network "
+                "interface. Ensure auth_token is set or restrict access via firewall.",
+                host,
+            )
+
+        # Build default CORS origins from host/port
+        if allowed_origins is None:
+            if host in ("0.0.0.0", "::"):
+                allowed_origins = [f"http://localhost:{port}"]
+            else:
+                allowed_origins = [f"http://{_bracket_ipv6(host)}:{port}"]
+        self.allowed_origins = allowed_origins
+
+        if self.auth_token and "*" in self.allowed_origins:
+            raise ValueError(
+                "allowed_origins=['*'] combined with auth_token is insecure — "
+                "any origin can make authenticated requests. "
+                "Restrict allowed_origins to trusted origins."
+            )
 
         # Web application
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[self._auth_middleware])
         self.setup_routes()
         self.setup_cors()
 
@@ -72,18 +146,76 @@ class MonitoringDashboard:
         self.app.router.add_get("/ws", self.websocket_handler)
         # Static files embedded in HTML, no separate static directory needed
 
+    @web.middleware
+    async def _auth_middleware(self, request: web.Request, handler):
+        """Reject unauthenticated API/WebSocket requests when auth_token is set."""
+        if self.auth_token and request.path != "/":
+            # Let CORS preflight through — aiohttp_cors handles these.
+            if request.method == "OPTIONS":
+                return await handler(request)
+            auth_header = request.headers.get("Authorization", "")
+            expected = f"Bearer {self.auth_token}"
+            if self._constant_compare(auth_header, expected):
+                pass
+            elif request.path == "/ws":
+                # Preferred: Sec-WebSocket-Protocol header (token not in URL/logs).
+                # Fallback: ?token= query param (logged in access/proxy logs —
+                # only use when the client cannot set headers, e.g. browser JS
+                # without Sec-WebSocket-Protocol support).
+                ws_protocols = request.headers.get("Sec-WebSocket-Protocol", "")
+                token_from_protocol = ""
+                for proto in ws_protocols.split(","):
+                    proto = proto.strip()
+                    if proto.startswith("bearer."):
+                        token_from_protocol = proto[7:]
+                        break
+                if token_from_protocol and self._constant_compare(
+                    token_from_protocol, self.auth_token
+                ):
+                    pass
+                else:
+                    token = request.query.get("token", "")
+                    if not self._constant_compare(token, self.auth_token):
+                        return web.json_response({"error": "Unauthorized"}, status=401)
+            else:
+                return web.json_response({"error": "Unauthorized"}, status=401)
+        return await handler(request)
+
+    @staticmethod
+    def _constant_compare(a: str, b: str) -> bool:
+        """Constant-time string comparison that handles non-ASCII safely."""
+        try:
+            return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
+        except (UnicodeEncodeError, AttributeError):
+            return False
+
     def setup_cors(self):
         """Setup CORS for API access."""
-        cors = aiohttp_cors.setup(
-            self.app,
-            defaults={
-                "*": aiohttp_cors.ResourceOptions(
+        # Per-origin options: wildcard gets allow_credentials=False
+        # per the CORS spec; explicit origins keep allow_credentials=True.
+        if "*" in self.allowed_origins:
+            logger.warning("CORS origin is '*'; disabling allow_credentials per CORS spec.")
+
+        cors_defaults = {}
+        for origin in self.allowed_origins:
+            if origin == "*":
+                cors_defaults[origin] = aiohttp_cors.ResourceOptions(
+                    allow_credentials=False,
+                    expose_headers="*",
+                    allow_headers="*",
+                    allow_methods="*",
+                )
+            else:
+                cors_defaults[origin] = aiohttp_cors.ResourceOptions(
                     allow_credentials=True,
                     expose_headers="*",
                     allow_headers="*",
                     allow_methods="*",
                 )
-            },
+
+        cors = aiohttp_cors.setup(
+            self.app,
+            defaults=cors_defaults,
         )
 
         # Add CORS to all routes
@@ -205,7 +337,20 @@ class MonitoringDashboard:
 
     async def websocket_handler(self, request):
         """WebSocket handler for real-time updates."""
-        ws = web.WebSocketResponse()
+        # Echo the accepted subprotocol so browsers complete the handshake.
+        # Per RFC 6455 §4.2.2, the server must return the selected
+        # subprotocol in the response; otherwise compliant clients abort.
+        accepted_protocol = None
+        req_protocols = request.headers.get("Sec-WebSocket-Protocol", "")
+        for proto in req_protocols.split(","):
+            proto = proto.strip()
+            if proto.startswith("bearer."):
+                accepted_protocol = proto
+                break
+
+        ws = web.WebSocketResponse(
+            protocols=(accepted_protocol,) if accepted_protocol else (),
+        )
         await ws.prepare(request)
 
         # Add to active connections
@@ -531,11 +676,27 @@ class MonitoringDashboard:
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
 
+        let authToken = null;
+
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-            ws = new WebSocket(wsUrl);
+            // Read token from page URL query param (set by the operator).
+            // The token is sent via Sec-WebSocket-Protocol header so it does
+            // not appear in server/proxy access logs.
+            if (!authToken) {
+                const params = new URLSearchParams(window.location.search);
+                authToken = params.get('token');
+            }
+
+            try {
+                ws = new WebSocket(wsUrl, authToken ? ['bearer.' + authToken] : undefined);
+            } catch (e) {
+                console.error('WebSocket constructor failed (bad subprotocol?):', e);
+                addLogEntry('WebSocket setup error: ' + e.message, 'error');
+                return;
+            }
 
             ws.onopen = function() {
                 console.log('WebSocket connected');
@@ -665,7 +826,8 @@ class MonitoringDashboard:
             // Periodic fallback updates via HTTP
             setInterval(async function() {
                 try {
-                    const response = await fetch('/api/metrics');
+                    const headers = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+                    const response = await fetch('/api/metrics', { headers });
                     const data = await response.json();
                     updateDashboard(data);
                 } catch (e) {

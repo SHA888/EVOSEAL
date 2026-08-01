@@ -51,6 +51,11 @@ class ModelVersionManager:
         # Load existing registry
         self.registry = self._load_registry()
 
+        # Async lock protecting registry read-modify-write sequences so that
+        # concurrent ``register_version`` / ``deploy_version`` calls cannot
+        # interleave and corrupt the registry or lose updates.
+        self._lock = asyncio.Lock()
+
         logger.info(
             f"ModelVersionManager initialized with {len(self.registry.get('versions', []))} versions"
         )
@@ -154,8 +159,9 @@ class ModelVersionManager:
         deploy: bool = False,
         ollama_model_name: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Register a new model version.
+        """Register a new model version.
+
+        Thread-safe: concurrent calls are serialised via an internal lock.
 
         Args:
             training_results: Results from model training
@@ -166,6 +172,27 @@ class ModelVersionManager:
         Returns:
             Version information
         """
+        async with self._lock:
+            return await self._register_version_impl(
+                training_results,
+                validation_results,
+                data_prep_results,
+                version_name,
+                deploy=deploy,
+                ollama_model_name=ollama_model_name,
+            )
+
+    async def _register_version_impl(
+        self,
+        training_results: dict[str, Any],
+        validation_results: dict[str, Any] | None = None,
+        data_prep_results: dict[str, Any] | None = None,
+        version_name: str | None = None,
+        *,
+        deploy: bool = False,
+        ollama_model_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Internal implementation of :meth:`register_version` (no lock)."""
         try:
             timestamp = datetime.now()
 
@@ -226,10 +253,13 @@ class ModelVersionManager:
 
             logger.info(f"Registered model version {version_id} ({version_name})")
 
-            # Deploy to Ollama if requested and model files are available
+            # Deploy to Ollama if requested and model files are available.
+            # Call the lock-free impl directly — the caller already holds
+            # ``self._lock``, so going through the public ``deploy_version``
+            # would deadlock.
             if deploy and version_info.get("model_path"):
                 try:
-                    deploy_result = await self.deploy_version(
+                    deploy_result = await self._deploy_version_impl(
                         version_id, ollama_model_name=ollama_model_name
                     )
                 except Exception as deploy_exc:
@@ -357,11 +387,9 @@ class ModelVersionManager:
         version_id: str,
         ollama_model_name: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Deploy a registered model version to Ollama.
+        """Deploy a registered model version to Ollama.
 
-        Creates a Modelfile and runs ``ollama create`` so the serving layer
-        (OllamaProvider) can load the fine-tuned model.
+        Thread-safe: concurrent calls are serialised via an internal lock.
 
         Args:
             version_id: Version ID to deploy
@@ -370,6 +398,15 @@ class ModelVersionManager:
         Returns:
             Deployment result dict with 'ollama_model' on success or 'error'
         """
+        async with self._lock:
+            return await self._deploy_version_impl(version_id, ollama_model_name)
+
+    async def _deploy_version_impl(
+        self,
+        version_id: str,
+        ollama_model_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Internal implementation of :meth:`deploy_version` (no lock)."""
         # Look up the entry directly in the registry list so mutations
         # (deployment_status, ollama_model_name, etc.) are guaranteed to
         # land in self.registry and survive _save_registry(), regardless of
