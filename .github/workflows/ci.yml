@@ -303,7 +303,6 @@ jobs:
   security:
     name: Security Checks
     needs: [validate, test]  # Run after validate and test
-    continue-on-error: true
     runs-on: ubuntu-latest
 
     steps:

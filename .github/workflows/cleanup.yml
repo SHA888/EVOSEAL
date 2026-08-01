@@ -6,7 +6,7 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:  # Allow manual triggering
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["CI/CD Pipeline"]
     branches: [main, 'release/*']
     types: [completed]
 
