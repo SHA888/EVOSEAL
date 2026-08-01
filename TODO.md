@@ -197,7 +197,7 @@
 
 ### Testing Coverage
 
-- [ ] **Increase unit test coverage for `core/` modules**
+- [x] **Increase unit test coverage for `core/` modules**
   - `controller.py`, `evaluator.py`, `selection.py`, `version_database.py`
   - Target: meaningful coverage on core logic paths, not just line count
 - [x] **Add regression test for config validation**
