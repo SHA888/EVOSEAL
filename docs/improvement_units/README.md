@@ -28,6 +28,10 @@ See [TEMPLATE.md](TEMPLATE.md) for the required structure.
 
 ## Required Fields
 
+### Frontmatter (YAML header)
+
+These are YAML keys inside the ` ```yaml ` block at the top of each unit:
+
 | Field | Purpose |
 |-------|---------|
 | `id` | Unique identifier (`NNN-short-slug`) |
@@ -38,12 +42,19 @@ See [TEMPLATE.md](TEMPLATE.md) for the required structure.
 | `pr` | Pull request number(s) that introduced this change |
 | `authors` | Agent or human that made the change |
 | `files_changed` | List of files modified |
-| `description` | What changed and why |
-| `metrics_before` | Key measurements before the change |
-| `metrics_after` | Key measurements after the change |
-| `validation` | How the change was verified (tests, benchmarks, manual review) |
-| `rollback` | Steps to revert if the change causes regression |
-| `config_snapshot` | Relevant configuration at time of change |
+
+### Required Sections (markdown headings)
+
+These are `##` headings that must appear in the body of each unit:
+
+| Section | Purpose |
+|---------|---------|
+| `## Description` | What changed and why |
+| `## Metrics Before` | Key measurements before the change |
+| `## Metrics After` | Key measurements after the change |
+| `## Validation` | How the change was verified (tests, benchmarks, manual review) |
+| `## Rollback` | Steps to revert if the change causes regression |
+| `## Config Snapshot` | Relevant configuration at time of change |
 
 ## Lifecycle
 
