@@ -224,10 +224,12 @@
 
 ### Evolution Archive & Rollout _(inspired by OpenClaw patterns)_
 
-- [ ] **Structured improvement units in the evolution archive**
+- [x] **Structured improvement units in the evolution archive** _(done 2026-08-01)_
   - Each successful self-modification should be a self-contained, documented unit (not just a Git diff)
   - Include: description of change, metrics before/after, rollback instructions, and relevant config snapshot
   - Pattern: similar to OpenClaw's per-skill `SKILL.md` files — one doc per improvement that stands alone
+  - Created `docs/improvement_units/` with README (format spec), TEMPLATE.md, and two example units from PRs #74 and #76
+  - Updated `docs/index.md` with links to the new section
 - [ ] **Progressive rollout gating for self-modifications**
   - Evolution candidates go through `candidate → beta → stable` stages before permanent adoption
   - `candidate`: passes regression tests
@@ -307,9 +309,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
-| 🟡 P2    | 30    | 24   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests |
+| 🟡 P2    | 30    | 25   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units |
 | 🟢 P3    | 24    | 19   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check |
-| **Total** | **89** | **69** | |
+| **Total** | **89** | **70** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >

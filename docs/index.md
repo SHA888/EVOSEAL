@@ -44,6 +44,11 @@ Welcome to the EVOSEAL documentation! This comprehensive guide will help you get
 - [Safety Validation](safety/safety_validation.md) - Validation mechanisms and procedures
 - [Evolution Pipeline Safety Integration](safety/evolution_pipeline_safety_integration.md) - Pipeline safety features
 
+### Evolution Archive
+- [Improvement Units Overview](improvement_units/README.md) - Structured documentation for self-modifications
+- [Improvement Units Index](improvement_units/INDEX.md) - Complete index of all improvement units
+- [Improvement Unit Template](improvement_units/TEMPLATE.md) - Template for documenting new improvements
+
 ### Core Systems
 - [Core Systems Overview](architecture/core/index.md) - Complete core systems documentation
 - [Event System](architecture/core/event_system.md) - Enhanced event system for component communication
