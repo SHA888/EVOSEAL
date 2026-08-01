@@ -43,6 +43,58 @@ except ImportError as e:
 from ..providers.local_models import AgentRole, resolve_model
 
 
+def _is_valid_example(example: dict[str, Any]) -> bool:
+    """Check whether a training example has valid instruction/output (and input if present)."""
+    if not isinstance(example, dict):
+        return False
+    for key in ("instruction", "output"):
+        if key not in example:
+            return False
+        if not isinstance(example[key], str) or not example[key].strip():
+            return False
+    # input is optional but must be a string if present
+    # Arrow-backed Datasets unify schema: missing ``input`` in one row becomes
+    # ``None`` when another row supplies it.  Treat ``None`` the same as absent.
+    if (
+        "input" in example
+        and example["input"] is not None
+        and not isinstance(example["input"], str)
+    ):
+        return False
+    return True
+
+
+def _validate_training_examples(examples: list[Any]) -> list[dict[str, Any]]:
+    """Return only valid training examples, logging each skip reason."""
+    valid: list[dict[str, Any]] = []
+    for i, example in enumerate(examples):
+        if not isinstance(example, dict):
+            logger.warning(f"Skipping example {i}: not a dict ({type(example).__name__})")
+            continue
+        missing = [k for k in ("instruction", "output") if k not in example]
+        if missing:
+            logger.warning(f"Skipping example {i}: missing required keys {missing}")
+            continue
+        if not _is_valid_example(example):
+            # _is_valid_example handles type/emptiness checks for instruction,
+            # output, and input; log the specific failing field(s).
+            bad = [
+                k
+                for k in ("instruction", "output")
+                if not isinstance(example.get(k), str) or not example[k].strip()
+            ]
+            if bad:
+                logger.warning(f"Skipping example {i}: keys {bad} must be non-empty strings")
+            elif "input" in example and not isinstance(example["input"], str):
+                logger.warning(
+                    f"Skipping example {i}: 'input' must be a string if present "
+                    f"(got {type(example['input']).__name__})"
+                )
+            continue
+        valid.append(example)
+    return valid
+
+
 class ModelFineTuner:
     """
     Fine-tuner for a local coding model using LoRA/QLoRA.
@@ -208,6 +260,20 @@ class ModelFineTuner:
             if not examples:
                 return {"success": False, "error": "No training examples found"}
 
+            # Validate required keys before processing
+            valid_examples = _validate_training_examples(examples)
+
+            if not valid_examples:
+                return {
+                    "success": False,
+                    "error": "No valid training examples remain after validation",
+                }
+
+            if len(valid_examples) < len(examples):
+                logger.info(f"Kept {len(valid_examples)}/{len(examples)} examples after validation")
+
+            examples = valid_examples
+
             # If transformers not available, create fallback data
             if not TRANSFORMERS_AVAILABLE or not self.is_initialized:
                 logger.warning("Creating fallback training data (transformers not available)")
@@ -215,7 +281,7 @@ class ModelFineTuner:
                 # Create simple text format for fallback
                 fallback_data = []
                 for example in examples:
-                    text = f"Instruction: {example['instruction']}\nInput: {example.get('input', '')}\nOutput: {example['output']}"
+                    text = f"Instruction: {example['instruction']}\nInput: {example.get('input') or ''}\nOutput: {example['output']}"
                     fallback_data.append(text)
 
                 # Save fallback data
@@ -235,7 +301,7 @@ class ModelFineTuner:
             formatted_examples = []
             for example in examples:
                 # Format as instruction-following format
-                text = f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+                text = f"<s>[INST] {example['instruction']}\n{example.get('input') or ''} [/INST] {example['output']}</s>"
                 formatted_examples.append({"text": text})
 
             # Create dataset
@@ -287,9 +353,23 @@ class ModelFineTuner:
         if "input_ids" in dataset.column_names:
             return dataset
 
+        filtered = dataset.filter(_is_valid_example)
+        if len(filtered) == 0:
+            raise ValueError(
+                "_tokenize_if_needed: no valid training examples remain after validation "
+                "(all examples missing or have empty instruction/output)"
+            )
+        if len(filtered) < len(dataset):
+            logger.info(
+                "_tokenize_if_needed: kept %d/%d examples after validation",
+                len(filtered),
+                len(dataset),
+            )
+        dataset = filtered
+
         def format_example(example: dict[str, Any]) -> dict[str, str]:
             return {
-                "text": f"<s>[INST] {example['instruction']}\n{example.get('input', '')} [/INST] {example['output']}</s>"
+                "text": f"<s>[INST] {example['instruction']}\n{example.get('input') or ''} [/INST] {example['output']}</s>"
             }
 
         def tokenize_function(examples: dict[str, list[str]]) -> Any:
