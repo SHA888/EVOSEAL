@@ -205,7 +205,7 @@
 - [x] **Add test for checkpoint save/restore** _(done 2026-07-30)_
   - Interrupt mid-evolution, restore from checkpoint, verify state consistency
   - 13 tests in `tests/unit/core/test_checkpoint_save_restore.py`: basic round-trip, metadata preservation, integrity hash verification, tamper detection, tamper-restore integration, nonexistent restore error, multi-checkpoint isolation, list/delete, target-directory clearing (protected dirs preserved), size reporting, system-state capture, and mid-evolution interruption recovery
-- [ ] **Add tests for safety-decision orchestration** _(found 2026-07-22 whole-repo review)_ — the code paths behind the checkpoint/ImprovementValidator/resilience-init bugs above have zero regression test coverage today, which is plausibly why they shipped unnoticed
+- [x] **Add tests for safety-decision orchestration** _(done 2026-08-01)_ — added 7 regression tests for `EvolutionPipeline._validate_improvement`, the actual validation gate in the evolution loop. Covers: first-iteration acceptance, improvement acceptance, regression rejection, exception-during-validation fail-closed, malformed validator response rejection, and test_type passthrough. Tests also caught two latent bugs in the method: `StructuredLogger` doesn't support `%s`-style args (used in `logger.info()`) and has no `.exception()` method (used in error path) — both fixed
 
 ### Medium-Priority Bugs Found in Whole-Repo Code Review (2026-07-22)
 
@@ -307,9 +307,9 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 15   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review; signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
-| 🟡 P2    | 30    | 23   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix |
+| 🟡 P2    | 30    | 24   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests |
 | 🟢 P3    | 24    | 19   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check |
-| **Total** | **89** | **68** | |
+| **Total** | **89** | **69** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
