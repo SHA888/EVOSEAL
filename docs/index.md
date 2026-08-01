@@ -22,6 +22,7 @@ Welcome to the EVOSEAL documentation! This comprehensive guide will help you get
 ## User Guides
 
 ### Getting Started
+- [How EVOSEAL Actually Works](tutorials/how_it_works.md) - Step-by-step walkthrough of an evolution cycle
 - [Configuration Guide](guides/CONFIGURATION.md) - System configuration
 - [Setup Guide](guides/SETUP.md) - Installation and setup
 - [Deployment Guide](guides/DEPLOYMENT.md) - Production deployment

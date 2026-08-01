@@ -307,22 +307,30 @@ WebSocket connections handle errors gracefully:
 
 ## Authentication
 
-### Current Implementation
-- No authentication required (local access only)
-- Dashboard only accessible on localhost interface
+### Bearer Token (Optional)
+
+When the dashboard is constructed with `auth_token`, all `/api/*` and `/ws` requests must
+present a valid token:
+
+- **HTTP**: `Authorization: Bearer <token>` header
+- **WebSocket**: `?token=<value>` query parameter
+- The dashboard HTML page (`/`) is not gated by auth.
+
+When `auth_token` is `None` (the default), no authentication is enforced.
 
 ### Security Considerations
-- Dashboard binds only to localhost (127.0.0.1)
-- No external network access
+- Dashboard defaults to localhost (127.0.0.1) binding
+- Binding to `0.0.0.0` logs a security warning — ensure `auth_token` is set or restrict
+  access via firewall when exposing externally
 - Runs as user service (no root privileges)
 
 ## CORS Configuration
 
-Cross-Origin Resource Sharing (CORS) is configured to allow:
-- **Origins**: All origins (`*`)
-- **Methods**: All methods
-- **Headers**: All headers
-- **Credentials**: Allowed
+Cross-Origin Resource Sharing (CORS) is configured as follows:
+
+- **Origins**: Defaults to the dashboard's own `host:port` (not `*`)
+- Wildcard `*` origins explicitly disable `allow_credentials` per the CORS specification
+- Methods and headers are unrestricted for allowed origins
 
 ## Usage Examples
 
