@@ -93,6 +93,7 @@ class RolloutCandidate:
     clean_cycles: int  # count of consecutive cycles without regression
     baseline_metrics: dict  # metrics snapshot at creation time
     checkpoint_path: str  # for rollback
+    rejection_reason: str | None  # regression detail when stage is "rejected"
 ```
 
 This can be stored as a JSON file alongside the existing version registry
@@ -125,9 +126,22 @@ each cycle:
 2. Run validation against each beta candidate's baseline metrics.
 3. If clean: increment `clean_cycles`. If `clean_cycles >= N`: promote to
    `stable`.
-4. If regression: mark `rejected`. If `auto_rollback_on_regression` is `true`
+4. If regression: mark `rejected` (record the regression detail in
+   `rejection_reason`). If `auto_rollback_on_regression` is `true`
    (§5/§6), roll back to the candidate's checkpoint; otherwise log the
    regression and leave the working tree unchanged for manual intervention.
+
+> **Baseline scope.** `baseline_metrics` is captured once at candidate creation
+> time (§4.1) and remains fixed for the entire beta observation window — it is
+> *not* re-snapshotted each cycle. This means a candidate can accumulate N
+> individually-clean cycles against the original baseline while the surrounding
+> codebase drifts. The tradeoff is deliberate: a fixed baseline makes promotion
+> decisions deterministic and independent of cycle ordering. The risk of
+> cumulative drift is mitigated by the short default window (N=3) and by the
+> fact that each cycle already runs the full regression suite. A rolling
+> baseline would catch slow drift but would also make promotion non-deterministic
+> (the same candidate could promote or regress depending on what else landed
+> in the interim).
 
 ### 4.3 Bidirectional Manager
 
@@ -158,18 +172,17 @@ rollout_gating:
 
 When a regression is detected at any stage:
 
-1. Restore the checkpoint captured at candidate creation time.
-2. Mark the candidate as `rejected` with the regression details.
-3. If the candidate was `beta`, the working tree reverts to the pre-candidate
-   state — the N clean cycles it accumulated are discarded.
+1. Mark the candidate as `rejected` with the regression details recorded in
+   `rejection_reason`.
+2. If `auto_rollback_on_regression` is `true` (§5), restore the checkpoint
+   captured at candidate creation time. If the candidate was `beta`, the
+   working tree reverts to the pre-candidate state — the N clean cycles it
+   accumulated are discarded.
+3. If `auto_rollback_on_regression` is `false`, log the regression and leave
+   the working tree unchanged for manual intervention.
 
 This leverages the existing `CheckpointManager` (fixed in PR #74 for path
 traversal) and is consistent with the current rollback-on-failure pattern.
-
-Rollback is gated by the `auto_rollback_on_regression` config flag (§5). When
-`false`, regressions are logged and the candidate is marked `rejected`, but the
-working tree is not automatically reverted — a human must intervene to restore
-the checkpoint manually.
 
 ---
 
