@@ -44,9 +44,6 @@ Every self-modification candidate occupies one of three stages:
 ### Stage transitions
 
 ```text
-                ┌──────────────────────────┐
-                │                          │
-                ▼                          │
   ┌──────────┐    ┌──────────┐    ┌──────────────┐
   │ candidate │───▶│   beta   │───▶│   stable     │
   └──────────┘    └──────────┘    └──────────────┘
@@ -72,6 +69,7 @@ Every self-modification candidate occupies one of three stages:
 |-------|-------------------|
 | candidate | Fails `_validate_improvement` (existing gate) |
 | beta | Any subsequent cycle's validation detects a metric drop against the beta candidate's baseline snapshot |
+| stable | Terminal stage — no longer monitored for regression. Defects discovered after promotion are handled through the normal bug-fix pipeline, not rollout rollback. |
 
 ---
 
@@ -109,7 +107,7 @@ pipeline should:
 
 1. Record the candidate as `stage="candidate"` with a baseline metrics snapshot.
 2. Apply the change (as it does today).
-3. After one clean cycle, promote to `beta`.
+3. Promote to `beta` immediately (the candidate has passed the validation gate).
 
 ### 4.2 Continuous Evolution Service
 
@@ -156,6 +154,11 @@ When a regression is detected at any stage:
 
 This leverages the existing `CheckpointManager` (fixed in PR #74 for path
 traversal) and is consistent with the current rollback-on-failure pattern.
+
+Rollback is gated by the `auto_rollback_on_regression` config flag (§5). When
+`false`, regressions are logged and the candidate is marked `rejected`, but the
+working tree is not automatically reverted — a human must intervene to restore
+the checkpoint manually.
 
 ---
 
