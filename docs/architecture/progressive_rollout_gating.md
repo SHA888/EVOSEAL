@@ -107,7 +107,10 @@ pipeline should:
 
 1. Record the candidate as `stage="candidate"` with a baseline metrics snapshot.
 2. Apply the change (as it does today).
-3. Promote to `beta` immediately (the candidate has passed the validation gate).
+3. Promote to `beta` immediately (the candidate has already passed the
+   validation gate, so no dwell period at the candidate stage is needed — the
+   stage exists to register the checkpoint and baseline metrics before the beta
+   observation window begins).
 
 ### 4.2 Continuous Evolution Service
 
@@ -118,7 +121,9 @@ each cycle:
 2. Run validation against each beta candidate's baseline metrics.
 3. If clean: increment `clean_cycles`. If `clean_cycles >= N`: promote to
    `stable`.
-4. If regression: roll back to the candidate's checkpoint, mark `rejected`.
+4. If regression: mark `rejected`. If `auto_rollback_on_regression` is `true`
+   (§5/§6), roll back to the candidate's checkpoint; otherwise log the
+   regression and leave the working tree unchanged for manual intervention.
 
 ### 4.3 Bidirectional Manager
 
