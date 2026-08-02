@@ -46,13 +46,13 @@ Every self-modification candidate occupies one of three stages:
 ```text
   ┌──────────┐    ┌──────────┐    ┌──────────────┐
   │ candidate │───▶│   beta   │───▶│   stable     │
-  └──────────┘    └──────────┘    └──────────────┘
-       │               │
-       │ regression    │ regression
-       ▼               ▼
-  ┌──────────┐    ┌──────────┐
-  │ rejected  │    │ rejected │
-  └──────────┘    └──────────┘
+  └──────────┘    └─────┬────┘    └──────────────┘
+                        │
+                        │ regression
+                        ▼
+                   ┌──────────┐
+                   │ rejected │
+                   └──────────┘
 ```
 
 - **candidate → beta**: the candidate passes the initial validation gate
@@ -60,14 +60,19 @@ Every self-modification candidate occupies one of three stages:
   applied to the working tree but tracked as beta.
 - **beta → stable**: the candidate survives N consecutive evolution cycles
   without any regression being detected. N is configurable (default: 3).
-- **beta/candidate → rejected**: a regression is detected at any stage. The
-  change is rolled back and recorded as rejected.
+- **beta → rejected**: a regression is detected during a subsequent cycle.
+  The change is rolled back and recorded as rejected.
+
+> **Note.** Rejection *before* the candidate stage (i.e. when
+> `_validate_improvement` fails) is handled by the existing pipeline — no
+> `RolloutCandidate` record is created, so it does not appear in the state
+> machine above. The rollout state machine only tracks candidates that
+> passed the initial gate.
 
 ### What "regression" means at each stage
 
 | Stage | Regression signal |
 |-------|-------------------|
-| candidate | Fails `_validate_improvement` (existing gate) |
 | beta | Any subsequent cycle's validation detects a metric drop against the beta candidate's baseline snapshot |
 | stable | Terminal stage — no longer monitored for regression. Defects discovered after promotion are handled through the normal bug-fix pipeline, not rollout rollback. |
 
@@ -86,7 +91,6 @@ class RolloutCandidate:
     promoted_to_beta_at: datetime | None
     promoted_to_stable_at: datetime | None
     clean_cycles: int  # count of consecutive cycles without regression
-    regression_count: int  # total regressions detected
     baseline_metrics: dict  # metrics snapshot at creation time
     checkpoint_path: str  # for rollback
 ```
@@ -129,14 +133,16 @@ each cycle:
 
 `BidirectionalEvolutionManager.run_loop_cycle()` should be aware of rollout
 state. A model deployed from a `beta` candidate should be flagged as
-pre-stable, so that the generation surface can optionally prefer `stable`
-models for production workloads while using `beta` models for experimentation.
+pre-stable. The `prefer_stable_for_generation` flag (§5) controls whether the
+generation surface prefers `stable` models for production workloads while
+using `beta` models for experimentation — this section's "pre-stable" flag
+is the implementation signal that flag consumes.
 
 ---
 
 ## 5. Configuration
 
-Add to `configs/safety.yaml` or a new `configs/evolution.yaml`:
+Add to `configs/safety.yaml` (which already holds regression thresholds and checkpoint policy):
 
 ```yaml
 rollout_gating:
