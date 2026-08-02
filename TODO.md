@@ -230,8 +230,9 @@
   - Pattern: similar to OpenClaw's per-skill `SKILL.md` files — one doc per improvement that stands alone
   - Created `docs/improvement_units/` with README (format spec), TEMPLATE.md, and two example units from PRs #74 and #76
   - Updated `docs/index.md` with links to the new section
-- [x] **Progressive rollout gating for self-modifications** _(done 2026-08-02)_
-  - Design doc at `docs/architecture/progressive_rollout_gating.md`: three-stage promotion model (candidate → beta → stable) with configurable cycle threshold, automatic rollback on regression, and integration points for the evolution pipeline, continuous evolution service, and bidirectional manager
+- [ ] **Progressive rollout gating for self-modifications**
+  - [x] Design doc at `docs/architecture/progressive_rollout_gating.md` _(done 2026-08-02)_: three-stage promotion model (candidate → beta → stable) with configurable cycle threshold, automatic rollback on regression, and integration points for the evolution pipeline, continuous evolution service, and bidirectional manager
+  - [ ] Implement the gating mechanism described in the design doc
   - Pattern: analogous to OpenClaw's development channels (stable/beta/dev with npm dist-tags)
 
 ---
@@ -306,7 +307,7 @@
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 18   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
-| 🟡 P2    | 30    | 26   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units |
+| 🟡 P2    | 30    | 25   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units |
 | 🟢 P3    | 24    | 19   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check |
 | **Total** | **89** | **73** | |
 
