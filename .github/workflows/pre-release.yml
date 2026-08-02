@@ -2,7 +2,7 @@ name: Pre-Release (RC)
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["CI/CD Pipeline"]
     branches: [main, 'release/*']
     types: [completed]
   workflow_dispatch:  # Manual trigger from GitHub UI/API
