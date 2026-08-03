@@ -186,6 +186,33 @@ class TestRolloutGatingManager:
         assert re_registered.rejection_reason == "regression"
 
     @pytest.mark.asyncio
+    async def test_beta_candidate_not_overwritten(self, manager: RolloutGatingManager):
+        """Registering an ID already in BETA preserves the existing record."""
+        await manager.register_candidate("beta-no-overwrite", {"fitness": 0.8})
+        await manager.record_clean_cycle("beta-no-overwrite")
+        cand = await manager.get_candidate("beta-no-overwrite")
+        assert cand is not None
+        assert cand.clean_cycles == 1
+        # Re-register — must NOT reset clean_cycles to 0
+        re_registered = await manager.register_candidate("beta-no-overwrite", {"fitness": 0.99})
+        assert re_registered.clean_cycles == 1
+        assert re_registered.stage == RolloutStage.BETA
+
+    @pytest.mark.asyncio
+    async def test_stable_candidate_not_overwritten(self, manager: RolloutGatingManager):
+        """Registering an ID already in STABLE preserves the existing record."""
+        await manager.register_candidate("stable-no-overwrite", {"fitness": 0.7})
+        for _ in range(3):
+            await manager.record_clean_cycle("stable-no-overwrite")
+        cand = await manager.get_candidate("stable-no-overwrite")
+        assert cand is not None
+        assert cand.stage == RolloutStage.STABLE
+        # Re-register — must NOT reset to BETA
+        re_registered = await manager.register_candidate("stable-no-overwrite", {"fitness": 0.99})
+        assert re_registered.stage == RolloutStage.STABLE
+        assert re_registered.clean_cycles == 3
+
+    @pytest.mark.asyncio
     async def test_reject_nonexistent_returns_none(self, manager: RolloutGatingManager):
         result = await manager.reject_candidate("no-such-id", "reason")
         assert result is None

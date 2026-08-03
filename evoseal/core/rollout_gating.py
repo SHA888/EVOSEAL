@@ -171,10 +171,11 @@ class RolloutGatingManager:
         checkpoint_path: str | None,
     ) -> RolloutCandidate:
         existing = self._candidates.get(candidate_id)
-        if existing is not None and existing.stage == RolloutStage.REJECTED:
+        if existing is not None and existing.stage != RolloutStage.CANDIDATE:
             logger.warning(
-                "Candidate %s was already rejected; refusing to re-register",
+                "Candidate %s already in stage %s; refusing to re-register",
                 candidate_id,
+                existing.stage.value,
             )
             return existing
         now = datetime.now(timezone.utc).isoformat()

@@ -496,9 +496,7 @@ async def test_run_evolution_cycle_logs_config_error_at_critical(tmp_path):
     await svc._run_evolution_cycle()
 
     assert svc.service_stats["evolution_cycles_completed"] == 0
-    # Both _check_beta_candidates and _run_evolution_cycle guard _get_pipeline()
-    # with their own TypeError handler, so the counter increments twice.
-    assert svc.service_stats["evolution_cycle_errors"] == 2
+    assert svc.service_stats["evolution_cycle_errors"] == 1
 
 
 @pytest.mark.unit
@@ -549,9 +547,7 @@ async def test_run_evolution_cycle_handles_non_typeerror_pipeline_construction_f
         await svc._run_evolution_cycle()
 
     assert svc.service_stats["evolution_cycles_completed"] == 0
-    # Both _check_beta_candidates and _run_evolution_cycle guard _get_pipeline()
-    # with their own exception handler, so the counter increments twice.
-    assert svc.service_stats["evolution_cycle_errors"] == 2
+    assert svc.service_stats["evolution_cycle_errors"] == 1
 
 
 # --- _check_training_readiness key-path tests ---

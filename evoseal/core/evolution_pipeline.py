@@ -871,7 +871,7 @@ class EvolutionPipeline:
             if is_improvement and self.rollout_gating.config.enabled:
                 try:
                     candidate_id = f"iter_{iteration}_{int(time.time())}"
-                    metrics = evaluation_result.get("metrics", {})
+                    metrics = dict(evaluation_result.get("metrics", {}))
                     # Capture test_type so the beta-check can filter metrics
                     # history to the same test type used at registration.
                     metrics["test_type"] = evaluation_result.get("test_type")

@@ -246,9 +246,6 @@ class ContinuousEvolutionService:
         """Run an evolution cycle using the real EvolutionPipeline."""
         logger.info("🧬 Starting evolution cycle")
 
-        # Check beta candidates before running the cycle (design doc §4.2)
-        await self._check_beta_candidates()
-
         # This try/except is scoped to pipeline construction only, so a TypeError
         # (or any other exception) raised later — in the pipeline run or result
         # loop — is a different failure mode and isn't caught here.
@@ -378,28 +375,29 @@ class ContinuousEvolutionService:
             logger.error(f"Error in evolution cycle: {e}")
             self.service_stats["evolution_cycle_errors"] += 1
 
-    async def _check_beta_candidates(self):
+        # Check beta candidates AFTER the cycle runs so the metrics history
+        # has grown since registration (design doc §4.2).  Reuse the
+        # already-constructed pipeline to avoid a second _get_pipeline()
+        # call (which would double-count construction failures).
+        try:
+            pipeline = self._get_pipeline()
+            await self._check_beta_candidates(pipeline)
+        except Exception as e:
+            logger.warning("Failed to check beta candidates: %s", e)
+
+    async def _check_beta_candidates(self, pipeline: "EvolutionPipeline") -> None:
         """Check and promote/reject active beta candidates (design doc §4.2).
 
-        At the start of each evolution cycle, validate all beta candidates
+        At the end of each evolution cycle, validate all beta candidates
         against their baseline metrics.  If clean, increment their cycle
         counter and promote to stable when the threshold is met.  If a
         regression is detected, reject the candidate and optionally roll back.
-        """
-        # Reuse the pipeline's rollout_gating manager — never construct a
-        # separate instance, which would have an independent registry and
-        # miss candidates registered by the pipeline.
-        try:
-            pipeline = self._get_pipeline()
-        except TypeError as e:
-            logger.critical(f"Configuration error building pipeline in _check_beta_candidates: {e}")
-            self.service_stats["evolution_cycle_errors"] += 1
-            return
-        except Exception as e:
-            logger.critical(f"Failed to build EvolutionPipeline in _check_beta_candidates: {e}")
-            self.service_stats["evolution_cycle_errors"] += 1
-            return
 
+        Args:
+            pipeline: The already-constructed pipeline instance (avoids a
+                second _get_pipeline() call that would double-count
+                construction failures).
+        """
         gating = pipeline.rollout_gating
         if not gating.config.enabled:
             return
