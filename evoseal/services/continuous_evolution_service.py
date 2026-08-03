@@ -527,19 +527,26 @@ class ContinuousEvolutionService:
     def get_cost_summary(self) -> dict[str, Any] | None:
         """Get token usage and cost data from the pipeline's budget tracker.
 
-        Returns None if the pipeline has not been initialized yet.
+        Returns None if the pipeline has not been initialized yet or if
+        summary retrieval fails for any reason.
         """
-        if self._pipeline is None:
-            return None
-        tracker = self._pipeline.budget_tracker
-        # Use the pipeline's configured cost rate when available.
-        cost_per_1k = 0.005  # reasonable default
         try:
-            settings = self._pipeline._settings  # noqa: SLF001
-            cost_per_1k = settings.budget.cost_per_1k_tokens or cost_per_1k
-        except (AttributeError, TypeError):
-            pass
-        return tracker.get_summary(cost_per_1k)
+            if self._pipeline is None:
+                return None
+            tracker = self._pipeline.budget_tracker
+            # Use the pipeline's configured cost rate when available.
+            cost_per_1k = 0.005  # reasonable default
+            try:
+                settings = self._pipeline._settings  # noqa: SLF001
+                configured = settings.budget.cost_per_1k_tokens
+                if configured is not None:
+                    cost_per_1k = configured
+            except (AttributeError, TypeError):
+                pass
+            return tracker.get_summary(cost_per_1k)
+        except Exception:
+            logger.debug("Failed to build cost summary", exc_info=True)
+            return None
 
 
 async def main():

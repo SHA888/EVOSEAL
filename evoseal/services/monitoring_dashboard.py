@@ -827,10 +827,20 @@ class MonitoringDashboard:
                     document.getElementById('seal-ft-tokens').textContent =
                         (cost.seal_finetuning_tokens || 0).toLocaleString();
                     if (cost.cycle_count > 0) {
-                        const avg = Math.round((cost.total_tokens || 0) / cost.cycle_count);
+                        const cycleTokens = (cost.dgm_tokens || 0) + (cost.seal_cycle_tokens || 0);
+                        const avg = Math.round(cycleTokens / cost.cycle_count);
                         document.getElementById('avg-tokens-per-cycle').textContent =
                             avg.toLocaleString();
+                    } else {
+                        document.getElementById('avg-tokens-per-cycle').textContent = '--';
                     }
+                } else {
+                    document.getElementById('total-tokens').textContent = '--';
+                    document.getElementById('total-cost').textContent = '--';
+                    document.getElementById('dgm-tokens').textContent = '--';
+                    document.getElementById('seal-cycle-tokens').textContent = '--';
+                    document.getElementById('seal-ft-tokens').textContent = '--';
+                    document.getElementById('avg-tokens-per-cycle').textContent = '--';
                 }
 
             } catch (e) {
