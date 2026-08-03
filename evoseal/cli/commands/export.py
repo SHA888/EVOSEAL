@@ -7,7 +7,7 @@ This module provides commands for exporting data from the EVOSEAL system.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -86,87 +86,93 @@ def export_results(
 
     try:
         db = ExperimentDatabase(db_path)
-        experiment = db.get_experiment(run_id)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
 
-    if experiment is None:
-        typer.echo(f"Error: No experiment found with ID '{run_id}'")
-        typer.echo("Use 'evoseal status' to see available experiments.")
-        raise typer.Exit(1)
+    try:
+        experiment = db.get_experiment(run_id)
+        if experiment is None:
+            typer.echo(f"Error: No experiment found with ID '{run_id}'")
+            typer.echo("Use 'evoseal status' to see available experiments.")
+            raise typer.Exit(1)
 
-    results: dict[str, Any] = {
-        "run_id": experiment.id,
-        "name": experiment.name,
-        "description": experiment.description,
-        "status": experiment.status.value,
-        "created_at": experiment.created_at.isoformat(),
-        "started_at": experiment.started_at.isoformat() if experiment.started_at else None,
-        "completed_at": experiment.completed_at.isoformat() if experiment.completed_at else None,
-    }
-
-    if experiment.result:
-        results["result"] = {
-            "best_fitness": experiment.result.best_fitness,
-            "generations_completed": experiment.result.generations_completed,
-            "total_evaluations": experiment.result.total_evaluations,
-            "convergence_iteration": experiment.result.convergence_iteration,
-            "execution_time": experiment.result.execution_time,
-            "error_message": experiment.result.error_message,
+        results: dict[str, Any] = {
+            "run_id": experiment.id,
+            "name": experiment.name,
+            "description": experiment.description,
+            "status": experiment.status.value,
+            "created_at": experiment.created_at.isoformat(),
+            "started_at": experiment.started_at.isoformat() if experiment.started_at else None,
+            "completed_at": experiment.completed_at.isoformat()
+            if experiment.completed_at
+            else None,
         }
 
-    if include_metrics and experiment.metrics:
-        results["metrics"] = {m.name: m.value for m in experiment.metrics}
-
-    if include_code and experiment.artifacts:
-        results["artifacts"] = [
-            {
-                "name": a.name,
-                "type": a.artifact_type,
-                "content": a.content,
-                "file_path": a.file_path,
+        if experiment.result:
+            results["result"] = {
+                "best_fitness": experiment.result.best_fitness,
+                "generations_completed": experiment.result.generations_completed,
+                "total_evaluations": experiment.result.total_evaluations,
+                "convergence_iteration": experiment.result.convergence_iteration,
+                "execution_time": experiment.result.execution_time,
+                "error_message": experiment.result.error_message,
             }
-            for a in experiment.artifacts
-            if a.content
-        ]
 
-    db.close()
+        if include_metrics and experiment.metrics:
+            results["metrics"] = {m.name: m.value for m in experiment.metrics}
 
-    output: str = ""
-    if format == "json":
-        output = json.dumps(results, indent=2)
-    elif format == "csv":
-        # Simple CSV output for metrics
-        import csv
-        import io
+        if include_code and experiment.artifacts:
+            results["artifacts"] = [
+                {
+                    "name": a.name,
+                    "type": a.artifact_type,
+                    "content": a.content,
+                    "file_path": a.file_path,
+                }
+                for a in experiment.artifacts
+                if a.content
+            ]
 
-        output_io = io.StringIO()
-        writer = csv.writer(output_io)
-        writer.writerow(["Metric", "Value"])
-        if include_metrics:
-            for k, v in results.get("metrics", {}).items():
-                writer.writerow([k, v])
-        output = output_io.getvalue()
-    else:  # txt
-        output = f"Run ID: {results['run_id']}\n"
-        output += f"Status: {results['status']}\n"
-        output += f"Timestamp: {results['timestamp']}\n"
-        if include_metrics:
-            output += "\nMetrics:\n"
-            for k, v in results.get("metrics", {}).items():
-                output += f"  {k}: {v}\n"
-        if include_code and results.get("code"):
-            output += "\nCode:\n"
-            output += results["code"]
+        output: str = ""
+        if format == "json":
+            output = json.dumps(results, indent=2)
+        elif format == "csv":
+            # Simple CSV output for metrics
+            import csv
+            import io
 
-    if output_file:
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(output)
-        typer.echo(f"Results exported to {output_file}")
-    else:
-        typer.echo(output)
+            output_io = io.StringIO()
+            writer = csv.writer(output_io)
+            writer.writerow(["Metric", "Value"])
+            if include_metrics:
+                for k, v in results.get("metrics", {}).items():
+                    writer.writerow([k, v])
+            output = output_io.getvalue()
+        else:  # txt
+            output = f"Run ID: {results['run_id']}\n"
+            output += f"Status: {results['status']}\n"
+            output += f"Created: {results['created_at']}\n"
+            if include_metrics:
+                output += "\nMetrics:\n"
+                for k, v in results.get("metrics", {}).items():
+                    output += f"  {k}: {v}\n"
+            if include_code and results.get("artifacts"):
+                output += "\nArtifacts:\n"
+                for a in results["artifacts"]:
+                    output += f"  [{a['type']}] {a['name']}\n"
+                    if a.get("content"):
+                        output += f"{a['content']}\n"
+
+        if output_file:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(output)
+            typer.echo(f"Results exported to {output_file}")
+        else:
+            typer.echo(output)
+    finally:
+        db.close()
 
 
 @app.command("variant")
@@ -203,49 +209,57 @@ def export_variant(
 
     try:
         db = ExperimentDatabase(db_path)
-        experiment = db.get_experiment(variant_id)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
 
-    if experiment is None:
-        typer.echo(f"Error: No experiment/variant found with ID '{variant_id}'")
-        raise typer.Exit(1)
+    try:
+        experiment = db.get_experiment(variant_id)
+        if experiment is None:
+            typer.echo(f"Error: No experiment/variant found with ID '{variant_id}'")
+            raise typer.Exit(1)
 
-    output_dir = output_dir / f"variant_{variant_id}"
-    output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = output_dir / f"variant_{variant_id}"
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    exported_files = 0
-    if experiment.artifacts:
-        for artifact in experiment.artifacts:
-            if artifact.content:
-                file_path = output_dir / (artifact.file_path or artifact.name)
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-                file_path.write_text(artifact.content)
-                exported_files += 1
+        exported_files = 0
+        if experiment.artifacts:
+            for artifact in experiment.artifacts:
+                if artifact.content:
+                    # Sanitize: use only the filename component to prevent path traversal
+                    safe_name = Path(artifact.file_path or artifact.name).name
+                    file_path = output_dir / safe_name
+                    file_path.parent.mkdir(parents=True, exist_ok=True)
+                    file_path.write_text(artifact.content)
+                    exported_files += 1
 
-    # Write experiment metadata
-    metadata = {
-        "id": experiment.id,
-        "name": experiment.name,
-        "status": experiment.status.value,
-        "best_fitness": experiment.result.best_fitness if experiment.result else None,
-        "generations_completed": experiment.result.generations_completed
-        if experiment.result
-        else 0,
-    }
-    (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
+        # Write experiment metadata
+        metadata = {
+            "id": experiment.id,
+            "name": experiment.name,
+            "status": experiment.status.value,
+            "best_fitness": experiment.result.best_fitness if experiment.result else None,
+            "generations_completed": experiment.result.generations_completed
+            if experiment.result
+            else 0,
+        }
+        (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
-    if include_dependencies:
-        # Check for dependency artifacts
-        dep_artifacts = [a for a in (experiment.artifacts or []) if "requirement" in a.name.lower()]
-        if dep_artifacts:
-            for dep in dep_artifacts:
-                if dep.content:
-                    (output_dir / dep.name).write_text(dep.content)
+        if include_dependencies:
+            # Check for dependency artifacts
+            dep_artifacts = [
+                a for a in (experiment.artifacts or []) if "requirement" in a.name.lower()
+            ]
+            if dep_artifacts:
+                for dep in dep_artifacts:
+                    if dep.content:
+                        (output_dir / dep.name).write_text(dep.content)
 
-    db.close()
-    typer.echo(f"Variant {variant_id} exported to {output_dir} ({exported_files} artifact files)")
+        typer.echo(
+            f"Variant {variant_id} exported to {output_dir} ({exported_files} artifact files)"
+        )
+    finally:
+        db.close()
 
 
 @app.command("all")
@@ -306,56 +320,62 @@ def export_all(
 
     try:
         db = ExperimentDatabase(db_path)
-        experiments = db.list_experiments()
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
 
-    if not experiments:
-        typer.echo("No experiments found in the database.")
-        raise typer.Exit(1)
+    try:
+        experiments = db.list_experiments()
+        if not experiments:
+            typer.echo("No experiments found in the database.")
+            raise typer.Exit(1)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    results_dir = output_dir / "results"
-    results_dir.mkdir(exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        results_dir = output_dir / "results"
+        results_dir.mkdir(exist_ok=True)
 
-    # Build export records from real experiments
-    results = []
-    for exp in experiments:
-        record: dict[str, Any] = {
-            "run_id": exp.id,
-            "name": exp.name,
-            "status": exp.status.value,
-            "created_at": exp.created_at.isoformat(),
-        }
-        if include_metrics and exp.result:
-            record["fitness"] = exp.result.best_fitness
-            record["generation"] = exp.result.generations_completed
-            record["execution_time"] = exp.result.execution_time
-        if include_code and exp.artifacts:
-            record["artifacts"] = [a.name for a in exp.artifacts]
-        results.append(record)
+        # Build export records from real experiments
+        results = []
+        for exp in experiments:
+            record: dict[str, Any] = {
+                "run_id": exp.id,
+                "name": exp.name,
+                "status": exp.status.value,
+                "created_at": exp.created_at.isoformat(),
+            }
+            if include_metrics and exp.result:
+                record["fitness"] = exp.result.best_fitness
+                record["generation"] = exp.result.generations_completed
+                record["execution_time"] = exp.result.execution_time
+            if include_code and exp.artifacts:
+                record["artifacts"] = [a.name for a in exp.artifacts]
+            results.append(record)
 
-    if format == "json":
-        with open(results_dir / "results.json", "w") as f:
-            json.dump({"results": results, "count": len(results)}, f, indent=2)
-    elif format == "yaml":
-        import yaml
+        if format == "json":
+            with open(results_dir / "results.json", "w") as f:
+                json.dump({"results": results, "count": len(results)}, f, indent=2)
+        elif format == "yaml":
+            import yaml
 
-        with open(results_dir / "results.yaml", "w") as f:
-            yaml.dump({"results": results, "count": len(results)}, f, default_flow_style=False)
-    elif format == "csv":
-        import csv
+            with open(results_dir / "results.yaml", "w") as f:
+                yaml.dump({"results": results, "count": len(results)}, f, default_flow_style=False)
+        elif format == "csv":
+            import csv
 
-        with open(results_dir / "results.csv", "w", newline="") as f:
-            if results:
-                fieldnames = list(results[0].keys())
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(results)
+            with open(results_dir / "results.csv", "w", newline="") as f:
+                if results:
+                    # Compute fieldnames as union across all records to handle optional keys
+                    all_keys: set[str] = set()
+                    for r in results:
+                        all_keys.update(r.keys())
+                    fieldnames = sorted(all_keys)
+                    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+                    writer.writeheader()
+                    writer.writerows(results)
 
-    db.close()
-    typer.echo(f"Exported {len(results)} experiments to {output_dir}")
+        typer.echo(f"Exported {len(results)} experiments to {output_dir}")
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
