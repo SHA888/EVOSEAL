@@ -96,10 +96,12 @@ class TestRolloutGatingConfig:
         cfg = RolloutGatingConfig.from_dict({"beta_cycles_required": 1})
         assert cfg.beta_cycles_required == 1
         assert cfg.enabled is True  # default
+        assert cfg.auto_rollback_on_regression is False  # must match dataclass default
 
     def test_from_dict_empty(self):
         cfg = RolloutGatingConfig.from_dict({})
         assert cfg.beta_cycles_required == 3
+        assert cfg.auto_rollback_on_regression is False  # must match dataclass default
 
 
 # ---------------------------------------------------------------------------

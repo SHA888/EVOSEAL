@@ -75,7 +75,7 @@ class RolloutGatingConfig:
         return cls(
             enabled=data.get("enabled", True),
             beta_cycles_required=data.get("beta_cycles_required", 3),
-            auto_rollback_on_regression=data.get("auto_rollback_on_regression", True),
+            auto_rollback_on_regression=data.get("auto_rollback_on_regression", False),
             prefer_stable_for_generation=data.get("prefer_stable_for_generation", True),
         )
 
