@@ -14,6 +14,7 @@ EVOSEAL is an advanced AI system that integrates three key components to create 
 - [Quickstart Examples](examples/quickstart.md) - Get started quickly
 - [API Reference](api/index.md) - Complete API documentation
 - [Architecture Overview](architecture/overview.md) - System architecture
+- [Progressive Rollout Gating](architecture/progressive_rollout_gating.md) - Graduated promotion model for self-modifications
 
 ## EVOSEAL Documentation
 
