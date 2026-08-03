@@ -7,11 +7,13 @@ This module provides commands for exporting data from the EVOSEAL system.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+
+from evoseal.core.experiment_database import ExperimentDatabase
 
 # Initialize the Typer app
 app = typer.Typer(name="export", help="Export results/variants")
@@ -76,22 +78,60 @@ def export_results(
         )
         raise typer.Exit(1)
 
-    # TODO: Implement actual results export
+    db_path = Path(".evoseal/experiments.db")
+    if not db_path.exists():
+        typer.echo(f"Error: No experiment database found at {db_path}")
+        typer.echo("Run an evolution cycle first to generate data.")
+        raise typer.Exit(1)
+
+    try:
+        db = ExperimentDatabase(db_path)
+        experiment = db.get_experiment(run_id)
+    except Exception as e:
+        typer.echo(f"Error reading experiment database: {e}")
+        raise typer.Exit(1) from None
+
+    if experiment is None:
+        typer.echo(f"Error: No experiment found with ID '{run_id}'")
+        typer.echo("Use 'evoseal status' to see available experiments.")
+        raise typer.Exit(1)
+
     results: dict[str, Any] = {
-        "run_id": run_id,
-        "timestamp": datetime.utcnow().isoformat(),
-        "status": "completed",
-        "metrics": (
-            {
-                "fitness": 0.85,
-                "generations": 100,
-                "best_score": 0.92,
-            }
-            if include_metrics
-            else {}
-        ),
-        "code": ("# Sample code\ndef main():\n    print('Hello, World!')" if include_code else ""),
+        "run_id": experiment.id,
+        "name": experiment.name,
+        "description": experiment.description,
+        "status": experiment.status.value,
+        "created_at": experiment.created_at.isoformat(),
+        "started_at": experiment.started_at.isoformat() if experiment.started_at else None,
+        "completed_at": experiment.completed_at.isoformat() if experiment.completed_at else None,
     }
+
+    if experiment.result:
+        results["result"] = {
+            "best_fitness": experiment.result.best_fitness,
+            "generations_completed": experiment.result.generations_completed,
+            "total_evaluations": experiment.result.total_evaluations,
+            "convergence_iteration": experiment.result.convergence_iteration,
+            "execution_time": experiment.result.execution_time,
+            "error_message": experiment.result.error_message,
+        }
+
+    if include_metrics and experiment.metrics:
+        results["metrics"] = {m.name: m.value for m in experiment.metrics}
+
+    if include_code and experiment.artifacts:
+        results["artifacts"] = [
+            {
+                "name": a.name,
+                "type": a.artifact_type,
+                "content": a.content,
+                "file_path": a.file_path,
+            }
+            for a in experiment.artifacts
+            if a.content
+        ]
+
+    db.close()
 
     output: str = ""
     if format == "json":
@@ -155,19 +195,57 @@ def export_variant(
     ] = True,
 ) -> None:
     """Export a specific code variant."""
-    # TODO: Implement actual variant export
+    db_path = Path(".evoseal/experiments.db")
+    if not db_path.exists():
+        typer.echo(f"Error: No experiment database found at {db_path}")
+        typer.echo("Run an evolution cycle first to generate data.")
+        raise typer.Exit(1)
+
+    try:
+        db = ExperimentDatabase(db_path)
+        experiment = db.get_experiment(variant_id)
+    except Exception as e:
+        typer.echo(f"Error reading experiment database: {e}")
+        raise typer.Exit(1) from None
+
+    if experiment is None:
+        typer.echo(f"Error: No experiment/variant found with ID '{variant_id}'")
+        raise typer.Exit(1)
+
     output_dir = output_dir / f"variant_{variant_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create sample files
-    (output_dir / "main.py").write_text(
-        "# Sample variant code\ndef main():\n    print('Hello from variant!')"
-    )
+    exported_files = 0
+    if experiment.artifacts:
+        for artifact in experiment.artifacts:
+            if artifact.content:
+                file_path = output_dir / (artifact.file_path or artifact.name)
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text(artifact.content)
+                exported_files += 1
+
+    # Write experiment metadata
+    metadata = {
+        "id": experiment.id,
+        "name": experiment.name,
+        "status": experiment.status.value,
+        "best_fitness": experiment.result.best_fitness if experiment.result else None,
+        "generations_completed": experiment.result.generations_completed
+        if experiment.result
+        else 0,
+    }
+    (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
     if include_dependencies:
-        (output_dir / "requirements.txt").write_text("numpy>=1.20.0\npandas>=1.3.0")
+        # Check for dependency artifacts
+        dep_artifacts = [a for a in (experiment.artifacts or []) if "requirement" in a.name.lower()]
+        if dep_artifacts:
+            for dep in dep_artifacts:
+                if dep.content:
+                    (output_dir / dep.name).write_text(dep.content)
 
-    typer.echo(f"Variant {variant_id} exported to {output_dir}")
+    db.close()
+    typer.echo(f"Variant {variant_id} exported to {output_dir} ({exported_files} artifact files)")
 
 
 @app.command("all")
@@ -220,40 +298,64 @@ def export_all(
         )
         raise typer.Exit(1)
 
-    # TODO: Implement actual export all
+    db_path = Path(".evoseal/experiments.db")
+    if not db_path.exists():
+        typer.echo(f"Error: No experiment database found at {db_path}")
+        typer.echo("Run an evolution cycle first to generate data.")
+        raise typer.Exit(1)
+
+    try:
+        db = ExperimentDatabase(db_path)
+        experiments = db.list_experiments()
+    except Exception as e:
+        typer.echo(f"Error reading experiment database: {e}")
+        raise typer.Exit(1) from None
+
+    if not experiments:
+        typer.echo("No experiments found in the database.")
+        raise typer.Exit(1)
+
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create sample export structure
-    (output_dir / "config.yaml").write_text("# Configuration\nproject: evoseal\nversion: 0.1.0")
-
     results_dir = output_dir / "results"
     results_dir.mkdir(exist_ok=True)
 
-    # Sample results
-    results = [
-        {"run_id": "run1", "fitness": 0.85, "generation": 100},
-        {"run_id": "run2", "fitness": 0.92, "generation": 150},
-    ]
+    # Build export records from real experiments
+    results = []
+    for exp in experiments:
+        record: dict[str, Any] = {
+            "run_id": exp.id,
+            "name": exp.name,
+            "status": exp.status.value,
+            "created_at": exp.created_at.isoformat(),
+        }
+        if include_metrics and exp.result:
+            record["fitness"] = exp.result.best_fitness
+            record["generation"] = exp.result.generations_completed
+            record["execution_time"] = exp.result.execution_time
+        if include_code and exp.artifacts:
+            record["artifacts"] = [a.name for a in exp.artifacts]
+        results.append(record)
 
     if format == "json":
         with open(results_dir / "results.json", "w") as f:
-            json.dump({"results": results}, f, indent=2)
+            json.dump({"results": results, "count": len(results)}, f, indent=2)
     elif format == "yaml":
         import yaml
 
         with open(results_dir / "results.yaml", "w") as f:
-            yaml.dump({"results": results}, f, default_flow_style=False)
+            yaml.dump({"results": results, "count": len(results)}, f, default_flow_style=False)
     elif format == "csv":
         import csv
 
         with open(results_dir / "results.csv", "w", newline="") as f:
-            if results and isinstance(results, list) and len(results) > 0:
+            if results:
                 fieldnames = list(results[0].keys())
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(results)
 
-    typer.echo(f"All data exported to {output_dir}")
+    db.close()
+    typer.echo(f"Exported {len(results)} experiments to {output_dir}")
 
 
 if __name__ == "__main__":
