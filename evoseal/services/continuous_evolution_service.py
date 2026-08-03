@@ -409,8 +409,8 @@ class ContinuousEvolutionService:
 
         for cand in beta_candidates:
             try:
-                # Use the candidate's own stored test_type and baseline index
-                # so each candidate is validated against its own baseline,
+                # Use the candidate's own stored test_type so each
+                # candidate is validated against its own baseline,
                 # not the same global "latest two" snapshot.
                 test_type = cand.baseline_metrics.get("test_type")
                 current_metrics = pipeline.metrics_tracker.get_metrics_history(test_type)
@@ -421,11 +421,11 @@ class ContinuousEvolutionService:
                     )
                     continue
 
-                # Use the stored baseline index if available (captured at
-                # registration time); fall back to second-to-last entry.
-                baseline_id = cand.baseline_metrics.get(
-                    "baseline_metric_index", len(current_metrics) - 2
-                )
+                # The baseline is always the second-to-last entry: the
+                # candidate's own metric was recorded after registration
+                # (inside execute_safe_evolution_step), so len-2 is the
+                # pre-candidate baseline and len-1 is the candidate's metric.
+                baseline_id = len(current_metrics) - 2
                 comparison_id = len(current_metrics) - 1
                 result = pipeline.validator.validate_improvement(
                     baseline_id, comparison_id, test_type

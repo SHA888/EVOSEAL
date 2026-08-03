@@ -875,14 +875,21 @@ class EvolutionPipeline:
                     metrics = dict(evaluation_result.get("metrics", {}))
                     # Capture test_type so the beta-check can filter metrics
                     # history to the same test type used at registration.
-                    metrics["test_type"] = evaluation_result.get("test_type")
-                    # Snapshot the baseline index so beta-check compares
-                    # against the candidate's own baseline, not just the
-                    # latest two global entries.
                     test_type = evaluation_result.get("test_type")
-                    baseline_history = self.metrics_tracker.get_metrics_history(test_type)
-                    if len(baseline_history) >= 2:
-                        metrics["baseline_metric_index"] = len(baseline_history) - 2
+                    metrics["test_type"] = test_type
+                    # Do NOT snapshot baseline_metric_index here.  Metrics for
+                    # this iteration are pushed into metrics_tracker *after*
+                    # _run_single_iteration returns (inside
+                    # execute_safe_evolution_step), so the history length at
+                    # registration time is off by one.  Instead, _check_beta_candidates
+                    # always computes len(current_metrics) - 2 which is the correct
+                    # relative baseline once the new metric has been recorded.
+                    if test_type is None:
+                        logger.warning(
+                            "Rollout candidate %s: test_type is None; "
+                            "beta validation will use unfiltered metrics history",
+                            candidate_id,
+                        )
                     await self.rollout_gating.register_candidate(candidate_id, metrics)
                     iteration_result["rollout_candidate_id"] = candidate_id
                 except Exception as gating_err:
