@@ -28,6 +28,7 @@ from evoseal.core.logging_system import get_logger
 from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.repository import ConflictError, RepositoryError
 from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
+from evoseal.core.rollout_gating import RolloutGatingConfig, RolloutGatingManager
 from evoseal.core.safety_integration import SafetyIntegration
 from evoseal.core.testrunner import SandboxedTestRunner
 from evoseal.core.version_database import VersionDatabase
@@ -160,6 +161,14 @@ class EvolutionPipeline:
             self.metrics_tracker,
             getattr(self, "version_manager", None),
             repo_root=repo_root,
+        )
+
+        # Initialize rollout gating manager
+        self.rollout_gating = RolloutGatingManager(
+            registry_dir=repo_root / "data" / "rollout",
+            config=RolloutGatingConfig.from_dict(
+                safety_config.get("rollout_gating", {}) if isinstance(safety_config, dict) else {}
+            ),
         )
 
         # Initialize workflow engine
@@ -857,6 +866,26 @@ class EvolutionPipeline:
                     "resilience_status": resilience_manager.get_resilience_status(),
                 }
             )
+
+            # Register with rollout gating when the improvement is accepted
+            if is_improvement and self.rollout_gating.config.enabled:
+                try:
+                    candidate_id = f"iter_{iteration}_{int(time.time())}"
+                    metrics = evaluation_result.get("metrics", {})
+                    # Capture test_type so the beta-check can filter metrics
+                    # history to the same test type used at registration.
+                    metrics["test_type"] = evaluation_result.get("test_type")
+                    # Snapshot the baseline index so beta-check compares
+                    # against the candidate's own baseline, not just the
+                    # latest two global entries.
+                    test_type = evaluation_result.get("test_type")
+                    baseline_history = self.metrics_tracker.get_metrics_history(test_type)
+                    if len(baseline_history) >= 2:
+                        metrics["baseline_metric_index"] = len(baseline_history) - 2
+                    await self.rollout_gating.register_candidate(candidate_id, metrics)
+                    iteration_result["rollout_candidate_id"] = candidate_id
+                except Exception as gating_err:
+                    logger.warning("Failed to register rollout candidate: %s", gating_err)
 
             # Log successful iteration with performance metrics
             logger.log_pipeline_stage(

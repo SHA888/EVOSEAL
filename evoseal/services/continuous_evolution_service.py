@@ -246,6 +246,9 @@ class ContinuousEvolutionService:
         """Run an evolution cycle using the real EvolutionPipeline."""
         logger.info("🧬 Starting evolution cycle")
 
+        # Check beta candidates before running the cycle (design doc §4.2)
+        await self._check_beta_candidates()
+
         # This try/except is scoped to pipeline construction only, so a TypeError
         # (or any other exception) raised later — in the pipeline run or result
         # loop — is a different failure mode and isn't caught here.
@@ -374,6 +377,96 @@ class ContinuousEvolutionService:
         except Exception as e:
             logger.error(f"Error in evolution cycle: {e}")
             self.service_stats["evolution_cycle_errors"] += 1
+
+    async def _check_beta_candidates(self):
+        """Check and promote/reject active beta candidates (design doc §4.2).
+
+        At the start of each evolution cycle, validate all beta candidates
+        against their baseline metrics.  If clean, increment their cycle
+        counter and promote to stable when the threshold is met.  If a
+        regression is detected, reject the candidate and optionally roll back.
+        """
+        # Reuse the pipeline's rollout_gating manager — never construct a
+        # separate instance, which would have an independent registry and
+        # miss candidates registered by the pipeline.
+        try:
+            pipeline = self._get_pipeline()
+        except TypeError as e:
+            logger.critical(f"Configuration error building pipeline in _check_beta_candidates: {e}")
+            self.service_stats["evolution_cycle_errors"] += 1
+            return
+        except Exception as e:
+            logger.critical(f"Failed to build EvolutionPipeline in _check_beta_candidates: {e}")
+            self.service_stats["evolution_cycle_errors"] += 1
+            return
+
+        gating = pipeline.rollout_gating
+        if not gating.config.enabled:
+            return
+
+        beta_candidates = await gating.get_active_beta_candidates()
+        if not beta_candidates:
+            return
+
+        logger.info("Checking %d beta rollout candidate(s)", len(beta_candidates))
+
+        for cand in beta_candidates:
+            try:
+                # Use the candidate's own stored test_type and baseline index
+                # so each candidate is validated against its own baseline,
+                # not the same global "latest two" snapshot.
+                test_type = cand.baseline_metrics.get("test_type")
+                current_metrics = pipeline.metrics_tracker.get_metrics_history(test_type)
+                if len(current_metrics) < 2:
+                    logger.debug(
+                        "Beta candidate %s: not enough metrics history to validate",
+                        cand.candidate_id,
+                    )
+                    continue
+
+                # Use the stored baseline index if available (captured at
+                # registration time); fall back to second-to-last entry.
+                baseline_id = cand.baseline_metrics.get(
+                    "baseline_metric_index", len(current_metrics) - 2
+                )
+                comparison_id = len(current_metrics) - 1
+                result = pipeline.validator.validate_improvement(
+                    baseline_id, comparison_id, test_type
+                )
+                is_improvement = bool(result.get("is_improvement", False))
+
+                if is_improvement:
+                    await gating.record_clean_cycle(cand.candidate_id)
+                    updated = await gating.get_candidate(cand.candidate_id)
+                    if updated and updated.stage.value == "stable":
+                        logger.info("🎉 Beta candidate %s promoted to stable", cand.candidate_id)
+                else:
+                    reason = (
+                        f"Regression detected: score={result.get('score', 0.0)}, "
+                        f"required_passed={result.get('required_passed')}"
+                    )
+                    await gating.reject_candidate(cand.candidate_id, reason)
+                    logger.warning("⚠️ Beta candidate %s rejected: %s", cand.candidate_id, reason)
+                    # Auto-rollback if configured
+                    if gating.config.auto_rollback_on_regression and cand.checkpoint_path:
+                        logger.info(
+                            "Rollback needed for rejected candidate %s "
+                            "(checkpoint=%s) but not yet implemented",
+                            cand.candidate_id,
+                            cand.checkpoint_path,
+                        )
+                        # The checkpoint restore is a no-op placeholder for now;
+                        # full integration with CheckpointManager.restore_checkpoint
+                        # is deferred until checkpoint_path is populated by the
+                        # pipeline at registration time.
+
+            except Exception as e:
+                logger.warning(
+                    "Error checking beta candidate %s: %s",
+                    cand.candidate_id,
+                    e,
+                    exc_info=True,
+                )
 
     async def _check_training_readiness(self):
         """Check if training should be triggered."""
