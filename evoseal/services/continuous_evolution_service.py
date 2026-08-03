@@ -376,11 +376,10 @@ class ContinuousEvolutionService:
             self.service_stats["evolution_cycle_errors"] += 1
 
         # Check beta candidates AFTER the cycle runs so the metrics history
-        # has grown since registration (design doc §4.2).  Reuse the
-        # already-constructed pipeline to avoid a second _get_pipeline()
-        # call (which would double-count construction failures).
+        # has grown since registration (design doc §4.2).  The `pipeline`
+        # variable is still in scope from the construction block above; we
+        # reuse it directly to avoid a redundant _get_pipeline() call.
         try:
-            pipeline = self._get_pipeline()
             await self._check_beta_candidates(pipeline)
         except Exception as e:
             logger.warning("Failed to check beta candidates: %s", e)

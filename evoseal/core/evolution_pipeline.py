@@ -12,6 +12,7 @@ import json
 import logging
 import shutil
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -870,7 +871,7 @@ class EvolutionPipeline:
             # Register with rollout gating when the improvement is accepted
             if is_improvement and self.rollout_gating.config.enabled:
                 try:
-                    candidate_id = f"iter_{iteration}_{int(time.time())}"
+                    candidate_id = f"iter_{iteration}_{uuid.uuid4().hex[:8]}"
                     metrics = dict(evaluation_result.get("metrics", {}))
                     # Capture test_type so the beta-check can filter metrics
                     # history to the same test type used at registration.

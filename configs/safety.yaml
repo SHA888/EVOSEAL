@@ -74,7 +74,7 @@ checkpoint:
 rollout_gating:
   enabled: true
   beta_cycles_required: 3        # N: cycles a beta candidate must survive
-  auto_rollback_on_regression: true
+  auto_rollback_on_regression: false  # Disabled until checkpoint restoration is wired up
   prefer_stable_for_generation: true  # generation uses stable model when available
   # NOTE: prefer_stable_for_generation is not yet wired into the generation
   # surface — that integration belongs to the "Generation must consult the

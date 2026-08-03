@@ -67,7 +67,7 @@ class RolloutGatingConfig:
 
     enabled: bool = True
     beta_cycles_required: int = 3
-    auto_rollback_on_regression: bool = True
+    auto_rollback_on_regression: bool = False
     prefer_stable_for_generation: bool = True
 
     @classmethod

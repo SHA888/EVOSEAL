@@ -75,7 +75,7 @@ class TestRolloutGatingConfig:
         cfg = RolloutGatingConfig()
         assert cfg.enabled is True
         assert cfg.beta_cycles_required == 3
-        assert cfg.auto_rollback_on_regression is True
+        assert cfg.auto_rollback_on_regression is False
         assert cfg.prefer_stable_for_generation is True
 
     def test_from_dict(self):
