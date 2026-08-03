@@ -7,6 +7,7 @@ This module provides commands for exporting data from the EVOSEAL system.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -18,8 +19,9 @@ from evoseal.core.experiment_database import ExperimentDatabase
 # Initialize the Typer app
 app = typer.Typer(name="export", help="Export results/variants")
 
-# Default database path (relative to CWD — callers must run from project root)
-DEFAULT_DB_PATH = Path(".evoseal/experiments.db")
+# Default database path: override with EVOSEAL_DB_PATH env var or --db-path flag.
+# Falls back to .evoseal/experiments.db relative to CWD.
+DEFAULT_DB_PATH = Path(os.environ.get("EVOSEAL_DB_PATH", ".evoseal/experiments.db"))
 
 # Artifact types considered "dependency" artifacts (e.g. requirements.txt).
 # When include_dependencies=False, these are excluded from variant exports.
@@ -63,6 +65,14 @@ def export_results(
             help=f"Output format: {', '.join(FORMAT_SUPPORT['results'])}.",
         ),
     ] = "json",
+    db_path: Annotated[
+        Path,
+        typer.Option(
+            "--db-path",
+            help="Path to the experiment database. Overrides EVOSEAL_DB_PATH env var.",
+            dir_okay=False,
+        ),
+    ] = DEFAULT_DB_PATH,
     include_metrics: Annotated[
         bool,
         typer.Option(
@@ -85,13 +95,13 @@ def export_results(
         )
         raise typer.Exit(1)
 
-    if not DEFAULT_DB_PATH.exists():
-        typer.echo(f"Error: No experiment database found at {DEFAULT_DB_PATH}")
+    if not db_path.exists():
+        typer.echo(f"Error: No experiment database found at {db_path}")
         typer.echo("Run an evolution cycle first to generate data.")
         raise typer.Exit(1)
 
     try:
-        db = ExperimentDatabase(DEFAULT_DB_PATH)
+        db = ExperimentDatabase(db_path)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
@@ -211,15 +221,23 @@ def export_variant(
             help="Include dependency information in the export.",
         ),
     ] = True,
+    db_path: Annotated[
+        Path,
+        typer.Option(
+            "--db-path",
+            help="Path to the experiment database. Overrides EVOSEAL_DB_PATH env var.",
+            dir_okay=False,
+        ),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Export a specific code variant."""
-    if not DEFAULT_DB_PATH.exists():
-        typer.echo(f"Error: No experiment database found at {DEFAULT_DB_PATH}")
+    if not db_path.exists():
+        typer.echo(f"Error: No experiment database found at {db_path}")
         typer.echo("Run an evolution cycle first to generate data.")
         raise typer.Exit(1)
 
     try:
-        db = ExperimentDatabase(DEFAULT_DB_PATH)
+        db = ExperimentDatabase(db_path)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
@@ -237,11 +255,25 @@ def export_variant(
             typer.echo(f"Error: No experiment/variant found with ID '{variant_id}'")
             raise typer.Exit(1)
 
-        output_dir = output_dir / f"variant_{variant_id}"
+        # Sanitize variant_id to prevent path traversal (e.g. "../../tmp/evil")
+        safe_variant_id = Path(variant_id).name
+        if not safe_variant_id or safe_variant_id in {".", ".."}:
+            typer.echo(f"Error: Invalid variant ID '{variant_id}'")
+            raise typer.Exit(1)
+        output_dir = output_dir / f"variant_{safe_variant_id}"
+        # Clean the directory before writing so re-exports with fewer/renamed
+        # artifacts don't leave stale files from a prior export.
+        import shutil
+
+        if output_dir.exists():
+            shutil.rmtree(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         exported_files = 0
         written_names: set[str] = set()
+        # Reserve metadata.json so an artifact with that sanitized name
+        # doesn't get silently clobbered by the experiment-metadata write.
+        written_names.add("metadata.json")
         if experiment.artifacts:
             for artifact in experiment.artifacts:
                 # Skip dependency artifacts when the flag is off
@@ -262,7 +294,7 @@ def export_variant(
                     written_names.add(safe_name)
                     file_path = output_dir / safe_name
                     file_path.parent.mkdir(parents=True, exist_ok=True)
-                    file_path.write_text(artifact.content)
+                    file_path.write_text(artifact.content, encoding="utf-8")
                     exported_files += 1
 
         # Write experiment metadata
@@ -275,7 +307,7 @@ def export_variant(
             if experiment.result
             else 0,
         }
-        (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
+        (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
         # include_dependencies filtering is handled in the artifact loop above.
 
@@ -321,6 +353,14 @@ def export_all(
             help=f"Output format: {', '.join(FORMAT_SUPPORT['all'])}.",
         ),
     ] = "json",
+    db_path: Annotated[
+        Path,
+        typer.Option(
+            "--db-path",
+            help="Path to the experiment database. Overrides EVOSEAL_DB_PATH env var.",
+            dir_okay=False,
+        ),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Export all data from the EVOSEAL system.
 
@@ -336,13 +376,13 @@ def export_all(
         )
         raise typer.Exit(1)
 
-    if not DEFAULT_DB_PATH.exists():
-        typer.echo(f"Error: No experiment database found at {DEFAULT_DB_PATH}")
+    if not db_path.exists():
+        typer.echo(f"Error: No experiment database found at {db_path}")
         typer.echo("Run an evolution cycle first to generate data.")
         raise typer.Exit(1)
 
     try:
-        db = ExperimentDatabase(DEFAULT_DB_PATH)
+        db = ExperimentDatabase(db_path)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
@@ -376,7 +416,7 @@ def export_all(
                 record["generation"] = exp.result.generations_completed
                 record["execution_time"] = exp.result.execution_time
             if include_code and exp.artifacts:
-                record["artifacts"] = [a.name for a in exp.artifacts]
+                record["artifacts"] = ";".join(a.name for a in exp.artifacts)
             results.append(record)
 
         if format == "json":
