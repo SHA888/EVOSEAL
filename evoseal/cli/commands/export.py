@@ -91,7 +91,12 @@ def export_results(
         raise typer.Exit(1) from None
 
     try:
-        experiment = db.get_experiment(run_id)
+        try:
+            experiment = db.get_experiment(run_id)
+        except Exception as e:
+            typer.echo(f"Error querying experiment database: {e}")
+            raise typer.Exit(1) from None
+
         if experiment is None:
             typer.echo(f"Error: No experiment found with ID '{run_id}'")
             typer.echo("Use 'evoseal status' to see available experiments.")
@@ -120,6 +125,7 @@ def export_results(
             }
 
         if include_metrics and experiment.metrics:
+            # NOTE: if duplicate metric names exist, last value wins.
             results["metrics"] = {m.name: m.value for m in experiment.metrics}
 
         if include_code and experiment.artifacts:
@@ -214,7 +220,12 @@ def export_variant(
         raise typer.Exit(1) from None
 
     try:
-        experiment = db.get_experiment(variant_id)
+        try:
+            experiment = db.get_experiment(variant_id)
+        except Exception as e:
+            typer.echo(f"Error querying experiment database: {e}")
+            raise typer.Exit(1) from None
+
         if experiment is None:
             typer.echo(f"Error: No experiment/variant found with ID '{variant_id}'")
             raise typer.Exit(1)
@@ -246,14 +257,10 @@ def export_variant(
         (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
         if include_dependencies:
-            # Check for dependency artifacts
-            dep_artifacts = [
-                a for a in (experiment.artifacts or []) if "requirement" in a.name.lower()
-            ]
-            if dep_artifacts:
-                for dep in dep_artifacts:
-                    if dep.content:
-                        (output_dir / dep.name).write_text(dep.content)
+            # Dependency artifacts (e.g. requirements.txt) are already written by
+            # the main artifact loop above with sanitized paths. Nothing extra to
+            # do here — this flag is kept for API compatibility.
+            pass
 
         typer.echo(
             f"Variant {variant_id} exported to {output_dir} ({exported_files} artifact files)"
@@ -325,7 +332,12 @@ def export_all(
         raise typer.Exit(1) from None
 
     try:
-        experiments = db.list_experiments()
+        try:
+            experiments = db.list_experiments()
+        except Exception as e:
+            typer.echo(f"Error querying experiment database: {e}")
+            raise typer.Exit(1) from None
+
         if not experiments:
             typer.echo("No experiments found in the database.")
             raise typer.Exit(1)
