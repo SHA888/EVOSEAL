@@ -231,10 +231,8 @@
   - Created `docs/improvement_units/` with README (format spec), TEMPLATE.md, and two example units from PRs #74 and #76
   - Updated `docs/index.md` with links to the new section
 - [x] **Progressive rollout gating for self-modifications** _(done 2026-08-03)_
-  - Evolution candidates go through `candidate → beta → stable` stages before permanent adoption
-  - `candidate`: passes regression tests
-  - `beta`: survives N additional evolution cycles without regression
-  - `stable`: promoted to the main architecture
+  - [x] Design doc at `docs/architecture/progressive_rollout_gating.md` _(done 2026-08-02)_: three-stage promotion model (candidate → beta → stable) with configurable cycle threshold, automatic rollback on regression, and integration points for the evolution pipeline, continuous evolution service, and bidirectional manager
+  - [x] Implement the gating mechanism described in the design doc _(done 2026-08-03)_: `evoseal/core/rollout_gating.py` (registry, stage transitions, async-safe mutation) wired into `EvolutionPipeline._validate_improvement` and `ContinuousEvolutionService`'s per-cycle beta check
   - Pattern: analogous to OpenClaw's development channels (stable/beta/dev with npm dist-tags)
 
 ---
