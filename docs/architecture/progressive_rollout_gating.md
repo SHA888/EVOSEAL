@@ -94,7 +94,14 @@ class RolloutCandidate:
     baseline_metrics: dict  # metrics snapshot at creation time
     checkpoint_path: str  # for rollback
     rejection_reason: str | None  # regression detail when stage is "rejected"
+    rejected_at: datetime | None  # when the regression was detected
 ```
+
+Every stage transition is timestamped (`created_at`, `promoted_to_beta_at`,
+`promoted_to_stable_at`, `rejected_at`) so a candidate's full history can be
+reconstructed from the registry alone — without this, a `rejected` record says
+why it was rejected but not when, which makes post-hoc debugging of a
+regression impossible to correlate with the cycle that caused it.
 
 This can be stored as a JSON file alongside the existing version registry
 (e.g. `rollout_registry.json`) or as an extension to `ModelVersionManager`'s
@@ -143,6 +150,28 @@ each cycle:
 > (the same candidate could promote or regress depending on what else landed
 > in the interim).
 
+> **Concurrent beta candidates.** More than one candidate can occupy `beta` at
+> the same time, and they are *not* isolated from each other: all candidates
+> share a single working tree, and step 2 validates against the pipeline's
+> shared metrics history rather than re-running each candidate's change in
+> isolation. Two consequences follow, both deliberate for this first iteration:
+>
+> - **Attribution is approximate.** When several candidates are in `beta` and a
+>   regression appears, every active beta candidate sees the same failing
+>   comparison, so all of them are rejected — the design does not attempt to
+>   identify which change actually caused it. This is fail-safe (a real
+>   regression is never promoted) but not precise (innocent candidates are
+>   rejected alongside the guilty one).
+> - **Rollback is per-candidate, not layered.** Each candidate records its own
+>   `checkpoint_path` captured before its change was applied. Restoring one
+>   candidate's checkpoint therefore also discards any changes layered on top of
+>   it by later candidates. With simultaneous betas this is a blunt instrument.
+>
+> The precise alternatives — serializing beta candidates one at a time, or a
+> layered/patch-based checkpoint model that can revert a single change out of a
+> stack — are deferred (§8). Deployments that need exact attribution should set
+> `beta_cycles_required: 1` or otherwise keep at most one candidate in beta.
+
 ### 4.3 Bidirectional Manager
 
 `BidirectionalEvolutionManager.run_loop_cycle()` should be aware of rollout
@@ -166,14 +195,22 @@ rollout_gating:
   prefer_stable_for_generation: true  # generation uses stable model when available
 ```
 
+**When `enabled` is `false`,** gating is bypassed end to end and the pipeline
+behaves exactly as it does today: §4.1 registers no `RolloutCandidate` when
+`_validate_improvement` accepts a change (it is adopted permanently in one
+step), and §4.2's per-cycle beta check returns immediately without validating
+or promoting anything. Candidates already recorded in the registry from a
+previous run are left untouched — they are neither promoted nor rejected while
+gating is off, and resume being checked if it is re-enabled.
+
 ---
 
 ## 6. Rollback
 
 When a regression is detected at any stage:
 
-1. Mark the candidate as `rejected` with the regression details recorded in
-   `rejection_reason`.
+1. Mark the candidate as `rejected`, recording the regression details in
+   `rejection_reason` and the detection time in `rejected_at` (§3).
 2. If `auto_rollback_on_regression` is `true` (§5), restore the checkpoint
    captured at candidate creation time. If the candidate was `beta`, the
    working tree reverts to the pre-candidate state — the N clean cycles it
@@ -183,6 +220,9 @@ When a regression is detected at any stage:
 
 This leverages the existing `CheckpointManager` (fixed in PR #74 for path
 traversal) and is consistent with the current rollback-on-failure pattern.
+Note that with several candidates in `beta` simultaneously, restoring one
+candidate's checkpoint also discards later candidates layered on top of it —
+see the concurrency note in §4.2.
 
 ---
 
@@ -209,5 +249,9 @@ user-facing releases.
   candidates by `clean_cycles / N` and use that weight in selection.
 - **Multi-metric gates**: require stability across multiple dimensions
   (correctness, runtime, token cost) rather than a single pass/fail.
+- **Per-candidate isolation**: serialize beta candidates, or adopt a
+  layered/patch-based checkpoint model, so a regression can be attributed to
+  and reverted from a single candidate without rejecting or discarding the
+  others (§4.2).
 - **Human override**: allow manual promotion/demotion via the dashboard
   (ties into the "Human-in-the-loop feedback interface" P3 item).
