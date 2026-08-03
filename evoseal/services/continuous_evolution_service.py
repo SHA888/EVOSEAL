@@ -545,7 +545,7 @@ class ContinuousEvolutionService:
                 pass
             return tracker.get_summary(cost_per_1k)
         except Exception:
-            logger.debug("Failed to build cost summary", exc_info=True)
+            logger.warning("Failed to build cost summary", exc_info=True)
             return None
 
 
