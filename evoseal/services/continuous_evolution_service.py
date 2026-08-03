@@ -520,33 +520,30 @@ class ContinuousEvolutionService:
             "statistics": self.service_stats.copy(),
         }
         cost_summary = self.get_cost_summary()
-        if cost_summary:
+        if cost_summary is not None:
             status["cost_summary"] = cost_summary
         return status
 
     def get_cost_summary(self) -> dict[str, Any] | None:
         """Get token usage and cost data from the pipeline's budget tracker.
 
-        Returns None if the pipeline has not been initialized yet or if
-        summary retrieval fails for any reason.
+        Returns None if the pipeline has not been initialized yet.
         """
-        try:
-            if self._pipeline is None:
-                return None
-            tracker = self._pipeline.budget_tracker
-            # Use the pipeline's configured cost rate when available.
-            cost_per_1k = 0.005  # reasonable default
-            try:
-                settings = self._pipeline._settings  # noqa: SLF001
-                configured = settings.budget.cost_per_1k_tokens
-                if configured is not None:
-                    cost_per_1k = configured
-            except (AttributeError, TypeError):
-                pass
-            return tracker.get_summary(cost_per_1k)
-        except Exception:
-            logger.warning("Failed to build cost summary", exc_info=True)
+        if self._pipeline is None:
             return None
+        tracker = self._pipeline.budget_tracker
+        # Use the pipeline's configured cost rate when available.
+        from evoseal.core.budget_tracker import COST_PER_1K_DEFAULT
+
+        cost_per_1k = COST_PER_1K_DEFAULT
+        try:
+            settings = self._pipeline._settings  # noqa: SLF001
+            configured = settings.budget.cost_per_1k_tokens
+            if configured is not None:
+                cost_per_1k = configured
+        except (AttributeError, TypeError):
+            pass
+        return tracker.get_summary(cost_per_1k)
 
 
 async def main():

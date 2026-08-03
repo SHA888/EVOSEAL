@@ -2,7 +2,7 @@
 
 import pytest
 
-from evoseal.core.budget_tracker import BudgetTracker
+from evoseal.core.budget_tracker import COST_PER_1K_DEFAULT, BudgetTracker
 
 # Test constants
 DGM_TOKENS_DEFAULT = 4000
@@ -10,7 +10,6 @@ SEAL_TOKENS_PER_CYCLE = 100
 SEAL_TOKENS_PER_EPOCH = 10000
 CYCLE_TOTAL_TOKENS = 4100
 BUDGET_SAMPLE = 100000
-COST_PER_1K_DEFAULT = 0.005
 CYCLE_1_TOKENS = 4100
 CYCLE_2_TOKENS = 4200
 AVG_TOKENS_PER_CYCLE = 4150

@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+COST_PER_1K_DEFAULT: float = 0.005
+
 
 @dataclass
 class CycleRecord:
