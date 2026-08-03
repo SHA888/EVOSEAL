@@ -18,6 +18,13 @@ from evoseal.core.experiment_database import ExperimentDatabase
 # Initialize the Typer app
 app = typer.Typer(name="export", help="Export results/variants")
 
+# Default database path (relative to CWD — callers must run from project root)
+DEFAULT_DB_PATH = Path(".evoseal/experiments.db")
+
+# Artifact types considered "dependency" artifacts (e.g. requirements.txt).
+# When include_dependencies=False, these are excluded from variant exports.
+DEPENDENCY_ARTIFACT_TYPES = {"dependency", "requirements"}
+
 # Supported export formats and their file extensions
 FORMAT_SUPPORT: dict[str, list[str]] = {
     "results": ["json", "csv"],
@@ -78,14 +85,13 @@ def export_results(
         )
         raise typer.Exit(1)
 
-    db_path = Path(".evoseal/experiments.db")
-    if not db_path.exists():
-        typer.echo(f"Error: No experiment database found at {db_path}")
+    if not DEFAULT_DB_PATH.exists():
+        typer.echo(f"Error: No experiment database found at {DEFAULT_DB_PATH}")
         typer.echo("Run an evolution cycle first to generate data.")
         raise typer.Exit(1)
 
     try:
-        db = ExperimentDatabase(db_path)
+        db = ExperimentDatabase(DEFAULT_DB_PATH)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
@@ -207,20 +213,21 @@ def export_variant(
     ] = True,
 ) -> None:
     """Export a specific code variant."""
-    db_path = Path(".evoseal/experiments.db")
-    if not db_path.exists():
-        typer.echo(f"Error: No experiment database found at {db_path}")
+    if not DEFAULT_DB_PATH.exists():
+        typer.echo(f"Error: No experiment database found at {DEFAULT_DB_PATH}")
         typer.echo("Run an evolution cycle first to generate data.")
         raise typer.Exit(1)
 
     try:
-        db = ExperimentDatabase(db_path)
+        db = ExperimentDatabase(DEFAULT_DB_PATH)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
 
     try:
         try:
+            # NOTE: "variants" in the CLI map to experiments in the database.
+            # There is no separate Variant model; get_experiment is the correct lookup.
             experiment = db.get_experiment(variant_id)
         except Exception as e:
             typer.echo(f"Error querying experiment database: {e}")
@@ -234,11 +241,25 @@ def export_variant(
         output_dir.mkdir(parents=True, exist_ok=True)
 
         exported_files = 0
+        written_names: set[str] = set()
         if experiment.artifacts:
             for artifact in experiment.artifacts:
+                # Skip dependency artifacts when the flag is off
+                if not include_dependencies and artifact.artifact_type in DEPENDENCY_ARTIFACT_TYPES:
+                    continue
                 if artifact.content:
                     # Sanitize: use only the filename component to prevent path traversal
                     safe_name = Path(artifact.file_path or artifact.name).name
+                    # Deduplicate: avoid silent overwrites when multiple artifacts
+                    # collapse to the same basename
+                    if safe_name in written_names:
+                        stem = Path(safe_name).stem
+                        suffix = Path(safe_name).suffix
+                        counter = 2
+                        while f"{stem}_{counter}{suffix}" in written_names:
+                            counter += 1
+                        safe_name = f"{stem}_{counter}{suffix}"
+                    written_names.add(safe_name)
                     file_path = output_dir / safe_name
                     file_path.parent.mkdir(parents=True, exist_ok=True)
                     file_path.write_text(artifact.content)
@@ -256,11 +277,7 @@ def export_variant(
         }
         (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
-        if include_dependencies:
-            # Dependency artifacts (e.g. requirements.txt) are already written by
-            # the main artifact loop above with sanitized paths. Nothing extra to
-            # do here — this flag is kept for API compatibility.
-            pass
+        # include_dependencies filtering is handled in the artifact loop above.
 
         typer.echo(
             f"Variant {variant_id} exported to {output_dir} ({exported_files} artifact files)"
@@ -319,14 +336,13 @@ def export_all(
         )
         raise typer.Exit(1)
 
-    db_path = Path(".evoseal/experiments.db")
-    if not db_path.exists():
-        typer.echo(f"Error: No experiment database found at {db_path}")
+    if not DEFAULT_DB_PATH.exists():
+        typer.echo(f"Error: No experiment database found at {DEFAULT_DB_PATH}")
         typer.echo("Run an evolution cycle first to generate data.")
         raise typer.Exit(1)
 
     try:
-        db = ExperimentDatabase(db_path)
+        db = ExperimentDatabase(DEFAULT_DB_PATH)
     except Exception as e:
         typer.echo(f"Error reading experiment database: {e}")
         raise typer.Exit(1) from None
