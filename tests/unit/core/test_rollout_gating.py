@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,7 @@ class TestRolloutCandidate:
         assert cand.baseline_metrics == {}
         assert cand.checkpoint_path is None
         assert cand.rejection_reason is None
+        assert cand.rejected_at is None
 
     def test_to_dict_round_trip(self):
         cand = RolloutCandidate(
@@ -173,6 +175,31 @@ class TestRolloutGatingManager:
         assert rejected is not None
         assert rejected.stage == RolloutStage.REJECTED
         assert rejected.rejection_reason == "regression detected"
+        # rejected_at records *when* the regression was detected — without it a
+        # rejected candidate cannot be correlated with the cycle that caused it.
+        assert rejected.rejected_at is not None
+        datetime.fromisoformat(rejected.rejected_at)  # parses as a valid ISO timestamp
+
+    @pytest.mark.asyncio
+    async def test_rejected_at_persists_across_reload(self, tmp_registry: Path):
+        """A reloaded registry keeps rejected_at, and entries predating it still load."""
+        mgr = RolloutGatingManager(registry_dir=tmp_registry)
+        await mgr.register_candidate("c6p", {"fitness": 0.5})
+        rejected = await mgr.reject_candidate("c6p", "regression")
+
+        restored = await RolloutGatingManager(registry_dir=tmp_registry).get_candidate("c6p")
+        assert restored is not None
+        assert restored.rejected_at == rejected.rejected_at
+
+        # A registry written before rejected_at existed must still load.
+        reg_file = tmp_registry / "rollout_registry.json"
+        data = json.loads(reg_file.read_text())
+        del data["candidates"]["c6p"]["rejected_at"]
+        reg_file.write_text(json.dumps(data))
+
+        legacy = await RolloutGatingManager(registry_dir=tmp_registry).get_candidate("c6p")
+        assert legacy is not None
+        assert legacy.rejected_at is None
 
     @pytest.mark.asyncio
     async def test_rejected_candidate_not_overwritten(self, manager: RolloutGatingManager):

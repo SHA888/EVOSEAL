@@ -47,6 +47,7 @@ class RolloutCandidate:
     baseline_metrics: dict[str, Any] = field(default_factory=dict)
     checkpoint_path: str | None = None
     rejection_reason: str | None = None
+    rejected_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -240,6 +241,7 @@ class RolloutGatingManager:
             return None
         cand.stage = RolloutStage.REJECTED
         cand.rejection_reason = reason
+        cand.rejected_at = datetime.now(timezone.utc).isoformat()
         self._save_registry()
         logger.info("Rollout candidate %s rejected: %s", candidate_id, reason)
         return cand
