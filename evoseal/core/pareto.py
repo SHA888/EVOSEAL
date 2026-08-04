@@ -197,16 +197,17 @@ def hv_ratio(result: ParetoResult) -> float:
     """Compute a simple hypervolume ratio for 2-D fronts.
 
     Returns the ratio of the dominated area to the bounding-box area.
-    Only meaningful for 2 objectives. Returns 0.0 for fewer than 2
-    front points or degenerate bounding boxes.
+    Only meaningful for 2 objectives.  Handles all four combinations
+    of minimize/maximize by transforming coordinates so the dominated
+    corner is always the upper-right.
+
+    Returns 0.0 for fewer than 2 front points or degenerate bounding
+    boxes.
     """
     if len(result.front) < 2 or len(result.objective_names) != 2:
         return 0.0
 
-    front_vals = sorted(
-        [p.values for p in result.front],
-        key=lambda v: v[0],
-    )
+    minimize = result.minimize if result.minimize else [True, True]
 
     # Bounding box
     all_vals = [p.values for p in result.points]
@@ -220,14 +221,31 @@ def hv_ratio(result: ParetoResult) -> float:
     if x_range == 0 or y_range == 0:
         return 0.0
 
-    # Staircase area under the front (assumes minimize both)
+    # Transform coordinates so minimize-both formulas apply:
+    #   minimize axis → keep as-is (smaller is better → dominated region at max edge)
+    #   maximize axis → flip around range (larger is better → dominated region at min edge)
+    def _tx(v: float) -> float:
+        return v if minimize[0] else (x_max + x_min - v)
+
+    def _ty(v: float) -> float:
+        return v if minimize[1] else (y_max + y_min - v)
+
+    front_vals = sorted(
+        [(_tx(v[0]), _ty(v[1])) for v in (p.values for p in result.front)],
+        key=lambda v: v[0],
+    )
+
+    # After transform, dominated corner is always (x_max, y_max)
+    tx_max = max(v[0] for v in front_vals)
+    ty_max = max(v[1] for v in front_vals)
+
+    # Staircase area between the front and the (tx_max, ty_max) edge
     area = 0.0
     prev_x, prev_y = front_vals[0]
     for x, y in front_vals[1:]:
-        area += (x - prev_x) * (y_max - prev_y)
+        area += (x - prev_x) * (ty_max - prev_y)
         prev_x, prev_y = x, y
-    # Last segment
-    area += (x_max - prev_x) * (y_max - prev_y)
+    area += (tx_max - prev_x) * (ty_max - prev_y)
 
     return area / (x_range * y_range)
 
@@ -381,8 +399,16 @@ def generate_pareto_svg(
         f'fill="none" stroke="#ccc" stroke-width="1"/>'
     )
 
-    # Connect front points with a polyline (sorted by x)
-    front_sorted = sorted(result.front, key=lambda p: p.values[0])
+    # Connect front points with a polyline.
+    # Sort direction depends on objective sense: for minimize we go
+    # left-to-right (ascending x); for maximize we go right-to-left
+    # so the polyline traces the frontier cleanly.
+    minimize = result.minimize if result.minimize else [True, True]
+    front_sorted = sorted(
+        result.front,
+        key=lambda p: p.values[0],
+        reverse=not minimize[0],
+    )
     if len(front_sorted) >= 2:
         polyline_pts = " ".join(
             f"{scale_x(p.values[0]):.1f},{scale_y(p.values[1]):.1f}" for p in front_sorted
@@ -426,7 +452,7 @@ def generate_pareto_svg(
             f'<rect x="{legend_x - 8}" y="{legend_y - 5}" width="135" '
             f'height="{legend_h}" fill="white" stroke="#ddd" rx="4"/>'
         )
-        for idx, (gen, color) in enumerate(sorted(generations.items())):
+        for idx, (gen, color) in enumerate(sorted(generations.items(), key=lambda kv: str(kv[0]))):
             yy = legend_y + idx * 20
             parts.append(f'<circle cx="{legend_x}" cy="{yy}" r="5" fill="{color}"/>')
             parts.append(f'<text x="{legend_x + 12}" y="{yy + 4}" font-size="11">Gen {gen}</text>')
