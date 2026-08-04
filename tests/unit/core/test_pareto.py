@@ -154,6 +154,16 @@ class TestHvRatio:
         ratio = hv_ratio(result)
         assert ratio == pytest.approx(0.25)
 
+    def test_dominated_point_extends_bbox(self):
+        # A dominated point extends the bounding box beyond the front's extremes.
+        # Front: (1,1), (2,0.5); dominated: (5,5) extends bbox to (1..5, 0.5..5).
+        # Staircase area to bbox corner (5,5) = 1*4 + 3*4.5 = 17.5
+        # Bbox area = 4 * 4.5 = 18.  Ratio ≈ 0.9722.
+        points = [(1, 1), (2, 0.5), (5, 5)]
+        result = compute_pareto_front(points)
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(17.5 / 18.0)
+
     def test_single_point_front(self):
         result = compute_pareto_front([(1, 1)])
         assert hv_ratio(result) == 0.0

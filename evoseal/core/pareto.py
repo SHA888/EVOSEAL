@@ -235,9 +235,11 @@ def hv_ratio(result: ParetoResult) -> float:
         key=lambda v: v[0],
     )
 
-    # After transform, dominated corner is always (x_max, y_max)
-    tx_max = max(v[0] for v in front_vals)
-    ty_max = max(v[1] for v in front_vals)
+    # After transform, dominated corner is always (x_max, y_max).
+    # Use the bounding-box maxes directly — front-only maxes miss dominated
+    # points that extend further, producing a wrong (too-small) staircase area.
+    tx_max = x_max
+    ty_max = y_max
 
     # Staircase area between the front and the (tx_max, ty_max) edge
     area = 0.0
