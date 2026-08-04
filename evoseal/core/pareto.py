@@ -198,7 +198,10 @@ def compute_pareto_front_from_experiments(
         metrics = exp.get("metrics") or {}
         if not all(name in metrics for name in objective_names):
             continue
-        pt = tuple(float(metrics[name]) for name in objective_names)
+        try:
+            pt = tuple(float(metrics[name]) for name in objective_names)
+        except (ValueError, TypeError):
+            continue
         points.append(pt)
         labels.append(exp.get("name", exp.get("id", "")))
         metadata.append({"experiment_id": exp.get("id", ""), "metrics": metrics})
@@ -289,10 +292,6 @@ _GEN_COLORS = [
 ]
 
 
-def _clamp(val: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, val))
-
-
 def generate_pareto_svg(
     result: ParetoResult,
     width: int = 700,
@@ -349,16 +348,20 @@ def generate_pareto_svg(
         return mt + plot_h - (v - y_min) / (y_max - y_min) * plot_h
 
     # Gather unique generations for coloring
-    generations: dict[int, str] = {}
+    generations: dict[str, str] = {}
     for p in result.points:
         gen = p.metadata.get(generation_key)
-        if gen is not None and gen not in generations:
-            generations[gen] = _GEN_COLORS[len(generations) % len(_GEN_COLORS)]
+        if gen is not None:
+            gen_str = str(gen)
+            if gen_str not in generations:
+                generations[gen_str] = _GEN_COLORS[len(generations) % len(_GEN_COLORS)]
 
     def point_color(p: ParetoPoint) -> str:
         gen = p.metadata.get(generation_key)
-        if gen is not None and gen in generations:
-            return generations[gen]
+        if gen is not None:
+            gen_str = str(gen)
+            if gen_str in generations:
+                return generations[gen_str]
         return "#888888"
 
     parts: list[str] = []
@@ -472,10 +475,17 @@ def generate_pareto_svg(
             f'<rect x="{legend_x - 8}" y="{legend_y - 5}" width="135" '
             f'height="{legend_h}" fill="white" stroke="#ddd" rx="4"/>'
         )
-        for idx, (gen, color) in enumerate(sorted(generations.items(), key=lambda kv: kv[0])):
+        for idx, (gen, color) in enumerate(
+            sorted(
+                generations.items(),
+                key=lambda kv: (0, int(kv[0])) if kv[0].isdigit() else (1, kv[0]),
+            )
+        ):
             yy = legend_y + idx * 20
             parts.append(f'<circle cx="{legend_x}" cy="{yy}" r="5" fill="{color}"/>')
-            parts.append(f'<text x="{legend_x + 12}" y="{yy + 4}" font-size="11">Gen {gen}</text>')
+            parts.append(
+                f'<text x="{legend_x + 12}" y="{yy + 4}" font-size="11">Gen {html.escape(gen)}</text>'
+            )
 
     # Summary stats
     hv = hv_ratio(result)

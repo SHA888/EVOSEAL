@@ -171,6 +171,16 @@ class TestComputeParetoFrontFromExperiments:
         result = compute_pareto_front_from_experiments(experiments, ["x", "y"])
         assert len(result.points) == 2
 
+    def test_non_numeric_metrics_skipped(self):
+        """Experiment with a non-numeric metric value should be skipped, not crash."""
+        experiments = [
+            {"id": "a", "metrics": {"x": 1, "y": 2}},
+            {"id": "b", "metrics": {"x": "high", "y": 3}},
+            {"id": "c", "metrics": {"x": 2, "y": 1}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["x", "y"])
+        assert len(result.points) == 2  # b was skipped
+
     def test_objective_names_preserved(self):
         """Returned result should carry the original metric names, not generic objective_0 etc."""
         experiments = [
@@ -294,6 +304,18 @@ class TestGenerateSvg:
         pos_4 = svg.index("Gen 4")
         pos_10 = svg.index("Gen 10")
         assert pos_1 < pos_2 < pos_4 < pos_10
+
+    def test_generation_mixed_types_no_crash(self):
+        """Mixed int/string generation keys should not crash on sort."""
+        points = [(1, 5), (2, 4), (3, 3)]
+        result = compute_pareto_front(
+            points,
+            metadata=[{"generation": 1}, {"generation": "two"}, {"generation": 3}],
+        )
+        svg = generate_pareto_svg(result)
+        assert "Gen 1" in svg
+        assert "Gen two" in svg
+        assert "Gen 3" in svg
 
     def test_front_line(self):
         result = self._make_2d_result()
