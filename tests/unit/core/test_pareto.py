@@ -1,0 +1,371 @@
+"""Tests for Pareto front computation and SVG visualization."""
+
+from __future__ import annotations
+
+import pytest
+
+from evoseal.core.pareto import (
+    ParetoPoint,
+    ParetoResult,
+    compute_pareto_front,
+    compute_pareto_front_from_experiments,
+    dominates,
+    generate_pareto_svg,
+    hv_ratio,
+)
+
+pytestmark = pytest.mark.unit
+
+
+class TestDominates:
+    """Tests for the dominates() helper."""
+
+    def test_dominates_min_all(self):
+        assert dominates((1, 2), (3, 4)) is True
+        assert dominates((3, 4), (1, 2)) is False
+
+    def test_dominates_equal_not_strict(self):
+        assert dominates((1, 2), (1, 2)) is False
+
+    def test_dominates_one_better_one_equal(self):
+        assert dominates((1, 2), (1, 3)) is True
+        assert dominates((1, 3), (1, 2)) is False
+
+    def test_dominates_tradeoff_no_dominance(self):
+        assert dominates((1, 5), (3, 2)) is False
+        assert dominates((3, 2), (1, 5)) is False
+
+    def test_dominates_maximize(self):
+        assert dominates((5, 5), (3, 3), minimize=[False, False]) is True
+        assert dominates((3, 3), (5, 5), minimize=[False, False]) is False
+
+    def test_dominates_mixed_objectives(self):
+        # minimize first, maximize second
+        assert dominates((1, 5), (3, 2), minimize=[True, False]) is True
+        assert dominates((3, 2), (1, 5), minimize=[True, False]) is False
+
+    def test_dominates_dimension_mismatch(self):
+        with pytest.raises(ValueError, match="dimensions differ"):
+            dominates((1,), (2, 3))
+
+    def test_dominates_minimize_length_mismatch(self):
+        with pytest.raises(ValueError, match="minimize length"):
+            dominates((1, 2), (3, 4), minimize=[True])
+
+    def test_dominates_nan_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            dominates((float("nan"), 2), (3, 4))
+
+    def test_dominates_inf_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            dominates((1, 2), (3, float("inf")))
+
+
+class TestComputeParetoFront:
+    """Tests for compute_pareto_front()."""
+
+    def test_empty_points(self):
+        with pytest.raises(ValueError, match="empty"):
+            compute_pareto_front([])
+
+    def test_single_point(self):
+        result = compute_pareto_front([(1.0, 2.0)])
+        assert len(result.front_indices) == 1
+        assert result.front[0].values == (1.0, 2.0)
+
+    def test_two_dominated_points(self):
+        result = compute_pareto_front([(1, 2), (3, 4)])
+        assert result.front_indices == [0]
+        assert result.points[1].dominated is True
+
+    def test_two_non_dominated_points(self):
+        result = compute_pareto_front([(1, 5), (3, 2)])
+        assert len(result.front_indices) == 2
+        assert all(not p.dominated for p in result.points)
+
+    def test_classic_pareto(self):
+        points = [(1, 5), (2, 4), (3, 3), (4, 2), (5, 1)]
+        result = compute_pareto_front(points)
+        # All are on the front (each is best in one objective)
+        assert len(result.front_indices) == 5
+
+    def test_dominated_in_middle(self):
+        points = [(1, 5), (2, 4), (3, 3), (4, 2), (5, 1), (3, 4)]
+        result = compute_pareto_front(points)
+        assert 5 not in result.front_indices  # (3, 4) is dominated
+        assert result.points[5].dominated is True
+
+    def test_maximize_objectives(self):
+        points = [(1, 1), (3, 3), (2, 2)]
+        result = compute_pareto_front(points, minimize=[False, False])
+        assert result.front_indices == [1]  # (3, 3) dominates all
+
+    def test_three_dimensions(self):
+        points = [(1, 1, 1), (2, 2, 2), (1, 2, 2), (2, 1, 2)]
+        result = compute_pareto_front(points)
+        # (1,1,1) dominates all others
+        assert result.front_indices == [0]
+
+    def test_labels_preserved(self):
+        result = compute_pareto_front(
+            [(1, 5), (3, 2)],
+            labels=["A", "B"],
+        )
+        assert result.front[0].label == "A"
+        assert result.front[1].label == "B"
+
+    def test_metadata_preserved(self):
+        meta = [{"id": "a"}, {"id": "b"}]
+        result = compute_pareto_front([(1, 5), (3, 2)], metadata=meta)
+        assert result.front[0].metadata == {"id": "a"}
+
+    def test_inconsistent_dimensions(self):
+        with pytest.raises(ValueError, match="same number of dimensions"):
+            compute_pareto_front([(1, 2), (3,)])
+
+    def test_labels_length_mismatch(self):
+        with pytest.raises(ValueError, match="labels length"):
+            compute_pareto_front([(1, 2), (3, 4)], labels=["A"])
+
+    def test_metadata_length_mismatch(self):
+        with pytest.raises(ValueError, match="metadata length"):
+            compute_pareto_front([(1, 2), (3, 4)], metadata=[{"id": 1}])
+
+    def test_nan_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            compute_pareto_front([(1, float("nan")), (3, 4)])
+
+    def test_inf_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            compute_pareto_front([(1, float("inf")), (3, 4)])
+
+
+class TestComputeParetoFrontFromExperiments:
+    """Tests for compute_pareto_front_from_experiments()."""
+
+    def test_basic(self):
+        experiments = [
+            {"id": "exp1", "metrics": {"accuracy": 0.9, "latency": 100}},
+            {"id": "exp2", "metrics": {"accuracy": 0.8, "latency": 50}},
+            {"id": "exp3", "metrics": {"accuracy": 0.95, "latency": 200}},
+        ]
+        result = compute_pareto_front_from_experiments(
+            experiments, ["accuracy", "latency"], minimize=[False, True]
+        )
+        # No experiment dominates another — all 3 trade off differently
+        assert len(result.front) == 3
+
+    def test_missing_metrics_skipped(self):
+        experiments = [
+            {"id": "a", "metrics": {"x": 1, "y": 2}},
+            {"id": "b", "metrics": {"x": 3}},  # missing y
+            {"id": "c", "metrics": {"x": 2, "y": 1}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["x", "y"])
+        assert len(result.points) == 2  # b was skipped
+
+    def test_all_missing(self):
+        experiments = [{"id": "a", "metrics": {"x": 1}}]
+        with pytest.raises(ValueError, match="No experiments"):
+            compute_pareto_front_from_experiments(experiments, ["x", "y"])
+
+    def test_metrics_none_skipped(self):
+        """Experiment with metrics=None should be skipped, not raise TypeError."""
+        experiments = [
+            {"id": "a", "metrics": {"x": 1, "y": 2}},
+            {"id": "b", "metrics": None},
+            {"id": "c", "metrics": {"x": 2, "y": 1}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["x", "y"])
+        assert len(result.points) == 2
+
+    def test_non_numeric_metrics_skipped(self):
+        """Experiment with a non-numeric metric value should be skipped, not crash."""
+        experiments = [
+            {"id": "a", "metrics": {"x": 1, "y": 2}},
+            {"id": "b", "metrics": {"x": "high", "y": 3}},
+            {"id": "c", "metrics": {"x": 2, "y": 1}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["x", "y"])
+        assert len(result.points) == 2  # b was skipped
+
+    def test_objective_names_preserved(self):
+        """Returned result should carry the original metric names, not generic objective_0 etc."""
+        experiments = [
+            {"id": "a", "metrics": {"accuracy": 0.9, "latency": 100}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["accuracy", "latency"])
+        assert result.objective_names == ["accuracy", "latency"]
+
+
+class TestHvRatio:
+    """Tests for hv_ratio()."""
+
+    def test_maximize_both(self):
+        # maximize both: (1,1),(3,3),(2,2) — only (3,3) survives
+        result = compute_pareto_front([(1, 1), (3, 3), (2, 2)], minimize=[False, False])
+        assert hv_ratio(result) == 0.0  # single front point
+
+    def test_mixed_objectives(self):
+        # minimize first, maximize second
+        # (1,3) and (3,5) trade off: 1<3 on first, 3<5 on second
+        # (5,1) is dominated by both
+        result = compute_pareto_front([(1, 3), (3, 5), (5, 1)], minimize=[True, False])
+        assert len(result.front) == 2
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(0.75)  # 12/16
+
+    def test_maximize_with_dominated_area(self):
+        # maximize both: front (2,3),(3,2); dominated: (1,1),(2,2)
+        result = compute_pareto_front([(1, 1), (2, 3), (3, 2), (2, 2)], minimize=[False, False])
+        assert len(result.front) == 2
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(0.75)  # 3/4
+
+    def test_perfect_front(self):
+        # Points on anti-diagonal: staircase area is 25/100 = 0.25
+        points = [(0, 10), (5, 5), (10, 0)]
+        result = compute_pareto_front(points)
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(0.25)
+
+    def test_dominated_point_extends_bbox(self):
+        # A dominated point extends the bounding box beyond the front's extremes.
+        # Front: (1,1), (2,0.5); dominated: (5,5) extends bbox to (1..5, 0.5..5).
+        # Staircase area to bbox corner (5,5) = 1*4 + 3*4.5 = 17.5
+        # Bbox area = 4 * 4.5 = 18.  Ratio ≈ 0.9722.
+        points = [(1, 1), (2, 0.5), (5, 5)]
+        result = compute_pareto_front(points)
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(17.5 / 18.0)
+
+    def test_single_point_front(self):
+        result = compute_pareto_front([(1, 1)])
+        assert hv_ratio(result) == 0.0
+
+    def test_three_dimensions_returns_zero(self):
+        result = compute_pareto_front([(1, 2, 3), (4, 5, 6)])
+        assert hv_ratio(result) == 0.0
+
+
+class TestGenerateSvg:
+    """Tests for generate_pareto_svg()."""
+
+    def _make_2d_result(self):
+        points = [(1, 5), (2, 4), (3, 3), (4, 2), (5, 1), (3, 4)]
+        return compute_pareto_front(
+            points,
+            labels=["A", "B", "C", "D", "E", "F"],
+            metadata=[{"generation": i} for i in range(6)],
+        )
+
+    def test_basic_svg(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result)
+        assert svg.startswith("<svg")
+        assert "</svg>" in svg
+        assert "Pareto Front" in svg
+
+    def test_custom_labels(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result, x_label="Correctness", y_label="Speed")
+        assert "Correctness" in svg
+        assert "Speed" in svg
+
+    def test_custom_title(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result, title="My Chart")
+        assert "My Chart" in svg
+
+    def test_three_dimensions_raises(self):
+        result = compute_pareto_front([(1, 2, 3)])
+        with pytest.raises(ValueError, match="2 objectives"):
+            generate_pareto_svg(result)
+
+    def test_contains_front_stats(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result)
+        assert "Front:" in svg
+        assert "HV ratio:" in svg
+
+    def test_contains_circles(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result)
+        assert "<circle" in svg
+
+    def test_generation_legend(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result)
+        assert "Gen" in svg
+
+    def test_generation_legend_sorted_numerically(self):
+        # Verify double-digit generations sort correctly (not lexicographically)
+        points = [(1, 5), (2, 4), (3, 3), (4, 2), (5, 1)]
+        result = compute_pareto_front(
+            points,
+            metadata=[{"generation": i} for i in [1, 10, 2, 3, 4]],
+        )
+        svg = generate_pareto_svg(result)
+        # Gen 10 should appear AFTER Gen 4, not between Gen 1 and Gen 2
+        pos_1 = svg.index("Gen 1")
+        pos_2 = svg.index("Gen 2")
+        pos_4 = svg.index("Gen 4")
+        pos_10 = svg.index("Gen 10")
+        assert pos_1 < pos_2 < pos_4 < pos_10
+
+    def test_generation_mixed_types_no_crash(self):
+        """Mixed int/string generation keys should not crash on sort."""
+        points = [(1, 5), (2, 4), (3, 3)]
+        result = compute_pareto_front(
+            points,
+            metadata=[{"generation": 1}, {"generation": "two"}, {"generation": 3}],
+        )
+        svg = generate_pareto_svg(result)
+        assert "Gen 1" in svg
+        assert "Gen two" in svg
+        assert "Gen 3" in svg
+
+    def test_front_line(self):
+        result = self._make_2d_result()
+        svg = generate_pareto_svg(result)
+        assert "polyline" in svg
+
+    def test_width_too_small_raises(self):
+        result = self._make_2d_result()
+        with pytest.raises(ValueError, match="width.*greater than"):
+            generate_pareto_svg(result, width=50)
+
+    def test_height_too_small_raises(self):
+        result = self._make_2d_result()
+        with pytest.raises(ValueError, match="height.*greater than"):
+            generate_pareto_svg(result, height=50)
+
+    def test_generation_negative_ids_sorted_numerically(self):
+        """Negative generation ids should sort numerically, not lexicographically."""
+        points = [(1, 5), (2, 4), (3, 3)]
+        result = compute_pareto_front(
+            points,
+            metadata=[{"generation": -1}, {"generation": 0}, {"generation": 2}],
+        )
+        svg = generate_pareto_svg(result)
+        # Gen -1, Gen 0, Gen 2 should appear in that order
+        pos_neg1 = svg.index("Gen -1")
+        pos_0 = svg.index("Gen 0")
+        pos_2 = svg.index("Gen 2")
+        assert pos_neg1 < pos_0 < pos_2
+
+
+class TestParetoResultProperties:
+    """Tests for ParetoResult convenience properties."""
+
+    def test_front_property(self):
+        result = compute_pareto_front([(1, 5), (3, 2), (2, 4)])
+        front = result.front
+        assert all(not p.dominated for p in front)
+
+    def test_dominated_points_property(self):
+        points = [(1, 5), (3, 2), (2, 4), (3, 5)]
+        result = compute_pareto_front(points)
+        dominated = result.dominated_points
+        assert all(p.dominated for p in dominated)
+        assert len(dominated) + len(result.front) == len(points)
