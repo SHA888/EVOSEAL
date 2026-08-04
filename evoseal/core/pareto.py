@@ -8,6 +8,7 @@ competing objectives (e.g., correctness vs. efficiency, fitness vs. cost).
 from __future__ import annotations
 
 import html
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -119,6 +120,12 @@ def compute_pareto_front(
     if len(minimize) != n_dims:
         raise ValueError(f"minimize length ({len(minimize)}) must match point dimension ({n_dims})")
 
+    # Reject non-finite objective values
+    for i, pt in enumerate(points):
+        for j, v in enumerate(pt):
+            if not math.isfinite(v):
+                raise ValueError(f"Point {i} has non-finite value {v} in objective {j}")
+
     n = len(points)
     is_dominated = [False] * n
 
@@ -134,6 +141,15 @@ def compute_pareto_front(
             elif dominates(points[j], points[i], minimize):
                 is_dominated[i] = True
                 break
+
+    if labels is not None and len(labels) != len(points):
+        raise ValueError(
+            f"labels length ({len(labels)}) must match number of points ({len(points)})"
+        )
+    if metadata is not None and len(metadata) != len(points):
+        raise ValueError(
+            f"metadata length ({len(metadata)}) must match number of points ({len(points)})"
+        )
 
     pareto_points = []
     front_indices = []
@@ -179,7 +195,7 @@ def compute_pareto_front_from_experiments(
     labels = []
     metadata = []
     for exp in experiments:
-        metrics = exp.get("metrics", {})
+        metrics = exp.get("metrics") or {}
         if not all(name in metrics for name in objective_names):
             continue
         pt = tuple(float(metrics[name]) for name in objective_names)
@@ -190,7 +206,9 @@ def compute_pareto_front_from_experiments(
     if not points:
         raise ValueError(f"No experiments have all required metrics: {objective_names}")
 
-    return compute_pareto_front(points, minimize=minimize, labels=labels, metadata=metadata)
+    result = compute_pareto_front(points, minimize=minimize, labels=labels, metadata=metadata)
+    result.objective_names = list(objective_names)
+    return result
 
 
 def hv_ratio(result: ParetoResult) -> float:
@@ -454,7 +472,7 @@ def generate_pareto_svg(
             f'<rect x="{legend_x - 8}" y="{legend_y - 5}" width="135" '
             f'height="{legend_h}" fill="white" stroke="#ddd" rx="4"/>'
         )
-        for idx, (gen, color) in enumerate(sorted(generations.items(), key=lambda kv: str(kv[0]))):
+        for idx, (gen, color) in enumerate(sorted(generations.items(), key=lambda kv: kv[0])):
             yy = legend_y + idx * 20
             parts.append(f'<circle cx="{legend_x}" cy="{yy}" r="5" fill="{color}"/>')
             parts.append(f'<text x="{legend_x + 12}" y="{yy + 4}" font-size="11">Gen {gen}</text>')

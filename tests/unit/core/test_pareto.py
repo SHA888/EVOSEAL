@@ -14,6 +14,8 @@ from evoseal.core.pareto import (
     hv_ratio,
 )
 
+pytestmark = pytest.mark.unit
+
 
 class TestDominates:
     """Tests for the dominates() helper."""
@@ -113,6 +115,22 @@ class TestComputeParetoFront:
         with pytest.raises(ValueError, match="same number of dimensions"):
             compute_pareto_front([(1, 2), (3,)])
 
+    def test_labels_length_mismatch(self):
+        with pytest.raises(ValueError, match="labels length"):
+            compute_pareto_front([(1, 2), (3, 4)], labels=["A"])
+
+    def test_metadata_length_mismatch(self):
+        with pytest.raises(ValueError, match="metadata length"):
+            compute_pareto_front([(1, 2), (3, 4)], metadata=[{"id": 1}])
+
+    def test_nan_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            compute_pareto_front([(1, float("nan")), (3, 4)])
+
+    def test_inf_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            compute_pareto_front([(1, float("inf")), (3, 4)])
+
 
 class TestComputeParetoFrontFromExperiments:
     """Tests for compute_pareto_front_from_experiments()."""
@@ -143,9 +161,48 @@ class TestComputeParetoFrontFromExperiments:
         with pytest.raises(ValueError, match="No experiments"):
             compute_pareto_front_from_experiments(experiments, ["x", "y"])
 
+    def test_metrics_none_skipped(self):
+        """Experiment with metrics=None should be skipped, not raise TypeError."""
+        experiments = [
+            {"id": "a", "metrics": {"x": 1, "y": 2}},
+            {"id": "b", "metrics": None},
+            {"id": "c", "metrics": {"x": 2, "y": 1}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["x", "y"])
+        assert len(result.points) == 2
+
+    def test_objective_names_preserved(self):
+        """Returned result should carry the original metric names, not generic objective_0 etc."""
+        experiments = [
+            {"id": "a", "metrics": {"accuracy": 0.9, "latency": 100}},
+        ]
+        result = compute_pareto_front_from_experiments(experiments, ["accuracy", "latency"])
+        assert result.objective_names == ["accuracy", "latency"]
+
 
 class TestHvRatio:
     """Tests for hv_ratio()."""
+
+    def test_maximize_both(self):
+        # maximize both: (1,1),(3,3),(2,2) — only (3,3) survives
+        result = compute_pareto_front([(1, 1), (3, 3), (2, 2)], minimize=[False, False])
+        assert hv_ratio(result) == 0.0  # single front point
+
+    def test_mixed_objectives(self):
+        # minimize first, maximize second
+        # (1,3) and (3,5) trade off: 1<3 on first, 3<5 on second
+        # (5,1) is dominated by both
+        result = compute_pareto_front([(1, 3), (3, 5), (5, 1)], minimize=[True, False])
+        assert len(result.front) == 2
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(0.75)  # 12/16
+
+    def test_maximize_with_dominated_area(self):
+        # maximize both: front (2,3),(3,2); dominated: (1,1),(2,2)
+        result = compute_pareto_front([(1, 1), (2, 3), (3, 2), (2, 2)], minimize=[False, False])
+        assert len(result.front) == 2
+        ratio = hv_ratio(result)
+        assert ratio == pytest.approx(0.75)  # 3/4
 
     def test_perfect_front(self):
         # Points on anti-diagonal: staircase area is 25/100 = 0.25
@@ -222,6 +279,21 @@ class TestGenerateSvg:
         result = self._make_2d_result()
         svg = generate_pareto_svg(result)
         assert "Gen" in svg
+
+    def test_generation_legend_sorted_numerically(self):
+        # Verify double-digit generations sort correctly (not lexicographically)
+        points = [(1, 5), (2, 4), (3, 3), (4, 2), (5, 1)]
+        result = compute_pareto_front(
+            points,
+            metadata=[{"generation": i} for i in [1, 10, 2, 3, 4]],
+        )
+        svg = generate_pareto_svg(result)
+        # Gen 10 should appear AFTER Gen 4, not between Gen 1 and Gen 2
+        pos_1 = svg.index("Gen 1")
+        pos_2 = svg.index("Gen 2")
+        pos_4 = svg.index("Gen 4")
+        pos_10 = svg.index("Gen 10")
+        assert pos_1 < pos_2 < pos_4 < pos_10
 
     def test_front_line(self):
         result = self._make_2d_result()
