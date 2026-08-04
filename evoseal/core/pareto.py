@@ -64,6 +64,14 @@ def dominates(
     if len(a) != len(b):
         raise ValueError(f"Point dimensions differ: {len(a)} vs {len(b)}")
 
+    # Reject non-finite values — NaN comparisons are always False in
+    # Python, so NaN/Inf silently corrupt dominance results.
+    for i, (va, vb) in enumerate(zip(a, b)):
+        if not math.isfinite(va):
+            raise ValueError(f"Point a has non-finite value {va} in objective {i}")
+        if not math.isfinite(vb):
+            raise ValueError(f"Point b has non-finite value {vb} in objective {i}")
+
     if minimize is None:
         minimize = [True] * len(a)
 
@@ -277,6 +285,15 @@ def hv_ratio(result: ParetoResult) -> float:
 # SVG visualization
 # ---------------------------------------------------------------------------
 
+
+def _try_int(s: str) -> int | None:
+    """Return int(s) if possible, else None — unlike str.isdigit(), handles '-'."""
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
 # Default color palette for generations
 _GEN_COLORS = [
     "#4e79a7",
@@ -324,6 +341,10 @@ def generate_pareto_svg(
         )
 
     mt, mr, mb, ml = 60, 30, 60, 70  # margins
+    if width <= ml + mr:
+        raise ValueError(f"width ({width}) must be greater than horizontal margins ({ml + mr})")
+    if height <= mt + mb:
+        raise ValueError(f"height ({height}) must be greater than vertical margins ({mt + mb})")
     plot_w = width - ml - mr
     plot_h = height - mt - mb
 
@@ -478,7 +499,7 @@ def generate_pareto_svg(
         for idx, (gen, color) in enumerate(
             sorted(
                 generations.items(),
-                key=lambda kv: (0, int(kv[0])) if kv[0].isdigit() else (1, kv[0]),
+                key=lambda kv: (0, int(kv[0])) if _try_int(kv[0]) is not None else (1, kv[0]),
             )
         ):
             yy = legend_y + idx * 20

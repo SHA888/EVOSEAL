@@ -52,6 +52,14 @@ class TestDominates:
         with pytest.raises(ValueError, match="minimize length"):
             dominates((1, 2), (3, 4), minimize=[True])
 
+    def test_dominates_nan_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            dominates((float("nan"), 2), (3, 4))
+
+    def test_dominates_inf_rejected(self):
+        with pytest.raises(ValueError, match="non-finite"):
+            dominates((1, 2), (3, float("inf")))
+
 
 class TestComputeParetoFront:
     """Tests for compute_pareto_front()."""
@@ -321,6 +329,30 @@ class TestGenerateSvg:
         result = self._make_2d_result()
         svg = generate_pareto_svg(result)
         assert "polyline" in svg
+
+    def test_width_too_small_raises(self):
+        result = self._make_2d_result()
+        with pytest.raises(ValueError, match="width.*greater than"):
+            generate_pareto_svg(result, width=50)
+
+    def test_height_too_small_raises(self):
+        result = self._make_2d_result()
+        with pytest.raises(ValueError, match="height.*greater than"):
+            generate_pareto_svg(result, height=50)
+
+    def test_generation_negative_ids_sorted_numerically(self):
+        """Negative generation ids should sort numerically, not lexicographically."""
+        points = [(1, 5), (2, 4), (3, 3)]
+        result = compute_pareto_front(
+            points,
+            metadata=[{"generation": -1}, {"generation": 0}, {"generation": 2}],
+        )
+        svg = generate_pareto_svg(result)
+        # Gen -1, Gen 0, Gen 2 should appear in that order
+        pos_neg1 = svg.index("Gen -1")
+        pos_0 = svg.index("Gen 0")
+        pos_2 = svg.index("Gen 2")
+        assert pos_neg1 < pos_0 < pos_2
 
 
 class TestParetoResultProperties:
