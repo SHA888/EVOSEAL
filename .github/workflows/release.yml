@@ -34,7 +34,6 @@ on:
 # Environment variables available to all jobs
 env:
   PYTHON_VERSION: '3.10'
-  POETRY_VERSION: '1.8.0'
 
 jobs:
   release:

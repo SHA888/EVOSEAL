@@ -235,8 +235,8 @@ generate_release_notes() {
     mkdir -p "$release_notes_dir"
 
     # Generate release notes using the existing script
-    if [ -f "$REPO_ROOT/scripts/auto_generate_release_notes.py" ]; then
-        python3 "$REPO_ROOT/scripts/auto_generate_release_notes.py" "v${version}" --output-dir "$release_notes_dir"
+    if [ -f "$REPO_ROOT/scripts/lib/release/auto_generate_release_notes.py" ]; then
+        python3 "$REPO_ROOT/scripts/lib/release/auto_generate_release_notes.py" "v${version}" --output-dir "$release_notes_dir"
     else
         print_warning "auto_generate_release_notes.py not found. Creating minimal release notes."
         cat > "${release_notes_dir}/RELEASE_NOTES.md" << EOF
