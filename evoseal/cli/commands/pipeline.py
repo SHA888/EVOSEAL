@@ -422,9 +422,42 @@ def manage_config(
     config = pipeline_config.load_config()
 
     if edit:
-        # TODO: Implement interactive configuration editing
-        console.print("[yellow]Interactive editing not yet implemented[/yellow]")
-        console.print(f"[dim]Edit configuration file directly: {PIPELINE_CONFIG_FILE}[/dim]")
+        editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
+        if not editor:
+            console.print(
+                "[red]No editor found. Set $EDITOR or $VISUAL environment variable.[/red]"
+            )
+            console.print(
+                f"[dim]Alternatively, edit the file directly: {PIPELINE_CONFIG_FILE}[/dim]"
+            )
+            raise typer.Exit(1)
+
+        # Ensure config file exists before opening editor
+        if not os.path.exists(PIPELINE_CONFIG_FILE):
+            pipeline_config.save_config(pipeline_config.get_default_config())
+
+        import subprocess
+
+        try:
+            subprocess.run([editor, PIPELINE_CONFIG_FILE], check=True)
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]Editor exited with error: {e}[/red]")
+            raise typer.Exit(1) from None
+        except FileNotFoundError:
+            console.print(f"[red]Editor not found: {editor}[/red]")
+            raise typer.Exit(1) from None
+
+        # Validate the edited config is valid JSON
+        try:
+            with open(PIPELINE_CONFIG_FILE) as f:
+                json.load(f)
+            console.print("[green]Configuration updated successfully[/green]")
+        except (json.JSONDecodeError, OSError):
+            console.print(
+                "[red]Warning: edited configuration is not valid JSON. "
+                "Reverting to previous configuration.[/red]"
+            )
+            pipeline_config.save_config(config)
 
     if show or not any([edit, set_param, reset]):
         show_config_summary(config)
@@ -445,9 +478,7 @@ def show_logs(
         return
 
     if follow:
-        # TODO: Implement log following
-        console.print("[yellow]Log following not yet implemented[/yellow]")
-        console.print(f"[dim]Use: tail -f {PIPELINE_LOG_FILE}[/dim]")
+        follow_logs(PIPELINE_LOG_FILE, lines, level)
         return
 
     try:
@@ -517,6 +548,65 @@ def debug_pipeline(
 
 
 # Helper functions
+
+
+def follow_logs(log_file: str, initial_lines: int = 50, level: str | None = None):
+    """Follow log file in real-time, similar to 'tail -f'.
+
+    Prints the last *initial_lines* lines first, then watches for new content.
+    Press Ctrl-C to stop.
+    """
+    if not os.path.exists(log_file):
+        console.print(f"[red]Log file not found: {log_file}[/red]")
+        raise typer.Exit(1)
+
+    # Show the last N existing lines first
+    try:
+        with open(log_file) as f:
+            existing = f.readlines()
+        for line in existing[-initial_lines:]:
+            stripped = line.strip()
+            if level and level.upper() not in stripped:
+                continue
+            _print_log_line(line)
+    except Exception as e:
+        console.print(f"[red]Error reading log file: {e}[/red]")
+        raise typer.Exit(1) from None
+
+    console.print(f"[dim]Following {log_file} (Ctrl-C to stop)...[/dim]")
+
+    # Tail the file for new content
+    try:
+        with open(log_file) as f:
+            # Seek to end to only show new lines
+            f.seek(0, os.SEEK_END)
+            while True:
+                line = f.readline()
+                if line:
+                    stripped = line.strip()
+                    if level and level.upper() not in stripped:
+                        continue
+                    _print_log_line(line)
+                else:
+                    # No new content — sleep briefly then retry
+                    time.sleep(0.5)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Stopped following logs[/yellow]")
+
+
+def _print_log_line(line: str) -> None:
+    """Print a single log line with colour-coding by level."""
+    stripped = line.strip()
+    if "ERROR" in stripped:
+        console.print(f"[red]{stripped}[/red]")
+    elif "WARNING" in stripped:
+        console.print(f"[yellow]{stripped}[/yellow]")
+    elif "INFO" in stripped:
+        console.print(f"[blue]{stripped}[/blue]")
+    elif "DEBUG" in stripped:
+        console.print(f"[dim]{stripped}[/dim]")
+    else:
+        console.print(stripped)
 
 
 def setup_logging(logging_config: dict[str, Any]):
