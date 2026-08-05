@@ -10,7 +10,6 @@ import hmac
 import ipaddress
 import json
 import logging
-import os
 import re
 import sqlite3
 import weakref
@@ -273,13 +272,14 @@ class MonitoringDashboard:
     async def _update_loop(self):
         """Background task for sending real-time updates.
 
-        In offline mode the data is static so the loop simply keeps the
-        process alive without re-reading the filesystem.
+        In offline mode the data is static so the loop simply sleeps —
+        new clients still receive an initial snapshot via the websocket
+        handler's connect-time push (``_get_current_metrics``).
         """
         while self.is_running:
             try:
-                # In offline mode, send cached data only to newly connected
-                # clients — the data never changes.
+                # In offline mode there is nothing to refresh; the websocket
+                # handler sends the initial snapshot on connect.
                 if self.data_dir is not None and self.evolution_service is None:
                     await asyncio.sleep(self.update_interval)
                     continue
@@ -328,7 +328,7 @@ class MonitoringDashboard:
             if self.evolution_service:
                 status = self.evolution_service.get_service_status()
             elif self.data_dir is not None:
-                status = self._build_offline_status()
+                status = await asyncio.to_thread(self._build_offline_status)
             else:
                 status = {"error": "Evolution service not available"}
 
@@ -354,7 +354,7 @@ class MonitoringDashboard:
             if self.evolution_service:
                 report = await self.evolution_service.generate_service_report()
             elif self.data_dir is not None:
-                report = self._build_offline_report()
+                report = await asyncio.to_thread(self._build_offline_report)
             else:
                 report = {"error": "Evolution service not available"}
 
@@ -433,7 +433,7 @@ class MonitoringDashboard:
 
         data_dir = self.data_dir
         if data_dir is None or not data_dir.is_dir():
-            return {"error": f"Data directory not found: {data_dir}"}
+            return {"mode": "offline", "error": f"Data directory not found: {data_dir}"}
 
         result: dict[str, Any] = {
             "mode": "offline",
@@ -460,6 +460,9 @@ class MonitoringDashboard:
                 logger.warning("Failed to load budget snapshot: %s", exc)
 
         # Version registry (models/versions/version_registry.json)
+        # Expected layout: data_dir is a .evoseal/ directory whose parent
+        # contains models/versions/version_registry.json.  If --data-dir
+        # points at a different tree the file simply won't be found.
         registry_file = data_dir.parent / "models" / "versions" / "version_registry.json"
         if registry_file.exists():
             try:
@@ -645,7 +648,7 @@ class MonitoringDashboard:
                 return metrics
 
             if self.data_dir is not None:
-                return self._build_offline_metrics()
+                return await asyncio.to_thread(self._build_offline_metrics)
 
             return {"error": "Evolution service not available"}
 
