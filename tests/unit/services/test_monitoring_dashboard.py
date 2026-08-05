@@ -570,7 +570,7 @@ class TestOfflineMode:
     def test_offline_cache_is_used(self, offline_dashboard):
         """Repeated calls use the cached data, not re-read disk."""
         result1 = offline_dashboard._load_offline_data()
-        assert offline_dashboard._offline_cache is not None
+        assert offline_dashboard._offline_cache_entry is not None
         result2 = offline_dashboard._load_offline_data()
         assert result1 is result2  # Same object, not re-read
 
@@ -720,8 +720,9 @@ class TestOfflineMode:
     def test_offline_experiments_from_db(self, offline_data_dir):
         """_load_experiments_from_db reads from SQLite."""
         db_path = offline_data_dir / "experiments.db"
-        experiments = MonitoringDashboard._load_experiments_from_db(db_path)
+        experiments, total_count = MonitoringDashboard._load_experiments_from_db(db_path)
         assert len(experiments) == 1
+        assert total_count == 1
         assert experiments[0]["id"] == "exp-1"
         assert experiments[0]["name"] == "Test Run"
         assert experiments[0]["status"] == "completed"
@@ -734,8 +735,47 @@ class TestOfflineMode:
         conn.commit()
         conn.close()
 
-        experiments = MonitoringDashboard._load_experiments_from_db(db_path)
+        experiments, total_count = MonitoringDashboard._load_experiments_from_db(db_path)
         assert experiments == []
+        assert total_count == 0
+
+    def test_experiments_count_not_capped_at_limit(self, tmp_path):
+        """experiments_total_count reflects true DB size, not the LIMIT 100."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+        db_path = data_dir / "experiments.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE experiments "
+            "(id TEXT PRIMARY KEY, name TEXT, experiment_type TEXT, "
+            "status TEXT, created_at TEXT, updated_at TEXT)"
+        )
+        for i in range(150):
+            conn.execute(
+                "INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    f"exp-{i}",
+                    f"Run {i}",
+                    "evolution",
+                    "completed",
+                    f"2025-01-{(i % 28) + 1:02d}T00:00:00",
+                    "",
+                ),
+            )
+        conn.commit()
+        conn.close()
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18110,
+            data_dir=data_dir,
+        )
+        data = dash._load_offline_data()
+        assert len(data["experiments"]) == 100  # capped by LIMIT
+        assert data["experiments_total_count"] == 150  # true count
+
+        metrics = dash._build_offline_metrics()
+        assert metrics["evolution_status"]["experiments_count"] == 150
 
     def test_service_takes_precedence_over_offline(self, mock_service, offline_data_dir):
         """When both evolution_service and data_dir are set, live service wins."""
@@ -827,21 +867,50 @@ class TestOfflineMode:
         # Both got the same cached object (identity, not just equality).
         assert results[0] is results[1]
 
-    def test_cli_auth_token_flag(self):
-        """--auth-token is accepted by the CLI argument parser."""
-        import subprocess
-        import sys
+    def test_cli_auth_token_flag(self, monkeypatch):
+        """--auth-token is parsed by main() and passed to MonitoringDashboard."""
+        import asyncio
 
-        result = subprocess.run(
+        from evoseal.services.monitoring_dashboard import main
+
+        constructed = {}
+        original_init = MonitoringDashboard.__init__
+
+        def spy_init(self, *args, **kwargs):
+            constructed["auth_token"] = kwargs.get("auth_token")
+            original_init(self, *args, **kwargs)
+
+        monkeypatch.setattr(
+            "sys.argv",
             [
-                sys.executable,
-                "-c",
-                "import argparse; "
-                "p = argparse.ArgumentParser(); "
-                "p.add_argument('--auth-token', type=str, default=None); "
-                "args = p.parse_args(['--auth-token', 'secret123']); "
-                "assert args.auth_token == 'secret123'",
+                "monitoring_dashboard",
+                "--auth-token",
+                "secret123",
+                "--data-dir",
+                "/nonexistent",  # offline mode — won't actually start
             ],
-            capture_output=True,
         )
-        assert result.returncode == 0
+        monkeypatch.setattr(MonitoringDashboard, "__init__", spy_init)
+
+        # Prevent the server from actually starting.
+        async def fake_start(self):
+            self.is_running = True
+
+        async def fake_stop(self):
+            self.is_running = False
+
+        monkeypatch.setattr(MonitoringDashboard, "start", fake_start)
+        monkeypatch.setattr(MonitoringDashboard, "stop", fake_stop)
+
+        # main() runs forever; cancel it after a short delay.
+        async def run_main_with_timeout():
+            task = asyncio.ensure_future(main())
+            await asyncio.sleep(0.1)
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+        asyncio.run(run_main_with_timeout())
+        assert constructed["auth_token"] == "secret123"

@@ -98,9 +98,10 @@ class MonitoringDashboard:
         self.auth_token = auth_token
         self.data_dir = Path(data_dir) if data_dir is not None else None
         # Cache for offline data so repeated API calls don't re-read disk.
-        self._offline_cache: dict[str, Any] | None = None
+        # Stored as a single ``(mtimes, data)`` tuple so that fast-path
+        # readers always see a consistent pair (no torn read/write race).
+        self._offline_cache_entry: tuple[dict[str, float], dict[str, Any]] | None = None
         self._offline_cache_lock = threading.Lock()
-        self._offline_cache_mtimes: dict[str, float] = {}
 
         if auth_token is not None and auth_token == "":
             raise ValueError(
@@ -463,22 +464,31 @@ class MonitoringDashboard:
         ``api_metrics``, ``api_report``) don't redundantly re-read disk.
         """
         # Fast path — cache populated and mtimes unchanged.
-        if self._offline_cache is not None:
+        # Read the entry reference once (atomic under GIL) so we never
+        # observe a torn pair of (mtimes, data).
+        entry = self._offline_cache_entry
+        if entry is not None:
+            cached_mtimes, cached_data = entry
             current_mtimes = self._collect_source_mtimes()
-            if current_mtimes == self._offline_cache_mtimes:
-                return self._offline_cache
+            if current_mtimes == cached_mtimes:
+                return cached_data
             # mtimes changed — fall through to re-read under the lock.
 
         with self._offline_cache_lock:
             # Double-check after acquiring the lock (another thread may
             # have refreshed while we waited).
-            if self._offline_cache is not None:
+            entry = self._offline_cache_entry
+            if entry is not None:
+                cached_mtimes, cached_data = entry
                 current_mtimes = self._collect_source_mtimes()
-                if current_mtimes == self._offline_cache_mtimes:
-                    return self._offline_cache
+                if current_mtimes == cached_mtimes:
+                    return cached_data
 
             data_dir = self.data_dir
             if data_dir is None or not data_dir.is_dir():
+                # Return an error but do NOT cache it — a missing directory
+                # may appear later (e.g. mounted filesystem).  The stat cost
+                # is negligible compared to the JSON/SQLite reads we skip.
                 return {"mode": "offline", "error": f"Data directory not found: {data_dir}"}
 
             result: dict[str, Any] = {
@@ -520,7 +530,9 @@ class MonitoringDashboard:
             db_file = data_dir / "experiments.db"
             if db_file.exists():
                 try:
-                    result["experiments"] = self._load_experiments_from_db(db_file)
+                    exps, exp_count = self._load_experiments_from_db(db_file)
+                    result["experiments"] = exps
+                    result["experiments_total_count"] = exp_count
                 except Exception as exc:
                     logger.warning("Failed to load experiment database: %s", exc)
 
@@ -533,17 +545,25 @@ class MonitoringDashboard:
                 except (json.JSONDecodeError, OSError) as exc:
                     logger.warning("Failed to load pipeline config: %s", exc)
 
-            self._offline_cache_mtimes = self._collect_source_mtimes()
-            self._offline_cache = result
+            # Publish data + mtimes as a single atomic assignment so
+            # fast-path readers never see updated mtimes with stale data.
+            self._offline_cache_entry = (self._collect_source_mtimes(), result)
             return result
 
     @staticmethod
-    def _load_experiments_from_db(db_path: Path) -> list[dict[str, Any]]:
-        """Read experiment summaries from an SQLite database."""
+    def _load_experiments_from_db(db_path: Path) -> tuple[list[dict[str, Any]], int]:
+        """Read experiment summaries from an SQLite database.
+
+        Returns ``(rows, total_count)`` where *rows* is at most 100 recent
+        experiments and *total_count* is the true row count (unbounded).
+        """
         experiments: list[dict[str, Any]] = []
+        total_count = 0
         conn = sqlite3.connect(str(db_path))
         try:
             conn.row_factory = sqlite3.Row
+            # Total count for the dashboard — not capped by LIMIT.
+            total_count = conn.execute("SELECT COUNT(*) FROM experiments").fetchone()[0]
             cur = conn.execute(
                 "SELECT id, name, experiment_type, status, created_at, "
                 "updated_at FROM experiments ORDER BY created_at DESC LIMIT 100"
@@ -555,7 +575,7 @@ class MonitoringDashboard:
             pass
         finally:
             conn.close()
-        return experiments
+        return experiments, total_count
 
     @staticmethod
     def _offline_timestamp(value: Any) -> Any:
@@ -649,7 +669,7 @@ class MonitoringDashboard:
             "evolution_status": {
                 "iterations_completed": iterations_completed,
                 "total_iterations": total_iterations,
-                "experiments_count": len(experiments),
+                "experiments_count": data.get("experiments_total_count", len(experiments)),
             },
             "training_status": training_status,
             "dashboard_info": {
@@ -1139,6 +1159,7 @@ class MonitoringDashboard:
 async def main():
     """Main entry point for running the dashboard standalone."""
     import argparse
+    import os
 
     parser = argparse.ArgumentParser(description="EVOSEAL Monitoring Dashboard")
     parser.add_argument(
@@ -1163,16 +1184,21 @@ async def main():
         "--auth-token",
         type=str,
         default=None,
-        help="Bearer token for API authentication (omit to disable auth)",
+        help="Bearer token for API authentication. "
+        "Also reads from EVOSEAL_DASHBOARD_AUTH_TOKEN env var "
+        "(CLI flag takes precedence). Omit both to disable auth.",
     )
     args = parser.parse_args()
+
+    # Env-var fallback — avoids leaking the token via ps / shell history.
+    auth_token = args.auth_token or os.environ.get("EVOSEAL_DASHBOARD_AUTH_TOKEN")
 
     logging.basicConfig(level=logging.INFO)
 
     dashboard = MonitoringDashboard(
         host=args.host,
         port=args.port,
-        auth_token=args.auth_token,
+        auth_token=auth_token,
         data_dir=args.data_dir,
     )
 
