@@ -143,6 +143,7 @@ class MonitoringDashboard:
         self.app.router.add_get("/api/status", self.api_status)
         self.app.router.add_get("/api/metrics", self.api_metrics)
         self.app.router.add_get("/api/report", self.api_report)
+        self.app.router.add_get("/api/generation-diffs", self.api_generation_diffs)
         self.app.router.add_get("/ws", self.websocket_handler)
         # Static files embedded in HTML, no separate static directory needed
 
@@ -333,6 +334,28 @@ class MonitoringDashboard:
 
         except Exception as e:
             logger.error(f"Error generating report: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def api_generation_diffs(self, request):
+        """API endpoint for generation diff data.
+
+        Returns recent evolution results with unified diffs between
+        original and improved code for each generation.
+        """
+        try:
+            limit = int(request.query.get("limit", "10"))
+            limit = max(1, min(limit, 50))
+
+            if not self.evolution_service:
+                return web.json_response({"error": "Evolution service not available"}, status=503)
+
+            diffs = self.evolution_service.get_generation_diffs(limit=limit)
+            return web.json_response({"generation_diffs": diffs, "count": len(diffs)})
+
+        except ValueError as e:
+            return web.json_response({"error": f"Invalid parameter: {e}"}, status=400)
+        except Exception as e:
+            logger.error(f"Error getting generation diffs: {e}")
             return web.json_response({"error": str(e)}, status=500)
 
     async def websocket_handler(self, request):
@@ -576,6 +599,76 @@ class MonitoringDashboard:
             padding: 2rem;
             opacity: 0.6;
         }
+
+        .diff-entry {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .diff-entry.failed {
+            border-left-color: #f44336;
+        }
+
+        .diff-header {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .diff-header .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(76, 175, 80, 0.3); color: #4CAF50; }
+        .badge-failed  { background: rgba(244, 67, 54, 0.3); color: #f44336; }
+        .badge-fitness { background: rgba(100, 181, 246, 0.3); color: #64B5F6; }
+
+        .diff-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        .diff-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .diff-content.visible { display: block; }
+
+        .diff-toggle {
+            cursor: pointer;
+            color: #64B5F6;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: inline-block;
+        }
+
+        .diff-toggle:hover { text-decoration: underline; }
+
+        .diff-add { color: #81C784; }
+        .diff-del { color: #E57373; }
+        .diff-hdr { color: #64B5F6; }
     </style>
 </head>
 <body>
@@ -662,6 +755,13 @@ class MonitoringDashboard:
                     <span class="timestamp">[Loading...]</span>
                     Connecting to evolution service...
                 </div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h3>🔄 Generation Diffs</h3>
+            <div id="generation-diffs">
+                <p style="opacity: 0.7;">Loading generation diffs...</p>
             </div>
         </div>
     </div>
@@ -822,6 +922,7 @@ class MonitoringDashboard:
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             connectWebSocket();
+            loadGenerationDiffs();
 
             // Periodic fallback updates via HTTP
             setInterval(async function() {
@@ -834,7 +935,94 @@ class MonitoringDashboard:
                     console.error('Error fetching metrics:', e);
                 }
             }, 30000); // Every 30 seconds
+
+            // Refresh generation diffs every 5 minutes
+            setInterval(loadGenerationDiffs, 300000);
         });
+
+        async function loadGenerationDiffs() {
+            try {
+                const headers = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+                const resp = await fetch('/api/generation-diffs?limit=10', { headers });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                renderGenerationDiffs(data.generation_diffs || []);
+            } catch (e) {
+                console.error('Error loading generation diffs:', e);
+            }
+        }
+
+        function renderGenerationDiffs(diffs) {
+            const container = document.getElementById('generation-diffs');
+            if (!diffs.length) {
+                container.innerHTML = '<p style="opacity: 0.7;">No generation data yet. Evolution results will appear here after cycles complete.</p>';
+                return;
+            }
+            let html = '';
+            diffs.forEach(function(d, idx) {
+                const statusClass = d.success ? '' : ' failed';
+                const statusBadge = d.success
+                    ? '<span class="badge badge-success">Success</span>'
+                    : '<span class="badge badge-failed">Failed</span>';
+                const fitnessBadge = '<span class="badge badge-fitness">Fitness: ' +
+                    (typeof d.fitness_score === 'number' ? d.fitness_score.toFixed(4) : 'N/A') + '</span>';
+                const improveBadge = d.improvement_percentage > 0
+                    ? '<span class="badge badge-success">+' + d.improvement_percentage.toFixed(1) + '%</span>'
+                    : '';
+                const diffId = 'diff-body-' + idx;
+                const diffPreview = d.unified_diff
+                    ? escapeHtml(d.unified_diff.split('\n').slice(0, 3).join('\n')) + (d.unified_diff.split('\n').length > 3 ? ' ...' : '')
+                    : '<em>No code changes recorded</em>';
+
+                html += '<div class="diff-entry' + statusClass + '">'
+                    + '<div class="diff-header">'
+                    + '<span>Iteration ' + d.iteration + ' \u2022 Gen ' + d.generation + '</span>'
+                    + '<span>' + statusBadge + ' ' + fitnessBadge + ' ' + improveBadge + '</span>'
+                    + '</div>'
+                    + '<div class="diff-stats">'
+                    + '<span>Strategy: ' + d.strategy + '</span>'
+                    + '<span>Model: ' + d.model_version + '</span>'
+                    + '<span>' + new Date(d.timestamp).toLocaleString() + '</span>'
+                    + '</div>';
+
+                if (d.unified_diff) {
+                    html += '<div class="diff-toggle" onclick="toggleDiff(\'' + diffId + '\', this)">▶ Show diff</div>'
+                        + '<pre class="diff-content" id="' + diffId + '">'
+                        + colorizeDiff(escapeHtml(d.unified_diff)) + '</pre>';
+                }
+
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleDiff(id, btn) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.classList.contains('visible')) {
+                el.classList.remove('visible');
+                btn.textContent = '▶ Show diff';
+            } else {
+                el.classList.add('visible');
+                btn.textContent = '▼ Hide diff';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function colorizeDiff(html) {
+            return html.split('\n').map(function(line) {
+                if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('@@'))
+                    return '<span class="diff-hdr">' + line + '</span>';
+                if (line.startsWith('+'))
+                    return '<span class="diff-add">' + line + '</span>';
+                if (line.startsWith('-'))
+                    return '<span class="diff-del">' + line + '</span>';
+                return line;
+            }).join('\n');
+        }
     </script>
 </body>
 </html>
