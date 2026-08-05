@@ -12,6 +12,7 @@ import json
 import logging
 import re
 import sqlite3
+import threading
 import weakref
 from datetime import datetime
 from pathlib import Path
@@ -98,6 +99,8 @@ class MonitoringDashboard:
         self.data_dir = Path(data_dir) if data_dir is not None else None
         # Cache for offline data so repeated API calls don't re-read disk.
         self._offline_cache: dict[str, Any] | None = None
+        self._offline_cache_lock = threading.Lock()
+        self._offline_cache_mtimes: dict[str, float] = {}
 
         if auth_token is not None and auth_token == "":
             raise ValueError(
@@ -422,74 +425,117 @@ class MonitoringDashboard:
 
     # -- Offline data loading ----------------------------------------------------
 
+    # Source files that _load_offline_data reads; used for mtime-based
+    # cache invalidation so a long-running dashboard picks up external
+    # changes without a restart.
+    _OFFLINE_SOURCE_FILES = (
+        "pipeline_state.json",
+        "pipeline_config.json",
+        "metrics/budget_snapshot.json",
+        "experiments.db",
+    )
+
+    def _collect_source_mtimes(self) -> dict[str, float]:
+        """Return a {relative_path: mtime} dict for every offline source file."""
+        data_dir = self.data_dir
+        if data_dir is None or not data_dir.is_dir():
+            return {}
+        mtimes: dict[str, float] = {}
+        for rel in self._OFFLINE_SOURCE_FILES:
+            p = data_dir / rel
+            if p.exists():
+                mtimes[rel] = p.stat().st_mtime
+        # Version registry lives outside data_dir in the expected layout.
+        registry = data_dir.parent / "models" / "versions" / "version_registry.json"
+        if registry.exists():
+            mtimes["version_registry.json"] = registry.stat().st_mtime
+        return mtimes
+
     def _load_offline_data(self) -> dict[str, Any]:
         """Load saved evolution data from *data_dir* for offline review.
 
-        Results are cached after the first call so repeated API requests
-        don't re-read the filesystem.
+        Results are cached after the first call.  The cache is invalidated
+        when any source file's mtime changes, so a long-running dashboard
+        process picks up writes from external tools automatically.
+
+        The check-and-populate path is guarded by a ``threading.Lock`` so
+        that concurrent ``asyncio.to_thread`` calls (from ``api_status``,
+        ``api_metrics``, ``api_report``) don't redundantly re-read disk.
         """
+        # Fast path — cache populated and mtimes unchanged.
         if self._offline_cache is not None:
-            return self._offline_cache
+            current_mtimes = self._collect_source_mtimes()
+            if current_mtimes == self._offline_cache_mtimes:
+                return self._offline_cache
+            # mtimes changed — fall through to re-read under the lock.
 
-        data_dir = self.data_dir
-        if data_dir is None or not data_dir.is_dir():
-            return {"mode": "offline", "error": f"Data directory not found: {data_dir}"}
+        with self._offline_cache_lock:
+            # Double-check after acquiring the lock (another thread may
+            # have refreshed while we waited).
+            if self._offline_cache is not None:
+                current_mtimes = self._collect_source_mtimes()
+                if current_mtimes == self._offline_cache_mtimes:
+                    return self._offline_cache
 
-        result: dict[str, Any] = {
-            "mode": "offline",
-            "data_dir": str(data_dir),
-        }
+            data_dir = self.data_dir
+            if data_dir is None or not data_dir.is_dir():
+                return {"mode": "offline", "error": f"Data directory not found: {data_dir}"}
 
-        # Pipeline state
-        pipeline_state_file = data_dir / "pipeline_state.json"
-        if pipeline_state_file.exists():
-            try:
-                with open(pipeline_state_file) as f:
-                    result["pipeline_state"] = json.load(f)
-            except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Failed to load pipeline state: %s", exc)
-                result["pipeline_state"] = None
+            result: dict[str, Any] = {
+                "mode": "offline",
+                "data_dir": str(data_dir),
+            }
 
-        # Budget snapshot
-        budget_file = data_dir / "metrics" / "budget_snapshot.json"
-        if budget_file.exists():
-            try:
-                with open(budget_file) as f:
-                    result["budget_snapshot"] = json.load(f)
-            except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Failed to load budget snapshot: %s", exc)
+            # Pipeline state
+            pipeline_state_file = data_dir / "pipeline_state.json"
+            if pipeline_state_file.exists():
+                try:
+                    with open(pipeline_state_file) as f:
+                        result["pipeline_state"] = json.load(f)
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Failed to load pipeline state: %s", exc)
 
-        # Version registry (models/versions/version_registry.json)
-        # Expected layout: data_dir is a .evoseal/ directory whose parent
-        # contains models/versions/version_registry.json.  If --data-dir
-        # points at a different tree the file simply won't be found.
-        registry_file = data_dir.parent / "models" / "versions" / "version_registry.json"
-        if registry_file.exists():
-            try:
-                with open(registry_file) as f:
-                    result["version_registry"] = json.load(f)
-            except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Failed to load version registry: %s", exc)
+            # Budget snapshot
+            budget_file = data_dir / "metrics" / "budget_snapshot.json"
+            if budget_file.exists():
+                try:
+                    with open(budget_file) as f:
+                        result["budget_snapshot"] = json.load(f)
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Failed to load budget snapshot: %s", exc)
 
-        # Experiment database
-        db_file = data_dir / "experiments.db"
-        if db_file.exists():
-            try:
-                result["experiments"] = self._load_experiments_from_db(db_file)
-            except Exception as exc:
-                logger.warning("Failed to load experiment database: %s", exc)
+            # Version registry (models/versions/version_registry.json)
+            # Expected layout: data_dir is a .evoseal/ directory whose parent
+            # contains models/versions/version_registry.json.  If --data-dir
+            # points at a different tree the file simply won't be found.
+            registry_file = data_dir.parent / "models" / "versions" / "version_registry.json"
+            if registry_file.exists():
+                try:
+                    with open(registry_file) as f:
+                        result["version_registry"] = json.load(f)
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Failed to load version registry: %s", exc)
 
-        # Pipeline config
-        config_file = data_dir / "pipeline_config.json"
-        if config_file.exists():
-            try:
-                with open(config_file) as f:
-                    result["pipeline_config"] = json.load(f)
-            except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Failed to load pipeline config: %s", exc)
+            # Experiment database
+            db_file = data_dir / "experiments.db"
+            if db_file.exists():
+                try:
+                    result["experiments"] = self._load_experiments_from_db(db_file)
+                except Exception as exc:
+                    logger.warning("Failed to load experiment database: %s", exc)
 
-        self._offline_cache = result
-        return result
+            # Pipeline config
+            config_file = data_dir / "pipeline_config.json"
+            if config_file.exists():
+                try:
+                    with open(config_file) as f:
+                        result["pipeline_config"] = json.load(f)
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Failed to load pipeline config: %s", exc)
+
+            self._offline_cache_mtimes = self._collect_source_mtimes()
+            self._offline_cache = result
+            return result
 
     @staticmethod
     def _load_experiments_from_db(db_path: Path) -> list[dict[str, Any]]:
@@ -510,6 +556,21 @@ class MonitoringDashboard:
         finally:
             conn.close()
         return experiments
+
+    @staticmethod
+    def _offline_timestamp(value: Any) -> Any:
+        """Convert a timestamp value to milliseconds for the JS frontend.
+
+        ``new Date(n)`` in JavaScript treats *n* as milliseconds.  Pipeline
+        state files typically store Unix timestamps in seconds, so we
+        multiply by 1000.  ISO-8601 strings and ``None`` pass through
+        unchanged (JS ``Date`` handles ISO strings natively).
+        """
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return value * 1000
+        return value  # e.g. ISO-8601 string — JS Date() handles it
 
     def _build_offline_status(self) -> dict[str, Any]:
         """Build a status dict from offline data."""
@@ -556,7 +617,9 @@ class MonitoringDashboard:
                 "evolution_cycles_completed": iterations_completed,
                 "training_cycles_triggered": 0,
                 "successful_improvements": 0,
-                "last_activity": pipeline.get("completion_time") or pipeline.get("start_time"),
+                "last_activity": self._offline_timestamp(
+                    pipeline.get("completion_time") or pipeline.get("start_time")
+                ),
             },
         }
 
@@ -1096,6 +1159,12 @@ async def main():
         default=8081,
         help="Dashboard port (default: 8081)",
     )
+    parser.add_argument(
+        "--auth-token",
+        type=str,
+        default=None,
+        help="Bearer token for API authentication (omit to disable auth)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
@@ -1103,6 +1172,7 @@ async def main():
     dashboard = MonitoringDashboard(
         host=args.host,
         port=args.port,
+        auth_token=args.auth_token,
         data_dir=args.data_dir,
     )
 

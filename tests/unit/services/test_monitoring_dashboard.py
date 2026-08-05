@@ -603,12 +603,12 @@ class TestOfflineMode:
             data_dir=data_dir,
         )
         data = dash._load_offline_data()
-        # Should not raise; pipeline_state is None due to corrupt file
-        assert data.get("pipeline_state") is None
+        # Should not raise; pipeline_state key is omitted due to corrupt file
+        assert "pipeline_state" not in data
 
     def test_offline_corrupt_json_status_and_metrics_not_crash(self, tmp_path):
         """_build_offline_status and _build_offline_metrics degrade gracefully
-        when pipeline_state.json is corrupt (pipeline_state loaded as None)."""
+        when pipeline_state.json is corrupt (key absent, defaults apply)."""
         data_dir = tmp_path / ".evoseal"
         data_dir.mkdir()
         (data_dir / "pipeline_state.json").write_text("not valid json {{{")
@@ -618,7 +618,7 @@ class TestOfflineMode:
             port=18100,
             data_dir=data_dir,
         )
-        # Must not raise AttributeError on None.get(...)
+        # Must not raise — absent key falls back to {} via .get()
         status = dash._build_offline_status()
         assert status["mode"] == "offline"
         assert status["status"] == "unknown"  # falls back to default
@@ -751,3 +751,97 @@ class TestOfflineMode:
         metrics = asyncio.run(dash._get_current_metrics())
         # The live service mock returns is_running: True, not mode: offline
         assert metrics["service_status"]["is_running"] is True
+
+    def test_offline_cache_invalidated_on_mtime_change(self, offline_data_dir):
+        """Cache is refreshed when a source file's mtime changes."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18101,
+            data_dir=offline_data_dir,
+        )
+        data1 = dash._load_offline_data()
+        assert data1.get("pipeline_state", {}).get("status") == "completed"
+
+        # Simulate an external write to the pipeline state file.
+        import time
+
+        new_state = {
+            "status": "running",
+            "current_iteration": 7,
+            "total_iterations": 10,
+        }
+        state_file = offline_data_dir / "pipeline_state.json"
+        state_file.write_text(json.dumps(new_state))
+        # Ensure mtime is actually different (filesystem granularity).
+        time.sleep(0.05)
+
+        data2 = dash._load_offline_data()
+        assert data2["pipeline_state"]["status"] == "running"
+        assert data2["pipeline_state"]["current_iteration"] == 7
+        assert data2 is not data1  # new cache object
+
+    def test_offline_timestamp_seconds_to_milliseconds(self, offline_dashboard):
+        """Unix timestamps in seconds are converted to milliseconds for JS."""
+        metrics = offline_dashboard._build_offline_metrics()
+        last_activity = metrics["service_status"]["statistics"]["last_activity"]
+        # Fixture has completion_time=1700003600.0 (seconds).
+        # JS new Date() expects milliseconds → 2023-11-14T22:13:20 UTC.
+        assert last_activity == 1700003600.0 * 1000
+        import datetime
+
+        dt = datetime.datetime.fromtimestamp(last_activity / 1000, tz=datetime.timezone.utc)
+        assert dt.year == 2023
+        assert dt.month == 11
+
+    def test_offline_timestamp_none_passthrough(self):
+        """_offline_timestamp returns None for None input."""
+        assert MonitoringDashboard._offline_timestamp(None) is None
+
+    def test_offline_timestamp_string_passthrough(self):
+        """_offline_timestamp passes ISO strings through unchanged."""
+        iso = "2023-11-14T22:13:20Z"
+        assert MonitoringDashboard._offline_timestamp(iso) == iso
+
+    def test_offline_cache_lock_prevents_double_read(self, offline_data_dir):
+        """Concurrent first-reads don't both populate the cache."""
+        import threading
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18102,
+            data_dir=offline_data_dir,
+        )
+        results: list[dict] = []
+        barrier = threading.Barrier(2)
+
+        def read_with_barrier():
+            barrier.wait()
+            results.append(dash._load_offline_data())
+
+        threads = [threading.Thread(target=read_with_barrier) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Both got the same cached object (identity, not just equality).
+        assert results[0] is results[1]
+
+    def test_cli_auth_token_flag(self):
+        """--auth-token is accepted by the CLI argument parser."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import argparse; "
+                "p = argparse.ArgumentParser(); "
+                "p.add_argument('--auth-token', type=str, default=None); "
+                "args = p.parse_args(['--auth-token', 'secret123']); "
+                "assert args.auth_token == 'secret123'",
+            ],
+            capture_output=True,
+        )
+        assert result.returncode == 0
