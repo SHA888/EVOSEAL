@@ -514,7 +514,7 @@ class MonitoringDashboard:
         if "error" in data:
             return data
 
-        pipeline = data.get("pipeline_state", {})
+        pipeline = data.get("pipeline_state") or {}
         registry = data.get("version_registry", {})
         return {
             "mode": "offline",
@@ -535,13 +535,12 @@ class MonitoringDashboard:
         if "error" in data:
             return data
 
-        pipeline = data.get("pipeline_state", {})
+        pipeline = data.get("pipeline_state") or {}
         registry = data.get("version_registry", {})
         budget = data.get("budget_snapshot", {})
         experiments = data.get("experiments", [])
 
         # Derive evolution stats from pipeline state
-        config = pipeline.get("config", {})
         iterations_completed = pipeline.get("current_iteration", 0)
         total_iterations = pipeline.get("total_iterations", 0)
 
@@ -1091,8 +1090,8 @@ async def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=9613,
-        help="Dashboard port (default: 9613)",
+        default=8081,
+        help="Dashboard port (default: 8081)",
     )
     args = parser.parse_args()
 

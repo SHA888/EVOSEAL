@@ -606,6 +606,27 @@ class TestOfflineMode:
         # Should not raise; pipeline_state is None due to corrupt file
         assert data.get("pipeline_state") is None
 
+    def test_offline_corrupt_json_status_and_metrics_not_crash(self, tmp_path):
+        """_build_offline_status and _build_offline_metrics degrade gracefully
+        when pipeline_state.json is corrupt (pipeline_state loaded as None)."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+        (data_dir / "pipeline_state.json").write_text("not valid json {{{")
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18100,
+            data_dir=data_dir,
+        )
+        # Must not raise AttributeError on None.get(...)
+        status = dash._build_offline_status()
+        assert status["mode"] == "offline"
+        assert status["status"] == "unknown"  # falls back to default
+
+        metrics = dash._build_offline_metrics()
+        assert metrics["service_status"]["mode"] == "offline"
+        assert metrics["service_status"]["status"] == "unknown"
+
     def test_offline_with_empty_data_dir(self, tmp_path):
         """Empty data_dir loads without error — just no data."""
         data_dir = tmp_path / ".evoseal"
