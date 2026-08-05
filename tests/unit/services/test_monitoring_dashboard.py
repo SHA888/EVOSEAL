@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import sqlite3
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -440,3 +443,290 @@ class TestWebSocketSubprotocolEcho:
                 async with session.ws_connect(url) as ws:
                     msg = await ws.receive()
                     assert msg.type == aiohttp.WSMsgType.TEXT
+
+
+class TestOfflineMode:
+    """Test dashboard offline mode with data loaded from disk."""
+
+    @pytest.fixture
+    def offline_data_dir(self, tmp_path):
+        """Create a minimal .evoseal/ data directory with test data."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+
+        # Pipeline state
+        pipeline_state = {
+            "status": "completed",
+            "repository": ".",
+            "current_iteration": 5,
+            "total_iterations": 10,
+            "start_time": 1700000000.0,
+            "completion_time": 1700003600.0,
+            "current_stage": "Finalizing",
+            "config": {"iterations": 10},
+        }
+        (data_dir / "pipeline_state.json").write_text(json.dumps(pipeline_state))
+
+        # Pipeline config
+        pipeline_config = {"iterations": 10, "auto_checkpoint": True}
+        (data_dir / "pipeline_config.json").write_text(json.dumps(pipeline_config))
+
+        # Budget snapshot
+        metrics_dir = data_dir / "metrics"
+        metrics_dir.mkdir()
+        budget = {
+            "total_tokens": 50000,
+            "total_cost": 0.75,
+            "budget_max_tokens": 1000000,
+            "budget_max_cost": 10.0,
+        }
+        (metrics_dir / "budget_snapshot.json").write_text(json.dumps(budget))
+
+        # Version registry
+        versions_dir = tmp_path / "models" / "versions"
+        versions_dir.mkdir(parents=True)
+        registry = {
+            "versions": [
+                {"version_id": "v1", "model": "devstral:latest"},
+                {"version_id": "v2", "model": "devstral-v2:latest"},
+            ],
+            "current_version": "v2",
+        }
+        (versions_dir / "version_registry.json").write_text(json.dumps(registry))
+
+        # Experiment database (SQLite)
+        db_path = data_dir / "experiments.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE experiments "
+            "(id TEXT PRIMARY KEY, name TEXT, experiment_type TEXT, "
+            "status TEXT, created_at TEXT, updated_at TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                "exp-1",
+                "Test Run",
+                "evolution",
+                "completed",
+                "2025-01-01T00:00:00",
+                "2025-01-01T01:00:00",
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        return data_dir
+
+    @pytest.fixture
+    def offline_dashboard(self, offline_data_dir):
+        """Dashboard in offline mode."""
+        return MonitoringDashboard(
+            host="localhost",
+            port=18092,
+            data_dir=offline_data_dir,
+        )
+
+    def test_offline_status_loads_data(self, offline_dashboard):
+        """api_status returns loaded data when in offline mode."""
+        status = offline_dashboard._build_offline_status()
+        assert status["mode"] == "offline"
+        assert status["is_running"] is False
+        assert status["status"] == "completed"
+        assert status["current_iteration"] == 5
+        assert status["total_iterations"] == 10
+        assert status["model_versions"] == 2
+        assert status["current_model"] == "v2"
+
+    def test_offline_metrics_loads_data(self, offline_dashboard):
+        """_build_offline_metrics returns structured data for the UI."""
+        metrics = offline_dashboard._build_offline_metrics()
+        assert metrics["service_status"]["mode"] == "offline"
+        assert metrics["service_status"]["is_running"] is False
+        assert metrics["evolution_status"]["iterations_completed"] == 5
+        assert metrics["evolution_status"]["total_iterations"] == 10
+        assert metrics["evolution_status"]["experiments_count"] == 1
+        assert metrics["dashboard_info"]["mode"] == "offline"
+        assert metrics["training_status"]["note"]
+
+    def test_offline_metrics_includes_budget(self, offline_dashboard):
+        """Offline metrics include budget snapshot data."""
+        metrics = offline_dashboard._build_offline_metrics()
+        budget = metrics["service_status"]["budget"]
+        assert budget["total_tokens"] == 50000
+        assert budget["total_cost"] == 0.75
+
+    def test_offline_report_loads_all_sources(self, offline_dashboard):
+        """_build_offline_report includes all data sources."""
+        report = offline_dashboard._build_offline_report()
+        assert report["mode"] == "offline"
+        assert report["pipeline_state"]["status"] == "completed"
+        assert report["pipeline_config"]["iterations"] == 10
+        assert len(report["version_registry"]["versions"]) == 2
+        assert report["budget_snapshot"]["total_tokens"] == 50000
+        assert len(report["experiments"]) == 1
+        assert "offline" in report["note"].lower()
+
+    def test_offline_cache_is_used(self, offline_dashboard):
+        """Repeated calls use the cached data, not re-read disk."""
+        result1 = offline_dashboard._load_offline_data()
+        assert offline_dashboard._offline_cache is not None
+        result2 = offline_dashboard._load_offline_data()
+        assert result1 is result2  # Same object, not re-read
+
+    def test_offline_with_no_data_dir_returns_error(self):
+        """Dashboard with no service and no data_dir returns error."""
+        dash = MonitoringDashboard(host="localhost", port=18093)
+        assert dash.data_dir is None
+        status = dash._build_offline_status()
+        assert "error" in status
+
+    def test_offline_with_missing_data_dir_returns_error(self, tmp_path):
+        """Dashboard with nonexistent data_dir returns error."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18094,
+            data_dir=tmp_path / "nonexistent",
+        )
+        status = dash._build_offline_status()
+        assert "error" in status
+
+    def test_offline_with_corrupt_json_recovered(self, tmp_path):
+        """Corrupt JSON in pipeline_state is handled gracefully."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+        (data_dir / "pipeline_state.json").write_text("not valid json {{{")
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18095,
+            data_dir=data_dir,
+        )
+        data = dash._load_offline_data()
+        # Should not raise; pipeline_state is None due to corrupt file
+        assert data.get("pipeline_state") is None
+
+    def test_offline_with_empty_data_dir(self, tmp_path):
+        """Empty data_dir loads without error — just no data."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18096,
+            data_dir=data_dir,
+        )
+        data = dash._load_offline_data()
+        assert data["mode"] == "offline"
+        assert "pipeline_state" not in data
+        assert "experiments" not in data
+
+    @pytest.mark.asyncio
+    async def test_offline_api_metrics_endpoint(self, offline_dashboard):
+        """GET /api/metrics returns offline data via HTTP."""
+        import aiohttp
+        from aiohttp.test_utils import TestServer
+
+        app = offline_dashboard.app
+        app.router.add_get("/api/metrics", offline_dashboard.api_metrics)
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/metrics"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert data["service_status"]["mode"] == "offline"
+                    assert data["evolution_status"]["iterations_completed"] == 5
+
+    @pytest.mark.asyncio
+    async def test_offline_api_status_endpoint(self, offline_dashboard):
+        """GET /api/status returns offline status via HTTP."""
+        import aiohttp
+        from aiohttp.test_utils import TestServer
+
+        app = offline_dashboard.app
+        app.router.add_get("/api/status", offline_dashboard.api_status)
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/status"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert data["mode"] == "offline"
+                    assert data["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_offline_api_report_endpoint(self, offline_dashboard):
+        """GET /api/report returns offline report via HTTP."""
+        import aiohttp
+        from aiohttp.test_utils import TestServer
+
+        app = offline_dashboard.app
+        app.router.add_get("/api/report", offline_dashboard.api_report)
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/report"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert data["mode"] == "offline"
+                    assert "pipeline_state" in data
+                    assert "experiments" in data
+
+    def test_offline_data_dir_stored(self, offline_data_dir):
+        """data_dir is stored as a Path on the dashboard."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18097,
+            data_dir=offline_data_dir,
+        )
+        assert dash.data_dir == offline_data_dir
+        assert isinstance(dash.data_dir, Path)
+
+    def test_offline_data_dir_from_string(self, offline_data_dir):
+        """data_dir accepts a string and converts to Path."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18098,
+            data_dir=str(offline_data_dir),
+        )
+        assert isinstance(dash.data_dir, Path)
+        assert dash.data_dir == offline_data_dir
+
+    def test_offline_experiments_from_db(self, offline_data_dir):
+        """_load_experiments_from_db reads from SQLite."""
+        db_path = offline_data_dir / "experiments.db"
+        experiments = MonitoringDashboard._load_experiments_from_db(db_path)
+        assert len(experiments) == 1
+        assert experiments[0]["id"] == "exp-1"
+        assert experiments[0]["name"] == "Test Run"
+        assert experiments[0]["status"] == "completed"
+
+    def test_offline_experiments_missing_table(self, tmp_path):
+        """_load_experiments_from_db handles missing table gracefully."""
+        db_path = tmp_path / "empty.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE other_table (id TEXT)")
+        conn.commit()
+        conn.close()
+
+        experiments = MonitoringDashboard._load_experiments_from_db(db_path)
+        assert experiments == []
+
+    def test_service_takes_precedence_over_offline(self, mock_service, offline_data_dir):
+        """When both evolution_service and data_dir are set, live service wins."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=18099,
+            data_dir=offline_data_dir,
+        )
+        # _get_current_metrics should use the live service, not offline data
+        import asyncio
+
+        metrics = asyncio.run(dash._get_current_metrics())
+        # The live service mock returns is_running: True, not mode: offline
+        assert metrics["service_status"]["is_running"] is True

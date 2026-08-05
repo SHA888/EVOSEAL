@@ -10,9 +10,12 @@ import hmac
 import ipaddress
 import json
 import logging
+import os
 import re
+import sqlite3
 import weakref
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import aiohttp_cors
@@ -59,12 +62,17 @@ class MonitoringDashboard:
         update_interval: int = 30,
         auth_token: str | None = None,
         allowed_origins: list[str] | None = None,
+        data_dir: str | Path | None = None,
     ):
         """
         Initialize the monitoring dashboard.
 
         Args:
-            evolution_service: The continuous evolution service to monitor
+            evolution_service: The continuous evolution service to monitor.
+                When ``None``, the dashboard operates in *offline* mode if
+                ``data_dir`` is provided, loading saved data for post-hoc
+                analysis.  If both are ``None`` the API endpoints return
+                error messages.
             host: Dashboard host address
             port: Dashboard port
             update_interval: Seconds between dashboard updates
@@ -78,12 +86,19 @@ class MonitoringDashboard:
                 hostname than the bind host, pass the correct origins
                 explicitly. Pass ["*"] explicitly to allow all origins
                 (raises ValueError when combined with auth_token).
+            data_dir: Path to the EVOSEAL data directory (typically
+                ``.evoseal/``).  When provided without an ``evolution_service``
+                the dashboard loads saved pipeline state, version registry,
+                experiment database, and budget snapshots for offline review.
         """
         self.evolution_service = evolution_service
         self.host = host
         self.port = port
         self.update_interval = update_interval
         self.auth_token = auth_token
+        self.data_dir = Path(data_dir) if data_dir is not None else None
+        # Cache for offline data so repeated API calls don't re-read disk.
+        self._offline_cache: dict[str, Any] | None = None
 
         if auth_token is not None and auth_token == "":
             raise ValueError(
@@ -256,9 +271,19 @@ class MonitoringDashboard:
                 pass
 
     async def _update_loop(self):
-        """Background task for sending real-time updates."""
+        """Background task for sending real-time updates.
+
+        In offline mode the data is static so the loop simply keeps the
+        process alive without re-reading the filesystem.
+        """
         while self.is_running:
             try:
+                # In offline mode, send cached data only to newly connected
+                # clients — the data never changes.
+                if self.data_dir is not None and self.evolution_service is None:
+                    await asyncio.sleep(self.update_interval)
+                    continue
+
                 # Get current metrics
                 metrics = await self._get_current_metrics()
 
@@ -302,13 +327,15 @@ class MonitoringDashboard:
         try:
             if self.evolution_service:
                 status = self.evolution_service.get_service_status()
+            elif self.data_dir is not None:
+                status = self._build_offline_status()
             else:
                 status = {"error": "Evolution service not available"}
 
             return web.json_response(status)
 
         except Exception as e:
-            logger.error(f"Error getting status: {e}")
+            logger.error("Error getting status: %s", e)
             return web.json_response({"error": str(e)}, status=500)
 
     async def api_metrics(self, request):
@@ -326,13 +353,15 @@ class MonitoringDashboard:
         try:
             if self.evolution_service:
                 report = await self.evolution_service.generate_service_report()
+            elif self.data_dir is not None:
+                report = self._build_offline_report()
             else:
                 report = {"error": "Evolution service not available"}
 
             return web.json_response(report)
 
         except Exception as e:
-            logger.error(f"Error generating report: {e}")
+            logger.error("Error generating report: %s", e)
             return web.json_response({"error": str(e)}, status=500)
 
     async def websocket_handler(self, request):
@@ -391,37 +420,238 @@ class MonitoringDashboard:
 
         return ws
 
+    # -- Offline data loading ----------------------------------------------------
+
+    def _load_offline_data(self) -> dict[str, Any]:
+        """Load saved evolution data from *data_dir* for offline review.
+
+        Results are cached after the first call so repeated API requests
+        don't re-read the filesystem.
+        """
+        if self._offline_cache is not None:
+            return self._offline_cache
+
+        data_dir = self.data_dir
+        if data_dir is None or not data_dir.is_dir():
+            return {"error": f"Data directory not found: {data_dir}"}
+
+        result: dict[str, Any] = {
+            "mode": "offline",
+            "data_dir": str(data_dir),
+        }
+
+        # Pipeline state
+        pipeline_state_file = data_dir / "pipeline_state.json"
+        if pipeline_state_file.exists():
+            try:
+                with open(pipeline_state_file) as f:
+                    result["pipeline_state"] = json.load(f)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Failed to load pipeline state: %s", exc)
+                result["pipeline_state"] = None
+
+        # Budget snapshot
+        budget_file = data_dir / "metrics" / "budget_snapshot.json"
+        if budget_file.exists():
+            try:
+                with open(budget_file) as f:
+                    result["budget_snapshot"] = json.load(f)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Failed to load budget snapshot: %s", exc)
+
+        # Version registry (models/versions/version_registry.json)
+        registry_file = data_dir.parent / "models" / "versions" / "version_registry.json"
+        if registry_file.exists():
+            try:
+                with open(registry_file) as f:
+                    result["version_registry"] = json.load(f)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Failed to load version registry: %s", exc)
+
+        # Experiment database
+        db_file = data_dir / "experiments.db"
+        if db_file.exists():
+            try:
+                result["experiments"] = self._load_experiments_from_db(db_file)
+            except Exception as exc:
+                logger.warning("Failed to load experiment database: %s", exc)
+
+        # Pipeline config
+        config_file = data_dir / "pipeline_config.json"
+        if config_file.exists():
+            try:
+                with open(config_file) as f:
+                    result["pipeline_config"] = json.load(f)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Failed to load pipeline config: %s", exc)
+
+        self._offline_cache = result
+        return result
+
+    @staticmethod
+    def _load_experiments_from_db(db_path: Path) -> list[dict[str, Any]]:
+        """Read experiment summaries from an SQLite database."""
+        experiments: list[dict[str, Any]] = []
+        conn = sqlite3.connect(str(db_path))
+        try:
+            conn.row_factory = sqlite3.Row
+            cur = conn.execute(
+                "SELECT id, name, experiment_type, status, created_at, "
+                "updated_at FROM experiments ORDER BY created_at DESC LIMIT 100"
+            )
+            for row in cur.fetchall():
+                experiments.append(dict(row))
+        except sqlite3.OperationalError:
+            # Table may not exist in older schemas.
+            pass
+        finally:
+            conn.close()
+        return experiments
+
+    def _build_offline_status(self) -> dict[str, Any]:
+        """Build a status dict from offline data."""
+        data = self._load_offline_data()
+        if "error" in data:
+            return data
+
+        pipeline = data.get("pipeline_state", {})
+        registry = data.get("version_registry", {})
+        return {
+            "mode": "offline",
+            "is_running": False,
+            "status": pipeline.get("status", "unknown"),
+            "current_iteration": pipeline.get("current_iteration", 0),
+            "total_iterations": pipeline.get("total_iterations", 0),
+            "repository": pipeline.get("repository"),
+            "current_stage": pipeline.get("current_stage"),
+            "model_versions": len(registry.get("versions", [])),
+            "current_model": registry.get("current_version"),
+            "data_dir": str(self.data_dir),
+        }
+
+    def _build_offline_metrics(self) -> dict[str, Any]:
+        """Build a metrics dict from offline data for the dashboard UI."""
+        data = self._load_offline_data()
+        if "error" in data:
+            return data
+
+        pipeline = data.get("pipeline_state", {})
+        registry = data.get("version_registry", {})
+        budget = data.get("budget_snapshot", {})
+        experiments = data.get("experiments", [])
+
+        # Derive evolution stats from pipeline state
+        config = pipeline.get("config", {})
+        iterations_completed = pipeline.get("current_iteration", 0)
+        total_iterations = pipeline.get("total_iterations", 0)
+
+        status_dict: dict[str, Any] = {
+            "mode": "offline",
+            "is_running": False,
+            "status": pipeline.get("status", "unknown"),
+            "uptime_seconds": 0,
+            "statistics": {
+                "evolution_cycles_completed": iterations_completed,
+                "training_cycles_triggered": 0,
+                "successful_improvements": 0,
+                "last_activity": pipeline.get("completion_time") or pipeline.get("start_time"),
+            },
+        }
+
+        training_status: dict[str, Any] = {
+            "ready_for_training": False,
+            "training_candidates": 0,
+            "note": "offline mode — data loaded from disk",
+        }
+
+        # Enrich with version registry data
+        versions = registry.get("versions", [])
+        if versions:
+            status_dict["statistics"]["model_versions"] = len(versions)
+            status_dict["statistics"]["current_model"] = registry.get("current_version")
+
+        # Enrich with budget data
+        if budget:
+            status_dict["budget"] = {
+                "total_tokens": budget.get("total_tokens"),
+                "total_cost": budget.get("total_cost"),
+                "max_tokens": budget.get("budget_max_tokens"),
+                "max_cost": budget.get("budget_max_cost"),
+            }
+
+        metrics: dict[str, Any] = {
+            "service_status": status_dict,
+            "evolution_status": {
+                "iterations_completed": iterations_completed,
+                "total_iterations": total_iterations,
+                "experiments_count": len(experiments),
+            },
+            "training_status": training_status,
+            "dashboard_info": {
+                "update_interval": self.update_interval,
+                "connected_clients": len(self.websockets),
+                "dashboard_uptime": 0,
+                "mode": "offline",
+            },
+        }
+
+        return metrics
+
+    def _build_offline_report(self) -> dict[str, Any]:
+        """Build a comprehensive report from offline data."""
+        data = self._load_offline_data()
+        if "error" in data:
+            return data
+
+        return {
+            "mode": "offline",
+            "pipeline_state": data.get("pipeline_state"),
+            "pipeline_config": data.get("pipeline_config"),
+            "version_registry": data.get("version_registry"),
+            "budget_snapshot": data.get("budget_snapshot"),
+            "experiments": data.get("experiments", []),
+            "note": "Offline report loaded from saved data. "
+            "Start the evolution service for live monitoring.",
+        }
+
+    # -- Endpoints ---------------------------------------------------------------
+
     async def _get_current_metrics(self) -> dict[str, Any]:
         """Get current system metrics."""
         try:
-            if not self.evolution_service:
-                return {"error": "Evolution service not available"}
+            if self.evolution_service:
+                # Get service status
+                status = self.evolution_service.get_service_status()
 
-            # Get service status
-            status = self.evolution_service.get_service_status()
+                # Get bidirectional evolution status
+                evolution_status = (
+                    self.evolution_service.bidirectional_manager.get_evolution_status()
+                )
 
-            # Get bidirectional evolution status
-            evolution_status = self.evolution_service.bidirectional_manager.get_evolution_status()
+                # Get training manager status
+                training_status = await self.evolution_service.bidirectional_manager.training_manager.get_training_status()
 
-            # Get training manager status
-            training_status = await self.evolution_service.bidirectional_manager.training_manager.get_training_status()
+                # Combine metrics
+                metrics = {
+                    "service_status": status,
+                    "evolution_status": evolution_status,
+                    "training_status": training_status,
+                    "dashboard_info": {
+                        "update_interval": self.update_interval,
+                        "connected_clients": len(self.websockets),
+                        "dashboard_uptime": status.get("uptime_seconds", 0),
+                    },
+                }
 
-            # Combine metrics
-            metrics = {
-                "service_status": status,
-                "evolution_status": evolution_status,
-                "training_status": training_status,
-                "dashboard_info": {
-                    "update_interval": self.update_interval,
-                    "connected_clients": len(self.websockets),
-                    "dashboard_uptime": status.get("uptime_seconds", 0),
-                },
-            }
+                return metrics
 
-            return metrics
+            if self.data_dir is not None:
+                return self._build_offline_metrics()
+
+            return {"error": "Evolution service not available"}
 
         except Exception as e:
-            logger.error(f"Error getting metrics: {e}")
+            logger.error("Error getting metrics: %s", e)
             return {"error": str(e)}
 
     def _generate_dashboard_html(self) -> str:
@@ -843,9 +1073,36 @@ class MonitoringDashboard:
 
 async def main():
     """Main entry point for running the dashboard standalone."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="EVOSEAL Monitoring Dashboard")
+    parser.add_argument(
+        "--data-dir",
+        type=str,
+        default=None,
+        help="Path to .evoseal/ data directory for offline post-hoc review",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Dashboard host (default: localhost)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=9613,
+        help="Dashboard port (default: 9613)",
+    )
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO)
 
-    dashboard = MonitoringDashboard()
+    dashboard = MonitoringDashboard(
+        host=args.host,
+        port=args.port,
+        data_dir=args.data_dir,
+    )
 
     try:
         await dashboard.start()
