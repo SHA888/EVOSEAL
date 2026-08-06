@@ -171,7 +171,7 @@ async def test_submit_prompt_includes_auth_header():
             captured_headers.update(headers or {})
             return _MockResponse(200, _openai_response("ok"))
 
-    p = VLLMProvider(model="m", api_key="sk-test-key", max_retries=0)
+    p = VLLMProvider(model="m", api_key="sk-test-key", max_retries=0)  # pragma: allowlist secret
     with patch("aiohttp.ClientSession", return_value=_CaptureSession()):
         await p.submit_prompt("hi")
 
@@ -453,3 +453,76 @@ def test_get_model_info(provider):
     assert info["model"] == "test-model"
     assert info["max_retries"] == 3
     assert info["backoff_base"] == 0.01
+
+
+# -- Empty model warning ---------------------------------------------------
+
+
+def test_empty_model_logs_warning(caplog):
+    """Initializing with an empty model should log a warning."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="evoseal.providers.vllm_provider"):
+        VLLMProvider(model="", max_retries=0)
+    assert "empty model string" in caplog.text
+
+
+# -- HTTP scheme warning ---------------------------------------------------
+
+
+def test_api_key_over_http_nonlocalhost_warns(caplog):
+    """api_key + http:// to a non-localhost host should warn about plaintext credentials."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="evoseal.providers.vllm_provider"):
+        VLLMProvider(
+            base_url="http://remote-server:8000",
+            model="m",
+            api_key="test-api-key",  # pragma: allowlist secret
+            max_retries=0,
+        )
+    assert "plain text" in caplog.text
+    assert "remote-server" in caplog.text
+
+
+def test_api_key_over_https_no_warning(caplog):
+    """api_key + https:// should not warn about plaintext credentials."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="evoseal.providers.vllm_provider"):
+        VLLMProvider(
+            base_url="https://remote-server:8000",
+            model="m",
+            api_key="test-api-key",  # pragma: allowlist secret
+            max_retries=0,
+        )
+    assert "plain text" not in caplog.text
+
+
+def test_api_key_on_localhost_no_warning(caplog):
+    """api_key + http://localhost should not warn."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="evoseal.providers.vllm_provider"):
+        VLLMProvider(
+            base_url="http://localhost:8000",
+            model="m",
+            api_key="test-api-key",  # pragma: allowlist secret
+            max_retries=0,
+        )
+    assert "plain text" not in caplog.text
+
+
+# -- Unterminated code fence -----------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_parse_response_unterminated_code_fence(provider):
+    """An unterminated code fence should still capture the trailing block."""
+    text = "Here is code:\n```python\nprint('hi')\nmore lines"
+    result = await provider.parse_response(text)
+    assert result["contains_code"] is True
+    assert len(result["code_blocks"]) == 1
+    assert result["code_blocks"][0]["language"] == "python"
+    assert "print('hi')" in result["code_blocks"][0]["code"]
+    assert "more lines" in result["code_blocks"][0]["code"]
