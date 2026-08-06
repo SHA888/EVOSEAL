@@ -152,7 +152,7 @@
 
 ### SEAL Subsystem Issues Found in Whole-Repo Code Review (2026-07-22)
 
-- [x] **Knowledge retrieval in the SEAL subsystem is broken** _(done 2026-08-06)_ — `enhanced_seal_system.py:467` called `await self.knowledge_base.search(query=..., max_results=..., min_score=..., context=...)` but `KnowledgeBase` only had `search_entries(query, tags, metadata, limit)` — different method name, different parameter names, and neither method was async so the `await` would raise `TypeError`. Added async `search()` method to `KnowledgeBase` that accepts the expected parameters, delegates to `search_entries`, and converts `KnowledgeEntry` objects to plain dicts matching what callers expect
+- [x] **Knowledge retrieval in the SEAL subsystem is broken** _(done 2026-08-06)_ — `enhanced_seal_system.py:467` called `await self.knowledge_base.search(query=..., max_results=..., min_score=..., context=...)` but `KnowledgeBase` only had `search_entries(query, tags, metadata, limit)` — different method name, different parameter names, `search` was missing so the call raised `AttributeError`; awaiting a synchronous `search_entries(...)` result would raise `TypeError`. Added async `search()` method to `KnowledgeBase` that accepts the expected parameters, delegates to `search_entries`, and converts `KnowledgeEntry` objects to plain dicts matching what callers expect
 
 ---
 
