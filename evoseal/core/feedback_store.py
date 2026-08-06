@@ -80,7 +80,7 @@ class FeedbackStore:
         """Submit a new modification proposal for human review."""
         now = datetime.now(timezone.utc).isoformat()
         proposal = ModificationProposal(
-            id=uuid.uuid4().hex[:12],
+            id=uuid.uuid4().hex,
             title=title,
             description=description,
             file_changes=file_changes or [],
