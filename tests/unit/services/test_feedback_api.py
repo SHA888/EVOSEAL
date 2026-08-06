@@ -135,6 +135,39 @@ class TestFeedbackApproveEndpoint:
         status, _ = await _post(dashboard.app, f"/api/feedback/{p.id}/approve")
         assert status == 404
 
+    @pytest.mark.asyncio
+    async def test_approve_malformed_json(self, dashboard, feedback_store):
+        """Malformed JSON body should return 400, not 500."""
+        import aiohttp
+
+        p = feedback_store.submit_proposal("T", "D")
+        async with TestServer(dashboard.app) as server:
+            url = f"http://localhost:{server.port}/api/feedback/{p.id}/approve"
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    data="not json",
+                    headers={"Content-Type": "application/json"},
+                ) as resp:
+                    assert resp.status == 400
+                    body = await resp.json()
+                    assert "Invalid JSON" in body["error"]
+
+    @pytest.mark.asyncio
+    async def test_approve_null_decided_by_coalesces(self, dashboard, feedback_store):
+        """A null decided_by should fall back to 'operator', not store None."""
+        p = feedback_store.submit_proposal("T", "D")
+        status, body = await _post(
+            dashboard.app,
+            f"/api/feedback/{p.id}/approve",
+            json={"decided_by": None},
+        )
+        assert status == 200
+        import json
+
+        data = json.loads(body)
+        assert data["decided_by"] == "operator"
+
 
 class TestFeedbackRejectEndpoint:
     @pytest.mark.asyncio
@@ -156,6 +189,39 @@ class TestFeedbackRejectEndpoint:
     async def test_reject_nonexistent(self, dashboard):
         status, _ = await _post(dashboard.app, "/api/feedback/nonexistent/reject")
         assert status == 404
+
+    @pytest.mark.asyncio
+    async def test_reject_malformed_json(self, dashboard, feedback_store):
+        """Malformed JSON body should return 400, not 500."""
+        import aiohttp
+
+        p = feedback_store.submit_proposal("T", "D")
+        async with TestServer(dashboard.app) as server:
+            url = f"http://localhost:{server.port}/api/feedback/{p.id}/reject"
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    data="not json",
+                    headers={"Content-Type": "application/json"},
+                ) as resp:
+                    assert resp.status == 400
+                    body = await resp.json()
+                    assert "Invalid JSON" in body["error"]
+
+    @pytest.mark.asyncio
+    async def test_reject_null_decided_by_coalesces(self, dashboard, feedback_store):
+        """A null decided_by should fall back to 'operator', not store None."""
+        p = feedback_store.submit_proposal("T", "D")
+        status, body = await _post(
+            dashboard.app,
+            f"/api/feedback/{p.id}/reject",
+            json={"decided_by": None},
+        )
+        assert status == 200
+        import json
+
+        data = json.loads(body)
+        assert data["decided_by"] == "operator"
 
 
 class TestFeedbackStatsEndpoint:

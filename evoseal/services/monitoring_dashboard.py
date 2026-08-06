@@ -356,12 +356,15 @@ class MonitoringDashboard:
         """API endpoint: approve a pending proposal."""
         try:
             proposal_id = request.match_info["proposal_id"]
-            body = await request.json() if request.body_exists else {}
+            try:
+                body = await request.json() if request.body_exists else {}
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "Invalid JSON in request body"}, status=400)
             if not isinstance(body, dict):
                 return web.json_response(
                     {"error": "Request body must be a JSON object"}, status=400
                 )
-            decided_by = body.get("decided_by", "operator")
+            decided_by = body.get("decided_by") or "operator"
             reason = body.get("reason")
 
             result = self.feedback_store.approve(proposal_id, decided_by=decided_by, reason=reason)
@@ -372,18 +375,21 @@ class MonitoringDashboard:
             return web.json_response(result.to_dict())
         except Exception as e:
             logger.error(f"Error approving feedback: {e}")
-            return web.json_response({"error": str(e)}, status=500)
+            return web.json_response({"error": "Internal server error"}, status=500)
 
     async def api_feedback_reject(self, request):
         """API endpoint: reject a pending proposal."""
         try:
             proposal_id = request.match_info["proposal_id"]
-            body = await request.json() if request.body_exists else {}
+            try:
+                body = await request.json() if request.body_exists else {}
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "Invalid JSON in request body"}, status=400)
             if not isinstance(body, dict):
                 return web.json_response(
                     {"error": "Request body must be a JSON object"}, status=400
                 )
-            decided_by = body.get("decided_by", "operator")
+            decided_by = body.get("decided_by") or "operator"
             reason = body.get("reason")
 
             result = self.feedback_store.reject(proposal_id, decided_by=decided_by, reason=reason)
@@ -394,7 +400,7 @@ class MonitoringDashboard:
             return web.json_response(result.to_dict())
         except Exception as e:
             logger.error(f"Error rejecting feedback: {e}")
-            return web.json_response({"error": str(e)}, status=500)
+            return web.json_response({"error": "Internal server error"}, status=500)
 
     async def api_feedback_stats(self, request):
         """API endpoint: feedback acceptance-rate statistics."""

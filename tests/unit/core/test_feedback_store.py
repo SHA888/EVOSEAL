@@ -34,6 +34,16 @@ class TestSubmitProposal:
         p = store.submit_proposal("T", "D", metadata={"fitness": 0.9})
         assert p.metadata == {"fitness": 0.9}
 
+    def test_submit_defensive_copy(self, store):
+        """Mutating caller's data after submit must not affect stored proposal."""
+        changes = [{"path": "a.py"}]
+        meta = {"k": "v"}
+        p = store.submit_proposal("T", "D", file_changes=changes, metadata=meta)
+        changes.append({"path": "b.py"})
+        meta["k"] = "mutated"
+        assert p.file_changes == [{"path": "a.py"}]
+        assert p.metadata == {"k": "v"}
+
     def test_unique_ids(self, store):
         p1 = store.submit_proposal("A", "a")
         p2 = store.submit_proposal("B", "b")
