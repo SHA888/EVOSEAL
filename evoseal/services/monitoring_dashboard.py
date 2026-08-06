@@ -970,9 +970,6 @@ class MonitoringDashboard:
                     ? '<span class="badge badge-success">+' + d.improvement_percentage.toFixed(1) + '%</span>'
                     : '';
                 const diffId = 'diff-body-' + idx;
-                const diffPreview = d.unified_diff
-                    ? escapeHtml(d.unified_diff.split('\n').slice(0, 3).join('\n')) + (d.unified_diff.split('\n').length > 3 ? ' ...' : '')
-                    : '<em>No code changes recorded</em>';
 
                 const safeStrategy = escapeHtml(String(d.strategy));
                 const safeModelVersion = escapeHtml(String(d.model_version));
@@ -994,7 +991,7 @@ class MonitoringDashboard:
                         + colorizeDiff(escapeHtml(d.unified_diff)) + '</pre>';
                 } else {
                     html += '<div class="diff-preview" style="opacity: 0.7; font-size: 0.85rem; margin-top: 0.5rem;">'
-                        + diffPreview + '</div>';
+                        + '<em>No code changes recorded</em></div>';
                 }
 
                 html += '</div>';

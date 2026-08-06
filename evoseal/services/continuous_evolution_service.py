@@ -541,7 +541,7 @@ class ContinuousEvolutionService:
             return []
 
         # Sort newest first and cap
-        results.sort(key=lambda r: r.timestamp, reverse=True)
+        results = sorted(results, key=lambda r: r.timestamp, reverse=True)
         results = results[:limit]
 
         diffs: list[dict[str, Any]] = []
@@ -577,6 +577,8 @@ class ContinuousEvolutionService:
 
         Returns an empty string when the two are identical.
         """
+        original = original or ""
+        improved = improved or ""
         if not original and not improved:
             return ""
         original_lines = original.splitlines(keepends=True)
