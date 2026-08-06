@@ -447,6 +447,50 @@ class KnowledgeBase:
         with self._lock:
             return len(self.entries)
 
+    async def search(
+        self,
+        query: str,
+        max_results: int | None = None,
+        min_score: float | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search for knowledge entries matching a query.
+
+        This is the async interface used by ``EnhancedSealSystem`` and other
+        async callers.  It delegates to :meth:`search_entries` and converts
+        the results to plain dicts so the return type matches what callers
+        expect (``list[dict[str, Any]]``).
+
+        Parameters
+        ----------
+        query:
+            Free-text query to search against entry content.
+        max_results:
+            Maximum number of results to return.  Defaults to
+            ``DEFAULT_SEARCH_LIMIT``.
+        min_score:
+            Accepted for API compatibility with ``MockKnowledgeBase`` but
+            not used by the real implementation (entries are matched by
+            substring, not scored).
+        context:
+            Accepted for API compatibility; not used by the current
+            implementation.
+        """
+        limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
+        entries = self.search_entries(query=query, limit=limit)
+        return [
+            {
+                "id": entry.id,
+                "content": entry.content,
+                "score": 1.0,  # real KB uses substring matching, no scoring
+                "metadata": entry.metadata,
+                "tags": entry.tags,
+                "created_at": entry.created_at.isoformat(),
+                "updated_at": entry.updated_at.isoformat(),
+            }
+            for entry in entries
+        ]
+
     def get_all_entries(self) -> list[KnowledgeEntry]:
         """Get all entries in the knowledge base.
 
