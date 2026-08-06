@@ -440,3 +440,295 @@ class TestWebSocketSubprotocolEcho:
                 async with session.ws_connect(url) as ws:
                     msg = await ws.receive()
                     assert msg.type == aiohttp.WSMsgType.TEXT
+
+
+# --- Generation diff API tests ---
+
+
+class TestGenerationDiffAPI:
+    """Tests for the /api/generation-diffs endpoint."""
+
+    @pytest.fixture
+    def mock_service_with_diffs(self, mock_service):
+        """Mock service with get_generation_diffs."""
+        mock_service.get_generation_diffs.return_value = [
+            {
+                "id": "gen-1",
+                "iteration": 1,
+                "generation": 1,
+                "timestamp": "2026-08-05T10:00:00+00:00",
+                "strategy": "pipeline",
+                "fitness_score": 0.85,
+                "improvement_percentage": 12.5,
+                "success": True,
+                "improvement_types": ["performance"],
+                "task_description": "Pipeline iteration 1",
+                "model_version": "pipeline",
+                "original_metrics": {},
+                "improved_metrics": {},
+                "unified_diff": "--- original\n+++ improved\n@@ -1,3 +1,3 @@\n-old\n+new",
+            },
+            {
+                "id": "gen-2",
+                "iteration": 2,
+                "generation": 2,
+                "timestamp": "2026-08-05T09:00:00+00:00",
+                "strategy": "pipeline",
+                "fitness_score": 0.70,
+                "improvement_percentage": -5.0,
+                "success": False,
+                "improvement_types": [],
+                "task_description": "Pipeline iteration 2",
+                "model_version": "pipeline",
+                "original_metrics": {},
+                "improved_metrics": {},
+                "unified_diff": "",
+            },
+        ]
+        return mock_service
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_returns_list(self, mock_service_with_diffs):
+        """Endpoint returns the list from get_generation_diffs."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18083,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert "generation_diffs" in data
+                    assert "count" in data
+                    assert data["count"] == 2
+                    assert len(data["generation_diffs"]) == 2
+                    assert data["generation_diffs"][0]["id"] == "gen-1"
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_limit_param(self, mock_service_with_diffs):
+        """Limit query parameter is forwarded to the service."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18084,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=5"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    mock_service_with_diffs.get_generation_diffs.assert_called_with(limit=5)
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_clamps_limit(self, mock_service_with_diffs):
+        """Limit is clamped between 1 and 50."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18085,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            # Too high
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=999"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    mock_service_with_diffs.get_generation_diffs.assert_called_with(limit=50)
+
+            # Too low
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=0"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    mock_service_with_diffs.get_generation_diffs.assert_called_with(limit=1)
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_no_service(self):
+        """Returns 503 when no evolution service is attached."""
+        dash = MonitoringDashboard(
+            evolution_service=None,
+            host="localhost",
+            port=18086,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 503
+                    data = await resp.json()
+                    assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_invalid_limit(self, mock_service_with_diffs):
+        """Non-integer limit returns 400."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18087,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=abc"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 400
+                    data = await resp.json()
+                    assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_service_error(self, mock_service):
+        """Returns 500 when service raises unexpectedly."""
+        mock_service.get_generation_diffs.side_effect = RuntimeError("boom")
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=18088,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 500
+                    data = await resp.json()
+                    assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_auth_required(self, mock_service_with_diffs):
+        """When auth_token is set, unauthenticated requests are rejected."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18089,
+            auth_token="secret",
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 401
+
+
+# --- ContinuousEvolutionService.get_generation_diffs tests ---
+
+
+class TestGetGenerationDiffs:
+    """Unit tests for ContinuousEvolutionService.get_generation_diffs."""
+
+    def test_returns_empty_when_no_results(self):
+        """Returns empty list when data collector has no results."""
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.return_value = []
+        assert svc.get_generation_diffs() == []
+
+    def test_returns_diffs_with_unified_diff(self):
+        """Results include unified diff computed from original and improved code."""
+        from datetime import datetime, timezone
+
+        from evoseal.evolution.models import (
+            CodeMetrics,
+            EvolutionResult,
+            EvolutionStrategy,
+            ImprovementType,
+        )
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        result = EvolutionResult(
+            id="test-1",
+            timestamp=datetime.now(timezone.utc),
+            original_code="def foo():\n    return 1\n",
+            improved_code="def foo():\n    return 42\n",
+            strategy=EvolutionStrategy.PIPELINE,
+            generation=1,
+            iteration=1,
+            fitness_score=0.9,
+            improvement_percentage=10.0,
+            original_metrics=CodeMetrics(10, 1.0, 50.0, 0.8, 0.1, 100.0, 7.0),
+            improved_metrics=CodeMetrics(10, 1.0, 50.0, 0.9, 0.1, 100.0, 7.5),
+            improvement_types=[ImprovementType.PERFORMANCE],
+            success=True,
+            task_description="test",
+            provider_used="test",
+            model_version="v1",
+        )
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.return_value = [result]
+
+        diffs = svc.get_generation_diffs()
+        assert len(diffs) == 1
+        assert diffs[0]["id"] == "test-1"
+        assert "unified_diff" in diffs[0]
+        assert (
+            "+def foo" in diffs[0]["unified_diff"] or "+    return 42" in diffs[0]["unified_diff"]
+        )
+
+    def test_returns_empty_when_collector_raises(self):
+        """Returns empty list when data collector raises an exception."""
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.side_effect = RuntimeError("disk error")
+        assert svc.get_generation_diffs() == []
+
+    def test_limits_results(self):
+        """Results are capped at the requested limit."""
+        from datetime import datetime, timezone
+
+        from evoseal.evolution.models import (
+            CodeMetrics,
+            EvolutionResult,
+            EvolutionStrategy,
+            ImprovementType,
+        )
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        results = []
+        for i in range(5):
+            results.append(
+                EvolutionResult(
+                    id=f"test-{i}",
+                    timestamp=datetime.now(timezone.utc),
+                    original_code=f"v{i}",
+                    improved_code=f"v{i + 1}",
+                    strategy=EvolutionStrategy.PIPELINE,
+                    generation=i,
+                    iteration=i,
+                    fitness_score=0.5,
+                    improvement_percentage=0.0,
+                    original_metrics=CodeMetrics(10, 1.0, 50.0, 0.8, 0.1, 100.0, 7.0),
+                    improved_metrics=CodeMetrics(10, 1.0, 50.0, 0.9, 0.1, 100.0, 7.5),
+                    improvement_types=[],
+                    success=True,
+                    task_description="test",
+                    provider_used="test",
+                    model_version="v1",
+                )
+            )
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.return_value = results
+
+        diffs = svc.get_generation_diffs(limit=3)
+        assert len(diffs) == 3
