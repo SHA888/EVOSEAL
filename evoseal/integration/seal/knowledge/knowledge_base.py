@@ -7,6 +7,7 @@ of knowledge in the SEAL system.
 
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import json
 import logging
@@ -505,12 +506,12 @@ class KnowledgeBase:
             raise ValueError(f"max_results must be non-negative, got {max_results}")
 
         limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
-        # NOTE: self._lock is a threading.RLock, not an asyncio.Lock, so this
-        # blocks the event loop for the duration of the in-memory scan.  This
-        # is acceptable because search_entries is a fast dict iteration + slice
-        # and does not perform I/O.
-        with self._lock:
-            entries = self.search_entries(query=query, limit=limit)
+        # self._lock is a threading.RLock, not an asyncio.Lock, and
+        # search_entries does an O(n) in-memory scan.  Running that
+        # directly would block the event loop for the full duration,
+        # stalling any concurrent coroutines.  Offload to a thread so
+        # the event loop remains responsive.
+        entries = await asyncio.to_thread(self._search_entries_sync, query, limit)
         return [
             {
                 "id": entry.id,
@@ -529,6 +530,15 @@ class KnowledgeBase:
             }
             for entry in entries
         ]
+
+    def _search_entries_sync(self, query: str | None, limit: int) -> list[KnowledgeEntry]:
+        """Synchronous helper that acquires the lock and runs search_entries.
+
+        Called via ``asyncio.to_thread`` from :meth:`search` so the event
+        loop is not blocked by the in-memory scan.
+        """
+        with self._lock:
+            return self.search_entries(query=query, limit=limit)
 
     def get_all_entries(self) -> list[KnowledgeEntry]:
         """Get all entries in the knowledge base.
