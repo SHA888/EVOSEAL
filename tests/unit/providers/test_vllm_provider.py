@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 import aiohttp
 import pytest
 
-from evoseal.providers.vllm_provider import VLLMProvider, _VLLMServerError
+from evoseal.providers.vllm_provider import VLLMProvider, _VLLMServerError  # noqa: F401
 
 
 @pytest.fixture
@@ -293,6 +293,21 @@ def test_is_retryable_client_error(provider):
     assert provider._is_retryable(aiohttp.ClientError("x")) is True
 
 
+def test_is_not_retryable_content_type_error(provider):
+    """ContentTypeError indicates a malformed response, not transient."""
+    exc = aiohttp.ContentTypeError(
+        aiohttp.RequestInfo(
+            url=aiohttp.client.URL("http://localhost:8000"),
+            method="GET",
+            headers={},
+            real_url=aiohttp.client.URL("http://localhost:8000"),
+        ),
+        history=(),
+        message="bad content-type",
+    )
+    assert provider._is_retryable(exc) is False
+
+
 def test_is_retryable_server_error(provider):
     assert provider._is_retryable(_VLLMServerError(503, "busy")) is True
 
@@ -334,14 +349,67 @@ async def test_health_check_server_unreachable(provider):
 
 
 @pytest.mark.asyncio
-async def test_health_check_default_model_passes():
-    """When using the default placeholder model, any model list passes."""
-    p = VLLMProvider(model="default", max_retries=0)
+async def test_health_check_empty_model_rejected():
+    """An empty model string must match a real model or fail."""
+    p = VLLMProvider(model="", max_retries=0)
     models_response = {"data": [{"id": "any-model"}]}
     mock_session = _MockSession([_MockResponse(200, models_response)])
 
     with patch("aiohttp.ClientSession", return_value=mock_session):
-        assert await p.health_check() is True
+        assert await p.health_check() is False
+
+
+# -- Null content safety ---------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_submit_prompt_null_content_returns_empty_string(provider_no_retry):
+    """When vLLM returns content=null (e.g. tool-call response), degrade to empty string."""
+    resp = {
+        "id": "chatcmpl-test",
+        "object": "chat.completion",
+        "model": "test-model",
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": None},
+                "finish_reason": "stop",
+            }
+        ],
+    }
+    mock_resp = _MockResponse(200, resp)
+    mock_session = _MockSession([mock_resp])
+
+    with patch("aiohttp.ClientSession", return_value=mock_session):
+        result = await provider_no_retry.submit_prompt("test")
+
+    assert result == ""
+
+
+# -- ContentTypeError not retried ------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_submit_prompt_no_retry_on_content_type_error(provider_no_retry):
+    """ContentTypeError (malformed response) is not retried."""
+    mock_resp = _MockResponse(200)
+    mock_resp.json = AsyncMock(
+        side_effect=aiohttp.ContentTypeError(
+            aiohttp.RequestInfo(
+                url=aiohttp.client.URL("http://localhost:8000/v1/chat/completions"),
+                method="POST",
+                headers={},
+                real_url=aiohttp.client.URL("http://localhost:8000/v1/chat/completions"),
+            ),
+            history=(),
+            message="content-type mismatch",
+        )
+    )
+    mock_session = _MockSession([mock_resp])
+
+    with patch("aiohttp.ClientSession", return_value=mock_session):
+        with pytest.raises(aiohttp.ContentTypeError):
+            await provider_no_retry.submit_prompt("test")
 
 
 # -- parse_response --------------------------------------------------------
