@@ -13,6 +13,7 @@ approval).
 
 from __future__ import annotations
 
+import copy
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -48,13 +49,13 @@ class ModificationProposal:
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "file_changes": self.file_changes,
+            "file_changes": copy.deepcopy(self.file_changes),
             "proposed_at": self.proposed_at,
             "decision": self.decision.value,
             "decided_at": self.decided_at,
             "decided_by": self.decided_by,
             "reason": self.reason,
-            "metadata": self.metadata,
+            "metadata": copy.deepcopy(self.metadata),
         }
 
 
@@ -88,9 +89,9 @@ class FeedbackStore:
             id=uuid.uuid4().hex,
             title=title,
             description=description,
-            file_changes=list(file_changes) if file_changes else [],
+            file_changes=copy.deepcopy(file_changes) if file_changes else [],
             proposed_at=now,
-            metadata=dict(metadata) if metadata else {},
+            metadata=copy.deepcopy(metadata) if metadata else {},
         )
         self._proposals[proposal.id] = proposal
         return proposal
