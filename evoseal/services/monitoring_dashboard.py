@@ -406,7 +406,7 @@ class MonitoringDashboard:
             return web.json_response([p.to_dict() for p in pending])
         except Exception as e:
             logger.error(f"Error listing pending feedback: {e}")
-            return web.json_response({"error": str(e)}, status=500)
+            return web.json_response({"error": "Internal server error"}, status=500)
 
     async def api_feedback_approve(self, request):
         """API endpoint: approve a pending proposal."""
@@ -465,7 +465,7 @@ class MonitoringDashboard:
             return web.json_response(stats)
         except Exception as e:
             logger.error(f"Error getting feedback stats: {e}")
-            return web.json_response({"error": str(e)}, status=500)
+            return web.json_response({"error": "Internal server error"}, status=500)
 
     async def websocket_handler(self, request):
         """WebSocket handler for real-time updates."""
