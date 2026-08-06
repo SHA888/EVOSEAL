@@ -77,7 +77,7 @@ class SEALConfig(BaseSettings):
                 enabled=False,  # Enable when a vLLM server is running
                 config={
                     "base_url": DEFAULT_VLLM_BASE_URL,
-                    "model": "default",
+                    "model": "",  # Must be set to the actual model name served by vLLM
                     "timeout": 120,
                     "temperature": 0.7,
                 },
