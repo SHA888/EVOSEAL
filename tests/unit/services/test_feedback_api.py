@@ -133,7 +133,7 @@ class TestFeedbackApproveEndpoint:
         p = feedback_store.submit_proposal("T", "D")
         feedback_store.approve(p.id)
         status, _ = await _post(dashboard.app, f"/api/feedback/{p.id}/approve")
-        assert status == 404
+        assert status == 409
 
     @pytest.mark.asyncio
     async def test_approve_malformed_json(self, dashboard, feedback_store):
