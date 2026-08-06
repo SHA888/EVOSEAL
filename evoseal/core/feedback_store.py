@@ -65,6 +65,11 @@ class FeedbackStore:
     dashboard runs in a single asyncio event loop, so concurrent access
     from HTTP handlers is serialized. If persistence or multi-process
     access is needed, wrap with a lock or move to a database.
+
+    Memory note: proposals accumulate indefinitely with no eviction,
+    expiry, or size cap on ``file_changes``/``metadata``.  This is
+    acceptable for short-lived or low-throughput sessions but is an
+    unbounded memory-growth path for long-running processes.
     """
 
     def __init__(self) -> None:
@@ -83,9 +88,9 @@ class FeedbackStore:
             id=uuid.uuid4().hex,
             title=title,
             description=description,
-            file_changes=file_changes or [],
+            file_changes=list(file_changes) if file_changes else [],
             proposed_at=now,
-            metadata=metadata or {},
+            metadata=dict(metadata) if metadata else {},
         )
         self._proposals[proposal.id] = proposal
         return proposal
