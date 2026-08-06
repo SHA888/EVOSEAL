@@ -21,7 +21,7 @@ from typing import Any
 import aiohttp_cors
 from aiohttp import WSMsgType, web
 
-from evoseal.core.feedback_store import FeedbackStore
+from evoseal.core.feedback_store import FeedbackDecision, FeedbackStore
 
 from .continuous_evolution_service import ContinuousEvolutionService
 
@@ -423,11 +423,12 @@ class MonitoringDashboard:
             decided_by = body.get("decided_by") or "operator"
             reason = body.get("reason")
 
+            existing = self.feedback_store.get_proposal(proposal_id)
+            if existing is None:
+                return web.json_response({"error": "Proposal not found"}, status=404)
+            if existing.decision != FeedbackDecision.PENDING:
+                return web.json_response({"error": "Proposal already decided"}, status=409)
             result = self.feedback_store.approve(proposal_id, decided_by=decided_by, reason=reason)
-            if result is None:
-                return web.json_response(
-                    {"error": "Proposal not found or already decided"}, status=404
-                )
             return web.json_response(result.to_dict())
         except Exception as e:
             logger.error(f"Error approving feedback: {e}")
@@ -448,11 +449,12 @@ class MonitoringDashboard:
             decided_by = body.get("decided_by") or "operator"
             reason = body.get("reason")
 
+            existing = self.feedback_store.get_proposal(proposal_id)
+            if existing is None:
+                return web.json_response({"error": "Proposal not found"}, status=404)
+            if existing.decision != FeedbackDecision.PENDING:
+                return web.json_response({"error": "Proposal already decided"}, status=409)
             result = self.feedback_store.reject(proposal_id, decided_by=decided_by, reason=reason)
-            if result is None:
-                return web.json_response(
-                    {"error": "Proposal not found or already decided"}, status=404
-                )
             return web.json_response(result.to_dict())
         except Exception as e:
             logger.error(f"Error rejecting feedback: {e}")
@@ -1504,13 +1506,13 @@ class MonitoringDashboard:
                 return;
             }
             container.innerHTML = proposals.map(p => `
-                <div class="proposal-card" id="proposal-${p.id}">
+                <div class="proposal-card" id="proposal-${escapeHtml(p.id)}">
                     <div class="proposal-title">${escapeHtml(p.title)}</div>
                     <div class="proposal-desc">${escapeHtml(p.description)}</div>
                     ${p.file_changes.length > 0 ? `<div class="proposal-files">Files: ${p.file_changes.map(f => escapeHtml(f.path || f.file || '?')).join(', ')}</div>` : ''}
                     <div class="proposal-actions">
-                        <button class="btn btn-approve" onclick="decideFeedback('${p.id}', 'approve')">✓ Approve</button>
-                        <button class="btn btn-reject" onclick="decideFeedback('${p.id}', 'reject')">✗ Reject</button>
+                        <button class="btn btn-approve" onclick="decideFeedback('${escapeHtml(p.id)}', 'approve')">✓ Approve</button>
+                        <button class="btn btn-reject" onclick="decideFeedback('${escapeHtml(p.id)}', 'reject')">✗ Reject</button>
                     </div>
                 </div>
             `).join('');
