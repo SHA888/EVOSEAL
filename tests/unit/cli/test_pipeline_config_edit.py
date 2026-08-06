@@ -73,6 +73,26 @@ class TestConfigEdit:
             restored = json.load(f)
         assert restored == original
 
+    def test_edit_rejects_non_dict_json(self, isolate_config, tmp_path):
+        """If the user saves valid JSON that isn't an object, the command should revert."""
+        cfg = pipeline_mod.pipeline_config
+        original = {"iterations": 7, "custom": True}
+        cfg.save_config(original)
+
+        editor_script = str(tmp_path / "array_editor.sh")
+        with open(editor_script, "w") as f:
+            f.write('#!/bin/sh\necho "[1, 2, 3]" > "$1"\n')
+        os.chmod(editor_script, 0o755)
+
+        with patch.dict(os.environ, {"EDITOR": editor_script}):
+            result = runner.invoke(app, ["config", "--edit"])
+            assert "not a valid object" in result.output
+
+        # Verify the file was restored to the previous valid config
+        with open(isolate_config) as f:
+            restored = json.load(f)
+        assert restored == original
+
     def test_edit_accepts_valid_json(self, isolate_config, tmp_path):
         """If the user saves valid JSON, the command should accept it."""
         cfg = pipeline_mod.pipeline_config

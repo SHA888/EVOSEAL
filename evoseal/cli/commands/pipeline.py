@@ -8,10 +8,12 @@ initialization, execution control, status monitoring, and debugging options.
 from __future__ import annotations
 
 import asyncio
+import collections
 import json
 import logging
 import os
 import shlex
+import subprocess
 import time
 from typing import Annotated, Any
 
@@ -437,8 +439,6 @@ def manage_config(
         if not os.path.exists(PIPELINE_CONFIG_FILE):
             pipeline_config.save_config(pipeline_config.get_default_config())
 
-        import subprocess
-
         try:
             subprocess.run(shlex.split(editor) + [PIPELINE_CONFIG_FILE], check=True)
         except subprocess.CalledProcessError as e:
@@ -451,7 +451,15 @@ def manage_config(
         # Validate the edited config is valid JSON
         try:
             with open(PIPELINE_CONFIG_FILE) as f:
-                config = json.load(f)
+                new_config = json.load(f)
+            if not isinstance(new_config, dict):
+                console.print(
+                    "[red]Warning: edited configuration is not a valid object. "
+                    "Reverting to previous configuration.[/red]"
+                )
+                pipeline_config.save_config(config)
+                return
+            config = new_config
             console.print("[green]Configuration updated successfully[/green]")
         except (json.JSONDecodeError, OSError):
             console.print(
@@ -570,9 +578,14 @@ def follow_logs(log_file: str, initial_lines: int = 50, level: str | None = None
         # so that lines appended between the two phases are never skipped.
         with open(log_file) as f:
             # Show the last N existing lines first
-            existing = f.readlines()
-            target = existing[-initial_lines:] if initial_lines > 0 else existing
-            for line in target:
+            # Use a bounded deque so we don't load the entire file into memory.
+            if initial_lines > 0:
+                recent: collections.deque[str] = collections.deque(maxlen=initial_lines)
+                for line in f:
+                    recent.append(line)
+            else:
+                recent = collections.deque(f)
+            for line in recent:
                 stripped = line.strip()
                 if level and level.upper() not in stripped:
                     continue
