@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 import os
+import shlex
 import time
 from typing import Annotated, Any
 
@@ -439,7 +440,7 @@ def manage_config(
         import subprocess
 
         try:
-            subprocess.run([editor, PIPELINE_CONFIG_FILE], check=True)
+            subprocess.run(shlex.split(editor) + [PIPELINE_CONFIG_FILE], check=True)
         except subprocess.CalledProcessError as e:
             console.print(f"[red]Editor exited with error: {e}[/red]")
             raise typer.Exit(1) from None
@@ -450,7 +451,7 @@ def manage_config(
         # Validate the edited config is valid JSON
         try:
             with open(PIPELINE_CONFIG_FILE) as f:
-                json.load(f)
+                config = json.load(f)
             console.print("[green]Configuration updated successfully[/green]")
         except (json.JSONDecodeError, OSError):
             console.print(
@@ -555,31 +556,31 @@ def follow_logs(log_file: str, initial_lines: int = 50, level: str | None = None
 
     Prints the last *initial_lines* lines first, then watches for new content.
     Press Ctrl-C to stop.
+
+    Note: log rotation/truncation is not detected. If *log_file* is rotated
+    while following (e.g. by logrotate), this function keeps reading the old
+    (now-unlinked) inode and will not observe writes to the new file.
     """
     if not os.path.exists(log_file):
         console.print(f"[red]Log file not found: {log_file}[/red]")
         raise typer.Exit(1)
 
-    # Show the last N existing lines first
     try:
+        # Keep one handle open from the initial read through the follow loop
+        # so that lines appended between the two phases are never skipped.
         with open(log_file) as f:
+            # Show the last N existing lines first
             existing = f.readlines()
-        for line in existing[-initial_lines:]:
-            stripped = line.strip()
-            if level and level.upper() not in stripped:
-                continue
-            _print_log_line(line)
-    except Exception as e:
-        console.print(f"[red]Error reading log file: {e}[/red]")
-        raise typer.Exit(1) from None
+            target = existing[-initial_lines:] if initial_lines > 0 else existing
+            for line in target:
+                stripped = line.strip()
+                if level and level.upper() not in stripped:
+                    continue
+                _print_log_line(line)
 
-    console.print(f"[dim]Following {log_file} (Ctrl-C to stop)...[/dim]")
+            console.print(f"[dim]Following {log_file} (Ctrl-C to stop)...[/dim]")
 
-    # Tail the file for new content
-    try:
-        with open(log_file) as f:
-            # Seek to end to only show new lines
-            f.seek(0, os.SEEK_END)
+            # Tail for new content from the same handle
             while True:
                 line = f.readline()
                 if line:
@@ -592,6 +593,9 @@ def follow_logs(log_file: str, initial_lines: int = 50, level: str | None = None
                     time.sleep(0.5)
     except KeyboardInterrupt:
         console.print("\n[yellow]Stopped following logs[/yellow]")
+    except OSError as e:
+        console.print(f"[red]Error reading log file: {e}[/red]")
+        raise typer.Exit(1) from None
 
 
 def _print_log_line(line: str) -> None:

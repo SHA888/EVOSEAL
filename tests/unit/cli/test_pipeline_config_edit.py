@@ -56,7 +56,8 @@ class TestConfigEdit:
     def test_edit_rejects_invalid_json(self, isolate_config, tmp_path):
         """If the user saves invalid JSON, the command should revert."""
         cfg = pipeline_mod.pipeline_config
-        cfg.save_config(cfg.get_default_config())
+        original = {"iterations": 7, "custom": True}
+        cfg.save_config(original)
 
         editor_script = str(tmp_path / "bad_editor.sh")
         with open(editor_script, "w") as f:
@@ -66,6 +67,11 @@ class TestConfigEdit:
         with patch.dict(os.environ, {"EDITOR": editor_script}):
             result = runner.invoke(app, ["config", "--edit"])
             assert "not valid JSON" in result.output
+
+        # Verify the file was restored to the previous valid config
+        with open(isolate_config) as f:
+            restored = json.load(f)
+        assert restored == original
 
     def test_edit_accepts_valid_json(self, isolate_config, tmp_path):
         """If the user saves valid JSON, the command should accept it."""
@@ -94,3 +100,28 @@ class TestConfigEdit:
             result = runner.invoke(app, ["config", "--edit"])
             assert result.exit_code == 1
             assert "not found" in result.output.lower()
+
+    def test_edit_editor_with_arguments(self, isolate_config, tmp_path):
+        """EDITOR values with arguments (e.g. 'code --wait') should work."""
+        cfg = pipeline_mod.pipeline_config
+        cfg.save_config(cfg.get_default_config())
+
+        # A script that prints argv to prove arguments were split correctly
+        editor_script = str(tmp_path / "editor_with_args.sh")
+        with open(editor_script, "w") as f:
+            f.write(
+                "#!/bin/sh\n"
+                "# Expect: <script> --some-flag <config-file>\n"
+                'echo \'{"iterations": 99}\' > "$2"\n'
+            )
+        os.chmod(editor_script, 0o755)
+
+        # Simulate EDITOR="script --some-flag"
+        with patch.dict(os.environ, {"EDITOR": f"{editor_script} --some-flag"}):
+            result = runner.invoke(app, ["config", "--edit"])
+            assert result.exit_code == 0, result.output
+            assert "updated successfully" in result.output
+
+        with open(isolate_config) as f:
+            data = json.load(f)
+        assert data["iterations"] == 99
