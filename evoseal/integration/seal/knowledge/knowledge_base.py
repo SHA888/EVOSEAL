@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import logging
 import os
 import tempfile
 import time
@@ -447,6 +448,8 @@ class KnowledgeBase:
         with self._lock:
             return len(self.entries)
 
+    _logger: logging.Logger | None = None
+
     async def search(
         self,
         query: str,
@@ -471,13 +474,29 @@ class KnowledgeBase:
         min_score:
             Accepted for API compatibility with ``MockKnowledgeBase`` but
             not used by the real implementation (entries are matched by
-            substring, not scored).
+            substring, not scored).  A warning is logged when a non-default
+            value is supplied so callers migrating from the mock do not
+            silently lose filtering.
         context:
             Accepted for API compatibility; not used by the current
             implementation.
         """
+        if min_score is not None:
+            if self._logger is None:
+                self._logger = logging.getLogger(__name__)
+            self._logger.warning(
+                "min_score=%s was passed to KnowledgeBase.search() but the real "
+                "implementation uses substring matching and does not filter by "
+                "score. All matches will be returned regardless of this value.",
+                min_score,
+            )
+
+        if max_results is not None and max_results < 0:
+            max_results = 0
+
         limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
-        entries = self.search_entries(query=query, limit=limit)
+        with self._lock:
+            entries = self.search_entries(query=query, limit=limit)
         return [
             {
                 "id": entry.id,
@@ -485,8 +504,12 @@ class KnowledgeBase:
                 "score": 1.0,  # real KB uses substring matching, no scoring
                 "metadata": entry.metadata,
                 "tags": entry.tags,
-                "created_at": entry.created_at.isoformat(),
-                "updated_at": entry.updated_at.isoformat(),
+                "created_at": entry.created_at.isoformat()
+                if entry.created_at is not None
+                else None,
+                "updated_at": entry.updated_at.isoformat()
+                if entry.updated_at is not None
+                else None,
             }
             for entry in entries
         ]
