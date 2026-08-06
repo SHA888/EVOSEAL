@@ -449,6 +449,7 @@ class KnowledgeBase:
             return len(self.entries)
 
     _logger: logging.Logger | None = None
+    _MOCK_DEFAULT_MIN_SCORE: float = 0.3
 
     async def search(
         self,
@@ -474,14 +475,14 @@ class KnowledgeBase:
         min_score:
             Accepted for API compatibility with ``MockKnowledgeBase`` but
             not used by the real implementation (entries are matched by
-            substring, not scored).  A warning is logged when a non-default
-            value is supplied so callers migrating from the mock do not
-            silently lose filtering.
+            substring, not scored).  A warning is logged when a value other
+            than the mock's default (0.3) is supplied so callers migrating
+            from the mock do not silently lose filtering.
         context:
             Accepted for API compatibility; not used by the current
             implementation.
         """
-        if min_score is not None:
+        if min_score is not None and min_score != self._MOCK_DEFAULT_MIN_SCORE:
             if self._logger is None:
                 self._logger = logging.getLogger(__name__)
             self._logger.warning(
@@ -491,10 +492,16 @@ class KnowledgeBase:
                 min_score,
             )
 
+        # Negative max_results is a caller bug — raise rather than silently
+        # clamping or (worse) passing a negative limit through to search_entries.
         if max_results is not None and max_results < 0:
-            max_results = 0
+            raise ValueError(f"max_results must be non-negative, got {max_results}")
 
         limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
+        # NOTE: self._lock is a threading.RLock, not an asyncio.Lock, so this
+        # blocks the event loop for the duration of the in-memory scan.  This
+        # is acceptable because search_entries is a fast dict iteration + slice
+        # and does not perform I/O.
         with self._lock:
             entries = self.search_entries(query=query, limit=limit)
         return [

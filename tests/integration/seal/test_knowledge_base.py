@@ -1,8 +1,11 @@
 """Tests for the KnowledgeBase class."""
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Final
+
+import pytest
 
 from evoseal.integration.seal.knowledge.knowledge_base import KnowledgeBase, KnowledgeEntry
 
@@ -171,3 +174,44 @@ def test_clear(tmp_path):
     assert len(kb) == EXPECTED_ENTRIES_AFTER_ADD
     kb.clear()
     assert len(kb) == EXPECTED_ENTRIES_AFTER_DELETE
+
+
+@pytest.mark.asyncio
+async def test_search_min_score_none_no_warning(tmp_path, caplog):
+    """search(min_score=None) should not log a warning."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello world")
+    with caplog.at_level(logging.WARNING):
+        results = await kb.search(query="hello")
+    assert len(results) == 1
+    assert "min_score" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_search_min_score_mock_default_no_warning(tmp_path, caplog):
+    """search(min_score=0.3) — the mock default — should not warn."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello world")
+    with caplog.at_level(logging.WARNING):
+        results = await kb.search(query="hello", min_score=0.3)
+    assert len(results) == 1
+    assert "min_score" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_search_min_score_non_default_warns(tmp_path, caplog):
+    """search(min_score=0.5) — a non-default value — should warn once."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello world")
+    with caplog.at_level(logging.WARNING):
+        await kb.search(query="hello", min_score=0.5)
+    assert "min_score=0.5" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_search_negative_max_results_raises(tmp_path):
+    """search(max_results=-1) should raise ValueError (caller bug)."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello world")
+    with pytest.raises(ValueError, match="max_results must be non-negative"):
+        await kb.search(query="hello", max_results=-1)
