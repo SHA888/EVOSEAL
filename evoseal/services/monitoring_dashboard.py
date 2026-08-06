@@ -974,14 +974,17 @@ class MonitoringDashboard:
                     ? escapeHtml(d.unified_diff.split('\n').slice(0, 3).join('\n')) + (d.unified_diff.split('\n').length > 3 ? ' ...' : '')
                     : '<em>No code changes recorded</em>';
 
+                const safeStrategy = escapeHtml(String(d.strategy));
+                const safeModelVersion = escapeHtml(String(d.model_version));
+
                 html += '<div class="diff-entry' + statusClass + '">'
                     + '<div class="diff-header">'
                     + '<span>Iteration ' + d.iteration + ' \u2022 Gen ' + d.generation + '</span>'
                     + '<span>' + statusBadge + ' ' + fitnessBadge + ' ' + improveBadge + '</span>'
                     + '</div>'
                     + '<div class="diff-stats">'
-                    + '<span>Strategy: ' + d.strategy + '</span>'
-                    + '<span>Model: ' + d.model_version + '</span>'
+                    + '<span>Strategy: ' + safeStrategy + '</span>'
+                    + '<span>Model: ' + safeModelVersion + '</span>'
                     + '<span>' + new Date(d.timestamp).toLocaleString() + '</span>'
                     + '</div>';
 
@@ -989,6 +992,9 @@ class MonitoringDashboard:
                     html += '<div class="diff-toggle" onclick="toggleDiff(\'' + diffId + '\', this)">▶ Show diff</div>'
                         + '<pre class="diff-content" id="' + diffId + '">'
                         + colorizeDiff(escapeHtml(d.unified_diff)) + '</pre>';
+                } else {
+                    html += '<div class="diff-preview" style="opacity: 0.7; font-size: 0.85rem; margin-top: 0.5rem;">'
+                        + diffPreview + '</div>';
                 }
 
                 html += '</div>';
