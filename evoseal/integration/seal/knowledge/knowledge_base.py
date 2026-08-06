@@ -449,7 +449,6 @@ class KnowledgeBase:
             return len(self.entries)
 
     _logger: logging.Logger | None = None
-    _MOCK_DEFAULT_MIN_SCORE: float = 0.3
 
     async def search(
         self,
@@ -465,6 +464,14 @@ class KnowledgeBase:
         the results to plain dicts so the return type matches what callers
         expect (``list[dict[str, Any]]``).
 
+        TODO: ``min_score`` is accepted for API compatibility but has no real
+        effect — all matches are returned with a hardcoded score of ``1.0``.
+        Downstream code that sorts or filters by score (e.g.
+        ``prompt/formatters.py``) will treat every match as maximally
+        relevant.  Implementing a rudimentary relevance score (e.g.
+        occurrence count or match position) would make ``min_score``
+        filtering and score-based ranking functional.
+
         Parameters
         ----------
         query:
@@ -475,14 +482,14 @@ class KnowledgeBase:
         min_score:
             Accepted for API compatibility with ``MockKnowledgeBase`` but
             not used by the real implementation (entries are matched by
-            substring, not scored).  A warning is logged when a value other
-            than the mock's default (0.3) is supplied so callers migrating
-            from the mock do not silently lose filtering.
+            substring, not scored).  A warning is logged when any value is
+            supplied so callers migrating from the mock do not silently
+            lose filtering.
         context:
             Accepted for API compatibility; not used by the current
             implementation.
         """
-        if min_score is not None and min_score != self._MOCK_DEFAULT_MIN_SCORE:
+        if min_score is not None:
             if self._logger is None:
                 self._logger = logging.getLogger(__name__)
             self._logger.warning(
@@ -508,7 +515,9 @@ class KnowledgeBase:
             {
                 "id": entry.id,
                 "content": entry.content,
-                "score": 1.0,  # real KB uses substring matching, no scoring
+                # TODO: Replace with a real relevance score so min_score
+                # filtering and score-based ranking work.  See search() docstring.
+                "score": 1.0,
                 "metadata": entry.metadata,
                 "tags": entry.tags,
                 "created_at": entry.created_at.isoformat()

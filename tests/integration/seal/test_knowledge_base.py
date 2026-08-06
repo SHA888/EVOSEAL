@@ -188,14 +188,14 @@ async def test_search_min_score_none_no_warning(tmp_path, caplog):
 
 
 @pytest.mark.asyncio
-async def test_search_min_score_mock_default_no_warning(tmp_path, caplog):
-    """search(min_score=0.3) — the mock default — should not warn."""
+async def test_search_min_score_mock_default_warns(tmp_path, caplog):
+    """search(min_score=0.3) — even the mock default — should warn."""
     kb = KnowledgeBase(str(tmp_path / "kb.db"))
     kb.add_entry("hello world")
     with caplog.at_level(logging.WARNING):
         results = await kb.search(query="hello", min_score=0.3)
     assert len(results) == 1
-    assert "min_score" not in caplog.text
+    assert "min_score=0.3" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -215,3 +215,12 @@ async def test_search_negative_max_results_raises(tmp_path):
     kb.add_entry("hello world")
     with pytest.raises(ValueError, match="max_results must be non-negative"):
         await kb.search(query="hello", max_results=-1)
+
+
+@pytest.mark.asyncio
+async def test_search_max_results_zero_returns_empty(tmp_path):
+    """search(max_results=0) should return an empty list, not raise."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello world")
+    results = await kb.search(query="hello", max_results=0)
+    assert results == []
