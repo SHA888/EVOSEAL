@@ -23,6 +23,7 @@ import asyncio
 import json
 import logging
 import random
+import time
 from typing import Any
 
 import aiohttp
@@ -33,9 +34,6 @@ logger = logging.getLogger(__name__)
 
 #: Default vLLM OpenAI-compatible endpoint.
 DEFAULT_VLLM_BASE_URL = "http://localhost:8000"
-
-#: Default model used when none is specified and no server-side default exists.
-DEFAULT_VLLM_MODEL = "default"
 
 
 class _VLLMServerError(Exception):
@@ -57,7 +55,7 @@ class VLLMProvider(SEALProvider):
     def __init__(
         self,
         base_url: str = DEFAULT_VLLM_BASE_URL,
-        model: str = DEFAULT_VLLM_MODEL,
+        model: str = "",
         timeout: int = 120,
         api_key: str | None = None,
         max_retries: int = 3,
@@ -69,8 +67,10 @@ class VLLMProvider(SEALProvider):
 
         Args:
             base_url: Base URL of the vLLM server (default ``http://localhost:8000``).
-            model: Model name to use in chat-completion requests.  When the
-                server hosts a single model it may be omitted (vLLM defaults).
+            model: Model name to use in chat-completion requests.
+                Must match a model served by the vLLM server (see
+                ``GET /v1/models``).  An empty string will cause requests
+                and health checks to fail.
             timeout: Per-request timeout in seconds (default 120).
             api_key: Optional API key for authenticated vLLM servers.
                 Sent as ``Authorization: Bearer <api_key>``.
@@ -103,7 +103,13 @@ class VLLMProvider(SEALProvider):
 
     def _is_retryable(self, exc: Exception) -> bool:
         """Return True if the exception represents a transient failure."""
-        if isinstance(exc, (asyncio.TimeoutError, TimeoutError, aiohttp.ClientError)):
+        if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+            return True
+        if isinstance(exc, aiohttp.ClientError):
+            # ContentTypeError (subclass of ClientResponseError -> ClientError)
+            # indicates a malformed response, not a transient network issue.
+            if isinstance(exc, aiohttp.ContentTypeError):
+                return False
             return True
         if isinstance(exc, _VLLMServerError):
             return True
@@ -156,15 +162,15 @@ class VLLMProvider(SEALProvider):
 
         last_exc: Exception | None = None
         total_attempts = self.max_retries + 1
-        deadline = asyncio.get_event_loop().time() + self.timeout * total_attempts
+        wall_start = time.monotonic()
 
         timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             for attempt in range(total_attempts):
-                remaining = deadline - asyncio.get_event_loop().time()
-                if remaining < self.timeout * 0.5:
+                total_deadline = self.timeout * total_attempts
+                if time.monotonic() - wall_start >= total_deadline:
                     logger.warning(
-                        "Overall deadline reached before attempt %d/%d; abandoning retries",
+                        "Wall-clock deadline reached before attempt %d/%d; abandoning retries",
                         attempt + 1,
                         total_attempts,
                     )
@@ -198,9 +204,8 @@ class VLLMProvider(SEALProvider):
                         if "error" in result:
                             raise Exception(f"vLLM API error: {result['error']}")
 
-                        content = (
-                            result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                        )
+                        choices = result.get("choices") or [{}]
+                        content = choices[0].get("message", {}).get("content") or ""
                         logger.debug("Received response from vLLM (%d chars)", len(content))
                         return content
 
@@ -305,7 +310,11 @@ class VLLMProvider(SEALProvider):
                     data = await response.json()
                     model_ids = [m.get("id", "") for m in data.get("data", [])]
 
-                    if self.model not in model_ids and self.model != DEFAULT_VLLM_MODEL:
+                    if not model_ids:
+                        logger.warning("vLLM returned an empty model list")
+                        return False
+
+                    if self.model not in model_ids:
                         logger.warning(
                             "Model %s not found in vLLM. Available: %s", self.model, model_ids
                         )
