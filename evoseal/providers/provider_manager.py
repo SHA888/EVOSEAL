@@ -13,6 +13,7 @@ from typing import Any
 from config.settings import settings
 from evoseal.providers.ollama_provider import OllamaProvider
 from evoseal.providers.seal_providers import SEALProvider
+from evoseal.providers.vllm_provider import VLLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class ProviderManager:
             "ollama": OllamaProvider,
             # Reviewer role runs on the same Ollama backend, different model.
             "ollama_reviewer": OllamaProvider,
+            "vllm": VLLMProvider,
         }
 
         # Import DummySEALProvider if available
