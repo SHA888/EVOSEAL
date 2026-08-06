@@ -295,7 +295,9 @@
   - README mentions Ollama integration — verify it works end-to-end
 - [ ] **Explore population-based training (PBT) as alternative to MAP-Elites**
   - Could improve convergence speed for hyperparameter evolution
-- [x] **Human-in-the-loop feedback interface** _(done 2026-08-06)_
+- [ ] **Human-in-the-loop feedback interface** _(scaffolding done 2026-08-06; pipeline gating remains)_
+  - [x] Proposal store, dashboard UI, approve/reject endpoints
+  - [ ] Wire `FeedbackStore` into the self-modification pipeline (gate behind approval)
   - Allow a developer to approve/reject self-modifications via the dashboard
   - Track acceptance rate as a meta-metric
 

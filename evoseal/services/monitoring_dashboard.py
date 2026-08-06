@@ -354,33 +354,47 @@ class MonitoringDashboard:
 
     async def api_feedback_approve(self, request):
         """API endpoint: approve a pending proposal."""
-        proposal_id = request.match_info["proposal_id"]
         try:
+            proposal_id = request.match_info["proposal_id"]
             body = await request.json() if request.body_exists else {}
-        except Exception:
-            body = {}
-        decided_by = body.get("decided_by", "operator")
-        reason = body.get("reason")
+            if not isinstance(body, dict):
+                return web.json_response(
+                    {"error": "Request body must be a JSON object"}, status=400
+                )
+            decided_by = body.get("decided_by", "operator")
+            reason = body.get("reason")
 
-        result = self.feedback_store.approve(proposal_id, decided_by=decided_by, reason=reason)
-        if result is None:
-            return web.json_response({"error": "Proposal not found or already decided"}, status=404)
-        return web.json_response(result.to_dict())
+            result = self.feedback_store.approve(proposal_id, decided_by=decided_by, reason=reason)
+            if result is None:
+                return web.json_response(
+                    {"error": "Proposal not found or already decided"}, status=404
+                )
+            return web.json_response(result.to_dict())
+        except Exception as e:
+            logger.error(f"Error approving feedback: {e}")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def api_feedback_reject(self, request):
         """API endpoint: reject a pending proposal."""
-        proposal_id = request.match_info["proposal_id"]
         try:
+            proposal_id = request.match_info["proposal_id"]
             body = await request.json() if request.body_exists else {}
-        except Exception:
-            body = {}
-        decided_by = body.get("decided_by", "operator")
-        reason = body.get("reason")
+            if not isinstance(body, dict):
+                return web.json_response(
+                    {"error": "Request body must be a JSON object"}, status=400
+                )
+            decided_by = body.get("decided_by", "operator")
+            reason = body.get("reason")
 
-        result = self.feedback_store.reject(proposal_id, decided_by=decided_by, reason=reason)
-        if result is None:
-            return web.json_response({"error": "Proposal not found or already decided"}, status=404)
-        return web.json_response(result.to_dict())
+            result = self.feedback_store.reject(proposal_id, decided_by=decided_by, reason=reason)
+            if result is None:
+                return web.json_response(
+                    {"error": "Proposal not found or already decided"}, status=404
+                )
+            return web.json_response(result.to_dict())
+        except Exception as e:
+            logger.error(f"Error rejecting feedback: {e}")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def api_feedback_stats(self, request):
         """API endpoint: feedback acceptance-rate statistics."""
@@ -614,15 +628,7 @@ class MonitoringDashboard:
             border-left: 3px solid #ff9800;
         }
 
-        .proposal-card.approved {
-            border-left-color: #4CAF50;
-            opacity: 0.7;
-        }
 
-        .proposal-card.rejected {
-            border-left-color: #f44336;
-            opacity: 0.7;
-        }
 
         .proposal-title {
             font-weight: bold;
