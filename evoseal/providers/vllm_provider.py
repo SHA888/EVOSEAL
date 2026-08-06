@@ -25,6 +25,7 @@ import logging
 import random
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -61,6 +62,7 @@ class VLLMProvider(SEALProvider):
         max_retries: int = 3,
         backoff_base: float = 1.0,
         max_backoff: float = 30.0,
+        health_check_timeout: float | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the vLLM provider.
@@ -78,8 +80,18 @@ class VLLMProvider(SEALProvider):
                 initial attempt.  Total attempts = 1 + max_retries.
             backoff_base: Base delay in seconds for exponential backoff.
             max_backoff: Upper cap on backoff delay (excluding jitter).
+            health_check_timeout: Timeout in seconds for the health check
+                request (``GET /v1/models``).  Defaults to
+                ``min(timeout, 30)`` to give cold-starting servers a
+                reasonable window without blocking the caller for the full
+                request timeout.
             **kwargs: Additional generation parameters (``temperature``,
                 ``top_p``, ``max_tokens``, ``stop``).
+
+        .. warning::
+            If ``api_key`` is set and ``base_url`` points at a non-localhost
+            host, use ``https://`` to avoid sending credentials over plain
+            HTTP.
         """
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -88,6 +100,9 @@ class VLLMProvider(SEALProvider):
         self.max_retries = max(0, max_retries)
         self.backoff_base = backoff_base
         self.max_backoff = max_backoff
+        self.health_check_timeout = (
+            health_check_timeout if health_check_timeout is not None else min(timeout, 30)
+        )
         self.config = kwargs
 
         # Default generation parameters
@@ -100,6 +115,28 @@ class VLLMProvider(SEALProvider):
             self.default_params["stop"] = kwargs["stop"]
 
         logger.info("Initialized vLLM provider with model %s at %s", self.model, base_url)
+
+        # Warn on empty model — requests will fail until a real model is configured.
+        if not self.model:
+            logger.warning(
+                "vLLM provider initialized with an empty model string. "
+                "Requests will fail until a valid model name is configured."
+            )
+
+        # Warn when api_key is sent over plain HTTP to a non-localhost host.
+        if self.api_key:
+            parsed = urlparse(self.base_url)
+            if parsed.scheme == "http" and parsed.hostname not in (
+                "localhost",
+                "127.0.0.1",
+                "::1",
+            ):
+                logger.warning(
+                    "api_key is set but base_url uses http:// for non-localhost "
+                    "host %s — credentials will be sent in plain text. "
+                    "Use https:// for remote servers.",
+                    parsed.hostname,
+                )
 
     def _is_retryable(self, exc: Exception) -> bool:
         """Return True if the exception represents a transient failure."""
@@ -130,7 +167,7 @@ class VLLMProvider(SEALProvider):
         Args:
             prompt: The user prompt.
             **kwargs: Override generation parameters (``temperature``,
-                ``max_tokens``, ``system``, ``stop``).
+                ``top_p``, ``max_tokens``, ``system``, ``stop``).
 
         Returns:
             The assistant message content.
@@ -148,6 +185,8 @@ class VLLMProvider(SEALProvider):
         params = {**self.default_params}
         if "temperature" in kwargs:
             params["temperature"] = kwargs["temperature"]
+        if "top_p" in kwargs:
+            params["top_p"] = kwargs["top_p"]
         if "max_tokens" in kwargs:
             params["max_tokens"] = kwargs["max_tokens"]
         if "stop" in kwargs:
@@ -163,11 +202,11 @@ class VLLMProvider(SEALProvider):
         last_exc: Exception | None = None
         total_attempts = self.max_retries + 1
         wall_start = time.monotonic()
+        total_deadline = self.timeout * total_attempts
 
         timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=self.timeout)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             for attempt in range(total_attempts):
-                total_deadline = self.timeout * total_attempts
                 if time.monotonic() - wall_start >= total_deadline:
                     logger.warning(
                         "Wall-clock deadline reached before attempt %d/%d; abandoning retries",
@@ -234,6 +273,14 @@ class VLLMProvider(SEALProvider):
                     delay = min(
                         self.backoff_base * (2**attempt), self.max_backoff
                     ) + random.uniform(0, 0.5)
+                    # Check deadline before sleeping to avoid overshooting
+                    remaining = total_deadline - (time.monotonic() - wall_start)
+                    if remaining <= 0:
+                        logger.warning(
+                            "Wall-clock deadline reached before backoff sleep; abandoning retries"
+                        )
+                        break
+                    delay = min(delay, remaining)
                     logger.debug("Retrying in %.1fs...", delay)
                     await asyncio.sleep(delay)
 
@@ -283,6 +330,10 @@ class VLLMProvider(SEALProvider):
                 elif in_block:
                     current_block.append(line)
 
+            # Close any unterminated code fence
+            if in_block:
+                code_blocks.append({"language": current_lang, "code": "\n".join(current_block)})
+
             parsed["code_blocks"] = code_blocks
         else:
             parsed["contains_code"] = False
@@ -300,7 +351,10 @@ class VLLMProvider(SEALProvider):
             True if healthy, False otherwise.
         """
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            health_timeout = getattr(self, "health_check_timeout", min(self.timeout, 30))
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=health_timeout)
+            ) as session:
                 async with session.get(
                     f"{self.base_url}/v1/models", headers=self._headers()
                 ) as response:
@@ -342,4 +396,5 @@ class VLLMProvider(SEALProvider):
             "max_retries": self.max_retries,
             "backoff_base": self.backoff_base,
             "max_backoff": self.max_backoff,
+            "health_check_timeout": self.health_check_timeout,
         }
