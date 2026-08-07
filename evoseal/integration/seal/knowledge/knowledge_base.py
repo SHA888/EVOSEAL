@@ -7,8 +7,10 @@ of knowledge in the SEAL system.
 
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import json
+import logging
 import os
 import tempfile
 import time
@@ -19,6 +21,8 @@ from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeEntry(BaseModel):
@@ -446,6 +450,93 @@ class KnowledgeBase:
         """Return the number of entries in the knowledge base."""
         with self._lock:
             return len(self.entries)
+
+    async def search(
+        self,
+        query: str,
+        max_results: int | None = None,
+        min_score: float | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search for knowledge entries matching a query.
+
+        This is the async interface used by ``EnhancedSealSystem`` and other
+        async callers.  It delegates to :meth:`search_entries` and converts
+        the results to plain dicts so the return type matches what callers
+        expect (``list[dict[str, Any]]``).
+
+        TODO: ``min_score`` is accepted for API compatibility but has no real
+        effect — all matches are returned with a hardcoded score of ``1.0``.
+        Downstream code that sorts or filters by score (e.g.
+        ``prompt/formatters.py``) will treat every match as maximally
+        relevant.  Implementing a rudimentary relevance score (e.g.
+        occurrence count or match position) would make ``min_score``
+        filtering and score-based ranking functional.
+
+        Parameters
+        ----------
+        query:
+            Free-text query to search against entry content.
+        max_results:
+            Maximum number of results to return.  Defaults to
+            ``DEFAULT_SEARCH_LIMIT``.
+        min_score:
+            Accepted for API compatibility with ``MockKnowledgeBase`` but
+            not used by the real implementation (entries are matched by
+            substring, not scored).  A warning is logged when any value is
+            supplied so callers migrating from the mock do not silently
+            lose filtering.
+        context:
+            Accepted for API compatibility; not used by the current
+            implementation.
+        """
+        if min_score is not None:
+            logger.warning(
+                "min_score=%s was passed to KnowledgeBase.search() but the real "
+                "implementation uses substring matching and does not filter by "
+                "score. All matches will be returned regardless of this value.",
+                min_score,
+            )
+
+        # Negative max_results is a caller bug — raise rather than silently
+        # clamping or (worse) passing a negative limit through to search_entries.
+        if max_results is not None and max_results < 0:
+            raise ValueError(f"max_results must be non-negative, got {max_results}")
+
+        limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
+        # self._lock is a threading.RLock, not an asyncio.Lock, and
+        # search_entries does an O(n) in-memory scan.  Running that
+        # directly would block the event loop for the full duration,
+        # stalling any concurrent coroutines.  Offload to a thread so
+        # the event loop remains responsive.
+        entries = await asyncio.to_thread(self._search_entries_sync, query, limit)
+        return [
+            {
+                "id": entry.id,
+                "content": entry.content,
+                # TODO: Replace with a real relevance score so min_score
+                # filtering and score-based ranking work.  See search() docstring.
+                "score": 1.0,
+                "metadata": entry.metadata,
+                "tags": entry.tags,
+                "created_at": entry.created_at.isoformat()
+                if entry.created_at is not None
+                else None,
+                "updated_at": entry.updated_at.isoformat()
+                if entry.updated_at is not None
+                else None,
+            }
+            for entry in entries
+        ]
+
+    def _search_entries_sync(self, query: str | None, limit: int) -> list[KnowledgeEntry]:
+        """Synchronous helper that acquires the lock and runs search_entries.
+
+        Called via ``asyncio.to_thread`` from :meth:`search` so the event
+        loop is not blocked by the in-memory scan.
+        """
+        with self._lock:
+            return self.search_entries(query=query, limit=limit)
 
     def get_all_entries(self) -> list[KnowledgeEntry]:
         """Get all entries in the knowledge base.
