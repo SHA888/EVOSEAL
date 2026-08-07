@@ -468,6 +468,13 @@ class KnowledgeBase:
         Both arguments must already be lowercased.  Uses case-insensitive
         substring occurrence count weighted by query length relative to
         content length.  Returns a value in ``[0.0, 1.0]``.
+
+        .. note::
+            Scoring is based on literal substring matching (``str.count``),
+            so multi-word queries only match on exact phrase / word-order.
+            For example, ``"python language"`` will **not** match
+            ``"python is a language"``.  This is acceptable for v1 but
+            may need upgrading to token-based matching in the future.
         """
         if not content or not query:
             return 0.0
@@ -476,6 +483,32 @@ class KnowledgeBase:
             return 0.0
         # Normalize: occurrences * query_length / content_length, clamped to 1.0.
         return min(1.0, count * len(query) / len(content))
+
+    @staticmethod
+    def _flatten_content(content: dict[str, Any]) -> str:
+        """Recursively flatten a dict's values into a single searchable string.
+
+        Handles nested dicts, lists, and tuples.  Excludes ``bool`` values
+        (which are ``int`` subclasses) to avoid spurious "True"/"False"
+        tokens in searchable text.
+        """
+        parts: list[str] = []
+
+        def _walk(value: Any) -> None:
+            if isinstance(value, bool):
+                return
+            if isinstance(value, (str, int, float)):
+                parts.append(str(value))
+            elif isinstance(value, dict):
+                for v in value.values():
+                    _walk(v)
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    _walk(item)
+
+        for v in content.values():
+            _walk(v)
+        return " ".join(parts)
 
     def _scored_search(
         self,
@@ -494,9 +527,7 @@ class KnowledgeBase:
                 entry.content
                 if isinstance(entry.content, str)
                 else (
-                    " ".join(
-                        str(v) for v in entry.content.values() if isinstance(v, (str, int, float))
-                    )
+                    self._flatten_content(entry.content)
                     if isinstance(entry.content, dict)
                     else str(entry.content)
                 )
@@ -541,6 +572,12 @@ class KnowledgeBase:
             Accepted for API compatibility; not used by the current
             implementation.
         """
+        # Validate query.
+        if not isinstance(query, str) or not query:
+            raise ValueError(
+                f"query must be a non-empty string, got {type(query).__name__}: {query!r}"
+            )
+
         # Negative max_results is a caller bug.
         if max_results is not None and max_results < 0:
             raise ValueError(f"max_results must be non-negative, got {max_results}")
