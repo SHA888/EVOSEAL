@@ -143,7 +143,7 @@
 ### DGM/OpenEvolve Adapter Issues Found in Whole-Repo Code Review (2026-07-22)
 
 - [ ] **`evoseal/integration/dgm/` + `dgmr/` and `evoseal/integration/oe/` + `openevolve/` look like duplicated/forked adapter implementations that have drifted apart** — needs a decision on which is canonical and whether the other should be removed or reconciled
-- [ ] **DGM/OpenEvolve job runner reports failed jobs as successful** _(exact file:line needs re-verification — flagged by initial review pass, not yet deep-dived)_
+- [x] **DGM/OpenEvolve job runner reports failed jobs as successful** _(done 2026-08-07, refined per review feedback)_ — both `dgmr/dgm_adapter.py` `_advance_generation()` and `oe/openevolve_adapter.py` `_evolve_remote()` broke out of the poll loop on `status == "failed"` but then unconditionally fetched the result and returned `{"success": True}`. Fixed both to check the final status after the poll and return `success: False` with the error message when the job failed. Inverted check to `!= "completed"` so any non-terminal state (timeouts, unknown statuses) is also treated as failure. Added regression tests in `test_dgm_adapter_remote.py` and `test_openevolve_adapter_remote.py`.
 
 ### CLI Issues Found in Whole-Repo Code Review (2026-07-22)
 
@@ -306,7 +306,7 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 18   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
+| 🟠 P1    | 24    | 19   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix |
 | 🟡 P2    | 30    | 25   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units |
 | 🟢 P3    | 24    | 19   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check |
 | **Total** | **89** | **73** | |
