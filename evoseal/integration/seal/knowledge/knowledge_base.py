@@ -7,8 +7,10 @@ of knowledge in the SEAL system.
 
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import json
+import logging
 import os
 import tempfile
 import time
@@ -17,6 +19,8 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel, Field
 
@@ -455,6 +459,115 @@ class KnowledgeBase:
         """
         with self._lock:
             return list(self.entries.values())
+
+    # ------------------------------------------------------------------
+    # Scored search (used by the async ``search`` API)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_relevance_score(query: str, content: str) -> float:
+        """Compute a relevance score for *query* against *content*.
+
+        Both arguments must already be lowercased.  Uses case-insensitive
+        substring occurrence count weighted by query length relative to
+        content length.  Returns a value in ``[0.0, 1.0]``.
+        """
+        count = content.count(query)
+        if count == 0:
+            return 0.0
+        # Normalize: occurrences * query_length / content_length, clamped to 1.0.
+        return min(1.0, count * len(query) / len(content))
+
+    def _scored_search(
+        self,
+        query: str,
+        limit: int,
+    ) -> list[tuple[KnowledgeEntry, float]]:
+        """Search entries and return matching ``(entry, score)`` pairs.
+
+        Computes a relevance score for each match, filters out zero-score
+        results, and sorts by score descending.
+        """
+        query_lower = query.lower()
+        scored: list[tuple[KnowledgeEntry, float]] = []
+        for entry in self.entries.values():
+            content_str = (
+                entry.content
+                if isinstance(entry.content, str)
+                else (
+                    " ".join(
+                        str(v) for v in entry.content.values() if isinstance(v, (str, int, float))
+                    )
+                    if isinstance(entry.content, dict)
+                    else str(entry.content)
+                )
+            )
+            score = self._compute_relevance_score(query_lower, content_str.lower())
+            if score > 0.0:
+                scored.append((entry, score))
+
+        scored.sort(key=lambda pair: pair[1], reverse=True)
+        return scored[:limit]
+
+    def _scored_search_thread(self, query: str, limit: int) -> list[tuple[KnowledgeEntry, float]]:
+        """Thread-safe wrapper around :meth:`_scored_search`.
+
+        Called via ``asyncio.to_thread`` from :meth:`search`.
+        """
+        with self._lock:
+            return self._scored_search(query, limit)
+
+    async def search(
+        self,
+        query: str,
+        max_results: int | None = None,
+        min_score: float | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Async search for knowledge entries matching *query*.
+
+        Used by ``EnhancedSealSystem`` and other async callers.  Returns
+        plain dicts with a real relevance ``score`` in ``[0.0, 1.0]``.
+
+        Parameters
+        ----------
+        query:
+            Free-text query to search against entry content.
+        max_results:
+            Maximum number of results.  Defaults to ``DEFAULT_SEARCH_LIMIT``.
+        min_score:
+            Minimum relevance score (inclusive).  Entries scoring below
+            this threshold are excluded.  ``None`` disables filtering.
+        context:
+            Accepted for API compatibility; not used by the current
+            implementation.
+        """
+        # Negative max_results is a caller bug.
+        if max_results is not None and max_results < 0:
+            raise ValueError(f"max_results must be non-negative, got {max_results}")
+
+        limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
+
+        # The scored search does an O(n) in-memory scan.  Offload to a
+        # thread so the event loop remains responsive.
+        scored = await asyncio.to_thread(self._scored_search_thread, query, limit)
+
+        # Filter by min_score when provided.
+        if min_score is not None:
+            scored = [(entry, score) for entry, score in scored if score >= min_score]
+
+        return [
+            {
+                "id": entry.id,
+                "content": entry.content,
+                "score": score,
+                "metadata": entry.metadata,
+                "tags": entry.tags,
+                "created_at": entry.created_at.isoformat() if entry.created_at else None,
+                "updated_at": entry.updated_at.isoformat() if entry.updated_at else None,
+            }
+            for entry, score in scored
+        ]
 
 
 # Example usage
