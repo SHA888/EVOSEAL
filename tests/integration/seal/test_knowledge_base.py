@@ -213,6 +213,21 @@ def test_compute_relevance_score_partial():
     assert 0.0 < score < 1.0
 
 
+def test_compute_relevance_score_empty_content():
+    """Empty content returns 0.0 without raising ZeroDivisionError."""
+    assert KnowledgeBase._compute_relevance_score("python", "") == 0.0
+
+
+def test_compute_relevance_score_empty_query():
+    """Empty query returns 0.0 without raising ZeroDivisionError."""
+    assert KnowledgeBase._compute_relevance_score("", "some content") == 0.0
+
+
+def test_compute_relevance_score_both_empty():
+    """Both empty returns 0.0 (no ZeroDivisionError from ''.count('')."""
+    assert KnowledgeBase._compute_relevance_score("", "") == 0.0
+
+
 def test_scored_search_returns_score_sorted(tmp_path):
     """_scored_search returns results sorted by score descending."""
     kb = KnowledgeBase(str(tmp_path / "kb.db"))
