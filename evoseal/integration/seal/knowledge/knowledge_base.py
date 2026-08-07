@@ -22,6 +22,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+logger = logging.getLogger(__name__)
+
 
 class KnowledgeEntry(BaseModel):
     """Represents a single entry in the knowledge base."""
@@ -449,8 +451,6 @@ class KnowledgeBase:
         with self._lock:
             return len(self.entries)
 
-    _logger: logging.Logger | None = None
-
     async def search(
         self,
         query: str,
@@ -491,9 +491,7 @@ class KnowledgeBase:
             implementation.
         """
         if min_score is not None:
-            if self._logger is None:
-                self._logger = logging.getLogger(__name__)
-            self._logger.warning(
+            logger.warning(
                 "min_score=%s was passed to KnowledgeBase.search() but the real "
                 "implementation uses substring matching and does not filter by "
                 "score. All matches will be returned regardless of this value.",
