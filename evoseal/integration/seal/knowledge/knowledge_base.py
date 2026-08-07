@@ -555,13 +555,18 @@ class KnowledgeBase:
         by score descending.
         """
         query_lower = query.lower()
-        scored: list[tuple[KnowledgeEntry, float]] = []
+        # Snapshot the current entries under the lock, then release it
+        # before the O(n) scoring pass so that concurrent add_entry /
+        # delete_entry calls are not blocked for the full scan duration.
         with self._lock:
-            for entry in self.entries.values():
-                searchable = self._build_searchable_text(entry)
-                score = self._compute_relevance_score(query_lower, searchable.lower())
-                if score > 0.0:
-                    scored.append((entry, score))
+            entries_snapshot = list(self.entries.values())
+
+        scored: list[tuple[KnowledgeEntry, float]] = []
+        for entry in entries_snapshot:
+            searchable = self._build_searchable_text(entry)
+            score = self._compute_relevance_score(query_lower, searchable.lower())
+            if score > 0.0:
+                scored.append((entry, score))
 
         scored.sort(key=lambda pair: pair[1], reverse=True)
         return scored[:limit]
