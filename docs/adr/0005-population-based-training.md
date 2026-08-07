@@ -207,5 +207,5 @@ the hyperparameter space may be too narrow to warrant the overhead.
   MAP-Elites decision for code variant selection.
 - [`docs/architecture/overview.md`](../architecture/overview.md) — EVOSEAL
   architecture overview.
-- [`evoseal/core/selection.py`](../../evoseal/core/selection.py) — current
-  selection implementation (tournament, roulette).
+- `evoseal/core/selection.py` — current selection implementation (tournament,
+  roulette).
