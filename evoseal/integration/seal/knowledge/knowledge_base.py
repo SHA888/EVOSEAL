@@ -7,6 +7,7 @@ of knowledge in the SEAL system.
 
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import json
 import os
@@ -455,6 +456,187 @@ class KnowledgeBase:
         """
         with self._lock:
             return list(self.entries.values())
+
+    # ------------------------------------------------------------------
+    # Scored search (used by the async ``search`` API)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_relevance_score(query: str, content: str) -> float:
+        """Compute a relevance score for *query* against *content*.
+
+        Both arguments must already be lowercased.  Uses case-insensitive
+        substring occurrence count weighted by query length relative to
+        content length.  Returns a value in ``[0.0, 1.0]``.
+
+        .. note::
+            Scoring is based on literal substring matching (``str.count``),
+            so:
+
+            * Single-word queries may match **inside** unrelated words
+              (e.g. ``"on"`` matches inside ``"python"`` or ``"long"``),
+              inflating relevance for irrelevant entries.
+            * Multi-word queries only match on exact phrase / word-order
+              (e.g. ``"python language"`` will **not** match
+              ``"python is a language"``).
+
+            This is acceptable for v1 but may need upgrading to
+            word-boundary (``\b``) or token-based matching in the future.
+
+        .. note::
+            Normalization divides by content length, so the same single
+            occurrence scores much lower in a long document than a short
+            one.  This biases ranking toward short snippets.  Also,
+            ``str.count`` is non-overlapping (e.g. ``"aaa"`` with query
+            ``"aa"`` counts 1, not 2).
+        """
+        if not content or not query:
+            return 0.0
+        count = content.count(query)
+        if count == 0:
+            return 0.0
+        # Normalize: occurrences * query_length / content_length, clamped to 1.0.
+        return min(1.0, count * len(query) / len(content))
+
+    @staticmethod
+    def _flatten_content(content: dict[str, Any]) -> str:
+        """Recursively flatten a dict's values into a single searchable string.
+
+        Handles nested dicts, lists, and tuples.  Excludes ``bool`` values
+        (which are ``int`` subclasses) to avoid spurious "True"/"False"
+        tokens in searchable text.
+        """
+        parts: list[str] = []
+
+        def _walk(value: Any) -> None:
+            if isinstance(value, bool):
+                return
+            if isinstance(value, (str, int, float)):
+                parts.append(str(value))
+            elif isinstance(value, dict):
+                for v in value.values():
+                    _walk(v)
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    _walk(item)
+
+        for v in content.values():
+            _walk(v)
+        return " ".join(parts)
+
+    def _build_searchable_text(self, entry: KnowledgeEntry) -> str:
+        """Build a single searchable string from an entry's content, tags, and metadata."""
+        content_str = (
+            entry.content
+            if isinstance(entry.content, str)
+            else (
+                self._flatten_content(entry.content)
+                if isinstance(entry.content, dict)
+                else str(entry.content)
+            )
+        )
+        parts = [content_str]
+        if entry.tags:
+            parts.extend(entry.tags)
+        if entry.metadata:
+            parts.append(self._flatten_content(entry.metadata))
+        return " ".join(parts)
+
+    def _scored_search(
+        self,
+        query: str,
+        limit: int,
+    ) -> list[tuple[KnowledgeEntry, float]]:
+        """Search entries and return matching ``(entry, score)`` pairs.
+
+        Acquires ``self._lock`` so it is safe to call from any context.
+        Searches entry content, tags, and metadata.  Computes a relevance
+        score for each match, filters out zero-score results, and sorts
+        by score descending.
+        """
+        query_lower = query.lower()
+        # Snapshot the current entries under the lock, then release it
+        # before the O(n) scoring pass so that concurrent add_entry /
+        # delete_entry calls are not blocked for the full scan duration.
+        with self._lock:
+            entries_snapshot = list(self.entries.values())
+
+        scored: list[tuple[KnowledgeEntry, float]] = []
+        for entry in entries_snapshot:
+            searchable = self._build_searchable_text(entry)
+            score = self._compute_relevance_score(query_lower, searchable.lower())
+            if score > 0.0:
+                scored.append((entry, score))
+
+        scored.sort(key=lambda pair: pair[1], reverse=True)
+        return scored[:limit]
+
+    def _scored_search_thread(self, query: str, limit: int) -> list[tuple[KnowledgeEntry, float]]:
+        """Thread-safe wrapper around :meth:`_scored_search`.
+
+        Called via ``asyncio.to_thread`` from :meth:`search`.
+        The lock is now acquired inside ``_scored_search`` itself, so
+        this wrapper exists only for the ``to_thread`` call signature.
+        """
+        return self._scored_search(query, limit)
+
+    async def search(
+        self,
+        query: str,
+        max_results: int | None = None,
+        min_score: float | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Async search for knowledge entries matching *query*.
+
+        Used by ``EnhancedSealSystem`` and other async callers.  Returns
+        plain dicts with a real relevance ``score`` in ``[0.0, 1.0]``.
+
+        Parameters
+        ----------
+        query:
+            Free-text query to search against entry content.
+        max_results:
+            Maximum number of results.  Defaults to ``DEFAULT_SEARCH_LIMIT``.
+        min_score:
+            Minimum relevance score (inclusive).  Entries scoring below
+            this threshold are excluded.  ``None`` disables filtering.
+        context:
+            Accepted for API compatibility; not used by the current
+            implementation.
+        """
+        # Validate query.
+        if not isinstance(query, str) or not query:
+            raise ValueError(
+                f"query must be a non-empty string, got {type(query).__name__}: {query!r}"
+            )
+
+        # Negative max_results is a caller bug.
+        if max_results is not None and max_results < 0:
+            raise ValueError(f"max_results must be non-negative, got {max_results}")
+
+        limit = max_results if max_results is not None else self.DEFAULT_SEARCH_LIMIT
+
+        # The scored search does an O(n) in-memory scan.  Offload to a
+        # thread so the event loop remains responsive.
+        scored = await asyncio.to_thread(self._scored_search_thread, query, limit)
+
+        # Filter by min_score when provided.
+        if min_score is not None:
+            scored = [(entry, score) for entry, score in scored if score >= min_score]
+
+        return [
+            {
+                "id": entry.id,
+                "content": entry.content,
+                "score": score,
+                "metadata": entry.metadata,
+                "tags": entry.tags,
+                "created_at": entry.created_at.isoformat() if entry.created_at else None,
+                "updated_at": entry.updated_at.isoformat() if entry.updated_at else None,
+            }
+            for entry, score in scored
+        ]
 
 
 # Example usage
