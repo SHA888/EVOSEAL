@@ -144,7 +144,11 @@ class DGMAdapter(BaseComponentAdapter):
                         status = await sresp.json()
                         if status.get("status") in ("completed", "failed"):
                             break
-                # result
+                # If the job failed, report it as unsuccessful
+                if status.get("status") == "failed":
+                    error_msg = status.get("error", f"Job {job_id} failed")
+                    return {"success": False, "error": error_msg}
+                # result (only fetched for completed jobs)
                 async with session.get(
                     f"{base}/dgm/jobs/{job_id}/result", headers=self._headers()
                 ) as rresp:
