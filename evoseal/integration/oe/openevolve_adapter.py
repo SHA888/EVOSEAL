@@ -261,9 +261,13 @@ class OpenEvolveAdapter(BaseComponentAdapter):
                         if status.get("status") in ("completed", "failed"):
                             break
 
-                # If the job failed, report it as unsuccessful
-                if status.get("status") == "failed":
-                    error_msg = status.get("error") or f"Job {job_id} failed"
+                # If the job didn't complete, report it as unsuccessful
+                # (covers "failed", timeouts, and any future non-terminal states)
+                if status.get("status") != "completed":
+                    error_msg = (
+                        status.get("error")
+                        or f"Job {job_id} ended with status: {status.get('status')}"
+                    )
                     return {"success": False, "error": error_msg}
 
                 # Fetch result (only for completed jobs)

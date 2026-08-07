@@ -143,7 +143,7 @@
 ### DGM/OpenEvolve Adapter Issues Found in Whole-Repo Code Review (2026-07-22)
 
 - [ ] **`evoseal/integration/dgm/` + `dgmr/` and `evoseal/integration/oe/` + `openevolve/` look like duplicated/forked adapter implementations that have drifted apart** — needs a decision on which is canonical and whether the other should be removed or reconciled
-- [x] **DGM/OpenEvolve job runner reports failed jobs as successful** _(done 2026-08-07)_ — both `dgmr/dgm_adapter.py` `_advance_generation()` and `oe/openevolve_adapter.py` `_evolve_remote()` broke out of the poll loop on `status == "failed"` but then unconditionally fetched the result and returned `{"success": True}`. Fixed both to check the final status after the poll and return `success: False` with the error message when the job failed. Added regression tests in `test_dgm_adapter_remote.py` and `test_openevolve_adapter_remote.py`.
+- [x] **DGM/OpenEvolve job runner reports failed jobs as successful** _(done 2026-08-07, refined per review feedback)_ — both `dgmr/dgm_adapter.py` `_advance_generation()` and `oe/openevolve_adapter.py` `_evolve_remote()` broke out of the poll loop on `status == "failed"` but then unconditionally fetched the result and returned `{"success": True}`. Fixed both to check the final status after the poll and return `success: False` with the error message when the job failed. Inverted check to `!= "completed"` so any non-terminal state (timeouts, unknown statuses) is also treated as failure. Added regression tests in `test_dgm_adapter_remote.py` and `test_openevolve_adapter_remote.py`.
 
 ### CLI Issues Found in Whole-Repo Code Review (2026-07-22)
 
