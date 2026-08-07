@@ -169,3 +169,62 @@ async def test_dgm_advance_generation_remote_failed(monkeypatch):
     assert "evaluation crashed" in res.error
 
     await adapter.stop()
+
+
+class _FakeSessionJobFailedNullError:
+    """Fake session where the job fails with a null error value."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    def post(self, url, json=None, headers=None):
+        if url.endswith("/dgm/jobs/advance"):
+            return _FakeResponse(200, {"job_id": "job-failed-null-1"})
+        return _FakeResponse(404, {"error": "not found"})
+
+    def get(self, url, headers=None):
+        if "/dgm/jobs/" in url and url.endswith("/status"):
+            return _FakeResponse(200, {"status": "failed", "error": None})
+        return _FakeResponse(404, {"error": "not found"})
+
+
+@pytest.mark.asyncio
+async def test_dgm_advance_generation_remote_failed_null_error(monkeypatch):
+    """A failed job with error=null must surface the generic fallback, not None."""
+    from evoseal.integration.dgmr import dgm_adapter as dgm_mod
+
+    class _FakeTimeout:
+        def __init__(self, total=None):
+            self.total = total
+
+    monkeypatch.setattr(
+        dgm_mod,
+        "aiohttp",
+        types.SimpleNamespace(
+            ClientSession=_FakeSessionJobFailedNullError, ClientTimeout=_FakeTimeout
+        ),
+        raising=False,
+    )
+
+    adapter = create_dgm_adapter(
+        enabled=True,
+        timeout=10,
+        config={"remote": {"base_url": "http://localhost:9999"}},
+    )
+
+    assert await adapter.initialize()
+    assert await adapter.start()
+
+    res = await adapter.execute("advance_generation", data={})
+    assert not res.success, "Failed job should report success=False"
+    assert res.error is not None
+    assert res.error != ""
+    assert "job-failed-null-1" in res.error
+
+    await adapter.stop()

@@ -146,7 +146,7 @@ class DGMAdapter(BaseComponentAdapter):
                             break
                 # If the job failed, report it as unsuccessful
                 if status.get("status") == "failed":
-                    error_msg = status.get("error", f"Job {job_id} failed")
+                    error_msg = status.get("error") or f"Job {job_id} failed"
                     return {"success": False, "error": error_msg}
                 # result (only fetched for completed jobs)
                 async with session.get(
