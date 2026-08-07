@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import fcntl
 import json
-import logging
 import os
 import tempfile
 import time
@@ -19,8 +18,6 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 from uuid import uuid4
-
-logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel, Field
 
@@ -472,6 +469,8 @@ class KnowledgeBase:
         substring occurrence count weighted by query length relative to
         content length.  Returns a value in ``[0.0, 1.0]``.
         """
+        if not content or not query:
+            return 0.0
         count = content.count(query)
         if count == 0:
             return 0.0
