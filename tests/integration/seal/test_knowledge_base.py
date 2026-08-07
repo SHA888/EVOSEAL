@@ -415,3 +415,59 @@ def test_scored_search_nested_content(tmp_path):
     results = kb._scored_search("python", limit=10)
     assert len(results) == 1
     assert results[0][1] > 0.0
+
+
+def test_compute_relevance_score_substring_false_positive():
+    """Single-word queries match inside unrelated words (known v1 limitation)."""
+    # "on" appears inside "python" — this is a documented false positive
+    score = KnowledgeBase._compute_relevance_score("on", "python")
+    assert score > 0.0  # Known limitation: substring, not word-boundary
+
+
+def test_scored_search_by_tag(tmp_path):
+    """_scored_search finds entries by their tags."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("Some content", tags=["python", "ml"])
+    kb.add_entry("Other content", tags=["java"])
+
+    results = kb._scored_search("ml", limit=10)
+    assert len(results) == 1
+    assert results[0][0].tags == ["python", "ml"]
+
+
+def test_scored_search_by_metadata(tmp_path):
+    """_scored_search finds entries by their metadata values."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("Some content", metadata={"source": "research-paper"})
+    kb.add_entry("Other content", metadata={"source": "manual"})
+
+    results = kb._scored_search("research", limit=10)
+    assert len(results) == 1
+    assert results[0][0].metadata["source"] == "research-paper"
+
+
+def test_build_searchable_text_includes_tags_and_metadata(tmp_path):
+    """_build_searchable_text combines content, tags, and metadata."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    entry = KnowledgeEntry(
+        content="base content",
+        tags=["alpha", "beta"],
+        metadata={"key": "gamma"},
+    )
+    text = kb._build_searchable_text(entry)
+    assert "base content" in text
+    assert "alpha" in text
+    assert "beta" in text
+    assert "gamma" in text
+
+
+@pytest.mark.asyncio
+async def test_search_by_tag(tmp_path):
+    """search() finds entries matching a tag."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("Some content", tags=["python", "ml"])
+    kb.add_entry("Other content", tags=["java"])
+
+    results = await kb.search(query="python")
+    assert len(results) == 1
+    assert "python" in results[0]["tags"]

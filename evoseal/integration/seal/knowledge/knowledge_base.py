@@ -471,10 +471,24 @@ class KnowledgeBase:
 
         .. note::
             Scoring is based on literal substring matching (``str.count``),
-            so multi-word queries only match on exact phrase / word-order.
-            For example, ``"python language"`` will **not** match
-            ``"python is a language"``.  This is acceptable for v1 but
-            may need upgrading to token-based matching in the future.
+            so:
+
+            * Single-word queries may match **inside** unrelated words
+              (e.g. ``"on"`` matches inside ``"python"`` or ``"long"``),
+              inflating relevance for irrelevant entries.
+            * Multi-word queries only match on exact phrase / word-order
+              (e.g. ``"python language"`` will **not** match
+              ``"python is a language"``).
+
+            This is acceptable for v1 but may need upgrading to
+            word-boundary (``\b``) or token-based matching in the future.
+
+        .. note::
+            Normalization divides by content length, so the same single
+            occurrence scores much lower in a long document than a short
+            one.  This biases ranking toward short snippets.  Also,
+            ``str.count`` is non-overlapping (e.g. ``"aaa"`` with query
+            ``"aa"`` counts 1, not 2).
         """
         if not content or not query:
             return 0.0
@@ -510,6 +524,24 @@ class KnowledgeBase:
             _walk(v)
         return " ".join(parts)
 
+    def _build_searchable_text(self, entry: KnowledgeEntry) -> str:
+        """Build a single searchable string from an entry's content, tags, and metadata."""
+        content_str = (
+            entry.content
+            if isinstance(entry.content, str)
+            else (
+                self._flatten_content(entry.content)
+                if isinstance(entry.content, dict)
+                else str(entry.content)
+            )
+        )
+        parts = [content_str]
+        if entry.tags:
+            parts.extend(entry.tags)
+        if entry.metadata:
+            parts.append(self._flatten_content(entry.metadata))
+        return " ".join(parts)
+
     def _scored_search(
         self,
         query: str,
@@ -517,24 +549,19 @@ class KnowledgeBase:
     ) -> list[tuple[KnowledgeEntry, float]]:
         """Search entries and return matching ``(entry, score)`` pairs.
 
-        Computes a relevance score for each match, filters out zero-score
-        results, and sorts by score descending.
+        Acquires ``self._lock`` so it is safe to call from any context.
+        Searches entry content, tags, and metadata.  Computes a relevance
+        score for each match, filters out zero-score results, and sorts
+        by score descending.
         """
         query_lower = query.lower()
         scored: list[tuple[KnowledgeEntry, float]] = []
-        for entry in self.entries.values():
-            content_str = (
-                entry.content
-                if isinstance(entry.content, str)
-                else (
-                    self._flatten_content(entry.content)
-                    if isinstance(entry.content, dict)
-                    else str(entry.content)
-                )
-            )
-            score = self._compute_relevance_score(query_lower, content_str.lower())
-            if score > 0.0:
-                scored.append((entry, score))
+        with self._lock:
+            for entry in self.entries.values():
+                searchable = self._build_searchable_text(entry)
+                score = self._compute_relevance_score(query_lower, searchable.lower())
+                if score > 0.0:
+                    scored.append((entry, score))
 
         scored.sort(key=lambda pair: pair[1], reverse=True)
         return scored[:limit]
@@ -543,9 +570,10 @@ class KnowledgeBase:
         """Thread-safe wrapper around :meth:`_scored_search`.
 
         Called via ``asyncio.to_thread`` from :meth:`search`.
+        The lock is now acquired inside ``_scored_search`` itself, so
+        this wrapper exists only for the ``to_thread`` call signature.
         """
-        with self._lock:
-            return self._scored_search(query, limit)
+        return self._scored_search(query, limit)
 
     async def search(
         self,
