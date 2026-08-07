@@ -350,3 +350,68 @@ async def test_search_result_format(tmp_path):
     assert "tags" in r and "programming" in r["tags"]
     assert "created_at" in r
     assert "updated_at" in r
+
+
+@pytest.mark.asyncio
+async def test_search_none_query_raises(tmp_path):
+    """search(query=None) raises ValueError, not AttributeError."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello")
+    with pytest.raises(ValueError, match="query must be a non-empty string"):
+        await kb.search(query=None)  # type: ignore[arg-type]
+
+
+@pytest.mark.asyncio
+async def test_search_empty_query_raises(tmp_path):
+    """search(query='') raises ValueError."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello")
+    with pytest.raises(ValueError, match="query must be a non-empty string"):
+        await kb.search(query="")
+
+
+@pytest.mark.asyncio
+async def test_search_int_query_raises(tmp_path):
+    """search(query=42) raises ValueError, not AttributeError."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry("hello")
+    with pytest.raises(ValueError, match="query must be a non-empty string"):
+        await kb.search(query=42)  # type: ignore[arg-type]
+
+
+def test_flatten_content_nested_dict():
+    """_flatten_content recurses into nested dicts."""
+    content = {"name": "Python", "details": {"version": 3.12, "typed": True}}
+    result = KnowledgeBase._flatten_content(content)
+    assert "Python" in result
+    assert "3.12" in result
+    # bool should be excluded
+    assert "True" not in result
+
+
+def test_flatten_content_lists_and_tuples():
+    """_flatten_content recurses into lists and tuples."""
+    content = {"tags": ["python", "ml"], "versions": (3.10, 3.11)}
+    result = KnowledgeBase._flatten_content(content)
+    assert "python" in result
+    assert "ml" in result
+    assert "3.1" in result
+    assert "3.11" in result
+
+
+def test_flatten_content_excludes_bool():
+    """_flatten_content does not include bool values."""
+    content = {"active": True, "deleted": False, "name": "test"}
+    result = KnowledgeBase._flatten_content(content)
+    assert "True" not in result
+    assert "False" not in result
+    assert "test" in result
+
+
+def test_scored_search_nested_content(tmp_path):
+    """_scored_search finds terms in nested list values."""
+    kb = KnowledgeBase(str(tmp_path / "kb.db"))
+    kb.add_entry({"tags": ["python", "ml"], "desc": "Machine learning"})
+    results = kb._scored_search("python", limit=10)
+    assert len(results) == 1
+    assert results[0][1] > 0.0
