@@ -42,7 +42,8 @@ Parameters for candidate selection strategies, defined in `evoseal/core/selectio
 ## 3. LLM Provider (Generation)
 
 Model inference parameters, defined per-provider in `evoseal/providers/`. The Ollama provider
-(`evoseal/providers/ollama_provider.py`) sets these as defaults:
+(`evoseal/providers/ollama_provider.py`) sets these as defaults; the reviewer temperature
+override (`0.3`) is configured per-provider instance in `SEALConfig.providers`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
