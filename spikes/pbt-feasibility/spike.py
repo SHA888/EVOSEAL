@@ -149,6 +149,11 @@ def tournament_select(
 
     # Fill if needed (guard against empty pool — e.g. elitism=0 with
     # an empty starting population, or n=0 reuse elsewhere).
+    # Duplicates are possible here (same Individual reference appended
+    # multiple times).  This is benign because mutate() always creates a
+    # new Individual object for non-elites, so the next generation still
+    # has distinct objects.  With the current configs (POPULATION_SIZE=50,
+    # elitism<=5) the fill path is extremely unlikely to trigger.
     if selected:
         while len(selected) < n:
             selected.append(rng.choice(selected))
@@ -185,7 +190,8 @@ def run_generation(
     fitness is non-decreasing across generations.
     """
     elitism = config["elitism"]
-    # Selection (elites are the first ``elitism`` entries in the returned list)
+    # Selection — relies on tournament_select returning elites as the
+    # first ``elitism`` entries (preserved unmutated below).
     selected = tournament_select(
         population,
         n=len(population),
