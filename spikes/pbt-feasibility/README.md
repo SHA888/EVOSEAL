@@ -39,11 +39,19 @@ hyperparameter optimization strategy.
 - Average fitness: 0.012 (2.3%) — below threshold (expected: population average is less sensitive)
 - Improvement spread: 0.168
 
-## Verdict: VALIDATED
+## Verdict: VALIDATED (with caveats)
 
 Hyperparameter variance produces meaningful outcome differences in the
 pipeline's selection/mutation mechanics. The 22.9% best-fitness spread across
 configs is more than double the 10% threshold.
+
+**Important:** This verdict is driven entirely by the best-fitness metric
+(max-order statistic), not the population average (2.3% — below threshold).
+With only n=5 seeds per config, best fitness is inherently noisier than the
+mean and no significance test (t-test / confidence interval) was run against
+the per-config standard deviations before drawing this conclusion. Treat the
+VALIDATED verdict as directional evidence that hyperparameters matter, not as
+statistically robust proof.
 
 **Key finding:** The "exploratory" config (small tournament, no elitism, high
 mutation) achieved 24.7% higher best fitness than "exploitative" — but with
@@ -60,6 +68,14 @@ designed to navigate adaptively.
 3. EVOSEAL's real fitness function involves code correctness, efficiency, and
    readability — multi-dimensional in a way that may amplify or dampen
    hyperparameter sensitivity.
+4. **Statistical confidence:** The verdict uses an ``or`` gate (either
+   best-fitness or average-fitness spread exceeding 10%). Best fitness is a
+   max-order statistic — with n=5 seeds/config, it has higher sampling
+   variance than the population mean. The average-fitness spread (2.3%) was
+   well below threshold; only best fitness (22.9%) crossed it. A stricter
+   analysis would run a significance test (e.g. Welch's t-test or bootstrap
+   CI) against the per-config standard deviations before concluding the spread
+   is signal rather than noise.
 
 ## Recommendation
 
