@@ -86,7 +86,9 @@ SEED_BASE = 42
 
 
 # ---------------------------------------------------------------------------
-# Core mechanics (mirrors evoseal/core/selection.py logic, but deterministic)
+# Core mechanics (selection mirrors evoseal/core/selection.py logic, but
+# deterministic via explicit rng; mutation loop is spike-only — production
+# uses self_improve_step which has different semantics).
 # ---------------------------------------------------------------------------
 
 
@@ -178,18 +180,26 @@ def run_generation(
     config: dict[str, Any],
     rng: random.Random,
 ) -> list[Individual]:
-    """One generation: select → mutate → return next generation."""
-    # Selection
+    """One generation: select → mutate → return next generation.
+
+    Elites survive unchanged — only non-elite selected individuals are
+    mutated.  This preserves the standard elitism guarantee that the best
+    fitness is non-decreasing across generations.
+    """
+    elitism = config["elitism"]
+    # Selection (elites are the first ``elitism`` entries in the returned list)
     selected = tournament_select(
         population,
         n=len(population),
         tournament_size=config["tournament_size"],
-        elitism=config["elitism"],
+        elitism=elitism,
         rng=rng,
     )
-    # Mutation
-    next_gen = [
-        mutate(ind, config["mutation_rate"], config["mutation_mag"], rng) for ind in selected
+    # Elites pass through unchanged; the rest are mutated.
+    elites = selected[:elitism]
+    rest = selected[elitism:]
+    next_gen = elites + [
+        mutate(ind, config["mutation_rate"], config["mutation_mag"], rng) for ind in rest
     ]
     return next_gen
 
