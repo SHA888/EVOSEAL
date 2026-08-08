@@ -1,0 +1,87 @@
+{
+  "cross_config": {
+    "best_spread": 0.1680013525466817,
+    "avg_spread": 0.011974028705567075,
+    "improvement_spread": 0.1680013525466817,
+    "best_relative_spread_pct": 22.916763679637437,
+    "avg_relative_spread_pct": 2.3427037337250862
+  },
+  "threshold": 10.0,
+  "config_stats": {
+    "baseline": {
+      "final_best_mean": 0.7077416479335308,
+      "final_best_std": 0.03899223141305548,
+      "final_avg_mean": 0.5088570682762047,
+      "final_avg_std": 0.005511309285575978,
+      "improvement_mean": 0.024688083342247414,
+      "improvement_std": 0.02433857489221635,
+      "final_diversity_mean": 0.0942276902863182,
+      "config": {
+        "tournament_size": 3,
+        "elitism": 1,
+        "mutation_rate": 0.1,
+        "mutation_mag": 0.05
+      }
+    },
+    "exploratory": {
+      "final_best_mean": 0.8481989163921116,
+      "final_best_std": 0.06614952913584142,
+      "final_avg_mean": 0.5185948855791074,
+      "final_avg_std": 0.02194200840623887,
+      "improvement_mean": 0.1651453518008283,
+      "improvement_std": 0.04966375870251193,
+      "final_diversity_mean": 0.14559941343965566,
+      "config": {
+        "tournament_size": 2,
+        "elitism": 0,
+        "mutation_rate": 0.3,
+        "mutation_mag": 0.15
+      }
+    },
+    "exploitative": {
+      "final_best_mean": 0.68019756384543,
+      "final_best_std": 0.02192106188921366,
+      "final_avg_mean": 0.5072431130599354,
+      "final_avg_std": 0.005211584881918314,
+      "improvement_mean": -0.0028560007458534155,
+      "improvement_std": 0.007487586457496208,
+      "final_diversity_mean": 0.08585230099748709,
+      "config": {
+        "tournament_size": 7,
+        "elitism": 3,
+        "mutation_rate": 0.05,
+        "mutation_mag": 0.02
+      }
+    },
+    "balanced": {
+      "final_best_mean": 0.7435322168544884,
+      "final_best_std": 0.05829689510200298,
+      "final_avg_mean": 0.5142843711164952,
+      "final_avg_std": 0.011560604809098936,
+      "improvement_mean": 0.060478652263205125,
+      "improvement_std": 0.03844175044789527,
+      "final_diversity_mean": 0.09842369492926512,
+      "config": {
+        "tournament_size": 4,
+        "elitism": 2,
+        "mutation_rate": 0.15,
+        "mutation_mag": 0.08
+      }
+    },
+    "conservative": {
+      "final_best_mean": 0.6857981935351074,
+      "final_best_std": 0.03017831363951221,
+      "final_avg_mean": 0.5066208568735403,
+      "final_avg_std": 0.005834518416640367,
+      "improvement_mean": 0.002744628943824057,
+      "improvement_std": 0.007995368954835816,
+      "final_diversity_mean": 0.08685445383460572,
+      "config": {
+        "tournament_size": 3,
+        "elitism": 5,
+        "mutation_rate": 0.05,
+        "mutation_mag": 0.03
+      }
+    }
+  }
+}
