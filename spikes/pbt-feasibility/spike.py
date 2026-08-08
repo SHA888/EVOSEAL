@@ -90,9 +90,16 @@ SEED_BASE = 42
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(eq=False)
 class Individual:
-    """Synthetic individual with multi-dimensional fitness."""
+    """Synthetic individual with multi-dimensional fitness.
+
+    eq=False so that ``in`` and ``.remove()`` compare by object identity,
+    not by value.  Two distinct individuals can share the same ``id`` and
+    ``fitness`` (e.g. via the fill-when-undersized fallback in
+    ``tournament_select``); value-based equality would silently collapse
+    them and corrupt the selection pool.
+    """
 
     id: int
     fitness: list[float]  # per-dimension fitness scores
@@ -140,9 +147,11 @@ def tournament_select(
         selected.append(winner)
         pop.remove(winner)
 
-    # Fill if needed
-    while len(selected) < n:
-        selected.append(rng.choice(selected))
+    # Fill if needed (guard against empty pool — e.g. elitism=0 with
+    # an empty starting population, or n=0 reuse elsewhere).
+    if selected:
+        while len(selected) < n:
+            selected.append(rng.choice(selected))
 
     return selected[:n]
 
@@ -354,6 +363,14 @@ def print_report(results: dict[str, Any]) -> None:
     print()
 
     # Verdict
+    # NOTE: Using ``or`` (either metric crossing threshold) as the VALIDATED
+    # gate.  Best-fitness is a max-order statistic and inherently noisier
+    # across small samples (n=5 seeds/config) than the population average.
+    # A stricter gate would require a significance test (e.g. t-test or CI)
+    # against the per-config std devs before drawing a conclusion.  The
+    # current threshold is intentionally permissive — the spike answers
+    # "is there *any* signal?" rather than "is the signal statistically
+    # robust?"  Treat the VALIDATED verdict as directional, not definitive.
     best_pct = cross["best_relative_spread_pct"]
     avg_pct = cross["avg_relative_spread_pct"]
     exceeds = best_pct > threshold or avg_pct > threshold
