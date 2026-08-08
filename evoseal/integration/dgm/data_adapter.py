@@ -7,9 +7,15 @@ from evoseal.models.evaluation import EvaluationResult, TestCaseResult
 
 
 class DGMDataAdapter:
-    """
-    Adapter to bridge DGM run outputs (code, metadata, metrics) into structured EVOSEAL models.
-    Provides methods to convert, save, and load CodeArchive and EvaluationResult objects from disk.
+    """Adapter to bridge DGM run outputs into structured EVOSEAL models.
+
+    Provides methods to convert, save, and load CodeArchive and EvaluationResult
+    objects from disk.
+
+    .. deprecated::
+        This module is part of the legacy local DGM adapter (``evoseal.integration.dgm``).
+        The canonical adapter is ``evoseal.integration.dgmr``. This module is retained
+        only because ``dgm.evolution_manager.EvolutionManager`` uses it.
     """
 
     def __init__(self, base_dir: str):
