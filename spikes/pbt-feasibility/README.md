@@ -76,6 +76,15 @@ designed to navigate adaptively.
    analysis would run a significance test (e.g. Welch's t-test or bootstrap
    CI) against the per-config standard deviations before concluding the spread
    is signal rather than noise.
+5. **Near-identical non-exploratory configs:** The "exploitative" and
+   "conservative" configs produced bit-for-bit identical
+   ``final_best_mean`` / ``final_best_std`` / ``improvement_mean`` /
+   ``improvement_std`` values. This is expected (same seeds 42–46 per-config,
+   high elitism protecting the initial best individual from mutation), but it
+   means the 22.9% headline spread is driven almost entirely by the single
+   "exploratory" outlier versus three configs clustered near-identically. The
+   effective spread is "exploratory vs. the rest", not a gradual gradient
+   across the hyperparameter space.
 
 ## Recommendation
 
