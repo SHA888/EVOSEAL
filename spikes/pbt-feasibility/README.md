@@ -28,11 +28,11 @@ hyperparameter optimization strategy.
 
 | Config | Tournament | Elitism | Mut Rate | Mut Mag | Final Best | Improvement |
 |--------|-----------|---------|----------|---------|------------|-------------|
-| baseline | 3 | 1 | 0.10 | 0.05 | 0.708 ± 0.039 | +0.025 |
+| baseline | 3 | 1 | 0.10 | 0.05 | 0.686 ± 0.021 | +0.003 |
 | exploratory | 2 | 0 | 0.30 | 0.15 | 0.848 ± 0.066 | +0.165 |
-| exploitative | 7 | 3 | 0.05 | 0.02 | 0.680 ± 0.022 | −0.003 |
-| balanced | 4 | 2 | 0.15 | 0.08 | 0.744 ± 0.058 | +0.061 |
-| conservative | 3 | 5 | 0.05 | 0.03 | 0.686 ± 0.030 | +0.003 |
+| exploitative | 7 | 3 | 0.05 | 0.02 | 0.683 ± 0.023 | +0.000 |
+| balanced | 4 | 2 | 0.15 | 0.08 | 0.703 ± 0.023 | +0.020 |
+| conservative | 3 | 5 | 0.05 | 0.03 | 0.683 ± 0.023 | +0.000 |
 
 **Cross-config spread:**
 - Best fitness: 0.168 (**22.9%**) — exceeds 10% threshold ✓
@@ -54,8 +54,8 @@ VALIDATED verdict as directional evidence that hyperparameters matter, not as
 statistically robust proof.
 
 **Key finding:** The "exploratory" config (small tournament, no elitism, high
-mutation) achieved 24.7% higher best fitness than "exploitative" — but with
-2.5× more variance. This is exactly the explore-exploit tradeoff that PBT is
+mutation) achieved 24.2% higher best fitness than "exploitative" — but with
+2.9× more variance. This is exactly the explore-exploit tradeoff that PBT is
 designed to navigate adaptively.
 
 ### Caveats
