@@ -1,6 +1,6 @@
 # ADR 0005 — Population-Based Training for Hyperparameter Evolution
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-07
 **Context:** EVOSEAL currently uses MAP-Elites (via OpenEvolve) for code variant
 selection. The TODO roadmap calls for exploring Population-Based Training (PBT)
@@ -123,8 +123,11 @@ If adopted, the integration points would be:
 3. **`configs/pbt.yaml`** — PBT-specific configuration (population size,
    perturbation ranges, exploit interval, metric to rank on).
 4. **Checkpoint integration** — PBT requires checkpointing entire pipeline
-   state (including model weights) for exploit (copying from top performers);
-   `CheckpointManager` already handles this.
+   state for exploit (copying config, prompt templates, and model-path/file
+   references from top performers); `CheckpointManager` already captures this
+   pipeline-level state via `_capture_system_state()`. Actual model-weight
+   transfer would require provider-specific save/restore contracts (not yet
+   defined) and is noted as an open question in §5.
 5. **`evoseal/cli/commands/`** — a `pbt` subcommand to run PBT-tuned
    evolution sessions.
 
