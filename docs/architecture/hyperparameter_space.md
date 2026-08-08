@@ -2,8 +2,8 @@
 
 > **Status:** Reference document (follow-up from ADR 0005 §6).
 > **Purpose:** Enumerate all tuneable pipeline parameters, their current values/ranges,
->   and where they are defined. Prerequisite for any PBT feasibility spike or systematic
->   sensitivity analysis.
+> and where they are defined. Prerequisite for any PBT feasibility spike or systematic
+> sensitivity analysis.
 
 EVOSEAL exposes dozens of tuneable parameters spread across configuration files, dataclass
 defaults, and inline constants. This document catalogs them by subsystem so that operators
@@ -164,7 +164,7 @@ A threshold of `0.0` on `no_new_failures` means zero new failures are tolerated.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `min_improvement_score` | varies | Minimum weighted score for validation to pass |
+| `min_improvement_score` | `70.0` | Minimum weighted score (0–100) for validation to pass; defined in `ImprovementValidator.__init__` |
 | `sample_size` | `1` | Number of evaluation runs per candidate |
 
 ---
@@ -219,7 +219,7 @@ Limits on test execution and sandboxed runs, defined in `evoseal/core/testrunner
 
 ## 9. Budget & Cost
 
-Token and cost limits, defined in `config/budget.yaml`.
+Token and cost limits, defined in `config/budget.yaml` (note: `config/` is a Python package for mutable settings; `configs/` holds standalone immutable YAML files like `safety.yaml`).
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -287,8 +287,8 @@ Safety enforcement parameters from `configs/safety.yaml`.
 |-----------|---------|-------------|
 | `edit_scope.enabled` | `True` | Whether edit-scope enforcement is active |
 | `forbidden_paths` | `[".env", "Makefile"]` | Individual files the evolution loop cannot modify |
-| `forbidden_dirs` | `[".git", ".github/workflows", ...]` | Directories entirely off-limits |
-| `allowed_dirs` | `["evoseal/", "tests/", ...]` | Directories the evolution loop may modify |
+| `forbidden_dirs` | `[".git", ".github/workflows", ".evoseal", ".pytest_cache", "__pycache__", ".venv", "venv", "configs"]` | Directories entirely off-limits |
+| `allowed_dirs` | `["evoseal/", "tests/", "examples/", "docs/", "scripts/", "benchmarks/", "config/"]` | Directories the evolution loop may modify |
 
 ---
 
