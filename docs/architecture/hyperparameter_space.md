@@ -21,7 +21,7 @@ The core evolutionary loop parameters, defined in `ExperimentConfig` (`evoseal/m
 | `mutation_rate` | `0.1` | [0.0, 1.0] | Probability of mutating a candidate |
 | `crossover_rate` | `0.8` | [0.0, 1.0] | Probability of crossover between two candidates |
 | `fitness_function` | `"default"` | string | Name of the fitness evaluation strategy |
-| `iterations` (CLI) | `5` | ≥1 | Number of evolution iterations when run from CLI |
+| `iterations` (CLI) | `10` | ≥1 | Number of evolution iterations when run from CLI |
 
 **Configured via:** `ExperimentConfig` dataclass, overridable through `ExperimentIntegration`
 (`evoseal/core/experiment_integration.py:496-503`).
@@ -50,7 +50,7 @@ Model inference parameters, defined per-provider in `evoseal/providers/`. The Ol
 | `top_p` | `0.9` | Nucleus sampling threshold |
 | `top_k` | `40` | Top-k sampling cutoff |
 | `max_tokens` / `num_predict` | `2048` | Maximum tokens to generate per response |
-| `timeout` | `90` (seconds) | Per-request timeout for provider calls |
+| `timeout` | `120` (seconds) | Per-request timeout for provider calls |
 
 **Configured via:** `SEALConfig.providers` in `evoseal/config.py`. Provider priority determines
 which is used when multiple are enabled.
@@ -93,7 +93,7 @@ Training hyperparameters for the LoRA/QLoRA fine-tuning path, defined in
 | Parameter | Default | Location | Description |
 |-----------|---------|----------|-------------|
 | `min_training_samples` | `100` | `TrainingManager.__init__` | Minimum evolution results before training triggers |
-| `training_check_interval` | `1800` (30 min) | `SEALConfig` | How often the daemon checks training readiness |
+| `training_check_interval` | `1800` (30 min) | `SEALConfig` | How often the daemon checks training readiness (also listed in §10; same source) |
 
 ---
 
@@ -241,7 +241,7 @@ Parameters for the continuous evolution daemon, defined in `evoseal/config.py`.
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `evolution_interval` | `3600` (1 hr) | How often the daemon triggers an evolution cycle |
-| `training_check_interval` | `1800` (30 min) | How often the daemon checks training readiness |
+| `training_check_interval` | `1800` (30 min) | How often the daemon checks training readiness (also listed in §4.4; same source) |
 | `min_evolution_samples` | `50` | Minimum samples before evolution data is used |
 | `model_validation_timeout` | `300` (sec) | Timeout for model validation runs |
 
