@@ -15,7 +15,7 @@ class DGMDataAdapter:
     .. deprecated::
         This module is part of the legacy local DGM adapter (``evoseal.integration.dgm``).
         The canonical adapter is ``evoseal.integration.dgmr``. This module is retained
-        only because ``dgm.evolution_manager.EvolutionManager`` uses it.
+        only because ``evoseal.integration.dgm.evolution_manager.EvolutionManager`` uses it.
     """
 
     def __init__(self, base_dir: str):
