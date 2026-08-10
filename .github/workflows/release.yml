@@ -42,7 +42,8 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' &&
        (github.event.workflow_run.head_branch == 'main' ||
         startsWith(github.event.workflow_run.head_branch, 'release/'))) ||
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') &&
+       !contains(github.event.head_commit.message, '[skip ci]'))
 
     # Use the production environment for protection
     environment: production
@@ -96,7 +97,9 @@ jobs:
               VERSION=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
             else
               python3 scripts/lib/version/version.py update "$INPUT" --no-commit
-              VERSION="$INPUT"
+              # Re-read from pyproject.toml — the script may have normalised
+              # the version (e.g. PEP 440: 1.2.3-rc.1 → 1.2.3rc1).
+              VERSION=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
             fi
           else
             # workflow_run or default: bump patch
@@ -139,15 +142,17 @@ jobs:
           python3 -m build
           ls -la dist/
 
-          # Verify built artifacts exist with expected version
+          # Verify built artifacts exist.  Use glob matching rather than
+          # exact filenames because PEP 440 normalisation can change the
+          # version string in the filename (e.g. 1.2.3-rc.1 → 1.2.3rc1).
           VERSION="${{ steps.version.outputs.version }}"
-          if [ ! -f "dist/evoseal-${VERSION}.tar.gz" ]; then
-            echo "::error::Expected dist/evoseal-${VERSION}.tar.gz not found"
+          if ! ls dist/evoseal-${VERSION}*.tar.gz >/dev/null 2>&1; then
+            echo "::error::No source distribution matching evoseal-${VERSION}*.tar.gz found"
             ls dist/
             exit 1
           fi
-          if [ ! -f "dist/evoseal-${VERSION}-py3-none-any.whl" ]; then
-            echo "::error::Expected dist/evoseal-${VERSION}-py3-none-any.whl not found"
+          if ! ls dist/evoseal-${VERSION}*-py3-none-any.whl >/dev/null 2>&1; then
+            echo "::error::No wheel matching evoseal-${VERSION}*-py3-none-any.whl found"
             ls dist/
             exit 1
           fi
@@ -175,9 +180,34 @@ jobs:
           echo "notes_path=$NOTES_PATH" >> "$GITHUB_OUTPUT"
 
       # -----------------------------------------------------------------------
+      # Publish to PyPI (tag push or explicit workflow_dispatch with publish=true)
+      # NOTE: this runs BEFORE the version-bump commit so that a failed
+      # publish does not leave pyproject.toml bumped to an unreleased version.
+      # -----------------------------------------------------------------------
+      - name: Publish to PyPI
+        if: >
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "📦 Publishing version ${{ steps.version.outputs.version }} to PyPI..."
+
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "::error::PYPI_API_TOKEN secret is not set"
+            exit 1
+          fi
+
+          twine upload --non-interactive dist/*
+          echo "✅ Successfully published to PyPI"
+
+      # -----------------------------------------------------------------------
       # Commit the version bump back to the source branch so that
       # pyproject.toml / CHANGELOG.md stay in sync with the release.
       # Skipped for tag-push (the commit is already the tagged one).
+      # Runs AFTER publish so a failed upload doesn't leave the repo bumped.
       # -----------------------------------------------------------------------
       - name: Commit version bump
         if: >
@@ -200,28 +230,6 @@ jobs:
           echo "✅ Committed and pushed version v${{ steps.version.outputs.version }}"
 
       # -----------------------------------------------------------------------
-      # Publish to PyPI (tag push or explicit workflow_dispatch with publish=true)
-      # -----------------------------------------------------------------------
-      - name: Publish to PyPI
-        if: >
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "📦 Publishing version ${{ steps.version.outputs.version }} to PyPI..."
-
-          if [ -z "$TWINE_PASSWORD" ]; then
-            echo "::error::PYPI_API_TOKEN secret is not set"
-            exit 1
-          fi
-
-          twine upload --non-interactive dist/*
-          echo "✅ Successfully published to PyPI"
-
-      # -----------------------------------------------------------------------
       # Create GitHub Release
       # -----------------------------------------------------------------------
       - name: Create GitHub Release
@@ -234,6 +242,7 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          target_commitish: ${{ github.sha }}
           files: |
             dist/*
             releases/${{ steps.version.outputs.version }}/*

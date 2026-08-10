@@ -53,7 +53,10 @@ def get_last_tag() -> str | None:
 
 def get_commits_since(tag: str | None) -> list[tuple[str, str, str]]:
     """Return ``[(hash, subject, body), …]`` since *tag* (or all history)."""
-    fmt = "%H%x00%s%x00%b%x00END"
+    # Use NUL bytes as both field and record separators.
+    # Git prohibits NUL in commit messages, so this is safe — unlike a
+    # text sentinel (e.g. "END") which could appear in commit subjects.
+    fmt = "%H%x00%s%x00%b%x00"
     if tag:
         log = run(["git", "log", f"{tag}..HEAD", f"--pretty=format:{fmt}"])
     else:
@@ -62,17 +65,16 @@ def get_commits_since(tag: str | None) -> list[tuple[str, str, str]]:
     if not log:
         return []
 
+    # Each commit produces exactly 3 NUL-separated fields (hash, subject,
+    # body) followed by a trailing NUL.  Split on NUL and group by 3.
+    parts = log.split("\x00")
     commits: list[tuple[str, str, str]] = []
-    for raw in log.split("END"):
-        raw = raw.strip("\x00").strip()
-        if not raw:
-            continue
-        parts = raw.split("\x00")
-        # git log with %H%x00%s%x00%b → hash, subject, body
-        sha = parts[0][:7]
-        subject = parts[1] if len(parts) > 1 else ""
-        body = parts[2] if len(parts) > 2 else ""
-        commits.append((sha, subject, body))
+    for i in range(0, len(parts) - 2, 3):
+        sha = parts[i][:7]
+        subject = parts[i + 1]
+        body = parts[i + 2]
+        if sha:
+            commits.append((sha, subject, body))
     return commits
 
 
