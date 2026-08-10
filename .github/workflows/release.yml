@@ -116,6 +116,21 @@ jobs:
           echo "✅ Version: $CURRENT → $VERSION"
 
       # -----------------------------------------------------------------------
+      # Verify version consistency (tag-push safety net)
+      # -----------------------------------------------------------------------
+      - name: Verify version consistency
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          PYPROJECT_VERSION=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          if [[ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]]; then
+            echo "::error::Version mismatch: pyproject.toml ($PYPROJECT_VERSION) != tag ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "✅ pyproject.toml version ($PYPROJECT_VERSION) matches tag"
+
+      # -----------------------------------------------------------------------
       # Build the package
       # -----------------------------------------------------------------------
       - name: Build package
@@ -123,6 +138,23 @@ jobs:
           rm -rf build/ dist/
           python3 -m build
           ls -la dist/
+
+          # Verify built artifacts exist with expected version
+          VERSION="${{ steps.version.outputs.version }}"
+          if [ ! -f "dist/evoseal-${VERSION}.tar.gz" ]; then
+            echo "::error::Expected dist/evoseal-${VERSION}.tar.gz not found"
+            ls dist/
+            exit 1
+          fi
+          if [ ! -f "dist/evoseal-${VERSION}-py3-none-any.whl" ]; then
+            echo "::error::Expected dist/evoseal-${VERSION}-py3-none-any.whl not found"
+            ls dist/
+            exit 1
+          fi
+
+          # Validate package metadata and structure
+          twine check dist/*
+          echo "✅ Package artifacts verified"
 
       # -----------------------------------------------------------------------
       # Generate / verify release notes
@@ -148,7 +180,9 @@ jobs:
       # Skipped for tag-push (the commit is already the tagged one).
       # -----------------------------------------------------------------------
       - name: Commit version bump
-        if: github.event_name != 'push'
+        if: >
+          (github.event_name == 'workflow_run') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
         run: |
           set -euo pipefail
 
