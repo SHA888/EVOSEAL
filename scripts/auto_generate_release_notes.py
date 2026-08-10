@@ -37,17 +37,26 @@ DEFAULT_OUTPUT_DIR = "releases"
 
 
 def run(cmd: list[str], **kwargs) -> str:
-    """Run a command and return stripped stdout."""
+    """Run a command and return stripped stdout.
+
+    Raises ``RuntimeError`` on non-zero exit codes so that real failures
+    (corrupted checkout, missing git config, etc.) are never silently
+    swallowed.
+    """
     result = subprocess.run(cmd, capture_output=True, text=True, check=False, **kwargs)
     if result.returncode != 0:
-        print(f"⚠️  Command failed: {' '.join(cmd)}", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
+        raise RuntimeError(
+            f"Command failed (exit {result.returncode}): {' '.join(cmd)}\n{result.stderr.strip()}"
+        )
     return result.stdout.strip()
 
 
 def get_last_tag() -> str | None:
     """Return the most recent version tag, or None if there are no tags."""
-    tag = run(["git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*"])
+    try:
+        tag = run(["git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*"])
+    except RuntimeError:
+        return None
     return tag if tag else None
 
 
@@ -67,12 +76,15 @@ def get_commits_since(tag: str | None) -> list[tuple[str, str, str]]:
 
     # Each commit produces exactly 3 NUL-separated fields (hash, subject,
     # body) followed by a trailing NUL.  Split on NUL and group by 3.
+    # NOTE: `git log --pretty=format:` inserts a newline between records,
+    # so every field after the first may be prefixed with "\n".  Strip each
+    # field to avoid corrupted hashes and subjects.
     parts = log.split("\x00")
     commits: list[tuple[str, str, str]] = []
     for i in range(0, len(parts) - 2, 3):
-        sha = parts[i][:7]
-        subject = parts[i + 1]
-        body = parts[i + 2]
+        sha = parts[i].strip()[:7]
+        subject = parts[i + 1].strip()
+        body = parts[i + 2].strip()
         if sha:
             commits.append((sha, subject, body))
     return commits
@@ -91,7 +103,7 @@ def categorise(commits: list[tuple[str, str, str]]) -> dict[str, list[str]]:
         matched = False
         for prefix, emoji, heading in CATEGORY_MAP:
             # Match "feat:", "feat(scope):", "feat!:", case-insensitive
-            if subject.lower().startswith(f"{prefix}:") or subject.lower().startswith(f"{prefix}("):
+            if subject.lower().startswith((f"{prefix}:", f"{prefix}(", f"{prefix}!:")):
                 line = (
                     f"- {emoji} {subject} ([{sha}](https://github.com/SHA888/EVOSEAL/commit/{sha}))"
                 )

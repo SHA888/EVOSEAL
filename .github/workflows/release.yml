@@ -210,6 +210,7 @@ jobs:
       # Runs AFTER publish so a failed upload doesn't leave the repo bumped.
       # -----------------------------------------------------------------------
       - name: Commit version bump
+        id: commit_bump
         if: >
           (github.event_name == 'workflow_run') ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
@@ -219,6 +220,7 @@ jobs:
           # Only commit if there are actual changes
           if git diff --quiet; then
             echo "ℹ️  No changes to commit"
+            echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -228,6 +230,7 @@ jobs:
           git commit -m "chore: release v${{ steps.version.outputs.version }} [skip ci]"
           git push origin HEAD
           echo "✅ Committed and pushed version v${{ steps.version.outputs.version }}"
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # -----------------------------------------------------------------------
       # Create GitHub Release
@@ -241,8 +244,14 @@ jobs:
           body_path: ${{ steps.release_notes.outputs.notes_path }}
           draft: false
           prerelease: false
-          generate_release_notes: true
-          target_commitish: ${{ github.sha }}
+          # NOTE: do NOT also set generate_release_notes: true — the custom
+          # notes from auto_generate_release_notes.py are loaded via body_path;
+          # enabling both would prepend the custom notes to a second set of
+          # GitHub-auto-generated notes, producing duplicate content.
+          # Use the post-bump HEAD when the version-bump step ran (workflow_run
+          # and workflow_dispatch); fall back to github.sha for tag-push where
+          # no bump commit is created.
+          target_commitish: ${{ steps.commit_bump.outputs.head_sha || github.sha }}
           files: |
             dist/*
             releases/${{ steps.version.outputs.version }}/*
