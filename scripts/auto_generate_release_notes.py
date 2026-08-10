@@ -97,7 +97,12 @@ def categorise(commits: list[tuple[str, str, str]]) -> dict[str, list[str]]:
 
     for sha, subject, _body in commits:
         # Skip merge commits and release-version bumps
-        if subject.startswith("Merge ") or subject.startswith("Bump version to"):
+        if (
+            subject.startswith("Merge ")
+            or subject.startswith("Bump version to")
+            or subject.startswith("chore: release v")
+            or subject.startswith("docs: generate release notes for v")
+        ):
             continue
 
         matched = False
