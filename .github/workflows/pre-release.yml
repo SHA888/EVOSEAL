@@ -35,8 +35,6 @@ jobs:
       contents: write
       id-token: write
       actions: read
-      checks: write
-      statuses: write
       pull-requests: write
     runs-on: ubuntu-latest
 
@@ -49,38 +47,36 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
-          cache: 'pip'
+          python-version: '3.11'
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install build twine pyyaml tomli
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install build dependencies
+        run: uv pip install --system build twine tomli pyyaml
 
       - name: Get version from pyproject.toml
         id: version
         run: |
-          VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Generate release notes automatically
+      - name: Generate release notes
         run: |
-          echo "Generating comprehensive release notes for v${{ steps.version.outputs.version }}..."
-          python3 scripts/auto_generate_release_notes.py ${{ steps.version.outputs.version }} --output-dir releases
-          echo "Release notes generated successfully!"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          set -euo pipefail
+          echo "Generating release notes for v${{ steps.version.outputs.version }}..."
+          python3 scripts/auto_generate_release_notes.py "${{ steps.version.outputs.version }}" --output-dir releases
+          echo "✅ Release notes generated"
 
       - name: Commit generated release notes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add releases/${{ steps.version.outputs.version }}/
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "ℹ️  No changes to commit"
           else
-            git commit -m "docs: Generate release notes for v${{ steps.version.outputs.version }}"
+            git commit -m "docs: generate release notes for v${{ steps.version.outputs.version }} [skip ci]"
             git push origin HEAD
             echo "✅ Release notes committed and pushed"
           fi
@@ -90,11 +86,17 @@ jobs:
         run: |
           RELEASE_NOTES_PATH="releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md"
           if [ ! -f "$RELEASE_NOTES_PATH" ]; then
-            echo "Release notes file not found at $RELEASE_NOTES_PATH"
+            echo "::error::Release notes file not found at $RELEASE_NOTES_PATH"
             ls -R releases/
             exit 1
           fi
-          echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> $GITHUB_ENV
+          echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> "$GITHUB_ENV"
+
+      - name: Build package
+        run: |
+          rm -rf build/ dist/
+          python3 -m build
+          ls -la dist/
 
       - name: Create Release Candidate
         uses: softprops/action-gh-release@v3
@@ -102,16 +104,17 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}-rc.${{ github.run_number }}
           name: 'Release Candidate ${{ steps.version.outputs.version }}'
-          body_path: releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md
+          body_path: ${{ env.RELEASE_NOTES_PATH }}
           draft: true
           prerelease: true
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: release-artifacts
+          name: release-artifacts-${{ steps.version.outputs.version }}
           path: |
             releases/${{ steps.version.outputs.version }}/
             dist/*
@@ -119,8 +122,8 @@ jobs:
       - name: Create Release Branch
         if: github.event_name != 'pull_request'  # Skip if already in a PR
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
           # Create and switch to release branch
           RELEASE_BRANCH="release/v${{ steps.version.outputs.version }}"
@@ -128,7 +131,7 @@ jobs:
 
           # Push the release branch
           git push -u origin "$RELEASE_BRANCH"
-          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> "$GITHUB_ENV"
 
       - name: Create Pull Request
         if: github.event_name != 'pull_request'  # Skip if already in a PR
@@ -141,9 +144,6 @@ jobs:
             ## Release Candidate: v${{ steps.version.outputs.version }}
 
             This is an automated release candidate. Please review the changes before proceeding with the release.
-
-            **Release Notes Preview:**
-            ${{ steps.create_release.outputs.upload_url }}
 
             ### Review Checklist
             - [ ] Verify version numbers are correct

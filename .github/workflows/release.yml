@@ -30,11 +30,9 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'  # Only match proper version tags
 
 
-
 # Environment variables available to all jobs
 env:
-  PYTHON_VERSION: '3.10'
-  POETRY_VERSION: '1.8.0'
+  PYTHON_VERSION: '3.11'
 
 jobs:
   release:
@@ -43,7 +41,8 @@ jobs:
       (github.event_name == 'workflow_dispatch') ||
       (github.event.workflow_run.conclusion == 'success' &&
        (github.event.workflow_run.head_branch == 'main' ||
-        startsWith(github.event.workflow_run.head_branch, 'release/')))
+        startsWith(github.event.workflow_run.head_branch, 'release/'))) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
 
     # Use the production environment for protection
     environment: production
@@ -53,11 +52,6 @@ jobs:
       contents: write  # For creating releases and tags
       id-token: write  # For OIDC token for package publishing
       actions: read
-      checks: write
-      statuses: write
-      packages: write
-      deployments: write
-      pull-requests: write  # For updating PRs
 
     runs-on: ubuntu-latest
 
@@ -72,160 +66,108 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
-          cache: 'pip'
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Python dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install build dependencies
+        run: uv pip install --system build twine tomli tomli-w pyyaml
+
+      # -----------------------------------------------------------------------
+      # Determine the version.  For tag pushes the version comes from the tag;
+      # for workflow_dispatch the user may supply a bump type or specific value;
+      # for workflow_run we default to a patch bump.
+      # -----------------------------------------------------------------------
+      - name: Determine version
+        id: version
         run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install build twine pyyaml tomli
+          set -euo pipefail
 
-      - name: Bump version and update changelog
-        id: bump_version
-        run: |
-          # Install dependencies for the version bump script
-          pip install tomli tomli-w pyyaml
+          CURRENT=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
 
-          # Determine the version bump type or specific version
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
-            if [[ "${{ github.event.inputs.version }}" =~ ^(major|minor|patch)$ ]]; then
-              # It's a bump type (major, minor, patch)
-              echo "Bumping ${{ github.event.inputs.version }} version..."
-              python scripts/lib/version/version.py bump ${{ github.event.inputs.version }} --no-commit
-              BUMP_TYPE="${{ github.event.inputs.version }}"
+          if [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF" == refs/tags/v* ]]; then
+            # Tag push: use the tag version
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
+            INPUT="${{ github.event.inputs.version }}"
+            if [[ "$INPUT" =~ ^(major|minor|patch)$ ]]; then
+              python3 scripts/lib/version/version.py bump "$INPUT" --no-commit
+              VERSION=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
             else
-              # It's a specific version
-              echo "Setting version to ${{ github.event.inputs.version }}..."
-              python scripts/lib/version/version.py update ${{ github.event.inputs.version }} --no-commit
-              BUMP_TYPE="specific"
+              python3 scripts/lib/version/version.py update "$INPUT" --no-commit
+              VERSION="$INPUT"
             fi
           else
-            # Default to patch version bump
-            echo "Bumping patch version by default..."
-            python scripts/lib/version/version.py bump patch --no-commit
-            BUMP_TYPE="patch"
+            # workflow_run or default: bump patch
+            python3 scripts/lib/version/version.py bump patch --no-commit
+            VERSION=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
           fi
 
-          # Get the new version
-          NEW_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          echo "New version: $NEW_VERSION"
-
-          # Set outputs for subsequent steps
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
-
-      - name: Verify version consistency
-        id: verify_version
-        run: |
-          # Get version from pyproject.toml
-          PYPROJECT_VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
-
-          # Get version from the tag or workflow input
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            TAG_VERSION=${GITHUB_REF#refs/tags/v}
-            echo "Using version from tag: $TAG_VERSION"
-            VERSION=$TAG_VERSION
-          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
-            echo "Using version from workflow input: ${{ github.event.inputs.version }}"
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            # Default to version from pyproject.toml
-            VERSION=$PYPROJECT_VERSION
-            echo "Using version from pyproject.toml: $VERSION"
-          fi
-
-          # Verify versions match if we have multiple sources
-          if [[ "${{ github.event_name }}" == "push" && "$VERSION" != "$PYPROJECT_VERSION" ]]; then
-            echo "::error::Version mismatch! pyproject.toml ($PYPROJECT_VERSION) does not match tag ($VERSION)"
-            exit 1
-          fi
-
-          # Set outputs for subsequent steps
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-          # Verify version format (semver)
+          # Verify semver format
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+)?$ ]]; then
-            echo "::error::Invalid version format: $VERSION. Must follow semantic versioning (e.g., 1.2.3)"
+            echo "::error::Invalid version format: $VERSION"
             exit 1
           fi
 
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "✅ Version: $CURRENT → $VERSION"
+
+      # -----------------------------------------------------------------------
+      # Build the package
+      # -----------------------------------------------------------------------
       - name: Build package
         run: |
-          # Clean any existing builds
           rm -rf build/ dist/
-
-          # Build the package
-          python -m build
-
-          # Verify the built package
+          python3 -m build
           ls -la dist/
 
-          # Basic validation of the built package
-          pip install dist/*.whl --no-deps -v
-
-      - name: Set version for release
-        id: set_version
+      # -----------------------------------------------------------------------
+      # Generate / verify release notes
+      # -----------------------------------------------------------------------
+      - name: Generate release notes
+        id: release_notes
         run: |
-          # Use the version from the verify_version step if available
-          if [[ -n "${{ steps.verify_version.outputs.version }}" ]]; then
-            VERSION="${{ steps.verify_version.outputs.version }}"
-          # Handle workflow_dispatch with input
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-          # Extract from tag if this is a tag push
-          elif [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF" == refs/tags/v* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
+          set -euo pipefail
+          NOTES_PATH="releases/${{ steps.version.outputs.version }}/RELEASE_NOTES.md"
+
+          # If a pre-existing release notes file is present, keep it
+          if [ -f "$NOTES_PATH" ]; then
+            echo "ℹ️  Using existing $NOTES_PATH"
           else
-            # Fallback to pyproject.toml
-            VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
+            python3 scripts/auto_generate_release_notes.py "${{ steps.version.outputs.version }}" --output-dir releases
           fi
 
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Using version: $VERSION"
+          echo "notes_path=$NOTES_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Verify release artifacts
-        id: verify_artifacts
+      # -----------------------------------------------------------------------
+      # Commit the version bump back to the source branch so that
+      # pyproject.toml / CHANGELOG.md stay in sync with the release.
+      # Skipped for tag-push (the commit is already the tagged one).
+      # -----------------------------------------------------------------------
+      - name: Commit version bump
+        if: github.event_name != 'push'
         run: |
-          set -e
+          set -euo pipefail
 
-          # Ensure releases directory exists
-          mkdir -p "releases/${{ steps.bump_version.outputs.version }}"
-
-          # Check for release notes or generate them
-          RELEASE_NOTES_PATH="releases/${{ steps.bump_version.outputs.version }}/RELEASE_NOTES.md"
-          if [ ! -f "$RELEASE_NOTES_PATH" ]; then
-            echo "ℹ️ No release notes found at $RELEASE_NOTES_PATH"
-            echo "Using CHANGELOG.md as fallback..."
-            # Extract the relevant section from CHANGELOG.md
-            awk -v version="${{ steps.bump_version.outputs.version }}" '
-              $0 ~ "^## [" version "]" {print; found=1; next}
-              found && /^## / {exit}
-              found {print}
-            ' CHANGELOG.md > "$RELEASE_NOTES_PATH" || true
-
-            if [ ! -s "$RELEASE_NOTES_PATH" ]; then
-              echo "⚠️ Could not extract release notes from CHANGELOG.md"
-              echo "# Release ${{ steps.bump_version.outputs.version }}\n\nNo release notes available." > "$RELEASE_NOTES_PATH"
-            fi
+          # Only commit if there are actual changes
+          if git diff --quiet; then
+            echo "ℹ️  No changes to commit"
+            exit 0
           fi
 
-          # Verify the built package files
-          if [ ! -f "dist/evoseal-${{ steps.bump_version.outputs.version }}.tar.gz" ]; then
-            echo "::error::Source distribution not found"
-            exit 1
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml CHANGELOG.md
+          git commit -m "chore: release v${{ steps.version.outputs.version }} [skip ci]"
+          git push origin HEAD
+          echo "✅ Committed and pushed version v${{ steps.version.outputs.version }}"
 
-          if [ ! -f "dist/evoseal-${{ steps.bump_version.outputs.version }}-py3-none-any.whl" ]; then
-            echo "::error::Wheel distribution not found"
-            exit 1
-          fi
-
-          echo "✅ All release artifacts verified"
-
+      # -----------------------------------------------------------------------
+      # Publish to PyPI (tag push or explicit workflow_dispatch with publish=true)
+      # -----------------------------------------------------------------------
       - name: Publish to PyPI
         if: >
           (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
@@ -234,70 +176,38 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          set -e
-          echo "📦 Publishing version ${{ steps.bump_version.outputs.version }} to PyPI..."
+          set -euo pipefail
+          echo "📦 Publishing version ${{ steps.version.outputs.version }} to PyPI..."
 
-          # Verify PyPI token is set
           if [ -z "$TWINE_PASSWORD" ]; then
             echo "::error::PYPI_API_TOKEN secret is not set"
             exit 1
           fi
 
-          # Upload to PyPI
-          twine upload --non-interactive \
-            --username "$TWINE_USERNAME" \
-            --password "$TWINE_PASSWORD" \
-            dist/*
-
+          twine upload --non-interactive dist/*
           echo "✅ Successfully published to PyPI"
 
-          # Create a git tag and push if this was a workflow dispatch
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "🏷 Creating git tag v${{ steps.bump_version.outputs.version }}..."
-            git config --global user.name 'GitHub Actions'
-            git config --global user.email 'actions@github.com'
-
-            # Commit the version bump and changelog updates
-            git add pyproject.toml CHANGELOG.md
-            git commit -m "chore: release v${{ steps.bump_version.outputs.version }}" || echo "No changes to commit"
-
-            # Create and push the tag
-            git tag -a "v${{ steps.bump_version.outputs.version }}" -m "Release v${{ steps.bump_version.outputs.version }}"
-            git push origin "v${{ steps.bump_version.outputs.version }}"
-
-            # Push the commit if there were changes
-            git push origin HEAD:${{ github.ref_name }}
-          fi
-
+      # -----------------------------------------------------------------------
+      # Create GitHub Release
+      # -----------------------------------------------------------------------
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ steps.bump_version.outputs.version }}
-          name: "v${{ steps.bump_version.outputs.version }}"
-          body_path: releases/${{ steps.bump_version.outputs.version }}/RELEASE_NOTES.md
+          tag_name: v${{ steps.version.outputs.version }}
+          name: "v${{ steps.version.outputs.version }}"
+          body_path: ${{ steps.release_notes.outputs.notes_path }}
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
             dist/*
-            releases/${{ steps.bump_version.outputs.version }}/*
+            releases/${{ steps.version.outputs.version }}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Distribution
         uses: actions/upload-artifact@v7
         with:
-          name: distribution
+          name: distribution-${{ steps.version.outputs.version }}
           path: dist/*
-
-      - name: Update documentation
-        run: |
-          # Add steps to update documentation here
-          echo "Documentation update steps would go here"
-
-      - name: Notify team
-        if: always()
-        run: |
-          # Add notification steps (e.g., Slack, email)
-          echo "Release ${{ github.ref_name }} has been published!"
