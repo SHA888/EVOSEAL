@@ -1,5 +1,14 @@
 """
 EvolutionManager wrapper for DGM_outer procedural logic.
+
+.. deprecated::
+    This module is a legacy local adapter that wraps the DGM submodule directly.
+    The canonical DGM adapter is ``evoseal.integration.dgmr.dgm_adapter.DGMAdapter``
+    (remote HTTP adapter), which is used by the orchestrator and all production code.
+    This module is retained only for the regression test in
+    ``tests/regression/test_regression_evolution.py``. New code should use
+    ``evoseal.integration.dgmr.dgm_adapter.DGMAdapter`` instead.
+
 This class provides an object-oriented interface for evolutionary management using the DGM submodule,
 without modifying the original DGM codebase.
 
