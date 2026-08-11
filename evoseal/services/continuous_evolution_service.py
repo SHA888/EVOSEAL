@@ -598,7 +598,7 @@ class ContinuousEvolutionService:
 
     def get_service_status(self) -> dict[str, Any]:
         """Get current service status."""
-        return {
+        status = {
             "is_running": self.is_running,
             "start_time": self.start_time.isoformat() if self.start_time else None,
             "uptime_seconds": self.service_stats["total_uptime_seconds"],
@@ -610,6 +610,31 @@ class ContinuousEvolutionService:
             ),
             "statistics": self.service_stats.copy(),
         }
+        cost_summary = self.get_cost_summary()
+        if cost_summary is not None:
+            status["cost_summary"] = cost_summary
+        return status
+
+    def get_cost_summary(self) -> dict[str, Any] | None:
+        """Get token usage and cost data from the pipeline's budget tracker.
+
+        Returns None if the pipeline has not been initialized yet.
+        """
+        if self._pipeline is None:
+            return None
+        tracker = self._pipeline.budget_tracker
+        # Use the pipeline's configured cost rate when available.
+        from evoseal.core.budget_tracker import COST_PER_1K_DEFAULT
+
+        cost_per_1k = COST_PER_1K_DEFAULT
+        try:
+            settings = self._pipeline._settings  # noqa: SLF001
+            configured = settings.budget.cost_per_1k_tokens
+            if configured is not None:
+                cost_per_1k = configured
+        except (AttributeError, TypeError):
+            pass
+        return tracker.get_summary(cost_per_1k)
 
     def get_generation_diffs(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return recent evolution results with code diffs for the generation diff view.
