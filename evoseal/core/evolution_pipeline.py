@@ -886,14 +886,13 @@ class EvolutionPipeline:
                     # relative baseline once the new metric has been recorded.
                     if test_type is None:
                         logger.warning(
-                            "Rollout candidate %s: test_type is None; "
-                            "beta validation will use unfiltered metrics history",
-                            candidate_id,
+                            f"Rollout candidate {candidate_id}: test_type is None; "
+                            "beta validation will use unfiltered metrics history"
                         )
                     await self.rollout_gating.register_candidate(candidate_id, metrics)
                     iteration_result["rollout_candidate_id"] = candidate_id
                 except Exception as gating_err:
-                    logger.warning("Failed to register rollout candidate: %s", gating_err)
+                    logger.warning(f"Failed to register rollout candidate: {gating_err}")
 
             # Log successful iteration with performance metrics
             logger.log_pipeline_stage(
