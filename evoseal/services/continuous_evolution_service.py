@@ -375,6 +375,96 @@ class ContinuousEvolutionService:
             logger.error(f"Error in evolution cycle: {e}")
             self.service_stats["evolution_cycle_errors"] += 1
 
+        # Check beta candidates AFTER the cycle runs so the metrics history
+        # has grown since registration (design doc §4.2).  The `pipeline`
+        # variable is still in scope from the construction block above; we
+        # reuse it directly to avoid a redundant _get_pipeline() call.
+        try:
+            await self._check_beta_candidates(pipeline)
+        except Exception as e:
+            logger.warning("Failed to check beta candidates: %s", e)
+
+    async def _check_beta_candidates(self, pipeline: "EvolutionPipeline") -> None:
+        """Check and promote/reject active beta candidates (design doc §4.2).
+
+        At the end of each evolution cycle, validate all beta candidates
+        against their baseline metrics.  If clean, increment their cycle
+        counter and promote to stable when the threshold is met.  If a
+        regression is detected, reject the candidate and optionally roll back.
+
+        Args:
+            pipeline: The already-constructed pipeline instance (avoids a
+                second _get_pipeline() call that would double-count
+                construction failures).
+        """
+        gating = pipeline.rollout_gating
+        if not gating.config.enabled:
+            return
+
+        beta_candidates = await gating.get_active_beta_candidates()
+        if not beta_candidates:
+            return
+
+        logger.info("Checking %d beta rollout candidate(s)", len(beta_candidates))
+
+        for cand in beta_candidates:
+            try:
+                # Use the candidate's own stored test_type so each
+                # candidate is validated against its own baseline,
+                # not the same global "latest two" snapshot.
+                test_type = cand.baseline_metrics.get("test_type")
+                current_metrics = pipeline.metrics_tracker.get_metrics_history(test_type)
+                if len(current_metrics) < 2:
+                    logger.debug(
+                        "Beta candidate %s: not enough metrics history to validate",
+                        cand.candidate_id,
+                    )
+                    continue
+
+                # The baseline is always the second-to-last entry: the
+                # candidate's own metric was recorded after registration
+                # (inside execute_safe_evolution_step), so len-2 is the
+                # pre-candidate baseline and len-1 is the candidate's metric.
+                baseline_id = len(current_metrics) - 2
+                comparison_id = len(current_metrics) - 1
+                result = pipeline.validator.validate_improvement(
+                    baseline_id, comparison_id, test_type
+                )
+                is_improvement = bool(result.get("is_improvement", False))
+
+                if is_improvement:
+                    await gating.record_clean_cycle(cand.candidate_id)
+                    updated = await gating.get_candidate(cand.candidate_id)
+                    if updated and updated.stage.value == "stable":
+                        logger.info("🎉 Beta candidate %s promoted to stable", cand.candidate_id)
+                else:
+                    reason = (
+                        f"Regression detected: score={result.get('score', 0.0)}, "
+                        f"required_passed={result.get('required_passed')}"
+                    )
+                    await gating.reject_candidate(cand.candidate_id, reason)
+                    logger.warning("⚠️ Beta candidate %s rejected: %s", cand.candidate_id, reason)
+                    # Auto-rollback if configured
+                    if gating.config.auto_rollback_on_regression and cand.checkpoint_path:
+                        logger.info(
+                            "Rollback needed for rejected candidate %s "
+                            "(checkpoint=%s) but not yet implemented",
+                            cand.candidate_id,
+                            cand.checkpoint_path,
+                        )
+                        # The checkpoint restore is a no-op placeholder for now;
+                        # full integration with CheckpointManager.restore_checkpoint
+                        # is deferred until checkpoint_path is populated by the
+                        # pipeline at registration time.
+
+            except Exception as e:
+                logger.warning(
+                    "Error checking beta candidate %s: %s",
+                    cand.candidate_id,
+                    e,
+                    exc_info=True,
+                )
+
     async def _check_training_readiness(self):
         """Check if training should be triggered."""
         logger.info("🔍 Checking training readiness")
@@ -507,7 +597,7 @@ class ContinuousEvolutionService:
 
     def get_service_status(self) -> dict[str, Any]:
         """Get current service status."""
-        return {
+        status = {
             "is_running": self.is_running,
             "start_time": self.start_time.isoformat() if self.start_time else None,
             "uptime_seconds": self.service_stats["total_uptime_seconds"],
@@ -519,6 +609,31 @@ class ContinuousEvolutionService:
             ),
             "statistics": self.service_stats.copy(),
         }
+        cost_summary = self.get_cost_summary()
+        if cost_summary is not None:
+            status["cost_summary"] = cost_summary
+        return status
+
+    def get_cost_summary(self) -> dict[str, Any] | None:
+        """Get token usage and cost data from the pipeline's budget tracker.
+
+        Returns None if the pipeline has not been initialized yet.
+        """
+        if self._pipeline is None:
+            return None
+        tracker = self._pipeline.budget_tracker
+        # Use the pipeline's configured cost rate when available.
+        from evoseal.core.budget_tracker import COST_PER_1K_DEFAULT
+
+        cost_per_1k = COST_PER_1K_DEFAULT
+        try:
+            settings = self._pipeline._settings  # noqa: SLF001
+            configured = settings.budget.cost_per_1k_tokens
+            if configured is not None:
+                cost_per_1k = configured
+        except (AttributeError, TypeError):
+            pass
+        return tracker.get_summary(cost_per_1k)
 
 
 async def main():

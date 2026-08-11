@@ -496,6 +496,10 @@ class MonitoringDashboard:
                 },
             }
 
+            # Add cost/token data when available (pipeline must have run at least once)
+            if "cost_summary" in status:
+                metrics["cost_summary"] = status["cost_summary"]
+
             return metrics
 
         except Exception as e:
@@ -807,6 +811,34 @@ class MonitoringDashboard:
             </div>
         </div>
 
+        <div class="card">
+            <h3>💰 Cost &amp; Token Usage</h3>
+            <div class="metric">
+                <span class="metric-label">Total Tokens:</span>
+                <span class="metric-value" id="total-tokens">--</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Estimated Cost:</span>
+                <span class="metric-value" id="total-cost">--</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">DGM Tokens:</span>
+                <span class="metric-value" id="dgm-tokens">--</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">SEAL Cycle Tokens:</span>
+                <span class="metric-value" id="seal-cycle-tokens">--</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Fine-Tuning Tokens:</span>
+                <span class="metric-value" id="seal-ft-tokens">--</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Avg Tokens/Cycle:</span>
+                <span class="metric-value" id="avg-tokens-per-cycle">--</span>
+            </div>
+        </div>
+
         <div class="card feedback-section">
             <h3>👤 Human-in-the-Loop Feedback</h3>
             <div style="display: flex; gap: 2rem; margin-bottom: 1rem; flex-wrap: wrap;">
@@ -952,6 +984,36 @@ class MonitoringDashboard:
                 if (data.dashboard_info) {
                     document.getElementById('connected-clients').textContent =
                         data.dashboard_info.connected_clients || 0;
+                }
+
+                // Cost & token usage
+                if (data.cost_summary) {
+                    const cost = data.cost_summary;
+                    document.getElementById('total-tokens').textContent =
+                        (cost.total_tokens || 0).toLocaleString();
+                    document.getElementById('total-cost').textContent =
+                        '$' + (cost.total_cost || 0).toFixed(4);
+                    document.getElementById('dgm-tokens').textContent =
+                        (cost.dgm_tokens || 0).toLocaleString();
+                    document.getElementById('seal-cycle-tokens').textContent =
+                        (cost.seal_cycle_tokens || 0).toLocaleString();
+                    document.getElementById('seal-ft-tokens').textContent =
+                        (cost.seal_finetuning_tokens || 0).toLocaleString();
+                    if (cost.cycle_count > 0) {
+                        const cycleTokens = (cost.dgm_tokens || 0) + (cost.seal_cycle_tokens || 0);
+                        const avg = Math.round(cycleTokens / cost.cycle_count);
+                        document.getElementById('avg-tokens-per-cycle').textContent =
+                            avg.toLocaleString();
+                    } else {
+                        document.getElementById('avg-tokens-per-cycle').textContent = '--';
+                    }
+                } else {
+                    document.getElementById('total-tokens').textContent = '--';
+                    document.getElementById('total-cost').textContent = '--';
+                    document.getElementById('dgm-tokens').textContent = '--';
+                    document.getElementById('seal-cycle-tokens').textContent = '--';
+                    document.getElementById('seal-ft-tokens').textContent = '--';
+                    document.getElementById('avg-tokens-per-cycle').textContent = '--';
                 }
 
             } catch (e) {
