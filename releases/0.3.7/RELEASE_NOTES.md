@@ -2,15 +2,16 @@
 
 ## 🎉 Release Highlights
 
-This release includes 505 change(s) since the previous release.
+This release includes 506 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
-- **Release Date**: 2026-08-10
-- **Total Changes**: 505
+- **Release Date**: 2026-08-11
+- **Total Changes**: 506
 
 ## ✨ New Features
 
+- ✨ feat: implement progressive rollout gating for self-modifications (#123) ([ac36d1f](https://github.com/SHA888/EVOSEAL/commit/ac36d1f))
 - ✨ feat(providers): add retry with exponential backoff to OllamaProvider (#106) ([355aa2d](https://github.com/SHA888/EVOSEAL/commit/355aa2d))
 - ✨ feat: wire bidirectional_manager to orchestrate the full loop (#81) ([0b95d6c](https://github.com/SHA888/EVOSEAL/commit/0b95d6c))
 - ✨ feat: wire generation to consult fine-tuning registry (#73) ([a67e246](https://github.com/SHA888/EVOSEAL/commit/a67e246))
@@ -557,4 +558,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-10 08:34:37 UTC*
+*This release was automatically generated on 2026-08-11 09:03:53 UTC*
