@@ -2,7 +2,7 @@
 
 import pytest
 
-from evoseal.core.budget_tracker import BudgetTracker
+from evoseal.core.budget_tracker import COST_PER_1K_DEFAULT, BudgetTracker
 
 # Test constants
 DGM_TOKENS_DEFAULT = 4000
@@ -10,7 +10,6 @@ SEAL_TOKENS_PER_CYCLE = 100
 SEAL_TOKENS_PER_EPOCH = 10000
 CYCLE_TOTAL_TOKENS = 4100
 BUDGET_SAMPLE = 100000
-COST_PER_1K_DEFAULT = 0.005
 CYCLE_1_TOKENS = 4100
 CYCLE_2_TOKENS = 4200
 AVG_TOKENS_PER_CYCLE = 4150
@@ -130,3 +129,28 @@ class TestBudgetTracker:
         assert "total_cost" in summary
         expected_total_cost = (total_expected * COST_PER_1K_DEFAULT) / 1000
         assert summary["total_cost"] == pytest.approx(expected_total_cost)
+
+    def test_avg_tokens_per_cycle_excludes_finetuning(self):
+        """Regression: Avg Tokens/Cycle must use cycle-only tokens, not total.
+
+        The dashboard divides (dgm_tokens + seal_cycle_tokens) by cycle_count.
+        Fine-tuning tokens must not inflate the per-cycle average.
+        """
+        tracker = BudgetTracker()
+        # Two evolution cycles with known token counts
+        tracker.record_dgm_tokens(CYCLE_1_TOKENS - SEAL_TOKENS_PER_CYCLE)
+        tracker.record_seal_tokens(SEAL_TOKENS_PER_CYCLE)
+        tracker.record_cycle_completion()
+        tracker.record_dgm_tokens(CYCLE_2_TOKENS - SEAL_TOKENS_PER_CYCLE)
+        tracker.record_seal_tokens(SEAL_TOKENS_PER_CYCLE)
+        tracker.record_cycle_completion()
+        # Large fine-tuning run that must NOT affect the per-cycle average
+        tracker.record_fine_tuning_checkpoint(SEAL_TOKENS_PER_EPOCH)
+
+        summary = tracker.get_summary(cost_per_1k_tokens=COST_PER_1K_DEFAULT)
+        cycle_tokens = summary["dgm_tokens"] + summary["seal_cycle_tokens"]
+        avg = cycle_tokens / summary["cycle_count"]
+        # (4100 + 4200) / 2 = 4150, NOT (4100 + 4200 + 10000) / 2 = 9150
+        assert avg == pytest.approx(AVG_TOKENS_PER_CYCLE)
+        # total_tokens includes fine-tuning, confirming the distinction
+        assert summary["total_tokens"] == CYCLE_1_TOKENS + CYCLE_2_TOKENS + SEAL_TOKENS_PER_EPOCH

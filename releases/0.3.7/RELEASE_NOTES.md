@@ -2,12 +2,12 @@
 
 ## 🎉 Release Highlights
 
-This release includes 506 change(s) since the previous release.
+This release includes 507 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-08-11
-- **Total Changes**: 506
+- **Total Changes**: 507
 
 ## ✨ New Features
 
@@ -74,6 +74,7 @@ This release includes 506 change(s) since the previous release.
 
 ## 🐛 Bug Fixes
 
+- 🐛 fix(export): replace fabricated results with real experiment data (#124) ([28631a3](https://github.com/SHA888/EVOSEAL/commit/28631a3))
 - 🐛 fix(ci): scope release gates and restore install smoke-test ([3c71031](https://github.com/SHA888/EVOSEAL/commit/3c71031))
 - 🐛 fix: address release-pipeline review feedback ([4e351e4](https://github.com/SHA888/EVOSEAL/commit/4e351e4))
 - 🐛 fix(ci): address review feedback on PR #140 ([e76affa](https://github.com/SHA888/EVOSEAL/commit/e76affa))
@@ -558,4 +559,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-11 09:03:53 UTC*
+*This release was automatically generated on 2026-08-11 09:25:35 UTC*
