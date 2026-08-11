@@ -12,6 +12,7 @@ trade-offs considered.
 | [0002](0002-map-elites-selection.md) | MAP-Elites for candidate selection | Accepted | 2026-07-19 |
 | [0003](0003-seal-over-prompt-engineering.md) | SEAL over pure prompt engineering | Accepted | 2026-07-19 |
 | [0004](0004-git-based-version-control.md) | Git-based version control for self-edits | Accepted | 2026-07-19 |
+| [0005](0005-population-based-training.md) | Population-Based Training for hyperparameter evolution | Accepted | 2026-08-07 |
 
 ## Conventions
 
