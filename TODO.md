@@ -135,15 +135,15 @@
 
 ### CI/CD & Release Pipeline Issues Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **Release pipeline is broken** _(exact failure mode needs re-verification — flagged by initial review pass, not yet deep-dived)_
+- [x] **Release pipeline is broken** _(done 2026-08-10)_ — verified and fixed four concrete failures: (1) `pre-release.yml` referenced `scripts/auto_generate_release_notes.py` which didn't exist — created the script (generates categorised release notes from git history); (2) `release.yml` bumped version locally with `--no-commit` but never committed/pushed the bump back to main on `workflow_run` triggers — next CI run would bump to the same version and create a duplicate release; added a "Commit version bump" step; (3) three redundant version-determination steps consolidated into one; (4) switched from `pip install -e .` to `uv` for consistency with CI
 - [x] **Some `workflow_run` triggers reference the wrong workflow name** _(done 2026-08-01)_ — `cleanup.yml`, `docs.yml`, `pre-release.yml`, and `codeql-analysis.yml` all referenced `workflows: ["CI"]` but the actual CI workflow name is `"CI/CD Pipeline"`; updated all four to match. Only `release.yml` already had the correct reference.
 - [x] **A `requirements/` directory referenced by tooling/CI does not exist** _(done 2026-08-01)_ — `docs.yml` cached and installed from `requirements/docs.txt` which didn't exist; replaced with `uv pip install --system -e ".[docs]"` matching how the main CI job installs doc dependencies (the `[docs]` extras are defined in `pyproject.toml`). No other workflows reference `requirements/`.
 - [x] **Security-scan gate is defeated by `continue-on-error: true`** _(done 2026-08-01)_ — removed `continue-on-error: true` from the `security` job in `ci.yml` so bandit/safety failures now properly block the `build` and `container` downstream jobs. The remaining `continue-on-error: true` on the mypy lint step is intentional (type checking is advisory).
 
 ### DGM/OpenEvolve Adapter Issues Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **`evoseal/integration/dgm/` + `dgmr/` and `evoseal/integration/oe/` + `openevolve/` look like duplicated/forked adapter implementations that have drifted apart** — needs a decision on which is canonical and whether the other should be removed or reconciled
-- [ ] **DGM/OpenEvolve job runner reports failed jobs as successful** _(exact file:line needs re-verification — flagged by initial review pass, not yet deep-dived)_
+- [x] **`evoseal/integration/dgm/` + `dgmr/` and `evoseal/integration/oe/` + `openevolve/` look like duplicated/forked adapter implementations that have drifted apart** _(done 2026-08-08)_ — analyzed both subsystems: `dgmr/` is the canonical DGM adapter (remote HTTP, used by orchestrator + all tests); `dgm/` is a legacy local adapter retained for one regression test; `oe/` is the canonical OpenEvolve adapter; `openevolve/` was broken dead code (imported from a nonexistent module). Added deprecation notices to legacy adapters, fixed broken `openevolve/__init__.py`. See `docs/integration/adapter_consolidation.md`.
+- [x] **DGM/OpenEvolve job runner reports failed jobs as successful** _(done 2026-08-07, refined per review feedback)_ — both `dgmr/dgm_adapter.py` `_advance_generation()` and `oe/openevolve_adapter.py` `_evolve_remote()` broke out of the poll loop on `status == "failed"` but then unconditionally fetched the result and returned `{"success": True}`. Fixed both to check the final status after the poll and return `success: False` with the error message when the job failed. Inverted check to `!= "completed"` so any non-terminal state (timeouts, unknown statuses) is also treated as failure. Added regression tests in `test_dgm_adapter_remote.py` and `test_openevolve_adapter_remote.py`.
 
 ### CLI Issues Found in Whole-Repo Code Review (2026-07-22)
 
@@ -293,8 +293,9 @@
 - [ ] **Add support for local models (Ollama/vLLM)**
   - Reduce API dependency for experimentation
   - README mentions Ollama integration — verify it works end-to-end
-- [ ] **Explore population-based training (PBT) as alternative to MAP-Elites**
-  - Could improve convergence speed for hyperparameter evolution
+- [x] **Explore population-based training (PBT) as alternative to MAP-Elites** _(done 2026-08-07)_ — ADR 0005 evaluates PBT as a complement (not replacement) for MAP-Elites in hyperparameter tuning. Conclusion: PBT and MAP-Elites solve different problems (hyperparameters vs. code variants); PBT is worth exploring but prerequisites (local model support, sensitivity analysis) aren't in place yet. Recommended next step is a feasibility spike with parallel runs, not a full implementation. Document at `docs/adr/0005-population-based-training.md`
+- [ ] **Document EVOSEAL's hyperparameter space** _(follow-up from ADR 0005 §6)_ — enumerate all tuneable pipeline parameters (mutation rate, selection pressure, temperature, etc.) and their current values/ranges; prerequisite for PBT feasibility spike
+- [ ] **Run PBT feasibility spike** _(follow-up from ADR 0005 §6)_ — 3-5 parallel pipeline runs with manually varied hyperparameters for 10 generations; measure outcome variance; decide if the spread justifies adaptive tuning (use `spike` skill)
 - [ ] **Human-in-the-loop feedback interface**
   - Allow a developer to approve/reject self-modifications via the dashboard
   - Track acceptance rate as a meta-metric
@@ -306,10 +307,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 18   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix |
+| 🟠 P1    | 24    | 20   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed |
 | 🟡 P2    | 30    | 26   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; dashboard offline mode |
-| 🟢 P3    | 24    | 19   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check |
-| **Total** | **89** | **74** | |
+| 🟢 P3    | 26    | 20   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR |
+| **Total** | **91** | **77** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
