@@ -70,6 +70,17 @@ checkpoint:
   # Automatically rollback on critical regression
   auto_rollback_on_critical: true
 
+# Progressive rollout gating for self-modifications
+rollout_gating:
+  enabled: true
+  beta_cycles_required: 3        # N: cycles a beta candidate must survive
+  auto_rollback_on_regression: false  # Disabled until checkpoint restoration is wired up
+  prefer_stable_for_generation: true  # generation uses stable model when available
+  # NOTE: prefer_stable_for_generation is not yet wired into the generation
+  # surface — that integration belongs to the "Generation must consult the
+  # fine-tuning registry" item in TODO.md.  Setting this value has no effect
+  # until that wiring lands.
+
 # Sandboxed test execution
 sandbox:
   enabled: true

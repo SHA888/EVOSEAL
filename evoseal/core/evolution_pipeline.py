@@ -12,6 +12,7 @@ import json
 import logging
 import shutil
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -28,6 +29,7 @@ from evoseal.core.logging_system import get_logger
 from evoseal.core.metrics_tracker import MetricsTracker
 from evoseal.core.repository import ConflictError, RepositoryError
 from evoseal.core.resilience import CircuitBreakerConfig, resilience_manager
+from evoseal.core.rollout_gating import RolloutGatingConfig, RolloutGatingManager
 from evoseal.core.safety_integration import SafetyIntegration
 from evoseal.core.testrunner import SandboxedTestRunner
 from evoseal.core.version_database import VersionDatabase
@@ -160,6 +162,14 @@ class EvolutionPipeline:
             self.metrics_tracker,
             getattr(self, "version_manager", None),
             repo_root=repo_root,
+        )
+
+        # Initialize rollout gating manager
+        self.rollout_gating = RolloutGatingManager(
+            registry_dir=repo_root / "data" / "rollout",
+            config=RolloutGatingConfig.from_dict(
+                safety_config.get("rollout_gating", {}) if isinstance(safety_config, dict) else {}
+            ),
         )
 
         # Initialize workflow engine
@@ -857,6 +867,32 @@ class EvolutionPipeline:
                     "resilience_status": resilience_manager.get_resilience_status(),
                 }
             )
+
+            # Register with rollout gating when the improvement is accepted
+            if is_improvement and self.rollout_gating.config.enabled:
+                try:
+                    candidate_id = f"iter_{iteration}_{uuid.uuid4().hex[:8]}"
+                    metrics = dict(evaluation_result.get("metrics", {}))
+                    # Capture test_type so the beta-check can filter metrics
+                    # history to the same test type used at registration.
+                    test_type = evaluation_result.get("test_type")
+                    metrics["test_type"] = test_type
+                    # Do NOT snapshot baseline_metric_index here.  Metrics for
+                    # this iteration are pushed into metrics_tracker *after*
+                    # _run_single_iteration returns (inside
+                    # execute_safe_evolution_step), so the history length at
+                    # registration time is off by one.  Instead, _check_beta_candidates
+                    # always computes len(current_metrics) - 2 which is the correct
+                    # relative baseline once the new metric has been recorded.
+                    if test_type is None:
+                        logger.warning(
+                            f"Rollout candidate {candidate_id}: test_type is None; "
+                            "beta validation will use unfiltered metrics history"
+                        )
+                    await self.rollout_gating.register_candidate(candidate_id, metrics)
+                    iteration_result["rollout_candidate_id"] = candidate_id
+                except Exception as gating_err:
+                    logger.warning(f"Failed to register rollout candidate: {gating_err}")
 
             # Log successful iteration with performance metrics
             logger.log_pipeline_stage(
