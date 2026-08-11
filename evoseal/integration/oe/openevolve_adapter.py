@@ -261,7 +261,16 @@ class OpenEvolveAdapter(BaseComponentAdapter):
                         if status.get("status") in ("completed", "failed"):
                             break
 
-                # Fetch result
+                # If the job didn't complete, report it as unsuccessful
+                # (covers "failed", timeouts, and any future non-terminal states)
+                if status.get("status") != "completed":
+                    error_msg = (
+                        status.get("error")
+                        or f"Job {job_id} ended with status: {status.get('status')}"
+                    )
+                    return {"success": False, "error": error_msg}
+
+                # Fetch result (only for completed jobs)
                 async with session.get(
                     f"{base_url.rstrip('/')}/openevolve/jobs/{job_id}/result", headers=headers
                 ) as rresp:
