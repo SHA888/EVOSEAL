@@ -7,6 +7,7 @@ and deployment.
 """
 
 import asyncio
+import difflib
 import json
 import logging
 import math
@@ -634,6 +635,77 @@ class ContinuousEvolutionService:
         except (AttributeError, TypeError):
             pass
         return tracker.get_summary(cost_per_1k)
+
+    def get_generation_diffs(self, limit: int = 10) -> list[dict[str, Any]]:
+        """Return recent evolution results with code diffs for the generation diff view.
+
+        Each entry includes generation metadata, fitness metrics, and a
+        ``unified_diff`` string showing the code change between the original
+        and improved versions.
+
+        Args:
+            limit: Maximum number of entries to return.
+
+        Returns:
+            List of generation diff dicts ordered by timestamp (newest first).
+        """
+        try:
+            results = self.data_collector.get_recent_results(days=30)
+        except Exception as e:
+            logger.error(f"Error loading evolution results for generation diffs: {e}")
+            return []
+
+        # Sort newest first and cap
+        results = sorted(results, key=lambda r: r.timestamp, reverse=True)
+        results = results[:limit]
+
+        diffs: list[dict[str, Any]] = []
+        for result in results:
+            unified_diff = self._compute_unified_diff(result.original_code, result.improved_code)
+            diffs.append(
+                {
+                    "id": result.id,
+                    "iteration": result.iteration,
+                    "generation": result.generation,
+                    "timestamp": result.timestamp.isoformat(),
+                    "strategy": result.strategy.value,
+                    "fitness_score": result.fitness_score,
+                    "improvement_percentage": result.improvement_percentage,
+                    "success": result.success,
+                    "improvement_types": [t.value for t in result.improvement_types],
+                    "task_description": result.task_description,
+                    "model_version": result.model_version,
+                    "original_metrics": result.original_metrics.to_dict()
+                    if hasattr(result.original_metrics, "to_dict")
+                    else {},
+                    "improved_metrics": result.improved_metrics.to_dict()
+                    if hasattr(result.improved_metrics, "to_dict")
+                    else {},
+                    "unified_diff": unified_diff,
+                }
+            )
+        return diffs
+
+    @staticmethod
+    def _compute_unified_diff(original: str, improved: str, context: int = 3) -> str:
+        """Compute a unified diff between *original* and *improved* code.
+
+        Returns an empty string when the two are identical.
+        """
+        original = original or ""
+        improved = improved or ""
+        if not original and not improved:
+            return ""
+        original_lines = original.splitlines(keepends=True)
+        improved_lines = improved.splitlines(keepends=True)
+        diff = difflib.unified_diff(
+            original_lines,
+            improved_lines,
+            fromfile="original",
+            tofile="improved",
+            n=context,
+        )
+        return "".join(diff)
 
 
 async def main():
