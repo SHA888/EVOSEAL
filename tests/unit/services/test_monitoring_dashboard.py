@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import sqlite3
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -440,3 +443,763 @@ class TestWebSocketSubprotocolEcho:
                 async with session.ws_connect(url) as ws:
                     msg = await ws.receive()
                     assert msg.type == aiohttp.WSMsgType.TEXT
+
+
+class TestGenerationDiffAPI:
+    """Tests for the /api/generation-diffs endpoint."""
+
+    @pytest.fixture
+    def mock_service_with_diffs(self, mock_service):
+        """Mock service with get_generation_diffs."""
+        mock_service.get_generation_diffs.return_value = [
+            {
+                "id": "gen-1",
+                "iteration": 1,
+                "generation": 1,
+                "timestamp": "2026-08-05T10:00:00+00:00",
+                "strategy": "pipeline",
+                "fitness_score": 0.85,
+                "improvement_percentage": 12.5,
+                "success": True,
+                "improvement_types": ["performance"],
+                "task_description": "Pipeline iteration 1",
+                "model_version": "pipeline",
+                "original_metrics": {},
+                "improved_metrics": {},
+                "unified_diff": "--- original\n+++ improved\n@@ -1,3 +1,3 @@\n-old\n+new",
+            },
+            {
+                "id": "gen-2",
+                "iteration": 2,
+                "generation": 2,
+                "timestamp": "2026-08-05T09:00:00+00:00",
+                "strategy": "pipeline",
+                "fitness_score": 0.70,
+                "improvement_percentage": -5.0,
+                "success": False,
+                "improvement_types": [],
+                "task_description": "Pipeline iteration 2",
+                "model_version": "pipeline",
+                "original_metrics": {},
+                "improved_metrics": {},
+                "unified_diff": "",
+            },
+        ]
+        return mock_service
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_returns_list(self, mock_service_with_diffs):
+        """Endpoint returns the list from get_generation_diffs."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18083,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert "generation_diffs" in data
+                    assert "count" in data
+                    assert data["count"] == 2
+                    assert len(data["generation_diffs"]) == 2
+                    assert data["generation_diffs"][0]["id"] == "gen-1"
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_limit_param(self, mock_service_with_diffs):
+        """Limit query parameter is forwarded to the service."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18084,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=5"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    mock_service_with_diffs.get_generation_diffs.assert_called_with(limit=5)
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_clamps_limit(self, mock_service_with_diffs):
+        """Limit is clamped between 1 and 50."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18085,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            # Too high
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=999"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    mock_service_with_diffs.get_generation_diffs.assert_called_with(limit=50)
+
+            # Too low
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=0"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    mock_service_with_diffs.get_generation_diffs.assert_called_with(limit=1)
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_no_service(self):
+        """Returns 503 when no evolution service is attached."""
+        dash = MonitoringDashboard(
+            evolution_service=None,
+            host="localhost",
+            port=18086,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 503
+                    data = await resp.json()
+                    assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_invalid_limit(self, mock_service_with_diffs):
+        """Non-integer limit returns 400."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18087,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs?limit=abc"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 400
+                    data = await resp.json()
+                    assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_service_error(self, mock_service):
+        """Returns 500 when service raises unexpectedly."""
+        mock_service.get_generation_diffs.side_effect = RuntimeError("boom")
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=18088,
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 500
+                    data = await resp.json()
+                    assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_generation_diffs_auth_required(self, mock_service_with_diffs):
+        """When auth_token is set, unauthenticated requests are rejected."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service_with_diffs,
+            host="localhost",
+            port=18089,
+            auth_token="secret",
+        )
+        async with TestServer(dash.app) as server:
+            import aiohttp
+
+            url = f"http://localhost:{server.port}/api/generation-diffs"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 401
+
+
+# --- ContinuousEvolutionService.get_generation_diffs tests ---
+
+
+class TestGetGenerationDiffs:
+    """Unit tests for ContinuousEvolutionService.get_generation_diffs."""
+
+    def test_returns_empty_when_no_results(self):
+        """Returns empty list when data collector has no results."""
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.return_value = []
+        assert svc.get_generation_diffs() == []
+
+    def test_returns_diffs_with_unified_diff(self):
+        """Results include unified diff computed from original and improved code."""
+        from datetime import datetime, timezone
+
+        from evoseal.evolution.models import (
+            CodeMetrics,
+            EvolutionResult,
+            EvolutionStrategy,
+            ImprovementType,
+        )
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        result = EvolutionResult(
+            id="test-1",
+            timestamp=datetime.now(timezone.utc),
+            original_code="def foo():\n    return 1\n",
+            improved_code="def foo():\n    return 42\n",
+            strategy=EvolutionStrategy.PIPELINE,
+            generation=1,
+            iteration=1,
+            fitness_score=0.9,
+            improvement_percentage=10.0,
+            original_metrics=CodeMetrics(10, 1.0, 50.0, 0.8, 0.1, 100.0, 7.0),
+            improved_metrics=CodeMetrics(10, 1.0, 50.0, 0.9, 0.1, 100.0, 7.5),
+            improvement_types=[ImprovementType.PERFORMANCE],
+            success=True,
+            task_description="test",
+            provider_used="test",
+            model_version="v1",
+        )
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.return_value = [result]
+
+        diffs = svc.get_generation_diffs()
+        assert len(diffs) == 1
+        assert diffs[0]["id"] == "test-1"
+        assert "unified_diff" in diffs[0]
+        assert (
+            "+def foo" in diffs[0]["unified_diff"] or "+    return 42" in diffs[0]["unified_diff"]
+        )
+
+    def test_returns_empty_when_collector_raises(self):
+        """Returns empty list when data collector raises an exception."""
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.side_effect = RuntimeError("disk error")
+        assert svc.get_generation_diffs() == []
+
+    def test_limits_results(self):
+        """Results are capped at the requested limit."""
+        from datetime import datetime, timezone
+
+        from evoseal.evolution.models import (
+            CodeMetrics,
+            EvolutionResult,
+            EvolutionStrategy,
+            ImprovementType,
+        )
+        from evoseal.services.continuous_evolution_service import ContinuousEvolutionService
+
+        results = []
+        for i in range(5):
+            results.append(
+                EvolutionResult(
+                    id=f"test-{i}",
+                    timestamp=datetime.now(timezone.utc),
+                    original_code=f"v{i}",
+                    improved_code=f"v{i + 1}",
+                    strategy=EvolutionStrategy.PIPELINE,
+                    generation=i,
+                    iteration=i,
+                    fitness_score=0.5,
+                    improvement_percentage=0.0,
+                    original_metrics=CodeMetrics(10, 1.0, 50.0, 0.8, 0.1, 100.0, 7.0),
+                    improved_metrics=CodeMetrics(10, 1.0, 50.0, 0.9, 0.1, 100.0, 7.5),
+                    improvement_types=[],
+                    success=True,
+                    task_description="test",
+                    provider_used="test",
+                    model_version="v1",
+                )
+            )
+
+        svc = ContinuousEvolutionService.__new__(ContinuousEvolutionService)
+        svc.data_collector = MagicMock()
+        svc.data_collector.get_recent_results.return_value = results
+
+        diffs = svc.get_generation_diffs(limit=3)
+        assert len(diffs) == 3
+
+
+class TestOfflineMode:
+    """Test dashboard offline mode with data loaded from disk."""
+
+    @pytest.fixture
+    def offline_data_dir(self, tmp_path):
+        """Create a minimal .evoseal/ data directory with test data."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+
+        # Pipeline state
+        pipeline_state = {
+            "status": "completed",
+            "repository": ".",
+            "current_iteration": 5,
+            "total_iterations": 10,
+            "start_time": 1700000000.0,
+            "completion_time": 1700003600.0,
+            "current_stage": "Finalizing",
+            "config": {"iterations": 10},
+        }
+        (data_dir / "pipeline_state.json").write_text(json.dumps(pipeline_state))
+
+        # Pipeline config
+        pipeline_config = {"iterations": 10, "auto_checkpoint": True}
+        (data_dir / "pipeline_config.json").write_text(json.dumps(pipeline_config))
+
+        # Budget snapshot
+        metrics_dir = data_dir / "metrics"
+        metrics_dir.mkdir()
+        budget = {
+            "total_tokens": 50000,
+            "total_cost": 0.75,
+            "budget_max_tokens": 1000000,
+            "budget_max_cost": 10.0,
+        }
+        (metrics_dir / "budget_snapshot.json").write_text(json.dumps(budget))
+
+        # Version registry
+        versions_dir = tmp_path / "models" / "versions"
+        versions_dir.mkdir(parents=True)
+        registry = {
+            "versions": [
+                {"version_id": "v1", "model": "devstral:latest"},
+                {"version_id": "v2", "model": "devstral-v2:latest"},
+            ],
+            "current_version": "v2",
+        }
+        (versions_dir / "version_registry.json").write_text(json.dumps(registry))
+
+        # Experiment database (SQLite)
+        db_path = data_dir / "experiments.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE experiments "
+            "(id TEXT PRIMARY KEY, name TEXT, experiment_type TEXT, "
+            "status TEXT, created_at TEXT, updated_at TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                "exp-1",
+                "Test Run",
+                "evolution",
+                "completed",
+                "2025-01-01T00:00:00",
+                "2025-01-01T01:00:00",
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        return data_dir
+
+    @pytest.fixture
+    def offline_dashboard(self, offline_data_dir):
+        """Dashboard in offline mode."""
+        return MonitoringDashboard(
+            host="localhost",
+            port=18092,
+            data_dir=offline_data_dir,
+        )
+
+    def test_offline_status_loads_data(self, offline_dashboard):
+        """api_status returns loaded data when in offline mode."""
+        status = offline_dashboard._build_offline_status()
+        assert status["mode"] == "offline"
+        assert status["is_running"] is False
+        assert status["status"] == "completed"
+        assert status["current_iteration"] == 5
+        assert status["total_iterations"] == 10
+        assert status["model_versions"] == 2
+        assert status["current_model"] == "v2"
+
+    def test_offline_metrics_loads_data(self, offline_dashboard):
+        """_build_offline_metrics returns structured data for the UI."""
+        metrics = offline_dashboard._build_offline_metrics()
+        assert metrics["service_status"]["mode"] == "offline"
+        assert metrics["service_status"]["is_running"] is False
+        assert metrics["evolution_status"]["iterations_completed"] == 5
+        assert metrics["evolution_status"]["total_iterations"] == 10
+        assert metrics["evolution_status"]["experiments_count"] == 1
+        assert metrics["dashboard_info"]["mode"] == "offline"
+        assert metrics["training_status"]["note"]
+
+    def test_offline_metrics_includes_budget(self, offline_dashboard):
+        """Offline metrics include budget snapshot data."""
+        metrics = offline_dashboard._build_offline_metrics()
+        budget = metrics["service_status"]["budget"]
+        assert budget["total_tokens"] == 50000
+        assert budget["total_cost"] == 0.75
+
+    def test_offline_report_loads_all_sources(self, offline_dashboard):
+        """_build_offline_report includes all data sources."""
+        report = offline_dashboard._build_offline_report()
+        assert report["mode"] == "offline"
+        assert report["pipeline_state"]["status"] == "completed"
+        assert report["pipeline_config"]["iterations"] == 10
+        assert len(report["version_registry"]["versions"]) == 2
+        assert report["budget_snapshot"]["total_tokens"] == 50000
+        assert len(report["experiments"]) == 1
+        assert "offline" in report["note"].lower()
+
+    def test_offline_cache_is_used(self, offline_dashboard):
+        """Repeated calls use the cached data, not re-read disk."""
+        result1 = offline_dashboard._load_offline_data()
+        assert offline_dashboard._offline_cache_entry is not None
+        result2 = offline_dashboard._load_offline_data()
+        assert result1 is result2  # Same object, not re-read
+
+    def test_offline_with_no_data_dir_returns_error(self):
+        """Dashboard with no service and no data_dir returns error."""
+        dash = MonitoringDashboard(host="localhost", port=18093)
+        assert dash.data_dir is None
+        status = dash._build_offline_status()
+        assert "error" in status
+
+    def test_offline_with_missing_data_dir_returns_error(self, tmp_path):
+        """Dashboard with nonexistent data_dir returns error."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18094,
+            data_dir=tmp_path / "nonexistent",
+        )
+        status = dash._build_offline_status()
+        assert "error" in status
+
+    def test_offline_with_corrupt_json_recovered(self, tmp_path):
+        """Corrupt JSON in pipeline_state is handled gracefully."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+        (data_dir / "pipeline_state.json").write_text("not valid json {{{")
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18095,
+            data_dir=data_dir,
+        )
+        data = dash._load_offline_data()
+        # Should not raise; pipeline_state key is omitted due to corrupt file
+        assert "pipeline_state" not in data
+
+    def test_offline_corrupt_json_status_and_metrics_not_crash(self, tmp_path):
+        """_build_offline_status and _build_offline_metrics degrade gracefully
+        when pipeline_state.json is corrupt (key absent, defaults apply)."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+        (data_dir / "pipeline_state.json").write_text("not valid json {{{")
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18100,
+            data_dir=data_dir,
+        )
+        # Must not raise — absent key falls back to {} via .get()
+        status = dash._build_offline_status()
+        assert status["mode"] == "offline"
+        assert status["status"] == "unknown"  # falls back to default
+
+        metrics = dash._build_offline_metrics()
+        assert metrics["service_status"]["mode"] == "offline"
+        assert metrics["service_status"]["status"] == "unknown"
+
+    def test_offline_with_empty_data_dir(self, tmp_path):
+        """Empty data_dir loads without error — just no data."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18096,
+            data_dir=data_dir,
+        )
+        data = dash._load_offline_data()
+        assert data["mode"] == "offline"
+        assert "pipeline_state" not in data
+        assert "experiments" not in data
+
+    @pytest.mark.asyncio
+    async def test_offline_api_metrics_endpoint(self, offline_dashboard):
+        """GET /api/metrics returns offline data via HTTP."""
+        import aiohttp
+        from aiohttp.test_utils import TestServer
+
+        app = offline_dashboard.app
+        app.router.add_get("/api/metrics", offline_dashboard.api_metrics)
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/metrics"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert data["service_status"]["mode"] == "offline"
+                    assert data["evolution_status"]["iterations_completed"] == 5
+
+    @pytest.mark.asyncio
+    async def test_offline_api_status_endpoint(self, offline_dashboard):
+        """GET /api/status returns offline status via HTTP."""
+        import aiohttp
+        from aiohttp.test_utils import TestServer
+
+        app = offline_dashboard.app
+        app.router.add_get("/api/status", offline_dashboard.api_status)
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/status"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert data["mode"] == "offline"
+                    assert data["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_offline_api_report_endpoint(self, offline_dashboard):
+        """GET /api/report returns offline report via HTTP."""
+        import aiohttp
+        from aiohttp.test_utils import TestServer
+
+        app = offline_dashboard.app
+        app.router.add_get("/api/report", offline_dashboard.api_report)
+
+        async with TestServer(app) as server:
+            url = f"http://localhost:{server.port}/api/report"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    assert resp.status == 200
+                    data = await resp.json()
+                    assert data["mode"] == "offline"
+                    assert "pipeline_state" in data
+                    assert "experiments" in data
+
+    def test_offline_data_dir_stored(self, offline_data_dir):
+        """data_dir is stored as a Path on the dashboard."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18097,
+            data_dir=offline_data_dir,
+        )
+        assert dash.data_dir == offline_data_dir
+        assert isinstance(dash.data_dir, Path)
+
+    def test_offline_data_dir_from_string(self, offline_data_dir):
+        """data_dir accepts a string and converts to Path."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18098,
+            data_dir=str(offline_data_dir),
+        )
+        assert isinstance(dash.data_dir, Path)
+        assert dash.data_dir == offline_data_dir
+
+    def test_offline_experiments_from_db(self, offline_data_dir):
+        """_load_experiments_from_db reads from SQLite."""
+        db_path = offline_data_dir / "experiments.db"
+        experiments, total_count = MonitoringDashboard._load_experiments_from_db(db_path)
+        assert len(experiments) == 1
+        assert total_count == 1
+        assert experiments[0]["id"] == "exp-1"
+        assert experiments[0]["name"] == "Test Run"
+        assert experiments[0]["status"] == "completed"
+
+    def test_offline_experiments_missing_table(self, tmp_path):
+        """_load_experiments_from_db handles missing table gracefully."""
+        db_path = tmp_path / "empty.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE other_table (id TEXT)")
+        conn.commit()
+        conn.close()
+
+        experiments, total_count = MonitoringDashboard._load_experiments_from_db(db_path)
+        assert experiments == []
+        assert total_count == 0
+
+    def test_experiments_count_not_capped_at_limit(self, tmp_path):
+        """experiments_total_count reflects true DB size, not the LIMIT 100."""
+        data_dir = tmp_path / ".evoseal"
+        data_dir.mkdir()
+        db_path = data_dir / "experiments.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "CREATE TABLE experiments "
+            "(id TEXT PRIMARY KEY, name TEXT, experiment_type TEXT, "
+            "status TEXT, created_at TEXT, updated_at TEXT)"
+        )
+        for i in range(150):
+            conn.execute(
+                "INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    f"exp-{i}",
+                    f"Run {i}",
+                    "evolution",
+                    "completed",
+                    f"2025-01-{(i % 28) + 1:02d}T00:00:00",
+                    "",
+                ),
+            )
+        conn.commit()
+        conn.close()
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18110,
+            data_dir=data_dir,
+        )
+        data = dash._load_offline_data()
+        assert len(data["experiments"]) == 100  # capped by LIMIT
+        assert data["experiments_total_count"] == 150  # true count
+
+        metrics = dash._build_offline_metrics()
+        assert metrics["evolution_status"]["experiments_count"] == 150
+
+    def test_service_takes_precedence_over_offline(self, mock_service, offline_data_dir):
+        """When both evolution_service and data_dir are set, live service wins."""
+        dash = MonitoringDashboard(
+            evolution_service=mock_service,
+            host="localhost",
+            port=18099,
+            data_dir=offline_data_dir,
+        )
+        # _get_current_metrics should use the live service, not offline data
+        import asyncio
+
+        metrics = asyncio.run(dash._get_current_metrics())
+        # The live service mock returns is_running: True, not mode: offline
+        assert metrics["service_status"]["is_running"] is True
+
+    def test_offline_cache_invalidated_on_mtime_change(self, offline_data_dir):
+        """Cache is refreshed when a source file's mtime changes."""
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18101,
+            data_dir=offline_data_dir,
+        )
+        data1 = dash._load_offline_data()
+        assert data1.get("pipeline_state", {}).get("status") == "completed"
+
+        # Simulate an external write to the pipeline state file.
+        import time
+
+        new_state = {
+            "status": "running",
+            "current_iteration": 7,
+            "total_iterations": 10,
+        }
+        state_file = offline_data_dir / "pipeline_state.json"
+        state_file.write_text(json.dumps(new_state))
+        # Ensure mtime is actually different (filesystem granularity).
+        time.sleep(0.05)
+
+        data2 = dash._load_offline_data()
+        assert data2["pipeline_state"]["status"] == "running"
+        assert data2["pipeline_state"]["current_iteration"] == 7
+        assert data2 is not data1  # new cache object
+
+    def test_offline_timestamp_seconds_to_milliseconds(self, offline_dashboard):
+        """Unix timestamps in seconds are converted to milliseconds for JS."""
+        metrics = offline_dashboard._build_offline_metrics()
+        last_activity = metrics["service_status"]["statistics"]["last_activity"]
+        # Fixture has completion_time=1700003600.0 (seconds).
+        # JS new Date() expects milliseconds → 2023-11-14T22:13:20 UTC.
+        assert last_activity == 1700003600.0 * 1000
+        import datetime
+
+        dt = datetime.datetime.fromtimestamp(last_activity / 1000, tz=datetime.timezone.utc)
+        assert dt.year == 2023
+        assert dt.month == 11
+
+    def test_offline_timestamp_none_passthrough(self):
+        """_offline_timestamp returns None for None input."""
+        assert MonitoringDashboard._offline_timestamp(None) is None
+
+    def test_offline_timestamp_string_passthrough(self):
+        """_offline_timestamp passes ISO strings through unchanged."""
+        iso = "2023-11-14T22:13:20Z"
+        assert MonitoringDashboard._offline_timestamp(iso) == iso
+
+    def test_offline_cache_lock_prevents_double_read(self, offline_data_dir):
+        """Concurrent first-reads don't both populate the cache."""
+        import threading
+
+        dash = MonitoringDashboard(
+            host="localhost",
+            port=18102,
+            data_dir=offline_data_dir,
+        )
+        results: list[dict] = []
+        barrier = threading.Barrier(2)
+
+        def read_with_barrier():
+            barrier.wait()
+            results.append(dash._load_offline_data())
+
+        threads = [threading.Thread(target=read_with_barrier) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Both got the same cached object (identity, not just equality).
+        assert results[0] is results[1]
+
+    def test_cli_auth_token_flag(self, monkeypatch):
+        """--auth-token is parsed by main() and passed to MonitoringDashboard."""
+        import asyncio
+
+        from evoseal.services.monitoring_dashboard import main
+
+        constructed = {}
+        original_init = MonitoringDashboard.__init__
+
+        def spy_init(self, *args, **kwargs):
+            constructed["auth_token"] = kwargs.get("auth_token")
+            original_init(self, *args, **kwargs)
+
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "monitoring_dashboard",
+                "--auth-token",
+                "secret123",
+                "--data-dir",
+                "/nonexistent",  # offline mode — won't actually start
+            ],
+        )
+        monkeypatch.setattr(MonitoringDashboard, "__init__", spy_init)
+
+        # Prevent the server from actually starting.
+        async def fake_start(self):
+            self.is_running = True
+
+        async def fake_stop(self):
+            self.is_running = False
+
+        monkeypatch.setattr(MonitoringDashboard, "start", fake_start)
+        monkeypatch.setattr(MonitoringDashboard, "stop", fake_stop)
+
+        # main() runs forever; cancel it after a short delay.
+        async def run_main_with_timeout():
+            task = asyncio.ensure_future(main())
+            await asyncio.sleep(0.1)
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+        asyncio.run(run_main_with_timeout())
+        assert constructed["auth_token"] == "secret123"
