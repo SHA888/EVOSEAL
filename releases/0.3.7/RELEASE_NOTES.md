@@ -2,15 +2,16 @@
 
 ## 🎉 Release Highlights
 
-This release includes 511 change(s) since the previous release.
+This release includes 512 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-08-12
-- **Total Changes**: 511
+- **Total Changes**: 512
 
 ## ✨ New Features
 
+- ✨ feat(cli): implement pipeline logs --follow and config --edit (#130) ([04f1761](https://github.com/SHA888/EVOSEAL/commit/04f1761))
 - ✨ feat(dashboard): add generation diff view to monitoring dashboard (#129) ([7f142bf](https://github.com/SHA888/EVOSEAL/commit/7f142bf))
 - ✨ feat(dashboard): add offline mode for post-hoc analysis without running service (#128) ([318b23e](https://github.com/SHA888/EVOSEAL/commit/318b23e))
 - ✨ feat(pareto): add multi-objective Pareto front computation and SVG visualization (#126) ([f19be9e](https://github.com/SHA888/EVOSEAL/commit/f19be9e))
@@ -563,4 +564,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-12 04:08:43 UTC*
+*This release was automatically generated on 2026-08-12 04:29:11 UTC*
