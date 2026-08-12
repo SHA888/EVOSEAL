@@ -2,15 +2,16 @@
 
 ## 🎉 Release Highlights
 
-This release includes 510 change(s) since the previous release.
+This release includes 511 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
-- **Release Date**: 2026-08-11
-- **Total Changes**: 510
+- **Release Date**: 2026-08-12
+- **Total Changes**: 511
 
 ## ✨ New Features
 
+- ✨ feat(dashboard): add generation diff view to monitoring dashboard (#129) ([7f142bf](https://github.com/SHA888/EVOSEAL/commit/7f142bf))
 - ✨ feat(dashboard): add offline mode for post-hoc analysis without running service (#128) ([318b23e](https://github.com/SHA888/EVOSEAL/commit/318b23e))
 - ✨ feat(pareto): add multi-objective Pareto front computation and SVG visualization (#126) ([f19be9e](https://github.com/SHA888/EVOSEAL/commit/f19be9e))
 - ✨ feat(dashboard): add cost and token usage to real-time monitoring dashboard (#125) ([6ce8dfb](https://github.com/SHA888/EVOSEAL/commit/6ce8dfb))
@@ -562,4 +563,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-11 14:44:08 UTC*
+*This release was automatically generated on 2026-08-12 04:08:43 UTC*
