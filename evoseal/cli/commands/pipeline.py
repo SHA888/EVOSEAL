@@ -8,9 +8,12 @@ initialization, execution control, status monitoring, and debugging options.
 from __future__ import annotations
 
 import asyncio
+import collections
 import json
 import logging
 import os
+import shlex
+import subprocess
 import time
 from typing import Annotated, Any
 
@@ -422,9 +425,48 @@ def manage_config(
     config = pipeline_config.load_config()
 
     if edit:
-        # TODO: Implement interactive configuration editing
-        console.print("[yellow]Interactive editing not yet implemented[/yellow]")
-        console.print(f"[dim]Edit configuration file directly: {PIPELINE_CONFIG_FILE}[/dim]")
+        editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
+        if not editor:
+            console.print(
+                "[red]No editor found. Set $EDITOR or $VISUAL environment variable.[/red]"
+            )
+            console.print(
+                f"[dim]Alternatively, edit the file directly: {PIPELINE_CONFIG_FILE}[/dim]"
+            )
+            raise typer.Exit(1)
+
+        # Ensure config file exists before opening editor
+        if not os.path.exists(PIPELINE_CONFIG_FILE):
+            pipeline_config.save_config(pipeline_config.get_default_config())
+
+        try:
+            subprocess.run(shlex.split(editor) + [PIPELINE_CONFIG_FILE], check=True)
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]Editor exited with error: {e}[/red]")
+            raise typer.Exit(1) from None
+        except FileNotFoundError:
+            console.print(f"[red]Editor not found: {editor}[/red]")
+            raise typer.Exit(1) from None
+
+        # Validate the edited config is valid JSON
+        try:
+            with open(PIPELINE_CONFIG_FILE) as f:
+                new_config = json.load(f)
+            if not isinstance(new_config, dict):
+                console.print(
+                    "[red]Warning: edited configuration is not a valid object. "
+                    "Reverting to previous configuration.[/red]"
+                )
+                pipeline_config.save_config(config)
+                return
+            config = new_config
+            console.print("[green]Configuration updated successfully[/green]")
+        except (json.JSONDecodeError, OSError):
+            console.print(
+                "[red]Warning: edited configuration is not valid JSON. "
+                "Reverting to previous configuration.[/red]"
+            )
+            pipeline_config.save_config(config)
 
     if show or not any([edit, set_param, reset]):
         show_config_summary(config)
@@ -445,9 +487,7 @@ def show_logs(
         return
 
     if follow:
-        # TODO: Implement log following
-        console.print("[yellow]Log following not yet implemented[/yellow]")
-        console.print(f"[dim]Use: tail -f {PIPELINE_LOG_FILE}[/dim]")
+        follow_logs(PIPELINE_LOG_FILE, lines, level)
         return
 
     try:
@@ -517,6 +557,73 @@ def debug_pipeline(
 
 
 # Helper functions
+
+
+def follow_logs(log_file: str, initial_lines: int = 50, level: str | None = None):
+    """Follow log file in real-time, similar to 'tail -f'.
+
+    Prints the last *initial_lines* lines first, then watches for new content.
+    Press Ctrl-C to stop.
+
+    Note: log rotation/truncation is not detected. If *log_file* is rotated
+    while following (e.g. by logrotate), this function keeps reading the old
+    (now-unlinked) inode and will not observe writes to the new file.
+    """
+    if not os.path.exists(log_file):
+        console.print(f"[red]Log file not found: {log_file}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        # Keep one handle open from the initial read through the follow loop
+        # so that lines appended between the two phases are never skipped.
+        with open(log_file) as f:
+            # Show the last N existing lines first
+            # Use a bounded deque so we don't load the entire file into memory.
+            if initial_lines > 0:
+                recent: collections.deque[str] = collections.deque(maxlen=initial_lines)
+                for line in f:
+                    recent.append(line)
+            else:
+                recent = collections.deque(f)
+            for line in recent:
+                stripped = line.strip()
+                if level and level.upper() not in stripped:
+                    continue
+                _print_log_line(line)
+
+            console.print(f"[dim]Following {log_file} (Ctrl-C to stop)...[/dim]")
+
+            # Tail for new content from the same handle
+            while True:
+                line = f.readline()
+                if line:
+                    stripped = line.strip()
+                    if level and level.upper() not in stripped:
+                        continue
+                    _print_log_line(line)
+                else:
+                    # No new content — sleep briefly then retry
+                    time.sleep(0.5)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Stopped following logs[/yellow]")
+    except OSError as e:
+        console.print(f"[red]Error reading log file: {e}[/red]")
+        raise typer.Exit(1) from None
+
+
+def _print_log_line(line: str) -> None:
+    """Print a single log line with colour-coding by level."""
+    stripped = line.strip()
+    if "ERROR" in stripped:
+        console.print(f"[red]{stripped}[/red]")
+    elif "WARNING" in stripped:
+        console.print(f"[yellow]{stripped}[/yellow]")
+    elif "INFO" in stripped:
+        console.print(f"[blue]{stripped}[/blue]")
+    elif "DEBUG" in stripped:
+        console.print(f"[dim]{stripped}[/dim]")
+    else:
+        console.print(stripped)
 
 
 def setup_logging(logging_config: dict[str, Any]):
