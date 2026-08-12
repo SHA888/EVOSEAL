@@ -2,15 +2,16 @@
 
 ## 🎉 Release Highlights
 
-This release includes 508 change(s) since the previous release.
+This release includes 509 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-08-11
-- **Total Changes**: 508
+- **Total Changes**: 509
 
 ## ✨ New Features
 
+- ✨ feat(pareto): add multi-objective Pareto front computation and SVG visualization (#126) ([f19be9e](https://github.com/SHA888/EVOSEAL/commit/f19be9e))
 - ✨ feat(dashboard): add cost and token usage to real-time monitoring dashboard (#125) ([6ce8dfb](https://github.com/SHA888/EVOSEAL/commit/6ce8dfb))
 - ✨ feat: implement progressive rollout gating for self-modifications (#123) ([ac36d1f](https://github.com/SHA888/EVOSEAL/commit/ac36d1f))
 - ✨ feat(providers): add retry with exponential backoff to OllamaProvider (#106) ([355aa2d](https://github.com/SHA888/EVOSEAL/commit/355aa2d))
@@ -560,4 +561,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-11 09:51:38 UTC*
+*This release was automatically generated on 2026-08-11 14:30:51 UTC*
