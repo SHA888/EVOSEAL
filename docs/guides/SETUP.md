@@ -7,6 +7,7 @@ This guide will help you set up the EVOSEAL development environment.
 - Python 3.9 or higher
 - Git
 - pip (Python package installer)
+- [Ollama](https://ollama.com/download) (optional — for local model inference without API keys)
 
 ## Quick Start
 
@@ -41,6 +42,51 @@ This guide will help you set up the EVOSEAL development environment.
    cp .env.example .env
    nano .env  # or use your preferred editor
    ```
+
+## Local Models (Ollama)
+
+EVOSEAL can run entirely on local models via [Ollama](https://ollama.com/), with
+no API keys or GPU required. Two models take distinct roles in the co-evolution
+loop:
+
+| Role       | Preferred family         | Purpose                          |
+|------------|--------------------------|----------------------------------|
+| `coder`    | DeepSeek-Coder-V2-Lite   | Writes code for a task           |
+| `reviewer` | Qwen2.5-Coder            | Reviews and scores the output    |
+
+Models are **auto-discovered** from what is installed in Ollama and matched by
+family (case-insensitive substring). If you pull a different coding model,
+EVOSEAL will find it automatically.
+
+### Setup
+
+1. **Install Ollama** (https://ollama.com/download) and verify it is running:
+   ```bash
+   ollama --version
+   curl -s http://localhost:11434/api/tags
+   ```
+
+2. **Pull the default models**:
+   ```bash
+   ollama pull deepseek-coder-v2:16b-lite-instruct-q8_0
+   ollama pull qwen2.5-coder:7b-instruct-q6_K
+   ```
+   These are quantised to run on CPU. Smaller alternatives also work — EVOSEAL
+   discovers whatever is installed.
+
+3. **Override a role** (optional):
+   ```bash
+   export EVOSEAL_CODER_MODEL="codellama:13b"
+   export EVOSEAL_REVIEWER_MODEL="qwen2.5-coder:3b"
+   ```
+
+4. **Verify the integration**:
+   ```bash
+   pytest tests/unit/providers/test_local_models.py tests/unit/providers/test_ollama_provider.py -v
+   ```
+
+For the architecture behind prompt-level co-evolution with local models, see
+[`docs/architecture/local_coevolution.md`](../architecture/local_coevolution.md).
 
 ## Project Structure
 
