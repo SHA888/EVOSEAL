@@ -45,9 +45,9 @@ This guide will help you set up the EVOSEAL development environment.
 
 ## Local Models (Ollama)
 
-EVOSEAL can run entirely on local models via [Ollama](https://ollama.com/), with
-no API keys or GPU required. Two models take distinct roles in the co-evolution
-loop:
+The prompt-level co-evolution path can run entirely on local models via
+[Ollama](https://ollama.com/), with no API keys or GPU required. Two models take
+distinct roles in the co-evolution loop:
 
 | Role       | Preferred family         | Purpose                          |
 |------------|--------------------------|----------------------------------|
@@ -55,8 +55,9 @@ loop:
 | `reviewer` | Qwen2.5-Coder            | Reviews and scores the output    |
 
 Models are **auto-discovered** from what is installed in Ollama and matched by
-family (case-insensitive substring). If you pull a different coding model,
-EVOSEAL will find it automatically.
+family (case-insensitive substring). If you pull a different model from a
+compatible family, EVOSEAL will find it automatically. Models from unrelated
+families (e.g. `codellama`) require an explicit override (see below).
 
 ### Setup
 
@@ -65,6 +66,8 @@ EVOSEAL will find it automatically.
    ollama --version
    curl -s http://localhost:11434/api/tags
    ```
+   If the `curl` command fails or returns empty, Ollama is not running. Start it
+   with `ollama serve` (or launch the Ollama desktop app) and try again.
 
 2. **Pull the default models**:
    ```bash
@@ -80,7 +83,8 @@ EVOSEAL will find it automatically.
    export EVOSEAL_REVIEWER_MODEL="qwen2.5-coder:3b"
    ```
 
-4. **Verify the integration**:
+4. **Verify the provider unit tests** (these stub the Ollama HTTP layer — no
+   running Ollama instance required):
    ```bash
    pytest tests/unit/providers/test_local_models.py tests/unit/providers/test_ollama_provider.py -v
    ```
