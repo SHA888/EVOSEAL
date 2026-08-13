@@ -56,8 +56,11 @@ distinct roles in the co-evolution loop:
 
 Models are **auto-discovered** from what is installed in Ollama and matched by
 family (case-insensitive substring). If you pull a different model from a
-compatible family, EVOSEAL will find it automatically. Models from unrelated
-families (e.g. `codellama`) require an explicit override (see below).
+compatible family, EVOSEAL will find it automatically. When multiple installed
+models match the same family, the **first** one returned by Ollama's list API is
+used; if that isn't what you want, set an explicit override (see below) to pin
+the exact tag. Models from unrelated families (e.g. `codellama`) require an
+explicit override.
 
 ### Setup
 
@@ -88,6 +91,12 @@ families (e.g. `codellama`) require an explicit override (see below).
    ```bash
    pytest tests/unit/providers/test_local_models.py tests/unit/providers/test_ollama_provider.py -v
    ```
+
+   > **Note:** These tests validate the discovery, matching, and fallback logic
+   > against a mocked Ollama API. They do **not** prove that a real Ollama
+   > instance is running and serving models. Live end-to-end verification
+   > (pull a model, run a co-evolution generation, confirm output) is a
+   > separate step — see TODO.md for tracking.
 
 For the architecture behind prompt-level co-evolution with local models, see
 [`docs/architecture/local_coevolution.md`](../architecture/local_coevolution.md).
