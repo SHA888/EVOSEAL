@@ -292,7 +292,7 @@
   - Plot correctness vs. efficiency vs. readability trade-offs across generations
 - [ ] **Add support for local models — Ollama**
   - Reduce API dependency for experimentation
-  - Provider unit tests pass (68 tests); live E2E verification against a real Ollama instance not yet done
+  - Provider unit tests pass (`pytest tests/unit/providers/ -q`); live E2E verification against a real Ollama instance not yet done
 - [ ] **Add support for local models — vLLM** _(blocked on PR #132)_
   - vLLM provider via OpenAI-compatible API
 - [x] **Explore population-based training (PBT) as alternative to MAP-Elites** _(done 2026-08-07)_ — ADR 0005 evaluates PBT as a complement (not replacement) for MAP-Elites in hyperparameter tuning. Conclusion: PBT and MAP-Elites solve different problems (hyperparameters vs. code variants); PBT is worth exploring but prerequisites (local model support, sensitivity analysis) aren't in place yet. Recommended next step is a feasibility spike with parallel runs, not a full implementation. Document at `docs/adr/0005-population-based-training.md`
