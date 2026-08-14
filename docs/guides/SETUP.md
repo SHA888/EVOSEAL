@@ -77,8 +77,14 @@ explicit override.
    ollama pull deepseek-coder-v2:16b-lite-instruct-q8_0
    ollama pull qwen2.5-coder:7b-instruct-q6_K
    ```
-   These are quantised to run on CPU. Smaller alternatives also work — EVOSEAL
-   discovers whatever is installed.
+   > **RAM note:** The `16b-lite-instruct-q8_0` tag is an 8-bit quantisation of a
+   > ~16 B-parameter model and needs roughly 17-18 GB of RAM. It will load on CPU
+   > but inference will be slow (several seconds per token on most laptops). If you
+   > have less than 24 GB of RAM or want faster iteration, use a smaller or more
+   > aggressively quantised variant instead — e.g.
+   > `deepseek-coder-v2:16b-lite-instruct-q4_K_M`, or a lighter family like
+   > `qwen2.5-coder:7b-instruct-q4_K_M` for both roles. EVOSEAL discovers whatever
+   > is installed, so any compatible tag works.
 
 3. **Override a role** (optional):
    ```bash
