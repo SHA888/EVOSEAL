@@ -14,7 +14,12 @@ import asyncio
 
 import pytest
 
-from evoseal.providers.local_models import DEFAULT_OLLAMA_BASE_URL, AgentRole, resolve_model
+from evoseal.providers.local_models import (
+    DEFAULT_OLLAMA_BASE_URL,
+    AgentRole,
+    list_installed_models,
+    resolve_model,
+)
 from evoseal.providers.ollama_provider import OllamaProvider
 
 # ---------------------------------------------------------------------------
@@ -36,19 +41,13 @@ def _ollama_is_running() -> bool:
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
                 async with session.get(f"{DEFAULT_OLLAMA_BASE_URL}/api/tags") as resp:
-                    _OLLAMA_AVAILABLE = resp.status == 200
+                    available = resp.status == 200
         except Exception:
-            _OLLAMA_AVAILABLE = False
-        return _OLLAMA_AVAILABLE
+            available = False
+        return available
 
     _OLLAMA_AVAILABLE = asyncio.run(_check())
     return _OLLAMA_AVAILABLE
-
-
-skip_without_ollama = pytest.mark.skipif(
-    "not config._ollama_is_running()",
-    reason="Ollama is not running on localhost:11434",
-)
 
 
 # Use a module-level fixture so the check runs once per collection.
@@ -76,16 +75,8 @@ class TestOllamaE2E:
         """resolve_model returns a model tag that Ollama actually has installed."""
         tag = resolve_model(AgentRole.CODER)
         assert tag, "resolve_model returned an empty string"
-        # The tag should be one of the installed models.
-        import aiohttp
-
-        async def _installed_models() -> list[str]:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
-                async with session.get(f"{DEFAULT_OLLAMA_BASE_URL}/api/tags") as resp:
-                    data = await resp.json()
-                    return [m["name"] for m in data.get("models", [])]
-
-        installed = asyncio.run(_installed_models())
+        # Use the same source as resolve_model to avoid format/cache mismatch.
+        installed = list_installed_models()
         assert tag in installed, f"Resolved model '{tag}' not in installed models: {installed}"
 
     def test_resolve_model_reviewer_role(self):
