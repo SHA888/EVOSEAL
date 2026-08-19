@@ -1,9 +1,10 @@
 """Live E2E tests for the Ollama provider.
 
 These tests exercise the OllamaProvider against a **real** running Ollama
-instance.  They are skipped automatically when Ollama is unreachable (e.g. in
-CI), so they never break a pipeline — they only produce useful signal when a
-developer (or agent) has Ollama running locally.
+instance.  They are skipped automatically when Ollama is unreachable or when
+the endpoint responds with an unexpected payload (e.g. in CI where another
+service occupies port 11434), so they never break a pipeline — they only
+produce useful signal when a developer (or agent) has Ollama running locally.
 
 Marker: ``@pytest.mark.integration`` (run with ``pytest -m integration``).
 """
@@ -16,6 +17,7 @@ import pytest
 
 from evoseal.providers.local_models import (
     DEFAULT_OLLAMA_BASE_URL,
+    ROLE_MODEL_PREFERENCES,
     AgentRole,
     list_installed_models,
     resolve_model,
@@ -26,14 +28,14 @@ from evoseal.providers.ollama_provider import OllamaProvider
 # Helpers
 # ---------------------------------------------------------------------------
 
-_OLLAMA_AVAILABLE: bool | None = None
-
 
 def _ollama_is_running() -> bool:
-    """Return True if Ollama responds on the default endpoint."""
-    global _OLLAMA_AVAILABLE  # noqa: PLW0603
-    if _OLLAMA_AVAILABLE is not None:
-        return _OLLAMA_AVAILABLE
+    """Return True if a real Ollama instance responds on the default endpoint.
+
+    Checks both HTTP 200 *and* that the response body looks like Ollama's
+    ``/api/tags`` (contains a ``"models"`` key).  This avoids false positives
+    from an unrelated service occupying port 11434.
+    """
 
     async def _check() -> bool:
         try:
@@ -41,13 +43,15 @@ def _ollama_is_running() -> bool:
 
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
                 async with session.get(f"{DEFAULT_OLLAMA_BASE_URL}/api/tags") as resp:
-                    available = resp.status == 200
+                    if resp.status != 200:
+                        return False
+                    body = await resp.json()
+                    # Ollama's /api/tags always returns {"models": [...] }.
+                    return isinstance(body, dict) and "models" in body
         except Exception:
-            available = False
-        return available
+            return False
 
-    _OLLAMA_AVAILABLE = asyncio.run(_check())
-    return _OLLAMA_AVAILABLE
+    return asyncio.run(_check())
 
 
 # Use a module-level fixture so the check runs once per collection.
@@ -136,8 +140,16 @@ class TestOllamaE2E:
         assert info["base_url"] == DEFAULT_OLLAMA_BASE_URL
 
     def test_model_discovery_covers_all_roles(self):
-        """Every AgentRole resolves to some installed model (no fallback tags)."""
-        for role in AgentRole:
+        """Every AgentRole with model preferences resolves to an installed model.
+
+        Roles without preferences (e.g. MAIN) are skipped — they have no
+        local model discovery path.  ``resolve_model`` delegates to
+        ``list_installed_models`` which carries its own 5-second timeout, so
+        each iteration is bounded even if Ollama is slow to respond.
+        """
+        roles_with_preferences = [r for r in AgentRole if r in ROLE_MODEL_PREFERENCES]
+        assert roles_with_preferences, "No roles have model preferences configured"
+        for role in roles_with_preferences:
             tag = resolve_model(role)
             # A resolved tag should not be a bare fallback like "model:latest"
             # unless that's genuinely installed.  At minimum it must be non-empty.
