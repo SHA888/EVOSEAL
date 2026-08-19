@@ -2,12 +2,12 @@
 
 ## 🎉 Release Highlights
 
-This release includes 519 change(s) since the previous release.
+This release includes 520 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-08-19
-- **Total Changes**: 519
+- **Total Changes**: 520
 
 ## ✨ New Features
 
@@ -186,6 +186,7 @@ This release includes 519 change(s) since the previous release.
 
 ## 📝 Documentation
 
+- 📝 docs: check hyperparameter-space box in TODO.md (#159) ([8a70eef](https://github.com/SHA888/EVOSEAL/commit/8a70eef))
 - 📝 docs: enumerate EVOSEAL hyperparameter space (#156) ([b745a86](https://github.com/SHA888/EVOSEAL/commit/b745a86))
 - 📝 docs: add local models (Ollama) setup guide to SETUP.md (#141) ([53e1004](https://github.com/SHA888/EVOSEAL/commit/53e1004))
 - 📝 docs: resolve DGM/OpenEvolve adapter drift — document canonical adapters (#139) ([90e3fe4](https://github.com/SHA888/EVOSEAL/commit/90e3fe4))
@@ -571,4 +572,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-19 14:43:50 UTC*
+*This release was automatically generated on 2026-08-19 16:53:22 UTC*
