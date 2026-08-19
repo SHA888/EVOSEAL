@@ -35,10 +35,10 @@ def _ollama_is_running() -> bool:
     if _OLLAMA_AVAILABLE is not None:
         return _OLLAMA_AVAILABLE
 
-    import aiohttp
-
     async def _check() -> bool:
         try:
+            import aiohttp
+
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
                 async with session.get(f"{DEFAULT_OLLAMA_BASE_URL}/api/tags") as resp:
                     available = resp.status == 200
