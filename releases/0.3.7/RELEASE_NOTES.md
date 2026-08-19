@@ -2,12 +2,12 @@
 
 ## 🎉 Release Highlights
 
-This release includes 518 change(s) since the previous release.
+This release includes 519 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-08-19
-- **Total Changes**: 518
+- **Total Changes**: 519
 
 ## ✨ New Features
 
@@ -288,6 +288,7 @@ This release includes 518 change(s) since the previous release.
 
 ## 🧪 Testing
 
+- 🧪 test(ollama): add live E2E verification against real Ollama instance (#148) ([6c84fea](https://github.com/SHA888/EVOSEAL/commit/6c84fea))
 - 🧪 test: add regression tests for _validate_improvement safety gate + fix two latent bugs (#119) ([76e35f5](https://github.com/SHA888/EVOSEAL/commit/76e35f5))
 - 🧪 test: increase unit test coverage for core/ modules (#115) ([8d083ca](https://github.com/SHA888/EVOSEAL/commit/8d083ca))
 - 🧪 test: add checkpoint save/restore round-trip tests (#112) ([b60803f](https://github.com/SHA888/EVOSEAL/commit/b60803f))
@@ -570,4 +571,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-19 13:34:43 UTC*
+*This release was automatically generated on 2026-08-19 14:43:50 UTC*
