@@ -879,21 +879,11 @@ class EvolutionPipeline:
                     if feedback_result is False:
                         # Human rejected — treat as not an improvement
                         is_improvement = False
-                        iteration_result.update(
-                            {
-                                "should_continue": False,
-                                "feedback_decision": "rejected",
-                            }
-                        )
+                        iteration_result["feedback_decision"] = "rejected"
                     elif feedback_result is None:
                         # Timed out waiting for feedback
                         is_improvement = False
-                        iteration_result.update(
-                            {
-                                "should_continue": False,
-                                "feedback_decision": "timeout",
-                            }
-                        )
+                        iteration_result["feedback_decision"] = "timeout"
                     else:
                         iteration_result["feedback_decision"] = "approved"
 
@@ -1103,14 +1093,14 @@ class EvolutionPipeline:
 
         # Poll for decision
         elapsed = 0.0
-        interval = self.config.feedback_poll_interval
+        interval = max(self.config.feedback_poll_interval, 0.1)
         timeout = self.config.feedback_timeout
 
         # timeout <= 0 means "don't wait" — treat as immediate timeout
         if timeout <= 0:
             logger.warning(
                 f"Feedback proposal {proposal.id} — feedback_timeout={timeout}s means no wait; "
-                f"rejecting improvement"
+                f"treating as timeout"
             )
             return None
 
@@ -1121,7 +1111,7 @@ class EvolutionPipeline:
             stored = self.feedback_store.get_proposal(proposal.id)
             if stored is None:
                 logger.warning(
-                    f"Feedback proposal {proposal.id} disappeared — treating as rejection"
+                    f"Feedback proposal {proposal.id} disappeared from store — treating as timeout"
                 )
                 return None
 
