@@ -21,6 +21,8 @@ from typing import Any
 import aiohttp_cors
 from aiohttp import WSMsgType, web
 
+from evoseal.core.feedback_store import FeedbackDecision, FeedbackStore
+
 from .continuous_evolution_service import ContinuousEvolutionService
 
 logger = logging.getLogger(__name__)
@@ -63,6 +65,7 @@ class MonitoringDashboard:
         auth_token: str | None = None,
         allowed_origins: list[str] | None = None,
         data_dir: str | Path | None = None,
+        feedback_store: FeedbackStore | None = None,
     ):
         """
         Initialize the monitoring dashboard.
@@ -102,6 +105,7 @@ class MonitoringDashboard:
         # readers always see a consistent pair (no torn read/write race).
         self._offline_cache_entry: tuple[dict[str, float], dict[str, Any]] | None = None
         self._offline_cache_lock = threading.Lock()
+        self.feedback_store = feedback_store or FeedbackStore()
 
         if auth_token is not None and auth_token == "":
             raise ValueError(
@@ -162,6 +166,10 @@ class MonitoringDashboard:
         self.app.router.add_get("/api/metrics", self.api_metrics)
         self.app.router.add_get("/api/report", self.api_report)
         self.app.router.add_get("/api/generation-diffs", self.api_generation_diffs)
+        self.app.router.add_get("/api/feedback/pending", self.api_feedback_pending)
+        self.app.router.add_post("/api/feedback/{proposal_id}/approve", self.api_feedback_approve)
+        self.app.router.add_post("/api/feedback/{proposal_id}/reject", self.api_feedback_reject)
+        self.app.router.add_get("/api/feedback/stats", self.api_feedback_stats)
         self.app.router.add_get("/ws", self.websocket_handler)
         # Static files embedded in HTML, no separate static directory needed
 
@@ -390,6 +398,76 @@ class MonitoringDashboard:
         except Exception as e:
             logger.error(f"Error getting generation diffs: {e}")
             return web.json_response({"error": str(e)}, status=500)
+
+    async def api_feedback_pending(self, request):
+        """API endpoint: list all pending modification proposals."""
+        try:
+            pending = self.feedback_store.get_pending()
+            return web.json_response([p.to_dict() for p in pending])
+        except Exception as e:
+            logger.error(f"Error listing pending feedback: {e}")
+            return web.json_response({"error": "Internal server error"}, status=500)
+
+    async def api_feedback_approve(self, request):
+        """API endpoint: approve a pending proposal."""
+        try:
+            proposal_id = request.match_info["proposal_id"]
+            try:
+                body = await request.json() if request.body_exists else {}
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "Invalid JSON in request body"}, status=400)
+            if not isinstance(body, dict):
+                return web.json_response(
+                    {"error": "Request body must be a JSON object"}, status=400
+                )
+            decided_by = body.get("decided_by") or "operator"
+            reason = body.get("reason")
+
+            existing = self.feedback_store.get_proposal(proposal_id)
+            if existing is None:
+                return web.json_response({"error": "Proposal not found"}, status=404)
+            if existing.decision != FeedbackDecision.PENDING:
+                return web.json_response({"error": "Proposal already decided"}, status=409)
+            result = self.feedback_store.approve(proposal_id, decided_by=decided_by, reason=reason)
+            return web.json_response(result.to_dict())
+        except Exception as e:
+            logger.error(f"Error approving feedback: {e}")
+            return web.json_response({"error": "Internal server error"}, status=500)
+
+    async def api_feedback_reject(self, request):
+        """API endpoint: reject a pending proposal."""
+        try:
+            proposal_id = request.match_info["proposal_id"]
+            try:
+                body = await request.json() if request.body_exists else {}
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "Invalid JSON in request body"}, status=400)
+            if not isinstance(body, dict):
+                return web.json_response(
+                    {"error": "Request body must be a JSON object"}, status=400
+                )
+            decided_by = body.get("decided_by") or "operator"
+            reason = body.get("reason")
+
+            existing = self.feedback_store.get_proposal(proposal_id)
+            if existing is None:
+                return web.json_response({"error": "Proposal not found"}, status=404)
+            if existing.decision != FeedbackDecision.PENDING:
+                return web.json_response({"error": "Proposal already decided"}, status=409)
+            result = self.feedback_store.reject(proposal_id, decided_by=decided_by, reason=reason)
+            return web.json_response(result.to_dict())
+        except Exception as e:
+            logger.error(f"Error rejecting feedback: {e}")
+            return web.json_response({"error": "Internal server error"}, status=500)
+
+    async def api_feedback_stats(self, request):
+        """API endpoint: feedback acceptance-rate statistics."""
+        try:
+            stats = self.feedback_store.get_stats()
+            return web.json_response(stats)
+        except Exception as e:
+            logger.error(f"Error getting feedback stats: {e}")
+            return web.json_response({"error": "Internal server error"}, status=500)
 
     async def websocket_handler(self, request):
         """WebSocket handler for real-time updates."""
@@ -888,6 +966,80 @@ class MonitoringDashboard:
             transition: width 0.3s ease;
         }
 
+        .feedback-section {
+            grid-column: 1 / -1;
+        }
+
+        .proposal-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid #ff9800;
+        }
+
+
+
+        .proposal-title {
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+
+        .proposal-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+
+        .proposal-files {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+
+        .proposal-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.85;
+        }
+
+        .btn-approve {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-reject {
+            background: #f44336;
+            color: white;
+        }
+
+        .acceptance-rate {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .no-proposals {
+            text-align: center;
+            opacity: 0.6;
+            padding: 1rem;
+        }
+
         .log-container {
             grid-column: 1 / -1;
             max-height: 300px;
@@ -1095,6 +1247,27 @@ class MonitoringDashboard:
             </div>
         </div>
 
+        <div class="card feedback-section">
+            <h3>👤 Human-in-the-Loop Feedback</h3>
+            <div style="display: flex; gap: 2rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <div>
+                    <div class="metric-label">Pending Proposals</div>
+                    <div class="metric-value" id="pending-count">0</div>
+                </div>
+                <div>
+                    <div class="metric-label">Acceptance Rate</div>
+                    <div class="acceptance-rate" id="acceptance-rate">--</div>
+                </div>
+                <div>
+                    <div class="metric-label">Approved / Rejected</div>
+                    <div class="metric-value"><span id="approved-count">0</span> / <span id="rejected-count">0</span></div>
+                </div>
+            </div>
+            <div id="pending-proposals">
+                <div class="no-proposals">No pending proposals</div>
+            </div>
+        </div>
+
         <div class="card log-container">
             <h3>📝 Recent Activity</h3>
             <div id="activity-log">
@@ -1296,10 +1469,87 @@ class MonitoringDashboard:
             }
         }
 
+        // --- Human-in-the-loop feedback ---
+        async function fetchFeedback() {
+            try {
+                const headers = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+                const [pendingResp, statsResp] = await Promise.all([
+                    fetch('/api/feedback/pending', { headers }),
+                    fetch('/api/feedback/stats', { headers }),
+                ]);
+                if (pendingResp.ok) {
+                    const pending = await pendingResp.json();
+                    renderProposals(pending);
+                }
+                if (statsResp.ok) {
+                    const stats = await statsResp.json();
+                    renderFeedbackStats(stats);
+                }
+            } catch (e) {
+                console.error('Error fetching feedback:', e);
+            }
+        }
+
+        function renderFeedbackStats(stats) {
+            document.getElementById('pending-count').textContent = stats.pending || 0;
+            document.getElementById('approved-count').textContent = stats.approved || 0;
+            document.getElementById('rejected-count').textContent = stats.rejected || 0;
+            const rate = stats.acceptance_rate;
+            document.getElementById('acceptance-rate').textContent =
+                rate !== null ? rate.toFixed(1) + '%' : '--';
+        }
+
+        function renderProposals(proposals) {
+            const container = document.getElementById('pending-proposals');
+            if (!proposals || proposals.length === 0) {
+                container.innerHTML = '<div class="no-proposals">No pending proposals</div>';
+                return;
+            }
+            container.innerHTML = proposals.map(p => `
+                <div class="proposal-card" id="proposal-${escapeHtml(p.id)}">
+                    <div class="proposal-title">${escapeHtml(p.title)}</div>
+                    <div class="proposal-desc">${escapeHtml(p.description)}</div>
+                    ${p.file_changes.length > 0 ? `<div class="proposal-files">Files: ${p.file_changes.map(f => escapeHtml(f.path || f.file || '?')).join(', ')}</div>` : ''}
+                    <div class="proposal-actions">
+                        <button class="btn btn-approve" onclick="decideFeedback('${escapeHtml(p.id)}', 'approve')">✓ Approve</button>
+                        <button class="btn btn-reject" onclick="decideFeedback('${escapeHtml(p.id)}', 'reject')">✗ Reject</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function decideFeedback(proposalId, action) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+                const resp = await fetch(`/api/feedback/${proposalId}/${action}`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ decided_by: 'dashboard-user' }),
+                });
+                if (resp.ok) {
+                    addLogEntry(`Proposal ${proposalId} ${action}d`, action === 'approve' ? 'info' : 'warning');
+                    fetchFeedback();
+                } else {
+                    const err = await resp.json();
+                    addLogEntry(`Failed to ${action} proposal: ${err.error}`, 'error');
+                }
+            } catch (e) {
+                addLogEntry(`Error: ${e.message}`, 'error');
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             connectWebSocket();
             loadGenerationDiffs();
+            fetchFeedback();
 
             // Periodic fallback updates via HTTP
             setInterval(async function() {
@@ -1315,6 +1565,9 @@ class MonitoringDashboard:
 
             // Refresh generation diffs every 5 minutes
             setInterval(loadGenerationDiffs, 300000);
+
+            // Refresh feedback every 15 seconds
+            setInterval(fetchFeedback, 15000);
         });
 
         async function loadGenerationDiffs() {
