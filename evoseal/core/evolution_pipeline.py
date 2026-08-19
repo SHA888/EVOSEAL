@@ -1072,6 +1072,9 @@ class EvolutionPipeline:
 
         # Build a concise proposal from the evaluation
         score = evaluation_result.get("score", 0)
+        if score is None:
+            score = 0
+        score = float(score)
         metrics = evaluation_result.get("metrics", {})
         test_type = evaluation_result.get("test_type", "unknown")
         description_parts = [
@@ -1085,7 +1088,7 @@ class EvolutionPipeline:
         proposal = self.feedback_store.submit_proposal(
             title=f"Evolution iteration {iteration} improvement",
             description=" | ".join(description_parts),
-            file_changes=[],
+            file_changes=improvements if improvements else [],
             metadata={
                 "iteration": iteration,
                 "score": score,
@@ -1103,14 +1106,24 @@ class EvolutionPipeline:
         interval = self.config.feedback_poll_interval
         timeout = self.config.feedback_timeout
 
-        while timeout <= 0 or elapsed < timeout:
+        # timeout <= 0 means "don't wait" — treat as immediate timeout
+        if timeout <= 0:
+            logger.warning(
+                f"Feedback proposal {proposal.id} — feedback_timeout={timeout}s means no wait; "
+                f"rejecting improvement"
+            )
+            return None
+
+        while elapsed < timeout:
             await asyncio.sleep(interval)
             elapsed += interval
 
             stored = self.feedback_store.get_proposal(proposal.id)
             if stored is None:
-                logger.warning(f"Feedback proposal {proposal.id} disappeared — auto-approving")
-                return True
+                logger.warning(
+                    f"Feedback proposal {proposal.id} disappeared — treating as rejection"
+                )
+                return None
 
             if stored.decision == FeedbackDecision.APPROVED:
                 logger.info(f"Feedback proposal {proposal.id} approved by {stored.decided_by}")

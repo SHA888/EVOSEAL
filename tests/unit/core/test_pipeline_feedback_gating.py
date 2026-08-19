@@ -53,7 +53,7 @@ def _make_pipeline(
         pipeline = EvolutionPipeline(
             config={
                 "human_feedback_required": human_feedback_required,
-                "feedback_poll_interval": 0.05,  # Fast polling for tests
+                "feedback_poll_interval": feedback_poll_interval,
                 "feedback_timeout": feedback_timeout,
             },
             feedback_store=feedback_store,
