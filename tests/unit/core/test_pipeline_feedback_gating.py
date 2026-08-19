@@ -87,7 +87,7 @@ class TestPipelineFeedbackGating:
     """When human_feedback_required=True, improvements are gated on approval."""
 
     def test_no_store_auto_approves(self):
-        """Without a feedback_store, improvements pass through normally."""
+        """Without a feedback_store, improvements pass through normally with a warning."""
         pipeline = _make_pipeline(feedback_store=None, human_feedback_required=True)
         results = asyncio.run(pipeline.run_evolution_cycle(iterations=1))
         assert isinstance(results, list)
@@ -168,6 +168,42 @@ class TestPipelineFeedbackGating:
         assert len(results) == 1
         result = results[0]
         assert result.get("feedback_decision") == "timeout"
+
+
+class TestFeedbackStoreExpire:
+    """FeedbackStore.expire_proposal marks proposals as expired."""
+
+    def test_expire_pending_proposal(self):
+        store = FeedbackStore()
+        proposal = store.submit_proposal(title="Test", description="desc")
+        result = store.expire_proposal(proposal.id)
+        assert result is not None
+        assert result.decision.value == "expired"
+        assert result.decided_by == "system"
+        assert "timed out" in result.reason
+
+    def test_expire_already_decided_proposal(self):
+        store = FeedbackStore()
+        proposal = store.submit_proposal(title="Test", description="desc")
+        store.approve(proposal.id)
+        result = store.expire_proposal(proposal.id)
+        assert result is None
+
+    def test_expire_nonexistent_proposal(self):
+        store = FeedbackStore()
+        result = store.expire_proposal("nonexistent")
+        assert result is None
+
+    def test_stats_include_expired(self):
+        store = FeedbackStore()
+        p1 = store.submit_proposal(title="A", description="a")
+        p2 = store.submit_proposal(title="B", description="b")
+        store.expire_proposal(p1.id)
+        store.approve(p2.id)
+        stats = store.get_stats()
+        assert stats["expired"] == 1
+        assert stats["approved"] == 1
+        assert stats["total"] == 2
 
 
 class TestPipelineFeedbackConfig:

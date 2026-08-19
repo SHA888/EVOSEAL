@@ -27,6 +27,7 @@ class FeedbackDecision(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    EXPIRED = "expired"
 
 
 @dataclass
@@ -150,6 +151,18 @@ class FeedbackStore:
         proposal.reason = reason
         return proposal
 
+    def expire_proposal(self, proposal_id: str) -> ModificationProposal | None:
+        """Expire a pending proposal (e.g., on timeout). Returns the proposal or None."""
+        proposal = self._proposals.get(proposal_id)
+        if proposal is None or proposal.decision != FeedbackDecision.PENDING:
+            return None
+        now = datetime.now(timezone.utc).isoformat()
+        proposal.decision = FeedbackDecision.EXPIRED
+        proposal.decided_at = now
+        proposal.decided_by = "system"
+        proposal.reason = "timed out waiting for human feedback"
+        return proposal
+
     def get_stats(self) -> dict[str, Any]:
         """Return acceptance-rate statistics."""
         total = len(self._proposals)
@@ -160,11 +173,13 @@ class FeedbackStore:
         rejected = sum(
             1 for p in self._proposals.values() if p.decision == FeedbackDecision.REJECTED
         )
-        decided = approved + rejected
+        expired = sum(1 for p in self._proposals.values() if p.decision == FeedbackDecision.EXPIRED)
+        decided = approved + rejected + expired
         return {
             "total": total,
             "pending": pending,
             "approved": approved,
             "rejected": rejected,
+            "expired": expired,
             "acceptance_rate": (approved / decided * 100) if decided > 0 else None,
         }
