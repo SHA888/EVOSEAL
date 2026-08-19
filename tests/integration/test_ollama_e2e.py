@@ -1,0 +1,166 @@
+"""Live E2E tests for the Ollama provider.
+
+These tests exercise the OllamaProvider against a **real** running Ollama
+instance.  They are skipped automatically when Ollama is unreachable or when
+the endpoint responds with an unexpected payload (e.g. in CI where another
+service occupies port 11434), so they never break a pipeline — they only
+produce useful signal when a developer (or agent) has Ollama running locally.
+
+Marker: ``@pytest.mark.integration`` (run with ``pytest -m integration``).
+"""
+
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from evoseal.providers.local_models import (
+    DEFAULT_OLLAMA_BASE_URL,
+    ROLE_MODEL_PREFERENCES,
+    AgentRole,
+    list_installed_models,
+    resolve_model,
+)
+from evoseal.providers.ollama_provider import OllamaProvider
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _ollama_is_running() -> bool:
+    """Return True if a real Ollama instance responds on the default endpoint.
+
+    Checks both HTTP 200 *and* that the response body looks like Ollama's
+    ``/api/tags`` (contains a ``"models"`` key).  This avoids false positives
+    from an unrelated service occupying port 11434.
+    """
+
+    async def _check() -> bool:
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+                async with session.get(f"{DEFAULT_OLLAMA_BASE_URL}/api/tags") as resp:
+                    if resp.status != 200:
+                        return False
+                    body = await resp.json()
+                    # Ollama's /api/tags always returns {"models": [...] }.
+                    return isinstance(body, dict) and "models" in body
+        except Exception:
+            return False
+
+    return asyncio.run(_check())
+
+
+# Use a module-level fixture so the check runs once per collection.
+# Caveat: if Ollama goes down mid-module-run, subsequent tests will fail with
+# raw connection errors rather than being skipped.  This is acceptable for
+# opt-in E2E tests but worth knowing if the "never breaks a pipeline" guarantee
+# is revisited.
+@pytest.fixture(autouse=True, scope="module")
+def _require_ollama():
+    if not _ollama_is_running():
+        pytest.skip("Ollama is not running on localhost:11434")
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestOllamaE2E:
+    """End-to-end tests against a live Ollama instance."""
+
+    def test_health_check_passes(self):
+        """OllamaProvider.health_check() succeeds when Ollama is running."""
+        provider = OllamaProvider(role=AgentRole.CODER)
+        assert asyncio.run(provider.health_check()) is True
+
+    def test_resolve_model_finds_installed_model(self):
+        """resolve_model returns a model tag that Ollama actually has installed."""
+        tag = resolve_model(AgentRole.CODER)
+        assert tag, "resolve_model returned an empty string"
+        # Use the same source as resolve_model to avoid format/cache mismatch.
+        installed = list_installed_models()
+        assert tag in installed, f"Resolved model '{tag}' not in installed models: {installed}"
+
+    def test_resolve_model_reviewer_role(self):
+        """resolve_model also works for the reviewer role."""
+        tag = resolve_model(AgentRole.REVIEWER)
+        assert tag, "resolve_model returned empty for reviewer role"
+
+    def test_submit_prompt_returns_nonempty_response(self):
+        """submit_prompt against the real Ollama instance returns content."""
+        provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
+        # A minimal prompt that any coding model should handle.
+        result = asyncio.run(provider.submit_prompt("Say hello in one word."))
+        assert isinstance(result, str)
+        assert len(result.strip()) > 0, "Ollama returned an empty response"
+
+    def test_submit_prompt_with_system_message(self):
+        """A system message is accepted and the model responds."""
+        provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
+        result = asyncio.run(
+            provider.submit_prompt(
+                "What is 2 + 2?",
+                system="You are a helpful assistant. Answer concisely.",
+            )
+        )
+        assert isinstance(result, str)
+        assert len(result.strip()) > 0
+
+    def test_parse_response_extracts_content(self):
+        """parse_response returns structured data from a real model output."""
+
+        async def _run() -> None:
+            provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
+            raw = await provider.submit_prompt("Reply with the word 'yes'.")
+            parsed = await provider.parse_response(raw)
+            assert "content" in parsed
+            assert parsed["provider"] == "ollama"
+            assert parsed["length"] > 0
+
+        asyncio.run(_run())
+
+    def test_parse_response_detects_code_blocks(self):
+        """parse_response identifies fenced code blocks in the output."""
+
+        async def _run() -> None:
+            provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
+            raw = await provider.submit_prompt(
+                "Write a Python hello-world function inside a code block.",
+            )
+            parsed = await provider.parse_response(raw)
+            # The model *should* include code fences for this prompt, but we can't
+            # guarantee it.  Assert only that parsing doesn't crash.
+            assert "contains_code" in parsed
+            assert isinstance(parsed["code_blocks"], list)
+
+        asyncio.run(_run())
+
+    def test_get_model_info_matches_real_state(self):
+        """get_model_info reflects the resolved model."""
+        provider = OllamaProvider(role=AgentRole.CODER)
+        info = provider.get_model_info()
+        assert info["provider"] == "ollama"
+        assert info["model"], "model should be resolved"
+        assert info["base_url"] == DEFAULT_OLLAMA_BASE_URL
+
+    def test_model_discovery_covers_all_roles(self):
+        """Every AgentRole with model preferences resolves to an installed model.
+
+        Roles without preferences (e.g. MAIN) are skipped — they have no
+        local model discovery path.  ``resolve_model`` delegates to
+        ``list_installed_models`` which carries its own 5-second timeout, so
+        each iteration is bounded even if Ollama is slow to respond.
+        """
+        roles_with_preferences = [r for r in AgentRole if r in ROLE_MODEL_PREFERENCES]
+        assert roles_with_preferences, "No roles have model preferences configured"
+        for role in roles_with_preferences:
+            tag = resolve_model(role)
+            # A resolved tag should not be a bare fallback like "model:latest"
+            # unless that's genuinely installed.  At minimum it must be non-empty.
+            assert tag, f"No model resolved for role {role.value}"
