@@ -290,9 +290,11 @@
 
 - [x] **Multi-objective Pareto front visualization**
   - Plot correctness vs. efficiency vs. readability trade-offs across generations
-- [ ] **Add support for local models (Ollama/vLLM)**
+- [ ] **Add support for local models — Ollama**
   - Reduce API dependency for experimentation
-  - README mentions Ollama integration — verify it works end-to-end
+  - Provider unit tests pass (`pytest tests/unit/providers/ -q`); live E2E verification against a real Ollama instance not yet done
+- [ ] **Add support for local models — vLLM** _(blocked on PR #132)_
+  - vLLM provider via OpenAI-compatible API
 - [x] **Explore population-based training (PBT) as alternative to MAP-Elites** _(done 2026-08-07)_ — ADR 0005 evaluates PBT as a complement (not replacement) for MAP-Elites in hyperparameter tuning. Conclusion: PBT and MAP-Elites solve different problems (hyperparameters vs. code variants); PBT is worth exploring but prerequisites (local model support, sensitivity analysis) aren't in place yet. Recommended next step is a feasibility spike with parallel runs, not a full implementation. Document at `docs/adr/0005-population-based-training.md`
 - [ ] **Document EVOSEAL's hyperparameter space** _(follow-up from ADR 0005 §6)_ — enumerate all tuneable pipeline parameters (mutation rate, selection pressure, temperature, etc.) and their current values/ranges; prerequisite for PBT feasibility spike
 - [ ] **Run PBT feasibility spike** _(follow-up from ADR 0005 §6)_ — 3-5 parallel pipeline runs with manually varied hyperparameters for 10 generations; measure outcome variance; decide if the spread justifies adaptive tuning (use `spike` skill)
@@ -309,8 +311,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 22   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed |
 | 🟡 P2    | 30    | 29   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; progressive rollout gating implemented; dashboard cost/token tracking; dashboard offline mode; generation diff view |
-| 🟢 P3    | 26    | 21   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization |
-| **Total** | **91** | **83** | |
+| 🟢 P3    | 27    | 21   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs — in progress (unit tests pass; live E2E pending; see open item above) |
+| **Total** | **92** | **83** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
