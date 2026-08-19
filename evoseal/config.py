@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from evoseal.providers.local_models import DEFAULT_OLLAMA_BASE_URL, AgentRole
+from evoseal.providers.vllm_provider import DEFAULT_VLLM_BASE_URL
 
 
 class SEALProviderConfig(BaseModel):
@@ -68,6 +69,17 @@ class SEALConfig(BaseSettings):
                     "role": AgentRole.REVIEWER.value,
                     "timeout": 90,
                     "temperature": 0.3,
+                },
+            ),
+            SEALProviderConfig(
+                name="vllm",
+                priority=8,
+                enabled=False,  # Enable when a vLLM server is running
+                config={
+                    "base_url": DEFAULT_VLLM_BASE_URL,
+                    "model": "",  # Must be set to the actual model name served by vLLM
+                    "timeout": 120,
+                    "temperature": 0.7,
                 },
             ),
             SEALProviderConfig(name="dummy", priority=1, enabled=True, config={}),
