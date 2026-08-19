@@ -55,6 +55,10 @@ def _ollama_is_running() -> bool:
 
 
 # Use a module-level fixture so the check runs once per collection.
+# Caveat: if Ollama goes down mid-module-run, subsequent tests will fail with
+# raw connection errors rather than being skipped.  This is acceptable for
+# opt-in E2E tests but worth knowing if the "never breaks a pipeline" guarantee
+# is revisited.
 @pytest.fixture(autouse=True, scope="module")
 def _require_ollama():
     if not _ollama_is_running():
@@ -110,26 +114,32 @@ class TestOllamaE2E:
 
     def test_parse_response_extracts_content(self):
         """parse_response returns structured data from a real model output."""
-        provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
-        raw = asyncio.run(provider.submit_prompt("Reply with the word 'yes'."))
-        parsed = asyncio.run(provider.parse_response(raw))
-        assert "content" in parsed
-        assert parsed["provider"] == "ollama"
-        assert parsed["length"] > 0
+
+        async def _run() -> None:
+            provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
+            raw = await provider.submit_prompt("Reply with the word 'yes'.")
+            parsed = await provider.parse_response(raw)
+            assert "content" in parsed
+            assert parsed["provider"] == "ollama"
+            assert parsed["length"] > 0
+
+        asyncio.run(_run())
 
     def test_parse_response_detects_code_blocks(self):
         """parse_response identifies fenced code blocks in the output."""
-        provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
-        raw = asyncio.run(
-            provider.submit_prompt(
+
+        async def _run() -> None:
+            provider = OllamaProvider(role=AgentRole.CODER, timeout=120)
+            raw = await provider.submit_prompt(
                 "Write a Python hello-world function inside a code block.",
             )
-        )
-        parsed = asyncio.run(provider.parse_response(raw))
-        # The model *should* include code fences for this prompt, but we can't
-        # guarantee it.  Assert only that parsing doesn't crash.
-        assert "contains_code" in parsed
-        assert isinstance(parsed["code_blocks"], list)
+            parsed = await provider.parse_response(raw)
+            # The model *should* include code fences for this prompt, but we can't
+            # guarantee it.  Assert only that parsing doesn't crash.
+            assert "contains_code" in parsed
+            assert isinstance(parsed["code_blocks"], list)
+
+        asyncio.run(_run())
 
     def test_get_model_info_matches_real_state(self):
         """get_model_info reflects the resolved model."""
