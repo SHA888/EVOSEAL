@@ -2,15 +2,18 @@
 
 ## 🎉 Release Highlights
 
-This release includes 512 change(s) since the previous release.
+This release includes 518 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
-- **Release Date**: 2026-08-16
-- **Total Changes**: 512
+- **Release Date**: 2026-08-19
+- **Total Changes**: 518
 
 ## ✨ New Features
 
+- ✨ feat(dashboard): add human-in-the-loop feedback interface for self-modifications (#153) ([20fcb5a](https://github.com/SHA888/EVOSEAL/commit/20fcb5a))
+- ✨ feat(providers): add vLLM provider via OpenAI-compatible API (#149) ([f2c638d](https://github.com/SHA888/EVOSEAL/commit/f2c638d))
+- ✨ feat(seal): add relevance scoring to KnowledgeBase search (#143) ([d744385](https://github.com/SHA888/EVOSEAL/commit/d744385))
 - ✨ feat(cli): implement pipeline logs --follow and config --edit (#130) ([04f1761](https://github.com/SHA888/EVOSEAL/commit/04f1761))
 - ✨ feat(dashboard): add generation diff view to monitoring dashboard (#129) ([7f142bf](https://github.com/SHA888/EVOSEAL/commit/7f142bf))
 - ✨ feat(dashboard): add offline mode for post-hoc analysis without running service (#128) ([318b23e](https://github.com/SHA888/EVOSEAL/commit/318b23e))
@@ -183,6 +186,8 @@ This release includes 512 change(s) since the previous release.
 
 ## 📝 Documentation
 
+- 📝 docs: enumerate EVOSEAL hyperparameter space (#156) ([b745a86](https://github.com/SHA888/EVOSEAL/commit/b745a86))
+- 📝 docs: add local models (Ollama) setup guide to SETUP.md (#141) ([53e1004](https://github.com/SHA888/EVOSEAL/commit/53e1004))
 - 📝 docs: resolve DGM/OpenEvolve adapter drift — document canonical adapters (#139) ([90e3fe4](https://github.com/SHA888/EVOSEAL/commit/90e3fe4))
 - 📝 docs(adr): explore population-based training as MAP-Elites complement (#136) ([97189ef](https://github.com/SHA888/EVOSEAL/commit/97189ef))
 - 📝 docs: add progressive rollout gating design doc (#122) ([5df5ede](https://github.com/SHA888/EVOSEAL/commit/5df5ede))
@@ -301,6 +306,7 @@ This release includes 512 change(s) since the previous release.
 
 ## 🔧 Other Changes
 
+- 🔧 chore(spike): PBT feasibility spike — verdict VALIDATED (#158) ([81fd5ec](https://github.com/SHA888/EVOSEAL/commit/81fd5ec))
 - 🔧 chore(deps): (deps): bump actions/setup-python from 6 to 7 (#98) ([7122188](https://github.com/SHA888/EVOSEAL/commit/7122188))
 - 🔧 chore: remove stray validator.py.bak backup file (#94) ([daf151c](https://github.com/SHA888/EVOSEAL/commit/daf151c))
 - 🔧 chore(deps): (deps): bump actions/cache from 5 to 6 (#62) ([49d67d0](https://github.com/SHA888/EVOSEAL/commit/49d67d0))
@@ -564,4 +570,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-16 01:47:42 UTC*
+*This release was automatically generated on 2026-08-19 13:34:43 UTC*
