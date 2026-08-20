@@ -170,6 +170,66 @@ class TestPipelineFeedbackGating:
         assert result.get("feedback_decision") == "timeout"
 
 
+class TestFeedbackZeroTimeout:
+    """feedback_timeout <= 0 should expire the proposal immediately."""
+
+    def test_zero_timeout_expires_proposal(self):
+        store = FeedbackStore()
+        pipeline = _make_pipeline(
+            feedback_store=store,
+            human_feedback_required=True,
+            feedback_timeout=0,
+        )
+        results = asyncio.run(pipeline.run_evolution_cycle(iterations=1))
+        assert len(results) == 1
+        assert results[0].get("feedback_decision") == "timeout"
+        # The proposal should be expired, not left PENDING
+        proposals = store.get_all()
+        assert len(proposals) == 1
+        assert proposals[0].decision.value == "expired"
+
+    def test_negative_timeout_expires_proposal(self):
+        store = FeedbackStore()
+        pipeline = _make_pipeline(
+            feedback_store=store,
+            human_feedback_required=True,
+            feedback_timeout=-5,
+        )
+        results = asyncio.run(pipeline.run_evolution_cycle(iterations=1))
+        assert len(results) == 1
+        assert results[0].get("feedback_decision") == "timeout"
+        proposals = store.get_all()
+        assert len(proposals) == 1
+        assert proposals[0].decision.value == "expired"
+
+
+class TestFeedbackPollException:
+    """Exception during polling should degrade gracefully."""
+
+    def test_poll_expire_both_fail_returns_timeout(self):
+        """If get_proposal raises AND expire_proposal raises, still return timeout."""
+        store = FeedbackStore()
+        proposal = store.submit_proposal(title="Test", description="desc")
+
+        # Make both get_proposal and expire_proposal raise
+        store.get_proposal = MagicMock(side_effect=RuntimeError("store down"))
+        store.expire_proposal = MagicMock(side_effect=RuntimeError("store still down"))
+
+        pipeline = _make_pipeline(
+            feedback_store=store,
+            human_feedback_required=True,
+            feedback_timeout=10.0,
+            feedback_poll_interval=0.05,
+        )
+        # StructuredLogger lacks .exception(); patch it to avoid pre-existing AttributeError
+        import evoseal.core.evolution_pipeline as ep_mod
+
+        with patch.object(type(ep_mod.logger), "exception", ep_mod.logger.error, create=True):
+            results = asyncio.run(pipeline.run_evolution_cycle(iterations=1))
+        assert len(results) == 1
+        assert results[0].get("feedback_decision") == "timeout"
+
+
 class TestFeedbackStoreExpire:
     """FeedbackStore.expire_proposal marks proposals as expired."""
 

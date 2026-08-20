@@ -1119,6 +1119,7 @@ class EvolutionPipeline:
                 f"Feedback proposal {proposal.id} — feedback_timeout={timeout}s means no wait; "
                 f"treating as timeout"
             )
+            self.feedback_store.expire_proposal(proposal.id)
             return None
 
         while elapsed < timeout:
@@ -1131,9 +1132,13 @@ class EvolutionPipeline:
                 logger.exception(
                     f"Failed to poll feedback proposal {proposal.id} — treating as timeout"
                 )
-                self.feedback_store.expire_proposal(proposal.id)
+                try:
+                    self.feedback_store.expire_proposal(proposal.id)
+                except Exception:
+                    logger.exception(f"Failed to expire proposal {proposal.id} after poll failure")
                 return None
             if stored is None:
+                # Proposal already gone from store — no need to expire it.
                 logger.warning(
                     f"Feedback proposal {proposal.id} disappeared from store — treating as timeout"
                 )
