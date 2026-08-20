@@ -40,6 +40,8 @@ class MockKnowledgeBase:
         context:
             Accepted for API compatibility; not used.
         """
+        # Intentionally synchronous body — no real I/O; async is for
+        # interface compatibility with the real KnowledgeBase.search().
         limit = max_results if max_results is not None else 5
         threshold = min_score if min_score is not None else 0.3
 
