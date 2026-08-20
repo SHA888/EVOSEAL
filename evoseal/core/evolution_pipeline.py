@@ -24,6 +24,7 @@ from rich.console import Console
 from config.settings import Settings
 from evoseal.core.budget_tracker import BudgetTracker
 from evoseal.core.error_recovery import error_recovery_manager, with_error_recovery
+from evoseal.core.feedback_store import FeedbackDecision, FeedbackStore
 from evoseal.core.improvement_validator import ImprovementValidator
 from evoseal.core.logging_system import get_logger
 from evoseal.core.metrics_tracker import MetricsTracker
@@ -85,6 +86,11 @@ class EvolutionConfig:
     max_iterations: int = 1000  # Hard cap on evolution iterations
     max_consecutive_rejections: int = 5  # Stuck generator circuit threshold
 
+    # Human-in-the-loop feedback gating
+    human_feedback_required: bool = False  # Gate improvements behind human approval
+    feedback_poll_interval: float = 5.0  # Seconds between polling for feedback decision
+    feedback_timeout: float = 600.0  # Max seconds to wait for feedback (0 = no wait)
+
 
 class EvolutionPipeline:
     """
@@ -94,7 +100,11 @@ class EvolutionPipeline:
     the complete code evolution workflow.
     """
 
-    def __init__(self, config: dict[str, Any] | EvolutionConfig | None = None):
+    def __init__(
+        self,
+        config: dict[str, Any] | EvolutionConfig | None = None,
+        feedback_store: FeedbackStore | None = None,
+    ):
         """Initialize the EvolutionPipeline.
 
         Args:
@@ -108,6 +118,9 @@ class EvolutionPipeline:
             self.config = EvolutionConfig(**config)
         else:
             self.config = config
+
+        # Human-in-the-loop feedback store (optional)
+        self.feedback_store = feedback_store
 
         # Initialize components
         self.event_bus = EventBus()
@@ -857,6 +870,29 @@ class EvolutionPipeline:
                 evaluation_result,
             )
 
+            # Gate improvement behind human feedback when configured
+            if is_improvement and self.config.human_feedback_required:
+                if self.feedback_store is not None:
+                    feedback_result = await self._await_human_feedback(
+                        iteration, evaluation_result, adapted_improvements
+                    )
+                    if feedback_result is False:
+                        # Human rejected — treat as not an improvement
+                        is_improvement = False
+                        iteration_result["feedback_decision"] = "rejected"
+                    elif feedback_result is None:
+                        # Timed out waiting for feedback
+                        is_improvement = False
+                        iteration_result["feedback_decision"] = "timeout"
+                    else:
+                        iteration_result["feedback_decision"] = "approved"
+                else:
+                    logger.warning(
+                        f"Iteration {iteration}: human_feedback_required=True "
+                        f"but no feedback_store configured — auto-approving"
+                    )
+                    iteration_result["feedback_decision"] = "auto_approved"
+
             # Update iteration result
             iteration_result.update(
                 {
@@ -1015,6 +1051,115 @@ class EvolutionPipeline:
             f"required_passed={result.get('required_passed')})"
         )
         return is_improvement
+
+    async def _await_human_feedback(
+        self,
+        iteration: int,
+        evaluation_result: dict[str, Any],
+        improvements: list[dict[str, Any]],
+    ) -> bool | None:
+        """Submit a modification proposal and wait for human approval.
+
+        Returns:
+            True if approved, False if rejected, None if timed out.
+        """
+        if self.feedback_store is None:
+            return True  # No store — auto-approve
+
+        # Build a concise proposal from the evaluation
+        score = evaluation_result.get("score", 0)
+        if score is None:
+            score = 0
+        try:
+            score = float(score)
+        except (TypeError, ValueError):
+            logger.warning(f"Non-numeric score {score!r} in evaluation result — defaulting to 0")
+            score = 0.0
+        metrics = evaluation_result.get("metrics", {})
+        test_type = evaluation_result.get("test_type", "unknown")
+        description_parts = [
+            f"Iteration {iteration}",
+            f"Score: {score:.1f}",
+            f"Test type: {test_type}",
+        ]
+        if metrics:
+            description_parts.append(f"Metrics: {json.dumps(metrics, default=str)}")
+
+        try:
+            proposal = self.feedback_store.submit_proposal(
+                title=f"Evolution iteration {iteration} improvement",
+                description=" | ".join(description_parts),
+                file_changes=improvements if improvements else [],
+                metadata={
+                    "iteration": iteration,
+                    "score": score,
+                    "test_type": test_type,
+                    "metrics": metrics,
+                },
+            )
+        except Exception:
+            logger.error(
+                f"Failed to submit feedback proposal for iteration {iteration} — "
+                f"treating as timeout"
+            )
+            return None
+        logger.info(
+            f"Feedback proposal {proposal.id} submitted for iteration {iteration}. "
+            f"Waiting for human decision (timeout={self.config.feedback_timeout}s)..."
+        )
+
+        # Poll for decision
+        elapsed = 0.0
+        interval = max(self.config.feedback_poll_interval, 0.1)
+        timeout = self.config.feedback_timeout
+
+        # timeout <= 0 means "don't wait" — treat as immediate timeout
+        if timeout <= 0:
+            logger.warning(
+                f"Feedback proposal {proposal.id} — feedback_timeout={timeout}s means no wait; "
+                f"treating as timeout"
+            )
+            self.feedback_store.expire_proposal(proposal.id)
+            return None
+
+        while elapsed < timeout:
+            await asyncio.sleep(min(interval, timeout - elapsed))
+            elapsed += interval
+
+            try:
+                stored = self.feedback_store.get_proposal(proposal.id)
+            except Exception:
+                logger.error(
+                    f"Failed to poll feedback proposal {proposal.id} — treating as timeout"
+                )
+                try:
+                    self.feedback_store.expire_proposal(proposal.id)
+                except Exception:
+                    logger.error(f"Failed to expire proposal {proposal.id} after poll failure")
+                return None
+            if stored is None:
+                # Proposal already gone from store — no need to expire it.
+                logger.warning(
+                    f"Feedback proposal {proposal.id} disappeared from store — treating as timeout"
+                )
+                return None
+
+            if stored.decision == FeedbackDecision.APPROVED:
+                logger.info(f"Feedback proposal {proposal.id} approved by {stored.decided_by}")
+                return True
+            elif stored.decision == FeedbackDecision.REJECTED:
+                logger.info(
+                    f"Feedback proposal {proposal.id} rejected by {stored.decided_by}: "
+                    f"{stored.reason or 'no reason given'}"
+                )
+                return False
+
+        # Timed out
+        logger.warning(
+            f"Feedback proposal {proposal.id} timed out after {timeout}s — rejecting improvement"
+        )
+        self.feedback_store.expire_proposal(proposal.id)
+        return None
 
     def _check_budget_before_iteration(
         self, iteration_num: int, results: list[dict[str, Any]]

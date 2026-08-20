@@ -301,7 +301,7 @@
 - [x] **Run PBT feasibility spike** _(done 2026-08-08)_ — `spikes/pbt-feasibility/`: 5 configs × 5 seeds × 10 generations on synthetic fitness landscape. Best-fitness spread 22.9% (>10% ADR 0005 threshold). Verdict: VALIDATED. Next: PBT design doc.
 - [ ] **Human-in-the-loop feedback interface** _(scaffolding done 2026-08-06; pipeline gating remains)_
   - [x] Proposal store, dashboard UI, approve/reject endpoints
-  - [ ] Wire `FeedbackStore` into the self-modification pipeline (gate behind approval)
+  - [x] Wire `FeedbackStore` into the self-modification pipeline (gate behind approval)
   - Allow a developer to approve/reject self-modifications via the dashboard
   - Track acceptance rate as a meta-metric
 
@@ -314,8 +314,8 @@
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
 | 🟠 P1    | 24    | 22   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed |
 | 🟡 P2    | 30    | 30   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; progressive rollout gating implemented; dashboard cost/token tracking; dashboard offline mode; generation diff view |
-| 🟢 P3    | 27    | 26   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs; Ollama live E2E verification (9 integration tests against real Ollama instance); vLLM provider added; human-in-the-loop feedback interface; hyperparameter-space documentation; PBT feasibility spike |
-| **Total** | **92** | **89** | |
+| 🟢 P3    | 27    | 27   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs; Ollama live E2E verification (9 integration tests against real Ollama instance); vLLM provider added; human-in-the-loop feedback interface; hyperparameter-space documentation; PBT feasibility spike |
+| **Total** | **92** | **90** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
