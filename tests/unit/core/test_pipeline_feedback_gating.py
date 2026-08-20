@@ -221,11 +221,7 @@ class TestFeedbackPollException:
             feedback_timeout=10.0,
             feedback_poll_interval=0.05,
         )
-        # StructuredLogger lacks .exception(); patch it to avoid pre-existing AttributeError
-        import evoseal.core.evolution_pipeline as ep_mod
-
-        with patch.object(type(ep_mod.logger), "exception", ep_mod.logger.error, create=True):
-            results = asyncio.run(pipeline.run_evolution_cycle(iterations=1))
+        results = asyncio.run(pipeline.run_evolution_cycle(iterations=1))
         assert len(results) == 1
         assert results[0].get("feedback_decision") == "timeout"
 

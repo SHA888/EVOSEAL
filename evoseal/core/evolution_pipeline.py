@@ -1098,7 +1098,7 @@ class EvolutionPipeline:
                 },
             )
         except Exception:
-            logger.exception(
+            logger.error(
                 f"Failed to submit feedback proposal for iteration {iteration} — "
                 f"treating as timeout"
             )
@@ -1123,19 +1123,19 @@ class EvolutionPipeline:
             return None
 
         while elapsed < timeout:
-            await asyncio.sleep(interval)
+            await asyncio.sleep(min(interval, timeout - elapsed))
             elapsed += interval
 
             try:
                 stored = self.feedback_store.get_proposal(proposal.id)
             except Exception:
-                logger.exception(
+                logger.error(
                     f"Failed to poll feedback proposal {proposal.id} — treating as timeout"
                 )
                 try:
                     self.feedback_store.expire_proposal(proposal.id)
                 except Exception:
-                    logger.exception(f"Failed to expire proposal {proposal.id} after poll failure")
+                    logger.error(f"Failed to expire proposal {proposal.id} after poll failure")
                 return None
             if stored is None:
                 # Proposal already gone from store — no need to expire it.
