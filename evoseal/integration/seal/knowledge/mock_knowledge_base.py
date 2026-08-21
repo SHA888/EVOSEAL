@@ -42,6 +42,8 @@ class MockKnowledgeBase:
         """
         # Intentionally synchronous body — no real I/O; async is for
         # interface compatibility with the real KnowledgeBase.search().
+        if max_results is not None and max_results < 0:
+            raise ValueError("max_results must be non-negative")
         limit = max_results if max_results is not None else 5
         threshold = min_score if min_score is not None else 0.3
 
