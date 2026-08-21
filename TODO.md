@@ -152,7 +152,7 @@
 
 ### SEAL Subsystem Issues Found in Whole-Repo Code Review (2026-07-22)
 
-- [ ] **Knowledge retrieval in the SEAL subsystem is broken** _(exact file:line needs re-verification — flagged by initial review pass, not yet deep-dived)_
+- [x] **Knowledge retrieval in the SEAL subsystem is broken** _(done 2026-08-20, PR #143)_ — `KnowledgeBase.search()` now returns real relevance scores instead of hardcoded 1.0; `MockKnowledgeBase.search()` fixed to async with correct `max_results` parameter matching the `KnowledgeBase` interface
 
 ---
 
@@ -312,10 +312,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 22   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed |
+| 🟠 P1    | 24    | 23   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143) |
 | 🟡 P2    | 30    | 30   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; progressive rollout gating implemented; dashboard cost/token tracking; dashboard offline mode; generation diff view |
 | 🟢 P3    | 27    | 26   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs; Ollama live E2E verification (9 integration tests against real Ollama instance); vLLM provider added; human-in-the-loop feedback interface; hyperparameter-space documentation; PBT feasibility spike |
-| **Total** | **92** | **89** | |
+| **Total** | **92** | **90** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
