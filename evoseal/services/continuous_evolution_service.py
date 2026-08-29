@@ -19,6 +19,7 @@ from typing import Any
 
 from ..config import SEALConfig
 from ..core.evolution_pipeline import EvolutionPipeline
+from ..core.feedback_store import FeedbackStore
 from ..evolution import EvolutionDataCollector
 from ..evolution.data_collector import create_evolution_result
 from ..evolution.models import EvolutionStrategy
@@ -44,6 +45,7 @@ class ContinuousEvolutionService:
         min_evolution_samples: int = 50,
         pipeline: EvolutionPipeline | None = None,
         evolution_iterations: int = 1,
+        feedback_store: FeedbackStore | None = None,
     ):
         """
         Initialize the continuous evolution service.
@@ -59,6 +61,8 @@ class ContinuousEvolutionService:
                 ``_get_pipeline``.
             evolution_iterations: Number of iterations passed to
                 ``EvolutionPipeline.run_evolution_cycle`` on each cycle.
+            feedback_store: Optional FeedbackStore for human-in-the-loop
+                approval gating of self-modifications.
         """
         self.config = config or SEALConfig()
         self.data_dir = data_dir or Path("data/continuous_evolution")
@@ -72,6 +76,7 @@ class ContinuousEvolutionService:
 
         # Initialize components
         self._pipeline = pipeline
+        self.feedback_store = feedback_store
         self.data_collector = EvolutionDataCollector(data_dir=self.data_dir / "evolution_data")
 
         self.bidirectional_manager = BidirectionalEvolutionManager(
@@ -240,7 +245,10 @@ class ContinuousEvolutionService:
                     "Inject a pre-built pipeline via the `pipeline` constructor "
                     "parameter, or pass a config object that implements model_dump()."
                 )
-            self._pipeline = EvolutionPipeline(config={"seal_config": seal_config})
+            self._pipeline = EvolutionPipeline(
+                config={"seal_config": seal_config},
+                feedback_store=self.feedback_store,
+            )
         return self._pipeline
 
     async def _run_evolution_cycle(self):

@@ -129,6 +129,7 @@ class TestGetStats:
             "pending": 0,
             "approved": 0,
             "rejected": 0,
+            "expired": 0,
             "acceptance_rate": None,
         }
 
