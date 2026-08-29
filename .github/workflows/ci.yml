@@ -320,7 +320,9 @@ jobs:
       uses: astral-sh/setup-uv@v7
 
     - name: Install safety
-      run: uv pip install --system safety
+      run: |
+        uv pip install --system 'setuptools>=83.0.0'
+        uv pip install --system safety
 
     - name: Run Bandit security linter
       # PyCQA/bandit is the bandit source repo, not a GitHub Action (it has no
