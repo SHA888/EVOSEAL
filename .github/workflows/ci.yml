@@ -320,8 +320,10 @@ jobs:
       uses: astral-sh/setup-uv@v7
 
     - name: Install safety
+      # Pin setuptools to avoid safety flagging CVE-2026-59890 in <83.0.0.
+      # Upper-bounded to <84 for reproducibility.
       run: |
-        uv pip install --system 'setuptools>=83.0.0'
+        uv pip install --system 'setuptools>=83.0.0,<84'
         uv pip install --system safety
 
     - name: Run Bandit security linter
