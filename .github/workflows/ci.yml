@@ -321,7 +321,9 @@ jobs:
 
     - name: Install safety
       # Pin setuptools to avoid safety flagging CVE-2026-59890 in <83.0.0.
-      # Upper-bounded to <84 for reproducibility.
+      # Upper-bounded to <84 for reproducibility. REVIEW: bump this bound
+      # when setuptools 84+ is released and verified compatible, or when a new
+      # CVE forces another pin — nothing else in CI monitors this constraint.
       run: |
         uv pip install --system 'setuptools>=83.0.0,<84'
         uv pip install --system safety
