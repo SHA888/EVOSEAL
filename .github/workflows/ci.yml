@@ -320,13 +320,13 @@ jobs:
       uses: astral-sh/setup-uv@v7
 
     - name: Install safety
-      # Pin setuptools to avoid safety flagging CVE-2026-59890 in <83.0.0.
-      # Upper-bounded to <84 for reproducibility. REVIEW: bump this bound
-      # when setuptools 84+ is released and verified compatible, or when a new
-      # CVE forces another pin — nothing else in CI monitors this constraint.
-      run: |
-        uv pip install --system 'setuptools>=83.0.0,<84'
-        uv pip install --system safety
+      # Pin setuptools to avoid safety flagging CVE-2026-59890 / SFTY-20260721-58460
+      # in <83.0.0 (83.0.0 itself is the fix). Upper-bounded to <84 for
+      # reproducibility. REVIEW: bump this bound when setuptools 84+ is released
+      # and verified compatible, or when a new CVE forces another pin — nothing
+      # else in CI monitors this constraint. TODO(2026-11): revisit this pin;
+      # file a follow-up to add a scheduled check or Dependabot-equivalent.
+      run: uv pip install --system 'setuptools>=83.0.0,<84' safety
 
     - name: Run Bandit security linter
       # PyCQA/bandit is the bandit source repo, not a GitHub Action (it has no
