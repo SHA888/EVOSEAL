@@ -2,12 +2,12 @@
 
 ## 🎉 Release Highlights
 
-This release includes 523 change(s) since the previous release.
+This release includes 524 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-09-03
-- **Total Changes**: 523
+- **Total Changes**: 524
 
 ## ✨ New Features
 
@@ -188,6 +188,7 @@ This release includes 523 change(s) since the previous release.
 
 ## 📝 Documentation
 
+- 📝 docs: ADR 0001 trigger #1 fired — Tier 2 container isolation now mandatory (#163) ([351c8c8](https://github.com/SHA888/EVOSEAL/commit/351c8c8))
 - 📝 docs: mark human-in-the-loop feedback interface as complete (#162) ([1099407](https://github.com/SHA888/EVOSEAL/commit/1099407))
 - 📝 docs: check hyperparameter-space box in TODO.md (#159) ([8a70eef](https://github.com/SHA888/EVOSEAL/commit/8a70eef))
 - 📝 docs: enumerate EVOSEAL hyperparameter space (#156) ([b745a86](https://github.com/SHA888/EVOSEAL/commit/b745a86))
@@ -575,4 +576,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-09-03 01:03:05 UTC*
+*This release was automatically generated on 2026-09-03 02:52:57 UTC*
