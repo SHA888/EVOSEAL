@@ -89,7 +89,38 @@
   - Apply similar principle: DGM-generated pipeline variants should execute in isolated environments before touching the main codebase
   - Evaluate whether the current Git-based rollback is sufficient or whether a container-based isolation layer is needed
 
-- [ ] **Tier 2 container isolation (DEFERRED — trigger-gated per ADR 0001 section 5; implement only if a trust-model trigger fires, e.g. untrusted generation, multi-tenant host)**
+### Tier 2 container isolation (ADR 0001 trigger fired 2026-09-03)
+
+> **Trigger fired (2026-09-03, ADR 0001 §5.1 amendment):** the generator's default provider
+> is local (`provider_used="ollama"`), and `coevolution_manager.default_manager()` (PR #73)
+> prefers EVOSEAL's own self-fine-tuned model over a trusted external API — trigger #1
+> ("untrusted or adversarial generation... an unvetted/local model") has fired
+> architecturally, even though no `evoseal` process is live yet. Tier 2 is now mandatory,
+> not deferred. Follow the dependency order below — each step builds on the previous one
+> landing, same pattern as the bidirectional co-evolution loop closure above.
+
+- [ ] **T2-1. Design doc: container execution mechanism** — decide the spawn model (sibling
+  container via host Docker socket vs. rootless nested runtime) given EVOSEAL already runs
+  inside its own container (`docker-compose.evoseal.yml`); document tradeoffs and the
+  chosen approach in `docs/adr/`
+- [ ] **T2-2. Per-variant container spawn wrapper** — implement T2-1's chosen mechanism:
+  spawn a fresh, network-disabled container per variant test execution; extract only the
+  pass/fail result and artifacts; tear down after
+- [ ] **T2-3. No-host-secrets guarantee at the container boundary** — construct the spawned
+  container so it never receives host secrets/env by default (stronger than Tier 1's
+  env-stripping, which only scrubs a shared subprocess's inherited environment)
+- [ ] **T2-4. Container-level resource caps** — CPU/memory/PID limits via the container
+  runtime, superseding Tier 1's `resource.setrlimit` (which only bounds a shared-host
+  subprocess)
+- [ ] **T2-5. Wire Tier 2 into the sandboxed test runner** — route the existing
+  `sandbox_enabled` code path (2.14) through the new container executor as the new default
+  execution mode
+- [ ] **T2-6. Extend adversarial safety tests (2.4) for Tier 2** — add cases proving Tier 2
+  closes what Tier 1 could not: attempted network exfiltration from variant test code,
+  attempted resource exhaustion, attempted read of a path visible under Tier 1's shared
+  filesystem but not under Tier 2's container boundary
+- [ ] **T2-7. Update ADR 0001 "Current state" and operator guidance once T2-1–T2-6 land**,
+  mirroring the 2026-07-19 Tier 1 amendment
 
 - [x] **Fix missing `configs/safety.yaml` and `config/` vs `configs/` path discrepancy** _(done 2026-07-27)_
   - Multiple safety-critical modules reference `configs/safety.yaml` (plural `configs/`) as the immutable safety configuration, but neither that file nor a `configs/` directory exists
@@ -312,10 +343,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 24    | 23   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143) |
+| 🟠 P1    | 31    | 23   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143); +7 Tier 2 container isolation tasks filed 2026-09-03 (ADR 0001 trigger #1 fired) |
 | 🟡 P2    | 30    | 30   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; progressive rollout gating implemented; dashboard cost/token tracking; dashboard offline mode; generation diff view |
 | 🟢 P3    | 27    | 27   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs; Ollama live E2E verification (9 integration tests against real Ollama instance); vLLM provider added; human-in-the-loop feedback interface; hyperparameter-space documentation; PBT feasibility spike |
-| **Total** | **92** | **90** | |
+| **Total** | **99** | **90** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
