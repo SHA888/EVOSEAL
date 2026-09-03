@@ -1,6 +1,6 @@
 # ADR 0001 — Isolation strategy for self-modification: rollback vs sandbox
 
-**Status:** Accepted (research-stage)
+**Status:** Accepted (research-stage) — **Tier 2 trigger #1 fired 2026-09-03; see Amendment below**
 **Date:** 2026-06-05
 **Deciders:** Project lead
 **Depends on:** [`threat_model.md`](../safety/threat_model.md) (Plans.md 2.1)
@@ -131,7 +131,7 @@ follow-on tasks in Section 6.**
 |------|-----------|--------|-----------|
 | **Tier 0 — Recovery** | Git/checkpoint rollback (`rollback_manager.py`, `checkpoint_manager.py`) | **In place; keep** | Always on |
 | **Tier 1 — Containment (T1 + T2 windows)** | Edit-scope allowlist (T1) · secret-scrubbed test env + read-only chmod of critical files + `resource.setrlimit` (T2) · hard iteration cap + stuck-generator circuit · network isolation + unprivileged-user deferred to Tier 1.5 (see §3) | **Implemented & default-on** (tasks 2.13–2.15, landed ~2026-06-28) | Always on |
-| **Tier 2 — Hard isolation** | Per-variant container/VM, network-off, no host secrets, resource-capped | **Deferred; documented** | Any trigger in Section 5 fires |
+| **Tier 2 — Hard isolation** | Per-variant container/VM, network-off, no host secrets, resource-capped | **Triggered 2026-09-03 (§5.1); mandatory, not yet implemented** | Any trigger in Section 5 fires |
 
 > **Current state (honest):** **Tier 0 and Tier 1 are implemented.** All three Tier 1
 > tasks (2.13–2.15) have landed and are enabled by default. The edit-scope allowlist
@@ -139,20 +139,23 @@ follow-on tasks in Section 6.**
 > time. The sandboxed test runner (2.14, commit `c0cbc59`) strips API keys from the test
 > subprocess environment and applies resource limits via `preexec_fn`. The hard iteration
 > cap (2.15, commit `d21c87b`) enforces `min(iterations, max_iterations)` and triggers
-> circuit breakers on stuck generators. The system's real posture is now Option C
-> (Tier 0 + Tier 1). Tier 2 hard isolation remains deferred per the trust-model triggers
-> in Section 5.
+> circuit breakers on stuck generators. The system's real posture was Option C
+> (Tier 0 + Tier 1) — **as of 2026-09-03, Section 5 trigger #1 has fired (see Amendment
+> below): Tier 2 is now mandatory, not deferred.** Tier 1 remains in place and enabled
+> while Tier 2 is built.
 >
-> **Operator guidance** (current protections): run EVOSEAL with a trusted model provider
-> on a host you control. The Tier 1 guards now provide: (a) an edit-scope allowlist that
-> prevents generated code from modifying safety configs, CI workflows, or `.env`; (b) a
-> sandboxed test subprocess that strips `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other
-> secrets from the environment and enforces resource limits (CPU, memory, open files);
-> (c) a hard iteration cap (`max_iterations`, default 1000) with stuck-generator circuit
-> breakers that halt the loop automatically. These are defense-in-depth, not airtight —
-> the current trust model (trusted provider, single operator) is what makes Tier 1
-> sufficient. If the trust model changes (Section 5 triggers), Tier 2 container isolation
-> becomes mandatory.
+> **Operator guidance** (current protections, pending Tier 2): the Tier 1 guards provide:
+> (a) an edit-scope allowlist that prevents generated code from modifying safety configs,
+> CI workflows, or `.env`; (b) a sandboxed test subprocess that strips
+> `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other secrets from the environment and
+> enforces resource limits (CPU, memory, open files); (c) a hard iteration cap
+> (`max_iterations`, default 1000) with stuck-generator circuit breakers that halt the
+> loop automatically. These are defense-in-depth, not airtight. **The trust model that
+> made Tier 1 sufficient on its own (trusted external provider) no longer holds** — the
+> generator now defaults to a local Ollama provider and prefers a self-fine-tuned model
+> from the version registry (`coevolution_manager.default_manager()`, PR #73) over a
+> trusted external API. Do not run the self-modification loop unattended against
+> untrusted/high-value targets until Tier 2 lands.
 
 **Answer to the DoD's framing — "if Git rollback is sufficient, explain why the threat
 model doesn't require isolation":** Git rollback *is* sufficient for **recovery** and is
@@ -218,3 +221,65 @@ trust model. Tier 2 remains deferred behind the Section 5 triggers.
 Section 6 to reflect that Tier 1 (tasks 2.13–2.15) is now implemented and enabled by
 default. No change to the decision (Option C) or Tier 2 deferral. Commits: `f45d923`
 (edit-scope allowlist), `c0cbc59` (sandboxed test execution), `d21c87b` (runaway controls).
+
+**Amendment — 2026-09-03: Trigger #1 fired — Tier 2 promoted from deferred to mandatory.**
+
+Decided by the project lead. Section 5 trigger #1 ("untrusted or adversarial generation —
+running an unvetted/local model, or any scenario where the generator can no longer be
+assumed honest-but-fallible") has fired. Evidence:
+
+- `evoseal/evolution/data_collector.py` defaults `provider_used="ollama"` — the generator's
+  default provider is a local model, not the "trusted model provider" this ADR's Section 1
+  and Section 2.1 assumed as the trust-model baseline.
+- `evoseal/prompt_evolution/coevolution_manager.py::default_manager()` (landed PR #73,
+  2026-07-24) actively wires `ModelVersionManager().get_current_version()` — EVOSEAL's own
+  self-fine-tuned model, deployed locally via Ollama — as the *preferred* generator over
+  raw family-based discovery. This is architecturally the exact scenario trigger #1 names:
+  the system generating its own future code changes with a model it trained on itself,
+  which cannot be assumed honest-but-fallible in the way a trusted external provider was.
+
+Triggers #2 (multi-tenant host), #3 (untrusted execution targets), and #4 (secrets that
+must survive a hostile variant beyond what Tier 1's env-stripping already covers) were
+evaluated and have **not** fired — single-operator single-host deployment, no evidence of
+external side-effecting calls or untrusted-input evaluation, and Tier 1's secret-stripping
+(2.14) already mitigates the credential-exposure vector day to day.
+
+**Caveat:** no `evoseal` process is live on the operator's host as of this amendment (the
+self-modification loop is wired but not currently running in production, and the version
+registry likely has no deployed fine-tuned model yet — research-stage). This is an
+architectural trigger, not an active-incident trigger: the design now matches trigger #1's
+description, even though current blast radius is zero. Tier 2 is required before the
+self-modification loop is run unattended against real workloads.
+
+**Consequence:** Tier 2 is promoted from "deferred; documented" to "mandatory; not yet
+implemented" (Section 4 table updated above). Filed as ordered follow-on tasks under a new
+"Tier 2 container isolation" section in `TODO.md` (mirrors the Section 6 task-numbering
+precedent set by 2.13–2.15):
+
+- **T2-1 — Design doc: container execution mechanism.** Decide the spawn model (sibling
+  container via host Docker socket vs. rootless nested runtime) given EVOSEAL already runs
+  inside its own container (`docker-compose.evoseal.yml`); document tradeoffs and the
+  chosen approach.
+- **T2-2 — Per-variant container spawn wrapper.** Implement T2-1's chosen mechanism: spawn
+  a fresh, network-disabled container per variant test execution; extract only the
+  pass/fail result and artifacts; tear down after.
+- **T2-3 — No-host-secrets guarantee at the container boundary.** Construct the spawned
+  container so it never receives host secrets/env by default (stronger than Tier 1's
+  env-stripping, which only scrubs a shared subprocess's inherited environment) — no
+  `--env-file`, no `.env` mount, minimal base image.
+- **T2-4 — Container-level resource caps.** CPU/memory/PID limits via the container
+  runtime (e.g. `--cpus`, `--memory`, `--pids-limit`), superseding Tier 1's
+  `resource.setrlimit`, which only bounds a shared-host subprocess.
+- **T2-5 — Wire Tier 2 into the sandboxed test runner.** Route the existing
+  `sandbox_enabled` code path (2.14) through the new container executor as the new default
+  execution mode.
+- **T2-6 — Extend adversarial safety tests (2.4) for Tier 2.** Add cases proving Tier 2
+  closes what Tier 1 could not: attempted network exfiltration from variant test code,
+  attempted resource exhaustion, attempted read of a path visible under Tier 1's shared
+  filesystem but not under Tier 2's container boundary.
+- **T2-7 — Update this ADR's "Current state" and operator guidance once T2-1..T2-6 land**,
+  mirroring the 2026-07-19 Tier 1 amendment.
+
+No change to Option C as the chosen model (tiered, trigger-gated) — this amendment fires
+the trigger the model always said would promote Tier 2, it does not revisit the model
+itself.
