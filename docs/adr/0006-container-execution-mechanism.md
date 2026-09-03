@@ -1,6 +1,6 @@
 # ADR 0006 — Container execution mechanism for Tier 2 isolation
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-03
 **Deciders:** Project lead
 **Depends on:** [ADR 0001](0001-isolation-strategy.md) (isolation strategy; Tier 2 trigger #1 fired 2026-09-03)
@@ -92,7 +92,8 @@ Docker SDK for Python (`docker` package) to spawn sibling containers from inside
   Podman, some CI runners). **Mitigation:** EVOSEAL's target environment is a Docker-based
   single-server deployment; the `docker-compose.evoseal.yml` file already assumes Docker.
 - **Sibling container lifecycle management.** Crashed or leaked containers must be cleaned
-  up. **Mitigation:** `ContainerSandbox` uses `remove=True` on container exit and a
+  up. **Mitigation:** `ContainerSandbox` explicitly reads the exit code and output *before*
+  calling `container.remove()` (not `remove=True`, which races log retrieval), plus a
   cleanup sweep for any containers older than a configurable timeout.
 
 ### Option B — Rootless nested runtime (e.g., Podman in container, sysbox)
@@ -188,6 +189,8 @@ acceptable given EVOSEAL's single-operator, single-host, research-stage deployme
    - `nano_cpus` (CPU limit in nanocpus, e.g., `1e9` for 1 CPU).
    - `mem_limit` (memory limit, e.g., `"512m"`).
    - `pids_limit` (PID limit, e.g., `256`).
+   Conversion from `container_sandbox` config: `nano_cpus = int(float(cpu_limit) * 1e9)`,
+   `mem_limit = memory_limit`, `pids_limit = pids_limit` (direct pass-through).
    These supersede Tier 1's `resource.setrlimit` for the container boundary.
 
 4. **T2-5 — Wire into test runner.** Modify `SandboxedTestRunner` (`testrunner.py`) to
