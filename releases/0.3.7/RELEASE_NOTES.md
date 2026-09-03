@@ -2,15 +2,16 @@
 
 ## 🎉 Release Highlights
 
-This release includes 520 change(s) since the previous release.
+This release includes 523 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
-- **Release Date**: 2026-08-19
-- **Total Changes**: 520
+- **Release Date**: 2026-09-03
+- **Total Changes**: 523
 
 ## ✨ New Features
 
+- ✨ feat: wire FeedbackStore into EvolutionPipeline for human-in-the-loop gating (#160) ([d641ba0](https://github.com/SHA888/EVOSEAL/commit/d641ba0))
 - ✨ feat(dashboard): add human-in-the-loop feedback interface for self-modifications (#153) ([20fcb5a](https://github.com/SHA888/EVOSEAL/commit/20fcb5a))
 - ✨ feat(providers): add vLLM provider via OpenAI-compatible API (#149) ([f2c638d](https://github.com/SHA888/EVOSEAL/commit/f2c638d))
 - ✨ feat(seal): add relevance scoring to KnowledgeBase search (#143) ([d744385](https://github.com/SHA888/EVOSEAL/commit/d744385))
@@ -82,6 +83,7 @@ This release includes 520 change(s) since the previous release.
 
 ## 🐛 Bug Fixes
 
+- 🐛 fix(seal): fix MockKnowledgeBase async interface + check off knowledge retrieval TODO (#161) ([9d5c32d](https://github.com/SHA888/EVOSEAL/commit/9d5c32d))
 - 🐛 fix(export): replace fabricated results with real experiment data (#124) ([28631a3](https://github.com/SHA888/EVOSEAL/commit/28631a3))
 - 🐛 fix(ci): scope release gates and restore install smoke-test ([3c71031](https://github.com/SHA888/EVOSEAL/commit/3c71031))
 - 🐛 fix: address release-pipeline review feedback ([4e351e4](https://github.com/SHA888/EVOSEAL/commit/4e351e4))
@@ -186,6 +188,7 @@ This release includes 520 change(s) since the previous release.
 
 ## 📝 Documentation
 
+- 📝 docs: mark human-in-the-loop feedback interface as complete (#162) ([1099407](https://github.com/SHA888/EVOSEAL/commit/1099407))
 - 📝 docs: check hyperparameter-space box in TODO.md (#159) ([8a70eef](https://github.com/SHA888/EVOSEAL/commit/8a70eef))
 - 📝 docs: enumerate EVOSEAL hyperparameter space (#156) ([b745a86](https://github.com/SHA888/EVOSEAL/commit/b745a86))
 - 📝 docs: add local models (Ollama) setup guide to SETUP.md (#141) ([53e1004](https://github.com/SHA888/EVOSEAL/commit/53e1004))
@@ -572,4 +575,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-08-19 16:53:22 UTC*
+*This release was automatically generated on 2026-09-03 01:03:05 UTC*
