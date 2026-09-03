@@ -299,7 +299,7 @@
 - [x] **Explore population-based training (PBT) as alternative to MAP-Elites** _(done 2026-08-07)_ — ADR 0005 evaluates PBT as a complement (not replacement) for MAP-Elites in hyperparameter tuning. Conclusion: PBT and MAP-Elites solve different problems (hyperparameters vs. code variants); PBT is worth exploring but prerequisites (local model support, sensitivity analysis) aren't in place yet. Recommended next step is a feasibility spike with parallel runs, not a full implementation. Document at `docs/adr/0005-population-based-training.md`
 - [x] **Document EVOSEAL's hyperparameter space** _(done 2026-08-19)_ — enumerate all tuneable pipeline parameters (mutation rate, selection pressure, temperature, etc.) and their current values/ranges; prerequisite for PBT feasibility spike
 - [x] **Run PBT feasibility spike** _(done 2026-08-08)_ — `spikes/pbt-feasibility/`: 5 configs × 5 seeds × 10 generations on synthetic fitness landscape. Best-fitness spread 22.9% (>10% ADR 0005 threshold). Verdict: VALIDATED. Next: PBT design doc.
-- [ ] **Human-in-the-loop feedback interface** _(scaffolding done 2026-08-06; pipeline gating remains)_
+- [x] **Human-in-the-loop feedback interface** _(done 2026-08-29)_ — FeedbackStore with CRUD + acceptance-rate stats; dashboard UI with approve/reject buttons and live stats; API endpoints (`/api/feedback/pending`, `/{id}/approve`, `/{id}/reject`, `/api/feedback/stats`); `EvolutionPipeline` gating via `_await_human_feedback`; `ContinuousEvolutionService` wiring; 59 unit tests across 3 test files
   - [x] Proposal store, dashboard UI, approve/reject endpoints
   - [x] Wire `FeedbackStore` into the self-modification pipeline (gate behind approval)
   - Allow a developer to approve/reject self-modifications via the dashboard
