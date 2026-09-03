@@ -87,7 +87,17 @@ Docker SDK for Python (`docker` package) to spawn sibling containers from inside
   already runs as a single-operator research project on a dedicated host, (b) the socket
   mount is an explicit opt-in in `docker-compose.evoseal.yml`, and (c) the threat model
   (ADR 0001 §5) already scopes "multi-tenant host" as a separate trigger (#2) that would
-  require a different architecture entirely.
+  require a different architecture entirely. **Variant-input sanitization is required:**
+  the `ContainerSandbox` must validate and constrain all variant-controlled inputs (test
+  command, image reference, mount paths) against strict allowlists before they reach the
+  Docker API — a malicious variant could otherwise use crafted inputs to escape via the
+  socket. This is an explicit T2-2/T2-3 requirement, not an implementation detail. A
+  follow-on hardening step is to place a socket proxy (e.g., `docker-socket-proxy`) in
+  front of the mount, restricting the API surface to only `containers.create`,
+  `containers.start`, `containers.wait`, `containers.logs`, and `containers.remove` —
+  this is lower-effort than Option B/C and eliminates the risk of a compromised process
+  calling privileged Docker API endpoints (e.g., `images.build`, `volumes.create`,
+  `exec.create`).
 - **Docker daemon must be available.** Not present in all environments (e.g., rootless
   Podman, some CI runners). **Mitigation:** EVOSEAL's target environment is a Docker-based
   single-server deployment; the `docker-compose.evoseal.yml` file already assumes Docker.
@@ -178,12 +188,18 @@ acceptable given EVOSEAL's single-operator, single-host, research-stage deployme
    for completion, captures stdout/stderr and exit code, removes the container. Timeout
    handling via `container.wait(timeout=...)` + `container.kill()`.
 
-2. **T2-3 — No-host-secrets guarantee.** The spawned container is created with:
+2. **T2-3 — No-host-secrets guarantee and variant-input sanitization.** The spawned
+   container is created with:
    - No `env_file` or environment variables from the host (explicit empty `environment={}`
      or only test-specific vars).
    - No `.env` mount.
    - A minimal or the existing `evoseal:local` image (which already runs as non-root).
    - Optionally, `read_only=True` on the root filesystem with a tmpfs for `/tmp`.
+   - **Input sanitization:** all variant-controlled parameters (test command, image ref,
+     mount source paths) must be validated against an allowlist or constrained schema
+     before reaching `docker.containers.run()`. The image ref must match a pre-approved
+     pattern (e.g., `evoseal:*`); mount paths must be confined to the workspace; the
+     test command must be a shell-escaped string, not arbitrary shell injection.
 
 3. **T2-4 — Resource caps.** Pass to `docker.containers.run()`:
    - `nano_cpus` (CPU limit in nanocpus, e.g., `1e9` for 1 CPU).
