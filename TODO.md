@@ -99,10 +99,9 @@
 > not deferred. Follow the dependency order below — each step builds on the previous one
 > landing, same pattern as the bidirectional co-evolution loop closure above.
 
-- [ ] **T2-1. Design doc: container execution mechanism** — decide the spawn model (sibling
-  container via host Docker socket vs. rootless nested runtime) given EVOSEAL already runs
-  inside its own container (`docker-compose.evoseal.yml`); document tradeoffs and the
-  chosen approach in `docs/adr/`
+- [x] **T2-1. Design doc: container execution mechanism** _(done 2026-09-03, ADR 0006)_ —
+  decided sibling container via host Docker socket; documented tradeoffs vs. rootless
+  nested runtime and lightweight process sandbox in `docs/adr/0006-container-execution-mechanism.md`
 - [ ] **T2-2. Per-variant container spawn wrapper** — implement T2-1's chosen mechanism:
   spawn a fresh, network-disabled container per variant test execution; extract only the
   pass/fail result and artifacts; tear down after
@@ -343,10 +342,10 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 31    | 23   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143); +7 Tier 2 container isolation tasks filed 2026-09-03 (ADR 0001 trigger #1 fired) |
+| 🟠 P1    | 30    | 24   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143); +7 Tier 2 container isolation tasks filed 2026-09-03 (ADR 0001 trigger #1 fired) |
 | 🟡 P2    | 30    | 30   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; progressive rollout gating implemented; dashboard cost/token tracking; dashboard offline mode; generation diff view |
 | 🟢 P3    | 27    | 27   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs; Ollama live E2E verification (9 integration tests against real Ollama instance); vLLM provider added; human-in-the-loop feedback interface; hyperparameter-space documentation; PBT feasibility spike |
-| **Total** | **99** | **90** | |
+| **Total** | **99** | **92** | |
 
 > Update this table as you complete items. Recommended flow: P0 → P1 → P2 → P3.
 >
