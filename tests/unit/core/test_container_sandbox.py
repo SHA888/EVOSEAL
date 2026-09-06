@@ -293,14 +293,17 @@ class TestRunVariantTest:
         assert "FAILED" in result.stdout
 
     def test_timeout_triggers_kill(self, tmp_path):
+        from evoseal.core.container_sandbox import APIError as RealAPIError
+
         mock_container = _make_mock_container()
         mock_container.wait.side_effect = Exception("timeout")
         mock_client = _make_mock_client(mock_container)
 
         with (
             patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
-            patch("evoseal.core.container_sandbox.docker"),
+            patch("evoseal.core.container_sandbox.docker") as mock_docker_mod,
         ):
+            mock_docker_mod.APIError = RealAPIError
             sandbox = ContainerSandbox(timeout_seconds=5)
             sandbox._client = mock_client
 
@@ -381,8 +384,10 @@ class TestRunVariantTest:
 
         with (
             patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
-            patch("evoseal.core.container_sandbox.docker"),
+            patch("evoseal.core.container_sandbox.docker") as mock_docker_mod,
         ):
+            mock_docker_mod.types = MagicMock()
+            mock_docker_mod.types.Mount = MagicMock()
             sandbox = ContainerSandbox(allowed_mount_root=str(tmp_path))
             sandbox._client = mock_client
 
@@ -446,17 +451,17 @@ class TestRunVariantTest:
 
     def test_cleanup_on_api_error(self, tmp_path):
         """Container is removed even when API errors occur."""
-        from evoseal.core.container_sandbox import APIError
+        from evoseal.core.container_sandbox import APIError as RealAPIError
 
         mock_container = _make_mock_container()
-        mock_container.wait.side_effect = APIError("connection lost")
+        mock_container.wait.side_effect = RealAPIError("connection lost")
         mock_client = _make_mock_client(mock_container)
 
         with (
             patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
             patch("evoseal.core.container_sandbox.docker") as mock_docker_mod,
         ):
-            mock_docker_mod.APIError = APIError
+            mock_docker_mod.APIError = RealAPIError
             sandbox = ContainerSandbox()
             sandbox._client = mock_client
 
@@ -469,10 +474,18 @@ class TestRunVariantTest:
 
     def test_cleanup_on_container_error(self, tmp_path):
         """Container is removed when ContainerError occurs."""
-        from evoseal.core.container_sandbox import ContainerError
+        from evoseal.core.container_sandbox import (
+            APIError as RealAPIError,
+        )
+        from evoseal.core.container_sandbox import (
+            ContainerError as RealContainerError,
+        )
+        from evoseal.core.container_sandbox import (
+            ImageNotFound as RealImageNotFound,
+        )
 
         mock_client = MagicMock()
-        mock_client.containers.run.side_effect = ContainerError(
+        mock_client.containers.run.side_effect = RealContainerError(
             container=_make_mock_container(),
             exit_status=1,
             command="pytest",
@@ -484,9 +497,9 @@ class TestRunVariantTest:
             patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
             patch("evoseal.core.container_sandbox.docker") as mock_docker_mod,
         ):
-            mock_docker_mod.ContainerError = ContainerError
-            mock_docker_mod.ImageNotFound = Exception
-            mock_docker_mod.APIError = Exception
+            mock_docker_mod.ContainerError = RealContainerError
+            mock_docker_mod.ImageNotFound = RealImageNotFound
+            mock_docker_mod.APIError = RealAPIError
             sandbox = ContainerSandbox()
             sandbox._client = mock_client
 
