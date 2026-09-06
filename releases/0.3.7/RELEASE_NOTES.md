@@ -2,12 +2,12 @@
 
 ## 🎉 Release Highlights
 
-This release includes 524 change(s) since the previous release.
+This release includes 527 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
 - **Release Date**: 2026-09-06
-- **Total Changes**: 524
+- **Total Changes**: 527
 
 ## ✨ New Features
 
@@ -83,6 +83,8 @@ This release includes 524 change(s) since the previous release.
 
 ## 🐛 Bug Fixes
 
+- 🐛 fix: address review feedback on ADR 0006 and fix TODO.md tracking counts ([68f96c2](https://github.com/SHA888/EVOSEAL/commit/68f96c2))
+- 🐛 fix: address review feedback on ADR 0006 ([9431302](https://github.com/SHA888/EVOSEAL/commit/9431302))
 - 🐛 fix(seal): fix MockKnowledgeBase async interface + check off knowledge retrieval TODO (#161) ([9d5c32d](https://github.com/SHA888/EVOSEAL/commit/9d5c32d))
 - 🐛 fix(export): replace fabricated results with real experiment data (#124) ([28631a3](https://github.com/SHA888/EVOSEAL/commit/28631a3))
 - 🐛 fix(ci): scope release gates and restore install smoke-test ([3c71031](https://github.com/SHA888/EVOSEAL/commit/3c71031))
@@ -188,6 +190,7 @@ This release includes 524 change(s) since the previous release.
 
 ## 📝 Documentation
 
+- 📝 docs: add ADR 0006 for Tier 2 container execution mechanism (T2-1) ([c695ab8](https://github.com/SHA888/EVOSEAL/commit/c695ab8))
 - 📝 docs: ADR 0001 trigger #1 fired — Tier 2 container isolation now mandatory (#163) ([351c8c8](https://github.com/SHA888/EVOSEAL/commit/351c8c8))
 - 📝 docs: mark human-in-the-loop feedback interface as complete (#162) ([1099407](https://github.com/SHA888/EVOSEAL/commit/1099407))
 - 📝 docs: check hyperparameter-space box in TODO.md (#159) ([8a70eef](https://github.com/SHA888/EVOSEAL/commit/8a70eef))
@@ -576,4 +579,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-09-06 04:04:43 UTC*
+*This release was automatically generated on 2026-09-06 05:04:09 UTC*
