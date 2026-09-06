@@ -92,3 +92,16 @@ sandbox:
   cpu_limit_secs: 120
   memory_limit_mb: 512
   fd_limit: 256
+
+# Tier 2: Container-based isolation for variant test execution (ADR 0006)
+# Requires Docker socket mount and the 'docker' Python package (pip install evoseal[container])
+container_sandbox:
+  enabled: true
+  image: "evoseal:local"          # image for spawned test containers
+  network_disabled: true
+  cpu_limit: "1.0"                # number of CPUs
+  memory_limit: "512m"            # memory cap
+  pids_limit: 256                 # max processes
+  timeout_seconds: 300            # per-variant test timeout
+  read_only_root: true            # read-only rootfs
+  tmpfs_size: "100m"              # /tmp tmpfs size
