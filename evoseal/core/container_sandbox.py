@@ -1,9 +1,28 @@
-"""Container-based sandbox for variant test execution (Tier 2, T2-2).
+"""Container-based sandbox for variant test execution (Tier 2, T2-2/T2-3).
 
 Spawns a fresh, network-disabled Docker container per variant test run.
 Extracts only the pass/fail result and artifacts; tears down after.
 
 Implements ADR 0006 — sibling container via host Docker socket.
+
+No-host-secrets guarantee (T2-3):
+    The spawned container **never** receives host secrets.  This is enforced
+    at three levels, each stronger than Tier 1's env-stripping approach:
+
+    1. **Environment isolation.**  The container is created with an explicit
+       ``environment={}`` (or only caller-supplied test vars).  Unlike Tier 1,
+       which copies ``os.environ`` and then *removes* known secret keys —
+       leaving any undiscovered secrets in place — the container starts from
+       an empty environment.  No host process environment is inherited.
+    2. **Secret-file mount rejection.**  Mount sources whose path matches a
+       known secret-file pattern (``.env``, ``*.key``, ``*.pem``, SSH keys,
+       credential files, etc.) are rejected before reaching the Docker API.
+       This prevents a caller from accidentally or deliberately leaking host
+       credentials into the container filesystem.
+    3. **Read-only root filesystem.**  When ``read_only_root=True`` (default),
+       the container cannot write to its own filesystem — only ``/tmp`` (via
+       tmpfs) is writable.  This prevents a compromised test from modifying
+       the container image or planting persistent state.
 
 Usage::
 
@@ -66,6 +85,50 @@ DEFAULT_MEMORY_LIMIT = "512m"
 DEFAULT_PIDS_LIMIT = 256
 DEFAULT_TIMEOUT_SECONDS = 300
 DEFAULT_TMPFS_SIZE = "100m"
+
+# ---------------------------------------------------------------------------
+# Secret-file patterns (T2-3)
+# ---------------------------------------------------------------------------
+# Filenames or suffixes that indicate a secret/credential file.  Mount sources
+# whose resolved path's *name* matches any of these are rejected.  Patterns
+# are matched case-insensitively against the final path component only.
+#
+# This list is intentionally conservative — it blocks common secret files
+# even if the caller's allowed_mount_root would otherwise permit them.
+_SECRET_FILE_NAMES: frozenset[str] = frozenset(
+    {
+        ".env",
+        ".env.local",
+        ".env.production",
+        ".env.staging",
+        "id_rsa",
+        "id_dsa",
+        "id_ecdsa",
+        "id_ed25519",
+        "shadow",
+        "gshadow",
+        "htpasswd",
+        ".netrc",
+        ".npmrc",
+        ".pypirc",
+        ".dockerconfigjson",
+        "credentials",
+        "service-account.json",
+    }
+)
+
+_SECRET_FILE_SUFFIXES: tuple[str, ...] = (
+    ".key",
+    ".pem",
+    ".p12",
+    ".pfx",
+    ".jks",
+    ".keystore",
+)
+
+_SECRET_FILE_PREFIXES: tuple[str, ...] = (
+    ".env.",  # catches .env.dev, .env.test, etc.
+)
 
 
 # ---------------------------------------------------------------------------
@@ -134,10 +197,37 @@ def _validate_command(command: list[str] | str) -> list[str]:
     return command
 
 
-def _validate_mount_source(source: str, allowed_root: Path | None = None) -> Path:
-    """Validate a mount source path stays within the allowed root.
+def _is_secret_file(path: Path) -> bool:
+    """Check whether *path* looks like a secret/credential file.
 
-    Raises ValueError on invalid or escaping paths.
+    Matches the final path component against :data:`_SECRET_FILE_NAMES`,
+    :data:`_SECRET_FILE_SUFFIXES`, and :data:`_SECRET_FILE_PREFIXES`.
+    """
+    name = path.name.lower()
+    if name in _SECRET_FILE_NAMES:
+        return True
+    if any(name.endswith(sfx) for sfx in _SECRET_FILE_SUFFIXES):
+        return True
+    if any(name.startswith(pfx) for pfx in _SECRET_FILE_PREFIXES):
+        return True
+    return False
+
+
+def _validate_mount_source(
+    source: str,
+    allowed_root: Path | None = None,
+    *,
+    reject_secrets: bool = True,
+) -> Path:
+    """Validate a mount source path.
+
+    Checks:
+
+    1. The resolved path stays within *allowed_root* (if set).
+    2. The path does not point to a known secret file (T2-3), unless
+       *reject_secrets* is explicitly ``False``.
+
+    Raises ValueError on invalid, escaping, or secret-file paths.
     """
     path = Path(source).resolve()
     if allowed_root is not None:
@@ -147,6 +237,12 @@ def _validate_mount_source(source: str, allowed_root: Path | None = None) -> Pat
             raise ValueError(
                 f"Mount source {source!r} escapes allowed root {allowed_root!r}"
             ) from None
+    if reject_secrets and _is_secret_file(path):
+        raise ValueError(
+            f"Mount source {source!r} is a secret/credential file and must "
+            f"not be mounted into the container (T2-3 no-host-secrets guarantee). "
+            f"Matched name: {path.name!r}"
+        )
     return path
 
 
@@ -278,9 +374,14 @@ class ContainerSandbox:
         validated_mounts: dict[str, dict[str, str]] = {}
         if mounts:
             for host_path, bind_cfg in mounts.items():
+                # T2-3: reject secret files AND enforce allowed_root
                 _validate_mount_source(host_path, self.allowed_mount_root)
                 validated_mounts[host_path] = bind_cfg
 
+        # T2-3: environment isolation — the container receives ONLY the
+        # caller-supplied test_specific_env, never os.environ.  This is
+        # stronger than Tier 1's env-stripping (which copies os.environ
+        # then removes known keys, leaving unknown secrets in place).
         env = test_specific_env or {}
 
         # --- build container kwargs ---

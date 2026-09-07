@@ -15,6 +15,7 @@ from evoseal.core.container_sandbox import (
     DOCKER_AVAILABLE,
     ContainerSandbox,
     ContainerTestResult,
+    _is_secret_file,
     _nano_cpus,
     _validate_command,
     _validate_image,
@@ -533,6 +534,270 @@ class TestContainerSandboxClose:
             sandbox = ContainerSandbox()
             # Should not raise
             sandbox.close()
+
+
+class TestIsSecretFile:
+    """T2-3: test _is_secret_file pattern detection."""
+
+    def test_dotenv(self):
+        assert _is_secret_file(Path("/workspace/.env")) is True
+
+    def test_dotenv_local(self):
+        assert _is_secret_file(Path("/workspace/.env.local")) is True
+
+    def test_dotenv_production(self):
+        assert _is_secret_file(Path("/project/.env.production")) is True
+
+    def test_dotenv_dev(self):
+        assert _is_secret_file(Path("/project/.env.dev")) is True
+
+    def test_key_suffix(self):
+        assert _is_secret_file(Path("/certs/server.key")) is True
+
+    def test_pem_suffix(self):
+        assert _is_secret_file(Path("/certs/ca.pem")) is True
+
+    def test_p12_suffix(self):
+        assert _is_secret_file(Path("/certs/client.p12")) is True
+
+    def test_ssh_key(self):
+        assert _is_secret_file(Path("/home/user/.ssh/id_rsa")) is True
+
+    def test_ssh_ed25519(self):
+        assert _is_secret_file(Path("/home/user/.ssh/id_ed25519")) is True
+
+    def test_netrc(self):
+        assert _is_secret_file(Path("/home/user/.netrc")) is True
+
+    def test_shadow(self):
+        assert _is_secret_file(Path("/etc/shadow")) is True
+
+    def test_service_account(self):
+        assert _is_secret_file(Path("/config/service-account.json")) is True
+
+    def test_regular_file_not_secret(self):
+        assert _is_secret_file(Path("/workspace/app.py")) is False
+
+    def test_regular_test_file_not_secret(self):
+        assert _is_secret_file(Path("/workspace/tests/test_foo.py")) is False
+
+    def test_regular_yaml_not_secret(self):
+        assert _is_secret_file(Path("/workspace/config.yaml")) is False
+
+    def test_directory_not_secret(self):
+        assert _is_secret_file(Path("/workspace/.ssh")) is False
+
+    def test_case_insensitive(self):
+        assert _is_secret_file(Path("/workspace/ID_RSA")) is True
+        assert _is_secret_file(Path("/workspace/Server.KEY")) is True
+
+    def test_pypirc(self):
+        assert _is_secret_file(Path("/home/user/.pypirc")) is True
+
+    def test_npmrc(self):
+        assert _is_secret_file(Path("/home/user/.npmrc")) is True
+
+
+class TestValidateMountSourceSecretRejection:
+    """T2-3: test that _validate_mount_source rejects secret files."""
+
+    def test_rejects_dotenv(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/workspace/.env")
+
+    def test_rejects_dotenv_with_root(self, tmp_path):
+        """Secret file inside allowed_root is still rejected."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("NOT_SECRET=value")  # pragma: allowlist secret
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source(str(env_file), allowed_root=tmp_path)
+
+    def test_rejects_key_file(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/certs/server.key")
+
+    def test_rejects_pem_file(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/certs/ca.pem")
+
+    def test_rejects_ssh_key(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/home/user/.ssh/id_rsa")
+
+    def test_accepts_regular_file(self, tmp_path):
+        regular = tmp_path / "app.py"
+        regular.write_text("print('hello')")
+        result = _validate_mount_source(str(regular), allowed_root=tmp_path)
+        assert result == regular.resolve()
+
+    def test_reject_secrets_can_be_disabled(self):
+        """Caller can explicitly opt out of secret rejection."""
+        result = _validate_mount_source("/workspace/.env", reject_secrets=False)
+        assert result == Path("/workspace/.env").resolve()
+
+    def test_rejects_dotenv_local(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/workspace/.env.local")
+
+    def test_rejects_dotenv_production(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/workspace/.env.production")
+
+    def test_rejects_service_account(self):
+        with pytest.raises(ValueError, match="secret/credential file"):
+            _validate_mount_source("/config/service-account.json")
+
+
+class TestContainerSandboxNoHostSecrets:
+    """T2-3: end-to-end no-host-secrets guarantee tests."""
+
+    def test_dotenv_mount_rejected(self, tmp_path):
+        """Mounting a .env file into the container is rejected."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("API_KEY=not-a-real-key")  # pragma: allowlist secret
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox()
+            sandbox._client = _make_mock_client()
+
+            with pytest.raises(ValueError, match="secret/credential file"):
+                sandbox.run_variant_test(
+                    command=["pytest", "tests/"],
+                    mounts={str(env_file): {"bind": "/app/.env", "mode": "ro"}},
+                )
+
+    def test_key_file_mount_rejected(self, tmp_path):
+        """Mounting a .key file into the container is rejected."""
+        key_file = tmp_path / "server.key"
+        key_file.write_text("not-a-real-key")
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox()
+            sandbox._client = _make_mock_client()
+
+            with pytest.raises(ValueError, match="secret/credential file"):
+                sandbox.run_variant_test(
+                    command=["pytest", "tests/"],
+                    mounts={str(key_file): {"bind": "/app/key.pem", "mode": "ro"}},
+                )
+
+    def test_ssh_key_mount_rejected(self, tmp_path):
+        """Mounting an SSH private key into the container is rejected."""
+        ssh_dir = tmp_path / ".ssh"
+        ssh_dir.mkdir()
+        key_file = ssh_dir / "id_rsa"
+        key_file.write_text("not-a-real-key")
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox()
+            sandbox._client = _make_mock_client()
+
+            with pytest.raises(ValueError, match="secret/credential file"):
+                sandbox.run_variant_test(
+                    command=["pytest", "tests/"],
+                    mounts={str(key_file): {"bind": "/root/.ssh/id_rsa", "mode": "ro"}},
+                )
+
+    def test_regular_mount_accepted(self, tmp_path):
+        """Non-secret files can still be mounted."""
+        app_dir = tmp_path / "app"
+        app_dir.mkdir()
+        (app_dir / "test_foo.py").write_text("def test_pass(): pass")
+
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker") as mock_docker_mod,
+        ):
+            mock_docker_mod.types = MagicMock()
+            mock_docker_mod.types.Mount = MagicMock()
+            sandbox = ContainerSandbox(allowed_mount_root=str(tmp_path))
+            sandbox._client = mock_client
+
+            result = sandbox.run_variant_test(
+                command=["pytest", "tests/"],
+                mounts={str(app_dir): {"bind": "/app", "mode": "ro"}},
+            )
+
+        assert result.exit_code == 0
+        mock_client.containers.run.assert_called_once()
+
+    def test_no_host_environ_leaked(self, tmp_path):
+        """T2-3: container environment is exactly test_specific_env, never os.environ.
+
+        This is the key difference from Tier 1's env-stripping approach:
+        Tier 1 copies os.environ then removes known secret keys (leaving
+        unknown secrets in place).  Tier 2 starts from an empty environment.
+        """
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        # Simulate host having secrets in the environment
+        fake_environ = {
+            "ANTHROPIC_API_KEY": "sk-not-a-real-key",  # pragma: allowlist secret
+            "OPENAI_API_KEY": "sk-not-a-real-key",  # pragma: allowlist secret
+            "MY_CUSTOM_SECRET": "not-a-real-value",  # pragma: allowlist secret
+            "HOME": "/home/evoseal",
+            "PATH": "/usr/bin",
+        }
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+            patch("os.environ", fake_environ),
+        ):
+            sandbox = ContainerSandbox()
+            sandbox._client = mock_client
+
+            sandbox.run_variant_test(
+                command=["pytest", "tests/"],
+                test_specific_env={"TEST_MODE": "1"},
+            )
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        # Must contain ONLY the test-specific var
+        assert call_kwargs["environment"] == {"TEST_MODE": "1"}
+        # Must NOT contain any host secrets
+        assert "ANTHROPIC_API_KEY" not in call_kwargs["environment"]
+        assert "OPENAI_API_KEY" not in call_kwargs["environment"]
+        assert "MY_CUSTOM_SECRET" not in call_kwargs["environment"]
+        # Must NOT contain any host non-secret vars either
+        assert "HOME" not in call_kwargs["environment"]
+        assert "PATH" not in call_kwargs["environment"]
+
+    def test_no_environ_at_all_when_no_test_env(self, tmp_path):
+        """T2-3: with no test_specific_env, environment is completely empty."""
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        fake_environ = {
+            "ANTHROPIC_API_KEY": "sk-not-a-real-key",  # pragma: allowlist secret
+            "HOME": "/home/evoseal",
+        }
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+            patch("os.environ", fake_environ),
+        ):
+            sandbox = ContainerSandbox()
+            sandbox._client = mock_client
+
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        assert call_kwargs["environment"] == {}
 
 
 class TestContainerTestResult:

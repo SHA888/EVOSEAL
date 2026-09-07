@@ -105,3 +105,25 @@ container_sandbox:
   timeout_seconds: 300            # per-variant test timeout
   read_only_root: true            # read-only rootfs
   tmpfs_size: "100m"              # /tmp tmpfs size
+  # T2-3: Mount sources matching these patterns are rejected even if they
+  # fall within allowed_mount_root.  Protects against accidental or
+  # deliberate leaking of host credentials into the container.
+  # Patterns match the final path component (case-insensitive).
+  blocked_mount_patterns:
+    - ".env"
+    - ".env.*"
+    - "*.key"
+    - "*.pem"
+    - "*.p12"
+    - "*.pfx"
+    - "id_rsa"
+    - "id_dsa"
+    - "id_ecdsa"
+    - "id_ed25519"
+    - "shadow"
+    - "gshadow"
+    - ".netrc"
+    - ".npmrc"
+    - ".pypirc"
+    - "credentials"
+    - "service-account.json"
