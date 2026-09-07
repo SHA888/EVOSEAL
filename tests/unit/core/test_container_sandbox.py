@@ -1,4 +1,4 @@
-"""Unit tests for ContainerSandbox (Tier 2, T2-2).
+"""Unit tests for ContainerSandbox (Tier 2, T2-2/T2-3/T2-4).
 
 Tests the container-based sandbox for variant test execution.
 All Docker SDK calls are mocked — no Docker daemon required.
@@ -13,13 +13,26 @@ import pytest
 
 from evoseal.core.container_sandbox import (
     DOCKER_AVAILABLE,
+    MAX_CPU_LIMIT,
+    MAX_MEMORY_BYTES,
+    MAX_PIDS_LIMIT,
+    MAX_TIMEOUT_SECONDS,
+    MIN_CPU_LIMIT,
+    MIN_MEMORY_BYTES,
+    MIN_PIDS_LIMIT,
+    MIN_TIMEOUT_SECONDS,
     ContainerSandbox,
     ContainerTestResult,
     _is_secret_file,
     _nano_cpus,
+    _parse_memory_bytes,
     _validate_command,
+    _validate_cpu_limit,
     _validate_image,
+    _validate_memory_limit,
     _validate_mount_source,
+    _validate_pids_limit,
+    _validate_timeout,
 )
 
 # ---------------------------------------------------------------------------
@@ -154,6 +167,243 @@ class TestNanoCpus:
         assert _nano_cpus("2.0") == 2_000_000_000
 
 
+class TestParseMemoryBytes:
+    """T2-4: test Docker-format memory string parsing."""
+
+    def test_bytes_no_suffix(self):
+        assert _parse_memory_bytes("1048576") == 1048576
+
+    def test_kilobytes_lower(self):
+        assert _parse_memory_bytes("512k") == 512 * 1024
+
+    def test_kilobytes_upper(self):
+        assert _parse_memory_bytes("512K") == 512 * 1024
+
+    def test_kilobytes_kb(self):
+        assert _parse_memory_bytes("512kb") == 512 * 1024
+
+    def test_megabytes_lower(self):
+        assert _parse_memory_bytes("512m") == 512 * 1024**2
+
+    def test_megabytes_upper(self):
+        assert _parse_memory_bytes("512M") == 512 * 1024**2
+
+    def test_megabytes_mb(self):
+        assert _parse_memory_bytes("256mb") == 256 * 1024**2
+
+    def test_gigabytes(self):
+        assert _parse_memory_bytes("1g") == 1024**3
+
+    def test_gigabytes_gb(self):
+        assert _parse_memory_bytes("2gb") == 2 * 1024**3
+
+    def test_terabytes(self):
+        assert _parse_memory_bytes("1t") == 1024**4
+
+    def test_fractional(self):
+        assert _parse_memory_bytes("0.5g") == int(0.5 * 1024**3)
+
+    def test_rejects_empty(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            _parse_memory_bytes("")
+
+    def test_rejects_none(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            _parse_memory_bytes(None)  # type: ignore[arg-type]
+
+    def test_rejects_malformed(self):
+        with pytest.raises(ValueError, match="Malformed"):
+            _parse_memory_bytes("abc")
+
+    def test_rejects_negative(self):
+        with pytest.raises(ValueError, match="positive"):
+            _parse_memory_bytes("-512m")
+
+    def test_rejects_zero(self):
+        with pytest.raises(ValueError, match="positive"):
+            _parse_memory_bytes("0m")
+
+
+class TestValidateCpuLimit:
+    """T2-4: test CPU limit validation."""
+
+    def test_valid_one_cpu(self):
+        _validate_cpu_limit("1.0")
+
+    def test_valid_half_cpu(self):
+        _validate_cpu_limit("0.5")
+
+    def test_valid_many_cpus(self):
+        _validate_cpu_limit("8.0")
+
+    def test_valid_min_boundary(self):
+        _validate_cpu_limit(str(MIN_CPU_LIMIT))
+
+    def test_valid_max_boundary(self):
+        _validate_cpu_limit(str(MAX_CPU_LIMIT))
+
+    def test_rejects_below_minimum(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_cpu_limit("0.001")
+
+    def test_rejects_above_maximum(self):
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            _validate_cpu_limit("256.0")
+
+    def test_rejects_zero(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_cpu_limit("0")
+
+    def test_rejects_negative(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_cpu_limit("-1.0")
+
+    def test_rejects_empty(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            _validate_cpu_limit("")
+
+    def test_rejects_none(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            _validate_cpu_limit(None)  # type: ignore[arg-type]
+
+    def test_rejects_malformed(self):
+        with pytest.raises(ValueError, match="Malformed"):
+            _validate_cpu_limit("abc")
+
+
+class TestValidateMemoryLimit:
+    """T2-4: test memory limit validation."""
+
+    def test_valid_512m(self):
+        _validate_memory_limit("512m")
+
+    def test_valid_1g(self):
+        _validate_memory_limit("1g")
+
+    def test_valid_256mb(self):
+        _validate_memory_limit("256mb")
+
+    def test_valid_min_boundary(self):
+        _validate_memory_limit("1m")  # 1 MiB = MIN_MEMORY_BYTES
+
+    def test_valid_max_boundary(self):
+        _validate_memory_limit("1024g")  # 1 TiB = MAX_MEMORY_BYTES
+
+    def test_rejects_below_minimum(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_memory_limit("1k")  # 1 KiB < 1 MiB
+
+    def test_rejects_above_maximum(self):
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            _validate_memory_limit("2048g")  # 2 TiB > 1 TiB
+
+    def test_rejects_empty(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            _validate_memory_limit("")
+
+    def test_rejects_none(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            _validate_memory_limit(None)  # type: ignore[arg-type]
+
+    def test_rejects_malformed(self):
+        with pytest.raises(ValueError, match="Malformed"):
+            _validate_memory_limit("abc")
+
+
+class TestValidatePidsLimit:
+    """T2-4: test PID limit validation."""
+
+    def test_valid_default(self):
+        _validate_pids_limit(256)
+
+    def test_valid_one(self):
+        _validate_pids_limit(1)
+
+    def test_valid_high(self):
+        _validate_pids_limit(4096)
+
+    def test_valid_min_boundary(self):
+        _validate_pids_limit(MIN_PIDS_LIMIT)
+
+    def test_valid_max_boundary(self):
+        _validate_pids_limit(MAX_PIDS_LIMIT)
+
+    def test_rejects_zero(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_pids_limit(0)
+
+    def test_rejects_negative(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_pids_limit(-1)
+
+    def test_rejects_above_maximum(self):
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            _validate_pids_limit(MAX_PIDS_LIMIT + 1)
+
+    def test_rejects_float(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_pids_limit(256.0)  # type: ignore[arg-type]
+
+    def test_rejects_string(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_pids_limit("256")  # type: ignore[arg-type]
+
+    def test_rejects_bool(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_pids_limit(True)  # type: ignore[arg-type]
+
+    def test_rejects_none(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_pids_limit(None)  # type: ignore[arg-type]
+
+
+class TestValidateTimeout:
+    """T2-4: test timeout validation."""
+
+    def test_valid_default(self):
+        _validate_timeout(300)
+
+    def test_valid_one_second(self):
+        _validate_timeout(1)
+
+    def test_valid_one_hour(self):
+        _validate_timeout(3600)
+
+    def test_valid_min_boundary(self):
+        _validate_timeout(MIN_TIMEOUT_SECONDS)
+
+    def test_valid_max_boundary(self):
+        _validate_timeout(MAX_TIMEOUT_SECONDS)
+
+    def test_rejects_zero(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_timeout(0)
+
+    def test_rejects_negative(self):
+        with pytest.raises(ValueError, match="below minimum"):
+            _validate_timeout(-1)
+
+    def test_rejects_above_maximum(self):
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            _validate_timeout(MAX_TIMEOUT_SECONDS + 1)
+
+    def test_rejects_float(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_timeout(300.0)  # type: ignore[arg-type]
+
+    def test_rejects_string(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_timeout("300")  # type: ignore[arg-type]
+
+    def test_rejects_bool(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_timeout(True)  # type: ignore[arg-type]
+
+    def test_rejects_none(self):
+        with pytest.raises(ValueError, match="integer"):
+            _validate_timeout(None)  # type: ignore[arg-type]
+
+
 # ---------------------------------------------------------------------------
 # ContainerSandbox class
 # ---------------------------------------------------------------------------
@@ -208,6 +458,38 @@ class TestContainerSandboxInit:
             with pytest.raises(ValueError, match="disallowed"):
                 ContainerSandbox(image="evil; image")
 
+    def test_rejects_invalid_cpu_limit(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox(cpu_limit="0.001")
+
+    def test_rejects_invalid_memory_limit(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox(memory_limit="1k")
+
+    def test_rejects_invalid_pids_limit(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox(pids_limit=0)
+
+    def test_rejects_invalid_timeout(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox(timeout_seconds=0)
+
 
 class TestContainerSandboxFromConfig:
     """Test ContainerSandbox.from_config classmethod."""
@@ -240,6 +522,38 @@ class TestContainerSandboxFromConfig:
             assert sandbox.memory_limit == "1g"
             assert sandbox.pids_limit == 512
             assert sandbox.timeout_seconds == 600
+
+    def test_from_config_rejects_invalid_cpu(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox.from_config({"cpu_limit": "0.001"})
+
+    def test_from_config_rejects_invalid_memory(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox.from_config({"memory_limit": "1k"})
+
+    def test_from_config_rejects_invalid_pids(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="below minimum"):
+                ContainerSandbox.from_config({"pids_limit": 0})
+
+    def test_from_config_rejects_invalid_timeout(self):
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            with pytest.raises(ValueError, match="exceeds maximum"):
+                ContainerSandbox.from_config({"timeout_seconds": 999999})
 
 
 class TestRunVariantTest:
@@ -798,6 +1112,105 @@ class TestContainerSandboxNoHostSecrets:
 
         call_kwargs = mock_client.containers.run.call_args.kwargs
         assert call_kwargs["environment"] == {}
+
+
+class TestResourceLimitsEnforcement:
+    """T2-4: verify resource limits are passed to Docker correctly."""
+
+    def test_cpu_limit_passed_as_nano_cpus(self, tmp_path):
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox(cpu_limit="2.0")
+            sandbox._client = mock_client
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        assert call_kwargs["nano_cpus"] == 2_000_000_000
+
+    def test_memory_limit_passed_as_mem_limit(self, tmp_path):
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox(memory_limit="1g")
+            sandbox._client = mock_client
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        assert call_kwargs["mem_limit"] == "1g"
+
+    def test_pids_limit_passed(self, tmp_path):
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox(pids_limit=512)
+            sandbox._client = mock_client
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        assert call_kwargs["pids_limit"] == 512
+
+    def test_all_resource_limits_together(self, tmp_path):
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox(
+                cpu_limit="0.5",
+                memory_limit="256m",
+                pids_limit=128,
+            )
+            sandbox._client = mock_client
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        assert call_kwargs["nano_cpus"] == 500_000_000
+        assert call_kwargs["mem_limit"] == "256m"
+        assert call_kwargs["pids_limit"] == 128
+
+    def test_timeout_passed_to_wait(self, tmp_path):
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox(timeout_seconds=60)
+            sandbox._client = mock_client
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        mock_container.wait.assert_called_once_with(timeout=60)
+
+    def test_network_always_disabled(self, tmp_path):
+        mock_container = _make_mock_container()
+        mock_client = _make_mock_client(mock_container)
+
+        with (
+            patch("evoseal.core.container_sandbox.DOCKER_AVAILABLE", True),
+            patch("evoseal.core.container_sandbox.docker"),
+        ):
+            sandbox = ContainerSandbox()
+            sandbox._client = mock_client
+            sandbox.run_variant_test(command=["pytest", "tests/"])
+
+        call_kwargs = mock_client.containers.run.call_args.kwargs
+        assert call_kwargs["network_disabled"] is True
 
 
 class TestContainerTestResult:

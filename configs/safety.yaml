@@ -95,14 +95,19 @@ sandbox:
 
 # Tier 2: Container-based isolation for variant test execution (ADR 0006)
 # Requires Docker socket mount and the 'docker' Python package (pip install evoseal[container])
+#
+# T2-4: Resource limits below are enforced by the container runtime (Docker cgroups),
+# superseding Tier 1's resource.setrlimit which only bounds a shared-host subprocess.
+# All values are validated at construction time — invalid values (negative, zero,
+# unreasonably large, or malformed) raise ValueError immediately.
 container_sandbox:
   enabled: true
   image: "evoseal:local"          # image for spawned test containers
   network_disabled: true
-  cpu_limit: "1.0"                # number of CPUs
-  memory_limit: "512m"            # memory cap
-  pids_limit: 256                 # max processes
-  timeout_seconds: 300            # per-variant test timeout
+  cpu_limit: "1.0"                # number of CPUs (float, range 0.01–128)
+  memory_limit: "512m"            # memory cap (Docker format: k/m/g, range 1m–1024g)
+  pids_limit: 256                 # max processes (int, range 1–4194304)
+  timeout_seconds: 300            # per-variant test timeout (int, range 1–86400)
   read_only_root: true            # read-only rootfs
   tmpfs_size: "100m"              # /tmp tmpfs size
   # T2-3: Mount sources matching these patterns are rejected even if they

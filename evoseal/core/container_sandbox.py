@@ -1,4 +1,4 @@
-"""Container-based sandbox for variant test execution (Tier 2, T2-2/T2-3).
+"""Container-based sandbox for variant test execution (Tier 2, T2-2/T2-3/T2-4).
 
 Spawns a fresh, network-disabled Docker container per variant test run.
 Extracts only the pass/fail result and artifacts; tears down after.
@@ -23,6 +23,25 @@ No-host-secrets guarantee (T2-3):
        the container cannot write to its own filesystem — only ``/tmp`` (via
        tmpfs) is writable.  This prevents a compromised test from modifying
        the container image or planting persistent state.
+
+Container-level resource caps (T2-4):
+    CPU, memory, and PID limits are enforced by the container runtime (Docker
+cgroups), **superseding** Tier 1's ``resource.setrlimit`` approach.  Tier 1
+limits apply to a shared-host subprocess — they bound a child process but
+share the host's PID/memory namespace, so a fork-bomb or memory hog can still
+affect the host.  Container-level caps are enforced by the kernel's cgroup
+subsystem on the *container* as a whole, providing stronger isolation:
+
+    * ``cpu_limit`` — CPU quota via Docker's ``--cpus`` (cgroup cpu.max).
+    * ``memory_limit`` — hard memory ceiling via Docker's ``--memory``
+      (cgroup memory.max).  The container is OOM-killed if exceeded.
+    * ``pids_limit`` — PID count limit via Docker's ``--pids-limit``
+      (cgroup pids.max).  Prevents fork-bombs.
+
+All resource limits are **validated at construction time** — invalid values
+(negative, zero, unreasonably large, or malformed) raise ``ValueError``
+immediately rather than failing silently or reaching the Docker API with
+nonsensical parameters.
 
 Usage::
 
@@ -85,6 +104,18 @@ DEFAULT_MEMORY_LIMIT = "512m"
 DEFAULT_PIDS_LIMIT = 256
 DEFAULT_TIMEOUT_SECONDS = 300
 DEFAULT_TMPFS_SIZE = "100m"
+
+# Resource limit boundaries — validated at construction time (T2-4).
+# These are intentionally generous; the goal is to catch misconfiguration,
+# not to enforce a specific policy.
+MIN_CPU_LIMIT = 0.01  # 10 millicpus — below this is likely a mistake
+MAX_CPU_LIMIT = 128.0  # 128 CPUs — above this is likely a mistake
+MIN_MEMORY_BYTES = 1048576  # 1 MiB — below this is unusable
+MAX_MEMORY_BYTES = 1 << 40  # 1 TiB — above this is likely a mistake
+MIN_PIDS_LIMIT = 1  # at least 1 process
+MAX_PIDS_LIMIT = 4194304  # Linux default pid_max
+MIN_TIMEOUT_SECONDS = 1  # at least 1 second
+MAX_TIMEOUT_SECONDS = 86400  # 24 hours — above this is likely a mistake
 
 # ---------------------------------------------------------------------------
 # Secret-file patterns (T2-3)
@@ -246,6 +277,128 @@ def _validate_mount_source(
     return path
 
 
+def _parse_memory_bytes(memory_limit: str) -> int:
+    """Parse a Docker-format memory string to bytes.
+
+    Supported suffixes (case-insensitive):
+    * ``k`` / ``kb`` — kibibytes (×1024)
+    * ``m`` / ``mb`` — mebibytes (×1024²)
+    * ``g`` / ``gb`` — gibibytes (×1024³)
+    * ``t`` / ``tb`` — tebibytes (×1024⁴)
+    * no suffix — bytes
+
+    Raises ValueError on malformed input.
+    """
+    if not memory_limit or not isinstance(memory_limit, str):
+        raise ValueError(f"Memory limit must be a non-empty string, got {memory_limit!r}")
+    s = memory_limit.strip().lower()
+    multiplier = 1
+    for suffix, mult in [
+        ("tb", 1024**4),
+        ("gb", 1024**3),
+        ("mb", 1024**2),
+        ("kb", 1024),
+        ("t", 1024**4),
+        ("g", 1024**3),
+        ("m", 1024**2),
+        ("k", 1024),
+    ]:
+        if s.endswith(suffix):
+            s = s[: -len(suffix)]
+            multiplier = mult
+            break
+    try:
+        value = float(s)
+    except ValueError:
+        raise ValueError(f"Malformed memory limit: {memory_limit!r}") from None
+    if value <= 0:
+        raise ValueError(f"Memory limit must be positive, got {memory_limit!r}")
+    return int(value * multiplier)
+
+
+def _validate_cpu_limit(cpu_limit: str) -> None:
+    """Validate a CPU limit string.
+
+    The value must be a positive number between :data:`MIN_CPU_LIMIT` and
+    :data:`MAX_CPU_LIMIT`.  Raises ``ValueError`` on invalid input.
+    """
+    if not cpu_limit or not isinstance(cpu_limit, str):
+        raise ValueError(f"CPU limit must be a non-empty string, got {cpu_limit!r}")
+    try:
+        value = float(cpu_limit)
+    except ValueError:
+        raise ValueError(f"Malformed CPU limit: {cpu_limit!r}") from None
+    if value < MIN_CPU_LIMIT:
+        raise ValueError(
+            f"CPU limit {cpu_limit!r} is below minimum ({MIN_CPU_LIMIT}). "
+            f"This is likely a misconfiguration."
+        )
+    if value > MAX_CPU_LIMIT:
+        raise ValueError(
+            f"CPU limit {cpu_limit!r} exceeds maximum ({MAX_CPU_LIMIT}). "
+            f"This is likely a misconfiguration."
+        )
+
+
+def _validate_memory_limit(memory_limit: str) -> None:
+    """Validate a Docker-format memory limit string.
+
+    The value must parse to between :data:`MIN_MEMORY_BYTES` and
+    :data:`MAX_MEMORY_BYTES`.  Raises ``ValueError`` on invalid input.
+    """
+    bytes_val = _parse_memory_bytes(memory_limit)
+    if bytes_val < MIN_MEMORY_BYTES:
+        raise ValueError(
+            f"Memory limit {memory_limit!r} ({bytes_val} bytes) is below minimum "
+            f"({MIN_MEMORY_BYTES} bytes = 1 MiB). This is likely a misconfiguration."
+        )
+    if bytes_val > MAX_MEMORY_BYTES:
+        raise ValueError(
+            f"Memory limit {memory_limit!r} ({bytes_val} bytes) exceeds maximum "
+            f"({MAX_MEMORY_BYTES} bytes = 1 TiB). This is likely a misconfiguration."
+        )
+
+
+def _validate_pids_limit(pids_limit: int) -> None:
+    """Validate a PID limit.
+
+    The value must be an integer between :data:`MIN_PIDS_LIMIT` and
+    :data:`MAX_PIDS_LIMIT`.  Raises ``ValueError`` on invalid input.
+    """
+    if not isinstance(pids_limit, int) or isinstance(pids_limit, bool):
+        raise ValueError(f"PID limit must be an integer, got {pids_limit!r}")
+    if pids_limit < MIN_PIDS_LIMIT:
+        raise ValueError(
+            f"PID limit {pids_limit} is below minimum ({MIN_PIDS_LIMIT}). "
+            f"This is likely a misconfiguration."
+        )
+    if pids_limit > MAX_PIDS_LIMIT:
+        raise ValueError(
+            f"PID limit {pids_limit} exceeds maximum ({MAX_PIDS_LIMIT}). "
+            f"This is likely a misconfiguration."
+        )
+
+
+def _validate_timeout(timeout: int) -> None:
+    """Validate a timeout in seconds.
+
+    The value must be an integer between :data:`MIN_TIMEOUT_SECONDS` and
+    :data:`MAX_TIMEOUT_SECONDS`.  Raises ``ValueError`` on invalid input.
+    """
+    if not isinstance(timeout, int) or isinstance(timeout, bool):
+        raise ValueError(f"Timeout must be an integer, got {timeout!r}")
+    if timeout < MIN_TIMEOUT_SECONDS:
+        raise ValueError(
+            f"Timeout {timeout}s is below minimum ({MIN_TIMEOUT_SECONDS}s). "
+            f"This is likely a misconfiguration."
+        )
+    if timeout > MAX_TIMEOUT_SECONDS:
+        raise ValueError(
+            f"Timeout {timeout}s exceeds maximum ({MAX_TIMEOUT_SECONDS}s = 24h). "
+            f"This is likely a misconfiguration."
+        )
+
+
 def _nano_cpus(cpu_limit: str) -> int:
     """Convert a CPU limit string (e.g. ``'1.0'``, ``'0.5'``) to nanocpus."""
     return int(float(cpu_limit) * 1e9)
@@ -306,6 +459,10 @@ class ContainerSandbox:
             )
 
         _validate_image(image)
+        _validate_cpu_limit(cpu_limit)
+        _validate_memory_limit(memory_limit)
+        _validate_pids_limit(pids_limit)
+        _validate_timeout(timeout_seconds)
 
         self.image = image
         self.cpu_limit = cpu_limit
@@ -519,6 +676,10 @@ class ContainerSandbox:
                 "tmpfs_size": "100m",
                 "allowed_mount_root": "/path/to/workspace",
             }
+
+        All resource-limit values are validated (T2-4).  Invalid values
+        raise ``ValueError`` immediately rather than being passed silently
+        to the Docker API.
         """
         return cls(
             image=config.get("image", "evoseal:local"),
