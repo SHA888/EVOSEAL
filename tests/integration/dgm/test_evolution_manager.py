@@ -8,10 +8,10 @@ import sys
 from unittest.mock import MagicMock, patch
 
 # Patch all major DGM/SEAL (Self-Adapting Language Models)/LLM/Agentic and openevolve external dependencies
-sys.modules["docker"] = MagicMock()
-sys.modules["docker.errors"] = MagicMock()
-sys.modules["docker.models"] = MagicMock()
-sys.modules["docker.models.containers"] = MagicMock()
+# Note: docker is NOT stubbed — it's a real installed test dependency and
+# evoseal.core.container_sandbox imports it for real; stubbing it here
+# would permanently poison sys.modules for the rest of the pytest-xdist
+# worker process (sys.modules is process-global, not per-file).
 sys.modules["anthropic"] = MagicMock()
 sys.modules["backoff"] = MagicMock()
 sys.modules["datasets"] = MagicMock()
