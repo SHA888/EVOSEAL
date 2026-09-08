@@ -317,7 +317,14 @@ class ContainerSandbox:
                 environment=env,
                 # Read-only root with tmpfs for /tmp
                 read_only=self.read_only_root,
-                tmpfs={"/tmp": f"size={self.tmpfs_size}"} if self.read_only_root else None,
+                # "/tmp" here is the Docker tmpfs mount point *inside* the
+                # container, not a host-side predictable temp file/dir —
+                # nosec B108 (bandit's hardcoded_tmp_directory check).
+                tmpfs=(
+                    {"/tmp": f"size={self.tmpfs_size}"}  # nosec B108
+                    if self.read_only_root
+                    else None
+                ),
                 # Mounts
                 mounts=docker_mounts if docker_mounts else None,
                 working_dir=working_dir,
