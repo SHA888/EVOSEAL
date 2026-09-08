@@ -78,6 +78,36 @@ try:
 except ImportError:
     DOCKER_AVAILABLE = False
 
+    # Stub exception classes so ``except APIError:`` / ``except ContainerError:``
+    # clauses compile and execute safely when the docker SDK is not installed.
+    # Tests that mock ``container_sandbox.docker`` also rely on these existing.
+    class APIError(Exception):
+        """Raised when a Docker API call fails."""
+
+    class ContainerError(Exception):
+        """Raised when a container exits with a non-zero status."""
+
+        def __init__(
+            self,
+            container: object,
+            exit_status: int,
+            command: str,
+            image: str,
+            stderr: str | bytes = b"",
+        ) -> None:
+            self.container = container
+            self.exit_status = exit_status
+            self.command = command
+            self.image = image
+            self.stderr = stderr
+            super().__init__(f"Container exited with code {exit_status}: {stderr}")
+
+    class ImageNotFound(Exception):
+        """Raised when a Docker image is not found."""
+
+    class NotFound(Exception):
+        """Raised when a Docker object is not found."""
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -547,7 +577,7 @@ class ContainerSandbox:
         # Convert mounts to docker.types.Mount objects for cleaner API usage
         docker_mounts: list[Any] = []
         for host_path, bind_cfg in validated_mounts.items():
-            from docker.types import Mount
+            Mount = docker.types.Mount  # resolved via module attr (mockable)
 
             docker_mounts.append(
                 Mount(
