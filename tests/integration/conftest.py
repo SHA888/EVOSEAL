@@ -21,8 +21,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Mock external dependencies
-sys.modules["docker"] = MagicMock()
-sys.modules["docker.errors"] = MagicMock()
+# Note: docker is NOT stubbed here — it's a real installed test dependency
+# (see pyproject.toml [test] extra), and evoseal.core.container_sandbox
+# imports it for real. Stubbing sys.modules["docker"] permanently poisons
+# it for the rest of the pytest-xdist worker process (sys.modules is
+# process-global), breaking container_sandbox's exception classes
+# whenever that module is imported later in the same worker.
 sys.modules["openevolve"] = MagicMock()
 
 # Import after path setup
