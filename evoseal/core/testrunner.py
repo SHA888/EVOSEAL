@@ -5,6 +5,7 @@ and parallel execution.
 """
 
 import concurrent.futures
+import logging
 import os
 import re
 import resource
@@ -18,6 +19,8 @@ from typing import Any
 
 # nosec B404: Required for test execution in isolated environments
 import psutil  # type: ignore
+
+logger = logging.getLogger(__name__)
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
@@ -620,6 +623,7 @@ class SandboxedTestRunner(TestRunner):
         cpu_limit_secs: int | None = None,
         memory_limit_bytes: int | None = None,
         fd_limit: int | None = None,
+        use_container_sandbox: bool | None = None,
     ) -> None:
         """Initialize the sandboxed test runner.
 
@@ -632,6 +636,10 @@ class SandboxedTestRunner(TestRunner):
             cpu_limit_secs: CPU time limit in seconds (default 120s)
             memory_limit_bytes: Address space limit in bytes (default 2GB)
             fd_limit: Open file descriptor limit (default 256)
+            use_container_sandbox: Use Tier 2 container isolation (ContainerSandbox)
+                instead of Tier 1 preexec_fn resource limits.  When ``None``
+                (the default), container sandbox is used automatically if the
+                ``docker`` package is available; otherwise falls back to Tier 1.
         """
         super().__init__(config)
 
@@ -664,6 +672,9 @@ class SandboxedTestRunner(TestRunner):
         # Store sanitized environment for subprocess execution (avoid global state mutation)
         self._sandboxed_env: dict[str, str] | None = None
 
+        # --- Tier 2 container sandbox (T2-5) ---
+        self._container_sandbox = self._init_container_sandbox(use_container_sandbox)
+
     def run_tests(
         self,
         target_path: str | Path,
@@ -694,6 +705,45 @@ class SandboxedTestRunner(TestRunner):
         finally:
             # Always restore file permissions, even on error
             self._restore_file_permissions()
+
+    # ------------------------------------------------------------------
+    # Tier 2 container sandbox helpers (T2-5)
+    # ------------------------------------------------------------------
+
+    def _init_container_sandbox(
+        self, use_container_sandbox: bool | None
+    ) -> "ContainerSandbox | None":
+        """Create a :class:`ContainerSandbox` if Tier 2 is available.
+
+        Returns the sandbox instance, or ``None`` if Docker is not available
+        or the caller explicitly disabled container sandboxing.
+        """
+        if use_container_sandbox is False:
+            return None
+
+        try:
+            from evoseal.core.container_sandbox import ContainerSandbox
+        except ImportError:
+            return None
+
+        try:
+            sandbox = ContainerSandbox(
+                allowed_mount_root=self.repo_root,
+            )
+            logger.info("Tier 2 container sandbox initialised")
+            return sandbox
+        except Exception:
+            # Docker daemon unavailable, docker package missing at runtime, etc.
+            if use_container_sandbox is True:
+                # Caller explicitly requested container sandbox — propagate
+                raise
+            logger.debug("Container sandbox unavailable, falling back to Tier 1")
+            return None
+
+    @property
+    def container_sandbox_active(self) -> bool:
+        """``True`` when Tier 2 container isolation is in use."""
+        return self._container_sandbox is not None
 
     def _run_test_type(self, target_path: str, test_type: str, config: TestConfig) -> TestResult:
         """Run tests with sandboxed subprocess environment.
@@ -809,6 +859,10 @@ class SandboxedTestRunner(TestRunner):
         Overrides parent to use sanitized environment if available and enforce
         resource limits on the test subprocess (task 2.15).
 
+        When the Tier 2 container sandbox is active, the command is executed
+        inside an isolated Docker container instead of a subprocess with
+        ``preexec_fn`` limits (T2-5).
+
         Args:
             cmd: Command to execute
             config: Test configuration
@@ -816,6 +870,11 @@ class SandboxedTestRunner(TestRunner):
         Returns:
             Completed process information
         """
+        # --- Tier 2: run inside container sandbox when available ---
+        if self._container_sandbox is not None:
+            return self._execute_in_container(cmd, config)
+
+        # --- Tier 1: subprocess with preexec_fn resource limits ---
         # Use sanitized environment if available (during sandboxed test execution)
         if self._sandboxed_env is not None:
             env = self._sandboxed_env.copy()
@@ -838,6 +897,47 @@ class SandboxedTestRunner(TestRunner):
             shell=False,
             env=env,
             preexec_fn=preexec_fn,  # type: ignore
+        )
+
+    def _execute_in_container(
+        self, cmd: list[str], config: TestConfig
+    ) -> subprocess.CompletedProcess:
+        """Execute *cmd* inside the Tier 2 container sandbox.
+
+        Translates the test command and current working directory into a
+        :meth:`ContainerSandbox.run_variant_test` call and converts the
+        result into a :class:`subprocess.CompletedProcess` so the rest of
+        the test-runner pipeline (``_parse_test_results``) works unchanged.
+
+        The host repo root is mounted read-only at ``/workspace`` inside the
+        container.  ``PYTHONPATH`` is set so that ``import evoseal`` resolves.
+        """
+        from evoseal.core.container_sandbox import ContainerTestResult
+
+        sandbox = self._container_sandbox
+        assert sandbox is not None  # caller already checked
+
+        # Build test-specific env (the *only* env the container sees — T2-3).
+        test_env: dict[str, str] = {"PYTHONPATH": "/workspace"}
+
+        # Mount the repo root read-only so tests can import the package.
+        mounts: dict[str, dict[str, str]] = {
+            str(self.repo_root): {"bind": "/workspace", "mode": "ro"},
+        }
+
+        container_result: ContainerTestResult = sandbox.run_variant_test(
+            command=cmd,
+            mounts=mounts,
+            working_dir="/workspace",
+            test_specific_env=test_env,
+        )
+
+        # Convert to CompletedProcess for downstream compatibility.
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=container_result.exit_code,
+            stdout=container_result.stdout,
+            stderr=container_result.stderr,
         )
 
     def _get_resource_limiter(self) -> callable:  # type: ignore
