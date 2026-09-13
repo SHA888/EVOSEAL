@@ -6,7 +6,7 @@ This release includes 527 change(s) since the previous release.
 
 ## 📅 Release Information
 - **Version**: 0.3.7
-- **Release Date**: 2026-09-06
+- **Release Date**: 2026-09-13
 - **Total Changes**: 527
 
 ## ✨ New Features
@@ -579,4 +579,4 @@ pip install evoseal==0.3.7
 pip install --upgrade evoseal
 ```
 
-*This release was automatically generated on 2026-09-06 05:04:09 UTC*
+*This release was automatically generated on 2026-09-13 04:21:03 UTC*
