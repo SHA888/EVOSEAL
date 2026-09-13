@@ -118,6 +118,10 @@
   closes what Tier 1 could not: attempted network exfiltration from variant test code,
   attempted resource exhaustion, attempted read of a path visible under Tier 1's shared
   filesystem but not under Tier 2's container boundary
+  **⚠️ Caveat:** these tests encode the security spec via local mock ContainerConfig/validation
+  helpers, not the real ContainerSandbox (T2-2). "Done" here means "spec encoded" — the tests
+  do NOT verify that actual Docker/cgroup/network enforcement blocks these vectors. They become
+  real integration tests only when T2-2 lands and the mocks are swapped for real imports.
 - [ ] **T2-7. Update ADR 0001 "Current state" and operator guidance once T2-1–T2-6 land**,
   mirroring the 2026-07-19 Tier 1 amendment
 
