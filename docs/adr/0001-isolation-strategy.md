@@ -1,6 +1,6 @@
 # ADR 0001 — Isolation strategy for self-modification: rollback vs sandbox
 
-**Status:** Accepted (research-stage) — **Tier 2 implemented 2026-09-15; see Amendment below**
+**Status:** Accepted (research-stage) — **Tier 2 designed; implementation pending PR merge (2026-09-15); see Amendment below**
 **Date:** 2026-06-05
 **Deciders:** Project lead
 **Depends on:** [`threat_model.md`](../safety/threat_model.md) (Plans.md 2.1)
