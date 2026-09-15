@@ -72,6 +72,9 @@ benchmarks = [
     "datasets>=2.10.0",
     "matplotlib>=3.5.0",
 ]
+container = [
+    "docker>=7.0.0",
+]
 
 cli = [
     "typer[all]>=0.12.0",
@@ -103,6 +106,10 @@ test = [
     "jsonschema>=4.0.0",
     "aiohttp>=3.8.0",
     "httpx>=0.24.0",
+    # Needed to mock docker.errors/docker.types realistically in
+    # tests/unit/core/test_container_sandbox.py (ContainerSandbox itself
+    # treats docker as optional; the container extra is not installed by CI).
+    "docker>=7.0.0",
 
     # Optional dependencies for specific tests
     "torch>=2.0.0 ; extra == 'all' or extra == 'test' and python_version >= '3.8'",

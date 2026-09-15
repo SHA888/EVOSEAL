@@ -17,8 +17,10 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Mock external dependencies
-sys.modules["docker"] = MagicMock()
-sys.modules["docker.errors"] = MagicMock()
+# Note: docker is NOT stubbed — it's a real installed test dependency and
+# evoseal.core.container_sandbox imports it for real; stubbing it here
+# would permanently poison sys.modules for the rest of the pytest-xdist
+# worker process (sys.modules is process-global, not per-file).
 
 from evoseal.integration.seal.seal_interface import SEALInterface, SEALProvider
 
