@@ -1,6 +1,6 @@
 # ADR 0001 — Isolation strategy for self-modification: rollback vs sandbox
 
-**Status:** Accepted (research-stage) — **Tier 2 trigger #1 fired 2026-09-03; see Amendment below**
+**Status:** Accepted (research-stage) — **Tier 2 implemented 2026-09-15; see Amendment below**
 **Date:** 2026-06-05
 **Deciders:** Project lead
 **Depends on:** [`threat_model.md`](../safety/threat_model.md) (Plans.md 2.1)
@@ -131,31 +131,54 @@ follow-on tasks in Section 6.**
 |------|-----------|--------|-----------|
 | **Tier 0 — Recovery** | Git/checkpoint rollback (`rollback_manager.py`, `checkpoint_manager.py`) | **In place; keep** | Always on |
 | **Tier 1 — Containment (T1 + T2 windows)** | Edit-scope allowlist (T1) · secret-scrubbed test env + read-only chmod of critical files + `resource.setrlimit` (T2) · hard iteration cap + stuck-generator circuit · network isolation + unprivileged-user deferred to Tier 1.5 (see §3) | **Implemented & default-on** (tasks 2.13–2.15, landed ~2026-06-28) | Always on |
-| **Tier 2 — Hard isolation** | Per-variant container/VM, network-off, no host secrets, resource-capped | **Triggered 2026-09-03 (§5.1); mandatory, not yet implemented** | Any trigger in Section 5 fires |
+| **Tier 2 — Hard isolation** | Per-variant container/VM, network-off, no host secrets, resource-capped | **Implemented & default-on** (T2-2–T2-6, 2026-09-15) | Any trigger in Section 5 fires |
 
-> **Current state (honest):** **Tier 0 and Tier 1 are implemented.** All three Tier 1
+> **Current state (honest):** **Tiers 0, 1, and 2 are implemented.** All three Tier 1
 > tasks (2.13–2.15) have landed and are enabled by default. The edit-scope allowlist
 > (2.13, commit `f45d923`) blocks generated edits targeting protected paths at application
 > time. The sandboxed test runner (2.14, commit `c0cbc59`) strips API keys from the test
 > subprocess environment and applies resource limits via `preexec_fn`. The hard iteration
 > cap (2.15, commit `d21c87b`) enforces `min(iterations, max_iterations)` and triggers
-> circuit breakers on stuck generators. The system's real posture was Option C
-> (Tier 0 + Tier 1) — **as of 2026-09-03, Section 5 trigger #1 has fired (see Amendment
-> below): Tier 2 is now mandatory, not deferred.** Tier 1 remains in place and enabled
-> while Tier 2 is built.
+> circuit breakers on stuck generators.
 >
-> **Operator guidance** (current protections, pending Tier 2): the Tier 1 guards provide:
-> (a) an edit-scope allowlist that prevents generated code from modifying safety configs,
-> CI workflows, or `.env`; (b) a sandboxed test subprocess that strips
-> `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other secrets from the environment and
-> enforces resource limits (CPU, memory, open files); (c) a hard iteration cap
-> (`max_iterations`, default 1000) with stuck-generator circuit breakers that halt the
-> loop automatically. These are defense-in-depth, not airtight. **The trust model that
-> made Tier 1 sufficient on its own (trusted external provider) no longer holds** — the
-> generator now defaults to a local Ollama provider and prefers a self-fine-tuned model
-> from the version registry (`coevolution_manager.default_manager()`, PR #73) over a
-> trusted external API. Do not run the self-modification loop unattended against
-> untrusted/high-value targets until Tier 2 lands.
+> **Tier 2 is now implemented and default-on** (2026-09-15, T2-2–T2-6). When Docker is
+> available, variant test execution runs inside a fresh, network-disabled, resource-capped
+> sibling container (`ContainerSandbox`, `evoseal/core/container_sandbox.py`) spawned via
+> the host Docker socket (ADR 0006). The container receives no host environment variables
+> or secret files, runs with a read-only root filesystem, and is torn down after execution.
+> When Docker is unavailable, the runner falls back to the existing Tier 1 `preexec_fn`
+> mechanism automatically.
+>
+> **Operator guidance** (current protections): the system now provides three tiers of
+> defense:
+>
+> - **Tier 0 (recovery):** Git/checkpoint rollback for correctness containment.
+> - **Tier 1 (in-process guards):** (a) an edit-scope allowlist that prevents generated
+>   code from modifying safety configs, CI workflows, or `.env`; (b) a sandboxed test
+>   subprocess that strips `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and other secrets from
+>   the environment and enforces resource limits (CPU, memory, open files); (c) a hard
+>   iteration cap (`max_iterations`, default 1000) with stuck-generator circuit breakers.
+> - **Tier 2 (container isolation):** (a) each variant test runs in a fresh Docker
+>   container with `network_disabled=True`, blocking all network exfiltration; (b) the
+>   container starts from an empty environment — no host env vars, no `.env` mount, no
+>   secret files (three-layer no-host-secrets guarantee); (c) resource caps enforced via
+>   cgroups (`--cpus`, `--memory`, `--pids-limit`) with validated config ranges; (d) read-
+>   only root filesystem with size-limited tmpfs for `/tmp`; (e) variant-controlled inputs
+>   (image ref, command, mount paths) are validated against strict allowlists before
+>   reaching the Docker API; (f) automatic container cleanup on success, failure, or
+>   timeout.
+>
+> Tier 2 requires the host Docker socket (`/var/run/docker.sock`) mounted into the
+> EVOSEAL container. Add to `docker-compose.evoseal.yml` volumes:
+> `/var/run/docker.sock:/var/run/docker.sock`. Install with `pip install -e ".[container]"`
+> to enable the Docker SDK dependency. Without Docker, the system runs at Tier 1 with no
+> loss of functionality.
+>
+> **Security note:** the Docker socket mount is a privileged surface — a compromised
+> EVOSEAL process could spawn arbitrary containers on the host. This is acceptable under
+> the current single-operator, single-host trust model (ADR 0001 §2.1). If the trust model
+> changes (trigger #2: multi-tenant host), replace this mechanism with a rootless nested
+> runtime or Kubernetes-based approach.
 
 **Answer to the DoD's framing — "if Git rollback is sufficient, explain why the threat
 model doesn't require isolation":** Git rollback *is* sufficient for **recovery** and is
@@ -283,3 +306,61 @@ precedent set by 2.13–2.15):
 No change to Option C as the chosen model (tiered, trigger-gated) — this amendment fires
 the trigger the model always said would promote Tier 2, it does not revisit the model
 itself.
+
+**Amendment — 2026-09-15: Tier 2 implemented — T2-2 through T2-6 landed.**
+
+Tier 2 container isolation is now implemented and default-on. Section 4 tier table,
+"Current state" block, and operator guidance updated above to reflect the implemented
+state. The implementation follows ADR 0006's chosen mechanism (sibling container via host
+Docker socket).
+
+**What landed (T2-2–T2-6):**
+
+- **T2-2 — `ContainerSandbox` class** (`evoseal/core/container_sandbox.py`). Spawns a fresh,
+  network-disabled Docker container per variant test execution via `docker.from_env()`.
+  Input sanitization: image ref regex, command prefix allowlist, mount source path
+  containment. Read-only root filesystem with tmpfs `/tmp`. Automatic cleanup on success,
+  failure, timeout, and Docker API errors. `from_config()` classmethod for
+  `configs/safety.yaml` integration. `docker>=7.0.0` added as optional `[container]` extra.
+- **T2-3 — No-host-secrets guarantee.** Three-layer protection: (1) environment isolation —
+  container starts from `environment={}`, never inherits `os.environ`; (2) secret-file
+  mount rejection — `_is_secret_file()` pattern matcher blocks `.env`, `*.key`, `*.pem`,
+  SSH keys, `.netrc`, `.pypirc`, service account files; (3) read-only root filesystem
+  prevents persistent state planting. `blocked_mount_patterns` added to `configs/safety.yaml`.
+- **T2-4 — Resource cap validation.** CPU (0.01–128), memory (1m–1024g), PID (1–4194304),
+  and timeout (1–86400s) limits validated at construction time. `_parse_memory_bytes()`
+  handles Docker-format strings (k/m/g/t suffixes). Limits enforced via cgroups,
+  superseding Tier 1's `resource.setrlimit`.
+- **T2-5 — Wired into `SandboxedTestRunner`.** New `use_container_sandbox` parameter
+  (`None`=auto-detect, `True`=require, `False`=disable). `_execute_in_container` mounts
+  repo root read-only at `/workspace`, sets `PYTHONPATH`, delegates to
+  `ContainerSandbox.run_variant_test()`. Graceful fallback to Tier 1 when Docker is
+  unavailable.
+- **T2-6 — 43 adversarial safety tests.** Covers network exfiltration, resource exhaustion,
+  filesystem boundary, secret exfiltration, and input validation attack vectors. Proves
+  Tier 2 closes gaps that Tier 1's shared-subprocess approach cannot.
+
+**Operator guidance:** the Tier 2 container sandbox activates automatically when Docker is
+available (detected at `SandboxedTestRunner` init time). To enable:
+
+1. Mount the host Docker socket in `docker-compose.evoseal.yml`:
+   `volumes: ["/var/run/docker.sock:/var/run/docker.sock"]`
+2. Install the Docker SDK: `pip install -e ".[container]"` (or `uv pip install -e
+   ".[container]"`).
+3. The `container_sandbox` section in `configs/safety.yaml` controls resource caps and
+   behavior. Defaults: 1 CPU, 512MB memory, 256 PIDs, 300s timeout, read-only root.
+
+Without Docker, the system runs at Tier 1 with no loss of functionality — the fallback is
+automatic and silent.
+
+**What changed from the 2026-09-03 amendment:** the status moved from "mandatory; not yet
+implemented" to "implemented & default-on". No change to the isolation model (Option C) or
+the trust-model analysis. Tier 0 (rollback) and Tier 1 (in-process guards) remain in place
+as lower tiers of the defense-in-depth stack.
+
+**Known limitation:** the Docker socket mount is a privileged surface (see operator guidance
+security note above). If EVOSEAL moves to a multi-tenant model (trigger #2), the sibling-
+container mechanism must be replaced with a rootless nested runtime. A follow-on hardening
+step is to place a socket proxy (e.g., `docker-socket-proxy`) in front of the mount,
+restricting the API surface to `containers.create`, `containers.start`, `containers.wait`,
+`containers.logs`, and `containers.remove` only.
