@@ -114,10 +114,14 @@
 - [ ] **T2-5. Wire Tier 2 into the sandboxed test runner** — route the existing
   `sandbox_enabled` code path (2.14) through the new container executor as the new default
   execution mode
-- [ ] **T2-6. Extend adversarial safety tests (2.4) for Tier 2** — add cases proving Tier 2
+- [x] **T2-6. Extend adversarial safety tests (2.4) for Tier 2** _(done 2026-09-13)_ — add cases proving Tier 2
   closes what Tier 1 could not: attempted network exfiltration from variant test code,
   attempted resource exhaustion, attempted read of a path visible under Tier 1's shared
   filesystem but not under Tier 2's container boundary
+  **⚠️ Caveat:** these tests encode the security spec via local mock ContainerConfig/validation
+  helpers, not the real ContainerSandbox (T2-2). "Done" here means "spec encoded" — the tests
+  do NOT verify that actual Docker/cgroup/network enforcement blocks these vectors. They become
+  real integration tests only when T2-2 lands and the mocks are swapped for real imports.
 - [ ] **T2-7. Update ADR 0001 "Current state" and operator guidance once T2-1–T2-6 land**,
   mirroring the 2026-07-19 Tier 1 amendment
 
@@ -342,7 +346,7 @@
 | Priority | Total | Done | Notes |
 |----------|-------|------|-------|
 | 🔴 P0    | 11    | 11   | Original 5 complete; all 6 critical bugs from 2026-07-22 whole-repo review fixed (PRs #74, #76-#79) |
-| 🟠 P1    | 30    | 24   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143); +7 Tier 2 container isolation tasks filed 2026-09-03 (ADR 0001 trigger #1 fired) |
+| 🟠 P1    | 30    | 25   | Original safety/integration items done; +12 high-priority bugs from 2026-07-22 review (3 CI/CD pipeline fixes: workflow_run name mismatch, requirements/ path, security gate bypass); signal-handler init fix; safety.yaml created; monitoring dashboard auth+CORS fix; DGM/OE job runner failed-status bug fix; DGM/OE adapter drift resolved; release pipeline fixed; `evoseal export` now uses real data; pipeline subcommands stubs fixed; SEAL knowledge retrieval fixed (PR #143); +7 Tier 2 container isolation tasks filed 2026-09-03 (ADR 0001 trigger #1 fired) |
 | 🟡 P2    | 30    | 30   | Co-evolution loop gaps (8 items, 8 done) + existing P2 + 13 medium bugs from 2026-07-22 review + 4 latent collect->train bugs found closing the loop (1 fixed, 1 new HF-format gap resolved); provider_manager health-check await fix; workflow-agent private-API/event-loop fix; checkpoint save/restore test; trust_remote_code security fix; safety-decision orchestration tests; structured improvement units; progressive rollout gating implemented; dashboard cost/token tracking; dashboard offline mode; generation diff view |
 | 🟢 P3    | 27    | 27   | Makefile, pre-commit, Docker, ADRs, ADR refresh, CHANGELOG complete; +11 hygiene items from 2026-07-22 review; Ollama provider retry/backoff fix; local_models TTL cache; workspace prompt file conventions; how-it-works tutorial; model_fine_tuner key validation; model_fine_tuner GPU availability check; PBT exploration ADR; multi-objective Pareto front visualization; local models Ollama setup docs; Ollama live E2E verification (9 integration tests against real Ollama instance); vLLM provider added; human-in-the-loop feedback interface; hyperparameter-space documentation; PBT feasibility spike |
 | **Total** | **99** | **92** | |
