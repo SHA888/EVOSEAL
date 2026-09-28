@@ -267,4 +267,4 @@ This ADR drives the following `TODO.md` items:
   is available.
 - **T2-6** — Extend adversarial safety tests for Tier 2 (network exfiltration, resource
   exhaustion, filesystem boundary).
-- **T2-7** — Update ADR 0001 "Current state" and operator guidance.
+- **T2-7** — Update ADR 0001 "Current state" and operator guidance. ✅ **Done** (2026-09-15).
