@@ -72,6 +72,9 @@ benchmarks = [
     "datasets>=2.10.0",
     "matplotlib>=3.5.0",
 ]
+container = [
+    "docker>=7.0.0",
+]
 
 cli = [
     "typer[all]>=0.12.0",
