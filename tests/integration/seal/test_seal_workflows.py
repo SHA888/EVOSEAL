@@ -31,8 +31,10 @@ TOTAL_ITERATIONS = 4  # Total number of iterations to run
 EXPECTED_SUCCESSFUL_ITERATIONS = 3  # Expected successful iterations (one fails)
 
 # Mock external dependencies
-sys.modules["docker"] = MagicMock()
-sys.modules["docker.errors"] = MagicMock()
+# Note: docker is NOT stubbed — it's a real installed test dependency and
+# evoseal.core.container_sandbox imports it for real; stubbing it here
+# would permanently poison sys.modules for the rest of the pytest-xdist
+# worker process (sys.modules is process-global, not per-file).
 
 from evoseal.integration.seal.seal_interface import SEALInterface
 from evoseal.models import Program
